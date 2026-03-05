@@ -1704,778 +1704,1301 @@ document.querySelectorAll('.ben,.eng,.pc,.qc').forEach(function(el){
 
 
 
-<!-- ═══ PROMOTER AI — Pure Vanilla JS, No Babel, No React, Instant Load ═══ -->
-<script>
-/* ═══════════════════════════════════════════════════════════════════
-   🚀  IPOWORK PROMOTER AI  —  VANILLA JS EDITION
-   Zero React. Zero Babel. Zero compile time. Instant load.
-   Pure DOM. Pure speed. 100% SEBI ICDR 2018 aligned.
-═══════════════════════════════════════════════════════════════════ */
 
+<!-- ═══ IPOWORK FULL PORTAL — All Tools Combined ═══ -->
+<script>
 (function(){
 'use strict';
 
-/* ── ASSISTANTS ── */
-var ASSISTANTS = [
-  {id:"eligibility",icon:"🏛️",name:"IPO Eligibility Checker",tagline:"SME or Main Board? Know exactly where you stand.",color:"#00CFEA",badge:"Free",cat:"Foundation",
-   desc:"Analyses your financials against SEBI ICDR 2018 eligibility criteria — SME vs Main Board.",
-   starters:["Check my SME IPO eligibility","Do I meet Main Board criteria?","What's blocking my eligibility?"],
-   sys:`You are the IPO Eligibility Checker for ipowork.com — a SEBI ICDR 2018 expert for Indian companies. When users share financial documents, images of balance sheets, P&L statements, GST returns, MCA filings or any other documents, extract the relevant numbers and analyse them for IPO eligibility.
+/* ═══════════════════════════════════════════
+   CONFIGURATION
+═══════════════════════════════════════════ */
+var WORKER_URL = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+var MODEL = 'claude-sonnet-4-20250514';
 
-SEBI SME IPO criteria (BSE SME / NSE Emerge):
-- Post-issue paid-up capital ≤ ₹25 Cr
-- Net tangible assets ≥ ₹3 Cr in latest audited year
-- Net worth ≥ ₹1 Cr; distributable profits in 2 of 3 preceding FYs (OR net worth ≥ ₹3 Cr)
-- Revenue typically ₹5–250 Cr; no winding-up/NCLT orders
+/* ═══════════════════════════════════════════
+   PORTAL STATE
+═══════════════════════════════════════════ */
+var P = {
+  role: 'company', // 'company' or 'mb'
+  view: 'dashboard',
+  airaInputs: {},
+  airaResult: null,
+  gapResult: null,
+  aidaResult: null,
+  mbMatchResult: null,
+  timelineResult: null,
+  aiAssistant: null,
+  aiHistory: [],
+  aiPendingAtts: [],
+  aiLoading: false,
+  aiRecording: false,
+  aiSearch: '',
+  aiCat: 'All',
+  dealFilter: 'all',
+  loading: false,
+};
 
-SEBI Main Board Regulation 26(1):
-- Net tangible assets ≥ ₹3 Cr for 3 consecutive years; net worth ≥ ₹15 Cr for 3 years
-- Distributable profits for 3 of last 5 years
-- OR Reg 26(2): net worth ≥ ₹1 Cr + issue size ≤ 5× pre-issue net worth
-
-Output format — always use these headers:
-#### Eligibility Result
-**SME IPO:** [ELIGIBLE / NOT ELIGIBLE / CONDITIONAL]
-**Main Board:** [ELIGIBLE / NOT ELIGIBLE / CONDITIONAL]
-#### Recommended Route
-#### Criteria Met ✅ [specific numbers vs thresholds]
-#### Gaps to Fix ⚠️ [exact shortfall + regulation reference + timeline]
-#### Your Immediate Next Step
-
-Always cite SEBI ICDR 2018 regulation numbers. No investment advice. No valuation.`},
-
-  {id:"financial",icon:"📊",name:"Financial Readiness Advisor",tagline:"Are your numbers IPO-grade? Find out before your MB does.",color:"#00C896",badge:"Free",cat:"Foundation",
-   desc:"Deep-dives P&L, balance sheet, cash flows — identifies every financial issue SEBI or your MB will flag.",
-   starters:["Review my 3-year financials","Find my audit red flags","Assess my working capital quality"],
-   sys:`You are the Financial Readiness Advisor for ipowork.com. When users share Excel, PDF, images or scanned documents of financials, audit reports, or tax returns, extract key numbers and assess IPO readiness.
-
-Extract from documents: revenue, PAT, EBITDA, debt, net worth, working capital, cash flows, audit qualifications. IPO-grade benchmarks: Revenue CAGR ≥15%; EBITDA ≥10% SME / ≥15% Main Board; 3 consecutive profitable years; D/E <2x; OCF should mirror PAT; zero audit qualifications.
-
-Output:
-#### Financial Readiness Score: [0-100]
-#### Status: [STRONG / ADEQUATE / NEEDS WORK / NOT READY]
-#### Numbers Extracted [table if docs provided]
-#### Strengths 💪 [specific numbers]
-#### Red Flags 🚨 [each with figures + regulation reference]
-#### Audit & Compliance Concerns
-#### Clean-Up Action Plan [specific steps + timeline]`},
-
-  {id:"compliance",icon:"⚖️",name:"SEBI Compliance Coach",tagline:"Navigate SEBI ICDR 2018 without a law degree.",color:"#F5A623",badge:"Premium",cat:"Legal & Compliance",
-   desc:"Plain-language answers to any SEBI ICDR 2018 question — promoter obligations, disclosures, lock-in, DRHP.",
-   starters:["Explain promoter lock-in rules","What's mandatory in the DRHP?","Post-listing LODR obligations?"],
-   sys:`You are the SEBI Compliance Coach for ipowork.com. Expert on SEBI ICDR 2018, SEBI LODR 2015, Companies Act 2013, SEBI circulars through 2024. When documents (show cause notices, SEBI letters, MCA filings) are uploaded, read and analyse them. Always cite exact regulation numbers.
-
-Key areas: eligibility (Reg 26-28), promoter lock-in (Reg 14-17), offer structure (Reg 4-6), DRHP disclosures (Reg 29-38, Schedule VIII), minimum public shareholding (Reg 18), insider trading (SEBI PIT 2015), post-listing LODR (Reg 17-27).
-
-Output:
-#### Direct Answer [precise and clear]
-#### Regulation(s) Cited [exact: "SEBI ICDR 2018, Regulation XX(Y)(Z)"]
-#### Practical Implication
-#### Common Mistakes [what promoters typically get wrong]
-#### Action Required [what to instruct CS or counsel]
-
-Regulatory information only. Recommend SEBI-registered legal counsel for formal opinions.`},
-
-  {id:"rpt",icon:"🔗",name:"RPT Cleanup Advisor",tagline:"Related Party Transactions are SEBI's top red flag. Fix them now.",color:"#F04E65",badge:"Premium",cat:"Legal & Compliance",
-   desc:"Identifies every problematic RPT from your documents and gives a step-by-step cleanup plan.",
-   starters:["Scan my balance sheet for RPT issues","Promoter loan cleanup plan","What RPTs need board approval?"],
-   sys:`You are the RPT Cleanup Advisor for ipowork.com. Analyse uploaded financial statements, MCA filings, audit reports or notes to accounts for related party transactions.
-
-Search for: promoter loans (unsecured), group company transactions, non-arm's-length pricing, director remuneration issues, guarantees, capital advances to group entities, dividend waivers. Reference: Companies Act 2013 S.188, SEBI ICDR Schedule VIII, SEBI LODR Reg 23.
-
-Output:
-#### RPT Risk Level: [CRITICAL 🔴 / HIGH 🟠 / MEDIUM 🟡 / LOW 🟢]
-#### Transactions Identified from Documents [Table: Transaction | Parties | Amount | Issue | Regulation]
-#### DRHP Disclosure Requirements [what Schedule VIII requires per transaction]
-#### Cleanup Priority Plan
-  **Immediate (before MB mandate):** [actions]
-  **3-month window:** [actions]
-  **Before DRHP filing:** [actions]
-#### Board Resolution Template [for each cleanup action]`},
-
-  {id:"board",icon:"👥",name:"Board & Governance Setup",tagline:"Build the SEBI-compliant board structure the first time.",color:"#8B7CF8",badge:"Premium",cat:"Legal & Compliance",
-   desc:"Guides board constitution, Independent Directors, mandatory committees, and post-listing governance.",
-   starters:["Review my current board structure","What committees are mandatory?","How to appoint Independent Directors?"],
-   sys:`You are the Board & Governance advisor for ipowork.com. When MCA filings, director details, or board documents are uploaded, extract current board composition and identify gaps.
-
-Requirements: min 3 directors, ≥1 woman director (CA S.149), ≥1/3 Independent post-listing (LODR Reg 17), Audit Committee (LODR Reg 18: 3 directors, 2/3 Independent, 1 financially literate), NRC (LODR Reg 19), Stakeholders Committee if 1000+ shareholders (LODR Reg 20), KMPs: MD/CEO, CFO, CS mandatory (CA S.203).
-
-Output:
-#### Current Board Analysis [directors from docs: Name | DIN | Classification | Tenure]
-#### Compliance Gaps [each gap + regulation + penalty]
-#### Recommended Board Structure
-#### Independent Director Profile Needed [qualification criteria per Schedule IV]
-#### Committee Setup Plan [each committee: members, terms, meeting frequency]
-#### 90-Day Action Plan [week-by-week with regulatory deadlines]`},
-
-  {id:"valuation",icon:"💰",name:"Valuation Intelligence",tagline:"Understand what drives your IPO price before your MB quotes it.",color:"#E8B040",badge:"Free",cat:"Strategy",
-   desc:"Sector multiples, peer benchmarks, pricing mechanics — educational valuation context only.",
-   starters:["What P/E multiple fits my sector?","How are SME IPOs priced?","What boosts my valuation?"],
-   sys:`You are the Valuation Intelligence advisor for ipowork.com. EDUCATIONAL valuation context only — never a formal valuation, investment advice, or price band recommendation. Always state this disclaimer clearly.
-
-When financials or annual reports are uploaded, extract metrics and contextualise against sector peers. Frameworks: P/E (profitable companies), EV/EBITDA (capital-intensive), P/Sales (high-growth). SME IPO allocation: 50% HNI, 50% Retail. Main Board: QIB 50%, NII 15%, Retail 35%.
-
-Output:
-#### Metrics Extracted [from docs: revenue, PAT, EBITDA, margins, growth rates]
-#### Sector Valuation Context [typical P/E and EV/EBITDA ranges with named listed peer examples]
-#### Illustrative Valuation Range ⚠️ [clearly marked as indicative and educational only]
-#### Premium Drivers ↑ [factors supporting higher multiples]
-#### Multiple Compression Risks ↓ [risks and sector headwinds]
-#### Recent Comparable IPOs [2-3 IPOs in similar sectors — issue P/E, listing premium]
-#### MB Negotiation Context [how to evaluate the MB's proposed price band]
-
-End every response: "Your SEBI-registered Merchant Banker will determine the final price band after due diligence and book building."`},
-
-  {id:"drhp",icon:"📋",name:"DRHP Preparation Coach",tagline:"Know every section of the 400-page DRHP before you pay lawyers ₹50L.",color:"#00D4B8",badge:"Premium",cat:"Documentation",
-   desc:"Every DRHP section explained with SEBI scrutiny points and MB data preparation guidance.",
-   starters:["Explain Objects of the Issue section","What financials must go in the DRHP?","How to write compliant risk factors?"],
-   sys:`You are the DRHP Preparation Coach for ipowork.com. Guide through DRHP structure per SEBI ICDR 2018 Schedule VIII. When annual reports, financial statements, or business documents are uploaded, identify DRHP content, gaps, and likely SEBI queries.
-
-DRHP mandatory sections (Schedule VIII): Cover Page (Reg 29), Risk Factors (Reg 29(1)(a)), Objects of Issue (Reg 29(1)(d)), Business Overview, Industry Overview, Key Regulations, Management & KMPs, Financial Statements (3yr audited restated + 6mo stub), Outstanding Litigation (Reg 29(1)(f)), Government Approvals, Related Party Transactions, Promoter & Group, Capital Structure.
-
-SEBI scrutiny hotspots: vague Objects of Issue, litigation disclosure (materiality = ₹1% of net worth or ₹1Cr+), restated financials (material adjustments disclosed), business section must match actual operations.
-
-Output:
-#### Section Analysis [clear explanation]
-#### From Your Documents [relevant content extracted if docs provided]
-#### SEBI Scrutiny Points [what SEBI examination team typically queries]
-#### Preparation Checklist [specific documents to gather]
-#### MB Due Diligence Questions on This Topic
-
-Note: Your MB and their counsel will draft and file the actual DRHP.`},
-
-  {id:"proceeds",icon:"🎯",name:"Use of Proceeds Planner",tagline:"Objects of Issue: SEBI's most-queried section. Get it right.",color:"#FF6B9D",badge:"Premium",cat:"Documentation",
-   desc:"Structures your use-of-proceeds plan to minimise SEBI queries and maximise investor confidence.",
-   starters:["Structure my capex-led Objects of Issue","Is my GCP amount SEBI-compliant?","How to compute working capital requirements?"],
-   sys:`You are the Use of Proceeds Planner for ipowork.com. When quotations, project reports, debt schedules, CA certificates or business plans are uploaded, build a compliant use-of-proceeds structure.
-
-SEBI ICDR 2018 Reg 29(1)(d) requirements: each object must be specific with amount, rationale. Capex needs vendor quotes and capacity details. Debt repayment needs lender name, rate, outstanding balance. Working capital needs CA certificate with methodology. GCP CANNOT exceed 25% of gross proceeds. Monitoring Agency required if issue >₹100Cr (ICDR Reg 41).
-
-SEBI query triggers: any vague object, GCP >25%, working capital without CA certificate, capex without quotes, objects mismatched to actual business, proceeds flowing to related parties.
-
-Output:
-#### Documents Reviewed [what was extracted]
-#### Objects Assessment [each object: ✅ Compliant / ⚠️ Needs work / 🚨 SEBI query risk]
-#### GCP Compliance Check [calculation: is GCP ≤ 25%? If not, what to do]
-#### Proposed Objects Table [Object | Amount ₹Cr | % of Proceeds | Supporting Docs Needed]
-#### Supporting Documents Checklist [specific documents needed before DRHP filing]
-#### Red Lines [objects SEBI will reject outright]`},
-
-  {id:"promoterlock",icon:"🔐",name:"Promoter Lock-In Calculator",tagline:"Exactly which shares are locked and for how long.",color:"#F5A623",badge:"Free",cat:"Strategy",
-   desc:"Computes full promoter lock-in schedule under SEBI ICDR Reg 14-17 for every promoter entity.",
-   starters:["Calculate my complete lock-in schedule","How much can I offer in OFS?","Lock-in rules for recently allotted shares"],
-   sys:`You are the Promoter Lock-In Calculator for ipowork.com. When shareholding patterns, MCA filings, share allotment history, cap table documents or demat account statements are uploaded, extract shareholding data and compute lock-in obligations.
-
-SEBI ICDR 2018 Lock-in Rules (Reg 14-17, amended 2021):
-MAIN BOARD: 20% of post-issue capital → locked 18 months from allotment; remaining promoter holding above 20% → locked 6 months; shares acquired <1yr for non-cash consideration → locked 3 years.
-SME: Minimum 20% promoter holding mandatory; this 20% → locked 3 years from allotment; balance → locked 1 year.
-OFS capacity = shares NOT in lock-in.
-
-Output:
-#### Shareholding Extracted [from docs — Promoter/Entity | Shares | % Pre-Issue | Date Acquired | Consideration]
-#### Post-Issue Capital Computation [step-by-step calculation]
-#### Lock-In Schedule [table: Promoter/Entity | Shares | Lock Category | Unlock Date]
-#### 20% Minimum Calculation [which shares satisfy mandatory 20%]
-#### OFS Availability [maximum shares any promoter can offer in OFS]
-#### Post-IPO Minimum Holding [minimum to maintain MPS compliance]`},
-
-  {id:"mb",icon:"🏦",name:"Merchant Banker Selector",tagline:"Choose the right MB for your deal — not just the cheapest.",color:"#C8961E",badge:"Free",cat:"Strategy",
-   desc:"Evaluates MB proposals, negotiates fees, and identifies the right tier of banker for your deal.",
-   starters:["Evaluate this MB proposal","What are typical MB fees for SME IPO?","10 due diligence questions for MBs"],
-   sys:`You are the Merchant Banker Selector for ipowork.com. When MB proposal documents, term sheets, mandate letters, or fee structures are uploaded, analyse them for suitability and market-standard terms.
-
-MB tier context for India: Tier 1 Elite (Axis Capital, JM Financial, IIFL, Kotak — Main Board ₹300Cr+); Tier 2 Growth (Pantomath, Beeline, Hem Securities — SME and mid-market); Tier 3 SME Specialists (Sarthi, Expert Global, Vivro — SME focus); Tier 4 Regional SEBI-registered MBs.
-
-Typical fees: SME IPO 2-3.5% of issue size; Main Board 1-2%; Retainer ₹10-25L non-refundable. Red flags: no named execution team, vague timelines, no sector track record, unusually low fees, high GCP insistence.
-
-Output:
-#### Proposal/Document Analysis [extract and review specific terms from uploads]
-#### MB Suitability Assessment [tier match, sector fit, track record]
-#### Fee Analysis [is fee structure market-standard? what's negotiable?]
-#### Red Flags Found [specific issues with recommended response]
-#### Negotiation Leverage Points [where you have room to negotiate]
-#### 10 Due Diligence Questions for This MB [customised to their profile]`},
-
-  {id:"investor",icon:"🎤",name:"Investor Q&A Coach",tagline:"Prepare for the questions that make or break your subscription.",color:"#7ED321",badge:"Premium",cat:"Investor Readiness",
-   desc:"Coaches you on QIB roadshow, HNI, and analyst Q&A with precise SEBI-compliant answers.",
-   starters:["Prepare me for investor roadshow","Likely analyst questions for my sector","How to handle tough negative questions?"],
-   sys:`You are the Investor Q&A Coach for ipowork.com. When business documents, annual reports, or DRHP drafts are uploaded, generate specific investor questions from that content.
-
-SEBI-compliant communication rules during IPO: no earnings guidance or forward-looking projections during quiet period; all material information must be in DRHP; no selective disclosure; cannot comment on whether price is cheap or expensive; must acknowledge all material risks in DRHP.
-
-Question categories: business moat and competitive position, revenue concentration and customer dependency, promoter background and RPT concerns, use of proceeds and return timeline, working capital management, regulatory risks, management depth, growth strategy, peer comparison and valuation justification, post-lock-in dilution plans.
-
-Output:
-#### Company Profile [key facts from uploaded documents]
-#### Your IPO Story [synthesised compelling roadshow narrative]
-#### Question Bank (10-15 questions) — for each:
-  **Q:** [tough, realistic investor question]
-  **The concern behind it:** [what they're really worried about]
-  **Strong answer:** [compelling, SEBI-compliant response framework]
-  **Never say:** [what damages your story or breaches SEBI rules]
-#### Deal-Breaker Objections [top 3 concerns that could kill subscriptions + rebuttals]
-#### Red Lines in Investor Meetings [SEBI-sensitive statements to avoid absolutely]`},
-
-  {id:"timeline",icon:"🗓️",name:"IPO Timeline Planner",tagline:"Your week-by-week roadmap from today to listing day.",color:"#00CFEA",badge:"Free",cat:"Planning",
-   desc:"Personalised IPO preparation timeline with every milestone, deadline, and cost mapped out.",
-   starters:["Build my IPO timeline for FY26 listing","What's on the IPO critical path?","How long does SEBI review actually take?"],
-   sys:`You are the IPO Timeline Planner for ipowork.com. When AIRA scores, gap analyses, or company information is provided, build a precise, realistic IPO timeline.
-
-Standard durations: Preparation phase 3-18 months depending on gaps (auditor upgrade 2-3mo, RPT cleanup 3-6mo, board constitution 2-3mo, MCA/ROC compliance 1-2mo); MB mandate to DRHP filing 3-4 months (DD 6-8 weeks, DRHP drafting 4-6 weeks); SEBI review 45-120 days (typical 3-4 months with queries); post-OL to listing 8-12 weeks. SEBI fees 0.1% of issue size.
-
-Output:
-#### Current Status Assessment [gaps identified and duration impact]
-#### Realistic Listing Target [earliest achievable date]
-#### Phase-by-Phase Timeline [week-by-week milestones, responsible party]
-#### Critical Path [3-4 items that determine your listing date]
-#### Cost Estimate [table: MB fee | Legal | Auditor/Restatement | SEBI fees | Exchange | Registrar | Advertising | Contingency]
-#### Risk Scenarios
-  Optimistic: [if everything goes smoothly]
-  Base case: [realistic with normal delays]
-  Delayed: [if major gap surfaces in SEBI review]`},
-
-  {id:"postlisting",icon:"📈",name:"Post-Listing Compliance Guide",tagline:"Listing day is Day 1 of being a public company. Are you ready?",color:"#8B7CF8",badge:"Free",cat:"Planning",
-   desc:"All post-listing obligations: LODR, quarterly results, insider trading, material disclosures.",
-   starters:["Give me a post-listing compliance calendar","When can I sell my promoter shares?","What counts as a material event for disclosure?"],
-   sys:`You are the Post-Listing Compliance Guide for ipowork.com. When listing agreements, LODR compliance reports, or board minutes are uploaded, review compliance status.
-
-SEBI LODR 2015 key obligations: Quarterly results within 45 days (Q4: 60 days) — LODR Reg 33; Annual Report within 21 working days of AGM — Reg 34; Board meetings minimum 4/year, max 120-day gap — Reg 17; Material events within 24 hours — Reg 30; Shareholding pattern within 21 days of quarter end — Reg 31; Trading window closed 48hrs BEFORE results, reopens 24hrs AFTER — SEBI PIT 2015; Pre-clearance for trades by KMPs above threshold; Contra-trade restriction 6 months; Minimum 25% public shareholding.
-
-Material events include: new orders >10% revenue, management changes, litigation, JV/acquisition, NCLT order, regulatory action, fund raising.
-
-Output:
-#### Document Review [current compliance status from uploads]
-#### Compliance Calendar Year 1 [month-by-month schedule]
-#### Insider Trading Window Schedule [based on quarter-end dates]
-#### Material Event Checklist [events requiring immediate exchange notification]
-#### Common Year-1 Penalties [what listed companies most often get penalised for + fine amounts]
-#### Day-1 Systems Setup Checklist [compliance software, legal retainer, IR firm, etc.]`}
-];
-
-var CATS = ["Foundation","Legal & Compliance","Documentation","Strategy","Investor Readiness","Planning"];
-
-/* ── State ── */
-var state = { view:'home', assistant:null, history:[], pendingAtts:[], isLoading:false, isRecording:false, search:'', cat:'All' };
+var $portal, $root;
 var recognition = null;
 var cameraStream = null;
 
-/* ── DOM refs ── */
-var $portal, $root;
+/* ═══════════════════════════════════════════
+   AIRA PARAMETERS
+═══════════════════════════════════════════ */
+var AIRA_PARAMS = [
+  { id:'rev_cagr', cat:'financial', label:'Revenue CAGR (3 years)', type:'select',
+    options:['≥25% (Strong growth)','15–25% (Good growth)','5–15% (Moderate)','<5% or declining'],
+    scores:[8,5,2,0], help:'Average annual revenue growth over last 3 financial years' },
+  { id:'pat_margin', cat:'financial', label:'PAT (Net Profit) Margin', type:'select',
+    options:['≥12% (Excellent)','7–12% (Good)','3–7% (Adequate)','<3% or losses'],
+    scores:[7,4,2,0], help:'Net profit after tax as % of revenue in latest FY' },
+  { id:'profitability', cat:'financial', label:'3-Year Profitability Track Record', type:'select',
+    options:['Profitable all 3 years','Profitable 2 of 3 years','Profitable 1 of 3 years','Loss-making recently'],
+    scores:[8,4,1,0], help:'SEBI requires distributable profits in 2 of last 3 years for SME IPO' },
+  { id:'debt_equity', cat:'financial', label:'Debt/Equity Ratio', type:'select',
+    options:['<0.5x (Very low debt)','0.5–1.0x (Manageable)','1.0–2.0x (High)','> 2.0x (Very high)'],
+    scores:[7,4,1,0], help:'Total debt divided by net worth. Lower is better for IPO valuation' },
+  { id:'working_capital', cat:'financial', label:'Working Capital Position', type:'select',
+    options:['Comfortable positive WC','Adequate positive WC','Tight but positive','Negative working capital'],
+    scores:[5,3,1,0], help:'Current assets minus current liabilities' },
+  { id:'audit_qual', cat:'financial', label:'Audit Qualifications', type:'select',
+    options:['Clean (unqualified) audit report','Minor observations only','Qualified opinion','Adverse/disclaimer opinion'],
+    scores:[5,2,0,0], help:'SEBI scrutinises audit qualifications very closely in DRHP review' },
+  { id:'roc_filings', cat:'compliance', label:'ROC/MCA Filing Compliance', type:'select',
+    options:['All filings current (0 defaults)','1–2 minor delays in past','Multiple delays','Significant defaults'],
+    scores:[7,4,1,0], help:'Annual returns, financial statements, event-based filings with MCA' },
+  { id:'board', cat:'compliance', label:'Board Constitution', type:'select',
+    options:['SEBI-ready (IDs, woman director, committees)','Partially compliant','Basic board only','Non-compliant'],
+    scores:[7,4,1,0], help:'Independent Directors, woman director, Audit Committee per Companies Act' },
+  { id:'rpt', cat:'compliance', label:'Related Party Transactions', type:'select',
+    options:['Clean / fully documented at arm\'s length','Minor RPTs being cleaned up','Significant RPTs present','Major promoter RPTs / loans'],
+    scores:[6,3,1,0], help:'Promoter loans, group company transactions, non-arm\'s-length pricing' },
+  { id:'statutory', cat:'compliance', label:'Tax & Statutory Compliance', type:'select',
+    options:['All taxes paid, no disputes','Minor pending matters','Moderate tax disputes','Significant tax/statutory issues'],
+    scores:[5,3,1,0], help:'GST, income tax, PF, ESIC, labour law compliance' },
+  { id:'revenue_size', cat:'market', label:'Annual Revenue Size', type:'select',
+    options:['₹50–300 Cr (SME sweet spot)','₹300–1000 Cr (Main Board candidate)','₹20–50 Cr (Early stage)','<₹20 Cr or >₹1000 Cr'],
+    scores:[7,6,3,1], help:'Revenue determines SME vs Main Board routing' },
+  { id:'sector', cat:'market', label:'Sector / Industry Timing', type:'select',
+    options:['Hot sector with strong subscriptions','Neutral sector with steady demand','Challenging sector currently','Out-of-favour sector'],
+    scores:[7,4,2,0], help:'IPO market timing by sector significantly impacts subscription rates' },
+  { id:'competitive', cat:'market', label:'Competitive Position', type:'select',
+    options:['Market leader or clear niche','Strong competitive position','Competitive but undifferentiated','Weak competitive position'],
+    scores:[6,4,2,0], help:'Investor confidence is driven by defensible market position' },
+  { id:'promoter_bg', cat:'promoter', label:'Promoter Background & Track Record', type:'select',
+    options:['Clean background, 10+ years sector experience','Good background, few years experience','Limited experience or minor issues','Significant concerns or disputes'],
+    scores:[6,4,2,0], help:'SEBI and investors scrutinise promoter background extensively' },
+  { id:'mgmt_depth', cat:'promoter', label:'Management Depth Beyond Promoter', type:'select',
+    options:['Strong professional team (CFO, CS, CXOs in place)','Partial team — some key hires done','Mostly promoter-dependent','Entirely promoter-run'],
+    scores:[5,3,1,0], help:'Post-IPO governance requires professional management team' },
+  { id:'promoter_holding', cat:'promoter', label:'Pre-IPO Promoter Shareholding', type:'select',
+    options:['60–75% (Ideal range)','50–60% or 75–85%','40–50% or 85–90%','<40% or >90%'],
+    scores:[4,3,2,1], help:'Too low = control concern; too high = low public float post-IPO' },
+];
 
-/* ── INIT ── */
-window.mountAI = function(){
-  $portal = document.getElementById('ai-portal');
-  $root = document.getElementById('ai-root');
-  renderApp();
+var CAT_META = {
+  financial:  { label:'Financial Strength',       weight:40, icon:'💰', color:'#00C896' },
+  compliance: { label:'Compliance & Governance',  weight:25, icon:'⚖️', color:'#00CFEA' },
+  market:     { label:'Market & IPO Fit',          weight:20, icon:'📊', color:'#C8961E' },
+  promoter:   { label:'Promoter Readiness',        weight:15, icon:'👤', color:'#8B7CF8' },
 };
 
-/* ── RENDER ROUTER ── */
-function renderApp(){
+/* ═══════════════════════════════════════════
+   MB DEAL FLOW (simulated)
+═══════════════════════════════════════════ */
+var MB_DEALS = [
+  { code:'IPW-3842', sector:'Manufacturing', size:'₹45–65 Cr', aira:82, status:'HOT', board:'SME', stage:'AIDA Complete', age:'2 days ago' },
+  { code:'IPW-2917', sector:'Healthcare', size:'₹120–180 Cr', aira:76, status:'HOT', board:'Main Board', stage:'MB Selection', age:'3 days ago' },
+  { code:'IPW-5531', sector:'Technology', size:'₹30–50 Cr', aira:68, status:'WARM', board:'SME', stage:'Gap Remediation', age:'5 days ago' },
+  { code:'IPW-1204', sector:'FMCG', size:'₹80–110 Cr', aira:71, status:'WARM', board:'SME', stage:'AIRA Complete', age:'1 week ago' },
+  { code:'IPW-7763', sector:'Logistics', size:'₹200–280 Cr', aira:79, status:'HOT', board:'Main Board', stage:'DRHP Prep', age:'1 week ago' },
+  { code:'IPW-4489', sector:'Education', size:'₹25–40 Cr', aira:61, status:'PIPELINE', board:'SME', stage:'Gap Remediation', age:'2 weeks ago' },
+  { code:'IPW-6614', sector:'Chemicals', size:'₹55–75 Cr', aira:74, status:'WARM', board:'SME', stage:'MB Selection', age:'2 weeks ago' },
+  { code:'IPW-9021', sector:'Retail', size:'₹35–55 Cr', aira:58, status:'PIPELINE', board:'SME', stage:'AIRA Complete', age:'3 weeks ago' },
+];
+
+/* ═══════════════════════════════════════════
+   PROMOTER AI ASSISTANTS
+═══════════════════════════════════════════ */
+var ASSISTANTS = [
+  {id:"eligibility",icon:"🏛️",name:"IPO Eligibility Checker",tagline:"SME or Main Board? Know exactly where you stand.",color:"#00CFEA",badge:"Free",cat:"Foundation",
+   starters:["Check my SME IPO eligibility","Do I meet Main Board criteria?","What's blocking my eligibility?"],
+   sys:`You are the IPO Eligibility Checker for ipowork.com — a SEBI ICDR 2018 expert for Indian companies. When users share financial documents, images of balance sheets, P&L statements, GST returns, MCA filings or any other documents, extract the relevant numbers and analyse them for IPO eligibility.
+
+SEBI SME IPO criteria (BSE SME / NSE Emerge): Post-issue paid-up capital ≤ ₹25 Cr; Net tangible assets ≥ ₹3 Cr; Net worth ≥ ₹1 Cr; distributable profits in 2 of 3 preceding FYs.
+SEBI Main Board Regulation 26(1): Net tangible assets ≥ ₹3 Cr for 3 consecutive years; net worth ≥ ₹15 Cr for 3 years; distributable profits for 3 of last 5 years.
+
+Always output: Eligibility Result, Recommended Route, Criteria Met ✅, Gaps to Fix ⚠️, Immediate Next Step. Cite SEBI ICDR 2018 regulation numbers.`},
+  {id:"financial",icon:"📊",name:"Financial Readiness Advisor",tagline:"Are your numbers IPO-grade?",color:"#00C896",badge:"Free",cat:"Foundation",
+   starters:["Review my 3-year financials","Find my audit red flags","Assess my working capital"],
+   sys:`You are the Financial Readiness Advisor for ipowork.com. Analyse uploaded financial documents for IPO readiness. Extract revenue, PAT, EBITDA, debt, net worth, working capital, cash flows, audit qualifications. IPO benchmarks: Revenue CAGR ≥15%; EBITDA ≥10% SME; 3 consecutive profitable years; D/E <2x; clean audit.
+Output: Financial Readiness Score (0-100), Status, Numbers Extracted, Strengths, Red Flags, Action Plan.`},
+  {id:"compliance",icon:"⚖️",name:"SEBI Compliance Coach",tagline:"Navigate SEBI ICDR 2018 without a law degree.",color:"#F5A623",badge:"Premium",cat:"Legal & Compliance",
+   starters:["Explain promoter lock-in rules","What's mandatory in the DRHP?","Post-listing LODR obligations?"],
+   sys:`You are the SEBI Compliance Coach for ipowork.com. Expert on SEBI ICDR 2018, SEBI LODR 2015, Companies Act 2013. Always cite exact regulation numbers. Output: Direct Answer, Regulation(s) Cited, Practical Implication, Common Mistakes, Action Required.`},
+  {id:"rpt",icon:"🔗",name:"RPT Cleanup Advisor",tagline:"Related Party Transactions are SEBI's top red flag.",color:"#F04E65",badge:"Premium",cat:"Legal & Compliance",
+   starters:["Scan my balance sheet for RPT issues","Promoter loan cleanup plan","What RPTs need board approval?"],
+   sys:`You are the RPT Cleanup Advisor for ipowork.com. Analyse financial statements for related party transactions. Reference: Companies Act 2013 S.188, SEBI ICDR Schedule VIII, SEBI LODR Reg 23.
+Output: RPT Risk Level, Transactions Identified, DRHP Disclosure Requirements, Cleanup Priority Plan.`},
+  {id:"board",icon:"👥",name:"Board & Governance Setup",tagline:"Build the SEBI-compliant board structure.",color:"#8B7CF8",badge:"Premium",cat:"Legal & Compliance",
+   starters:["Review my current board structure","What committees are mandatory?","How to appoint Independent Directors?"],
+   sys:`You are the Board & Governance advisor for ipowork.com. Requirements: min 3 directors, ≥1 woman director, ≥1/3 Independent post-listing (LODR Reg 17), Audit Committee (LODR Reg 18), NRC (LODR Reg 19).
+Output: Current Board Analysis, Compliance Gaps, Recommended Structure, Independent Director Profile, Committee Setup Plan, 90-Day Action Plan.`},
+  {id:"valuation",icon:"💰",name:"Valuation Intelligence",tagline:"Understand what drives your IPO price.",color:"#E8B040",badge:"Free",cat:"Strategy",
+   starters:["What P/E multiple fits my sector?","How are SME IPOs priced?","What boosts my valuation?"],
+   sys:`You are the Valuation Intelligence advisor for ipowork.com. EDUCATIONAL context only — never a formal valuation or investment advice. Frameworks: P/E, EV/EBITDA, P/Sales. Output: Metrics Extracted, Sector Context, Illustrative Range ⚠️, Premium Drivers, Risks, Comparable IPOs, MB Negotiation Context.`},
+  {id:"drhp",icon:"📋",name:"DRHP Preparation Coach",tagline:"Know every section of the DRHP.",color:"#00D4B8",badge:"Premium",cat:"Documentation",
+   starters:["Explain Objects of the Issue","What financials must go in the DRHP?","How to write compliant risk factors?"],
+   sys:`You are the DRHP Preparation Coach for ipowork.com. Guide through DRHP structure per SEBI ICDR 2018 Schedule VIII. SEBI scrutiny hotspots: vague Objects of Issue, litigation disclosure, restated financials.
+Output: Section Analysis, Document Content, SEBI Scrutiny Points, Preparation Checklist, MB Due Diligence Questions.`},
+  {id:"proceeds",icon:"🎯",name:"Use of Proceeds Planner",tagline:"Objects of Issue: SEBI's most-queried section.",color:"#FF6B9D",badge:"Premium",cat:"Documentation",
+   starters:["Structure my capex-led Objects of Issue","Is my GCP amount SEBI-compliant?","Compute working capital requirements"],
+   sys:`You are the Use of Proceeds Planner for ipowork.com. SEBI ICDR 2018 Reg 29(1)(d): each object must be specific with amount and rationale. GCP CANNOT exceed 25% of gross proceeds. Monitoring Agency required if issue >₹100Cr.
+Output: Objects Assessment, GCP Compliance Check, Proposed Objects Table, Supporting Documents Checklist, Red Lines.`},
+  {id:"promoterlock",icon:"🔐",name:"Promoter Lock-In Calculator",tagline:"Exactly which shares are locked and for how long.",color:"#F5A623",badge:"Free",cat:"Strategy",
+   starters:["Calculate my complete lock-in schedule","How much can I offer in OFS?","Lock-in rules for recently allotted shares"],
+   sys:`You are the Promoter Lock-In Calculator for ipowork.com. SEBI ICDR 2018 Lock-in Rules (Reg 14-17): Main Board: 20% of post-issue capital → locked 18 months; remaining promoter → 6 months. SME: 20% → 3 years; balance → 1 year.
+Output: Shareholding Extracted, Post-Issue Capital Computation, Lock-In Schedule Table, 20% Minimum Calculation, OFS Availability.`},
+  {id:"mb",icon:"🏦",name:"Merchant Banker Selector",tagline:"Choose the right MB — not just the cheapest.",color:"#C8961E",badge:"Free",cat:"Strategy",
+   starters:["Evaluate this MB proposal","What are typical MB fees for SME IPO?","10 due diligence questions for MBs"],
+   sys:`You are the Merchant Banker Selector for ipowork.com. MB tier context: Tier 1 Elite (Axis Capital, JM Financial, IIFL, Kotak); Tier 2 Growth (Pantomath, Beeline, Hem Securities); Tier 3 SME Specialists.
+Output: Proposal Analysis, MB Suitability, Fee Analysis, Red Flags, Negotiation Points, 10 DD Questions.`},
+  {id:"investor",icon:"🎤",name:"Investor Q&A Coach",tagline:"Prepare for questions that make or break subscriptions.",color:"#7ED321",badge:"Premium",cat:"Investor Readiness",
+   starters:["Prepare me for investor roadshow","Likely analyst questions for my sector","Handle tough negative questions"],
+   sys:`You are the Investor Q&A Coach for ipowork.com. SEBI-compliant communication rules: no earnings guidance, no selective disclosure, all material info in DRHP.
+Output: Company Profile, IPO Story, Question Bank (10-15 Q&As with concerns + strong answers + never-say), Deal-Breaker Objections, Red Lines.`},
+  {id:"timeline",icon:"🗓️",name:"IPO Timeline Planner",tagline:"Your week-by-week roadmap to listing day.",color:"#00CFEA",badge:"Free",cat:"Planning",
+   starters:["Build my IPO timeline for FY26 listing","What's on the IPO critical path?","How long does SEBI review take?"],
+   sys:`You are the IPO Timeline Planner for ipowork.com. Standard durations: Preparation 3-18 months; MB mandate to DRHP filing 3-4 months; SEBI review 45-120 days; post-OL to listing 8-12 weeks.
+Output: Current Status, Realistic Listing Target, Phase-by-Phase Timeline, Critical Path, Cost Estimate Table, Risk Scenarios (Optimistic/Base/Delayed).`},
+  {id:"postlisting",icon:"📈",name:"Post-Listing Compliance Guide",tagline:"Listing day is Day 1 of being a public company.",color:"#8B7CF8",badge:"Free",cat:"Planning",
+   starters:["Post-listing compliance calendar","When can I sell my promoter shares?","What counts as a material event?"],
+   sys:`You are the Post-Listing Compliance Guide for ipowork.com. SEBI LODR 2015: Quarterly results within 45 days; Board meetings min 4/year; Material events within 24 hours (Reg 30); Trading window SEBI PIT 2015.
+Output: Document Review, Compliance Calendar Year 1, Insider Trading Window Schedule, Material Event Checklist, Common Year-1 Penalties, Day-1 Systems Setup Checklist.`},
+];
+
+var AI_CATS = ["Foundation","Legal & Compliance","Documentation","Strategy","Investor Readiness","Planning"];
+
+/* ═══════════════════════════════════════════
+   MOUNT
+═══════════════════════════════════════════ */
+window.mountAI = function(){
+  $portal = document.getElementById('ai-portal');
+  $root   = document.getElementById('ai-root');
+  // Detect role from registration
+  if(window.REG && window.REG.role === 'mb') P.role = 'mb';
+  else P.role = 'company';
+  P.view = 'dashboard';
+  renderPortal();
+};
+
+/* ═══════════════════════════════════════════
+   MAIN RENDER
+═══════════════════════════════════════════ */
+function renderPortal(){
   if(!$root) return;
-  if(state.view === 'chat') renderChat();
-  else renderHome();
+  var html = '<div id="portal-wrap" style="display:flex;height:100%;background:#06101A;font-family:\'Sora\',sans-serif;overflow:hidden;">';
+  html += renderSidebar();
+  html += '<div id="portal-main" style="flex:1;overflow-y:auto;min-width:0;">';
+  html += renderView();
+  html += '</div></div>';
+  $root.innerHTML = html;
 }
 
-/* ════════════════════════════════════════════
-   HOME SCREEN
-════════════════════════════════════════════ */
-function renderHome(){
-  var search = state.search.toLowerCase();
-  var filtered = ASSISTANTS.filter(function(a){
-    return (state.cat==='All'||a.cat===state.cat) &&
-           (!search||a.name.toLowerCase().includes(search)||a.tagline.toLowerCase().includes(search));
-  });
+/* ─── SIDEBAR ─── */
+function renderSidebar(){
+  var isMB = P.role === 'mb';
+  var navItems = [
+    { id:'dashboard', icon:'🏠', label:'Dashboard' },
+  ];
+  if(!isMB){
+    navItems = navItems.concat([
+      { id:'aira', icon:'🎯', label:'AIRA Score', badge:'FREE' },
+      { id:'gap',  icon:'📋', label:'Gap Analysis', badge:'AI' },
+      { id:'aida', icon:'📄', label:'Document Analysis', badge:'AI' },
+      { id:'mb-match', icon:'🏦', label:'MB Matcher', badge:'AI' },
+      { id:'timeline', icon:'🗓️', label:'IPO Timeline', badge:'AI' },
+    ]);
+  } else {
+    navItems = navItems.concat([
+      { id:'deals',    icon:'🔗', label:'Deal Flow', badge:'LIVE' },
+      { id:'hot-leads',icon:'⚡', label:'Hot Leads', badge:'3' },
+      { id:'pipeline', icon:'📊', label:'Pipeline', badge:'' },
+    ]);
+  }
+  navItems.push({ id:'ai', icon:'🤖', label:'Promoter AI', badge:'13' });
 
-  var catGroups = state.cat==='All' ? CATS : [state.cat];
-
-  var html = '<div style="display:flex;flex-direction:column;height:100%;background:#06101A;font-family:\'Sora\',sans-serif;">';
-
-  /* Header */
-  html += '<div style="padding:0 20px;border-bottom:1px solid rgba(0,207,234,.09);background:#0B1A28;flex-shrink:0;">';
-  html += '<div style="height:56px;display:flex;align-items:center;justify-content:space-between;">';
-  html += '<div style="display:flex;align-items:center;gap:12px;">';
-  html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 13px 4px 8px;border-radius:9px;background:rgba(200,150,30,.08);border:1px solid rgba(200,150,30,.18);">';
-  html += '<span style="font-size:16px;">🚀</span>';
-  html += '<div><div style="font-family:\'Fraunces\',serif;font-size:14px;font-weight:900;color:#fff;line-height:1;">IPOWORK <span style="color:#C8961E;">PROMOTER AI</span></div>';
-  html += '<div style="font-size:7px;color:#354D62;letter-spacing:1.2px;text-transform:uppercase;margin-top:1px;">SEBI ICDR 2018 · Multimodal</div></div></div>';
-  html += '<span style="font-size:9px;color:#6A94B4;padding:3px 9px;border-radius:99px;background:rgba(0,200,150,.07);border:1px solid rgba(0,200,150,.15);font-weight:600;text-transform:uppercase;letter-spacing:.4px;">'+ASSISTANTS.length+' Assistants</span>';
+  var html = '<div id="portal-sidebar" style="width:200px;flex-shrink:0;background:#0B1A28;border-right:1px solid rgba(0,207,234,.09);display:flex;flex-direction:column;overflow-y:auto;">';
+  // Logo
+  html += '<div style="padding:14px 16px;border-bottom:1px solid rgba(0,207,234,.09);">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:18px;font-weight:900;color:#fff;">ipo<span style="color:#C8961E;">work</span></div>';
+  html += '<div style="font-size:9px;color:#354D62;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">'+(isMB?'Merchant Banker':'Company')+'  Portal</div>';
   html += '</div>';
-  html += '<button onclick="window.closeAIPortal()" style="display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;border:1px solid rgba(0,207,234,.15);background:none;cursor:pointer;color:#6A94B4;font-size:11px;font-family:\'Sora\',sans-serif;font-weight:600;">✕ Back to Website</button>';
-  html += '</div></div>';
-
-  /* Search + filters */
-  html += '<div style="padding:10px 20px;border-bottom:1px solid rgba(0,207,234,.09);background:rgba(0,0,0,.2);flex-shrink:0;display:flex;gap:9px;align-items:center;flex-wrap:wrap;">';
-  html += '<div style="position:relative;flex:0 0 200px;"><span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:#354D62;">🔍</span>';
-  html += '<input id="ai-search" value="'+escHtml(state.search)+'" oninput="aiSearch(this.value)" placeholder="Search assistants…" style="width:100%;padding:6px 9px 6px 26px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.09);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:11px;outline:none;"/></div>';
-  html += '<div style="display:flex;gap:5px;flex-wrap:wrap;">';
-  ['All'].concat(CATS).forEach(function(c){
-    var active = state.cat===c;
-    html += '<button onclick="aiSetCat(\''+c+'\')" style="padding:5px 12px;border-radius:20px;font-size:10px;cursor:pointer;font-family:\'Sora\',sans-serif;font-weight:600;border:none;background:'+(active?'linear-gradient(135deg,#C8961E,#E8B040)':'rgba(255,255,255,.05)')+';color:'+(active?'#06101A':'#6A94B4')+';transition:all .15s;">'+c+'</button>';
-  });
+  // Role badge
+  html += '<div style="margin:10px 12px;padding:8px 11px;border-radius:8px;background:'+(isMB?'rgba(200,150,30,.08)':'rgba(0,200,150,.08)')+';border:1px solid '+(isMB?'rgba(200,150,30,.2)':'rgba(0,200,150,.2)')+'">';
+  html += '<div style="font-size:10px;font-weight:700;color:'+(isMB?'#E8B040':'#00C896')+'">'+(isMB?'🏦 MB Access':'🏢 Issuer')+'</div>';
+  html += '<div style="font-size:9px;color:#354D62;margin-top:2px;">'+(isMB?'Deal flow active':'Free + Premium tools')+'</div>';
   html += '</div>';
-  html += '<span style="margin-left:auto;font-size:10px;color:#354D62;font-family:\'Sora\',sans-serif;">'+filtered.length+' assistants</span>';
-  html += '</div>';
-
-  /* Grid */
-  html += '<div style="flex:1;overflow-y:auto;padding:20px 20px 40px;">';
-
-  catGroups.forEach(function(category){
-    var items = filtered.filter(function(a){ return a.cat===category; });
-    if(!items.length) return;
-    html += '<div style="margin-bottom:36px;">';
-    html += '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid rgba(0,207,234,.09);">';
-    html += '<span style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#6A94B4;padding:3px 9px;border-radius:5px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.09);font-family:\'Sora\',sans-serif;">'+category+'</span>';
-    html += '<span style="font-size:10px;color:#354D62;font-family:\'Sora\',sans-serif;">'+items.length+' assistants</span>';
+  // Nav
+  html += '<nav style="flex:1;padding:6px 8px;">';
+  navItems.forEach(function(item){
+    var active = P.view === item.id || (P.view.startsWith('ai') && item.id === 'ai');
+    html += '<div onclick="pNav(\''+item.id+'\')" style="display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;margin-bottom:2px;cursor:pointer;background:'+(active?'rgba(200,150,30,.12)':'none')+';border:'+(active?'1px solid rgba(200,150,30,.22)':'1px solid transparent')+';transition:all .15s;">';
+    html += '<span style="font-size:15px;">'+item.icon+'</span>';
+    html += '<span style="font-size:12px;font-weight:'+(active?'700':'500')+';color:'+(active?'#E8B040':'#6A94B4')+';">'+item.label+'</span>';
+    if(item.badge) html += '<span style="margin-left:auto;font-size:8px;font-weight:700;padding:1px 5px;border-radius:99px;background:rgba(200,150,30,.12);color:#C8961E;">'+item.badge+'</span>';
     html += '</div>';
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">';
-    items.forEach(function(a){
-      var isFree = a.badge==='Free';
-      html += '<div onclick="aiOpenChat(\''+a.id+'\')" class="ai-card" data-id="'+a.id+'" style="background:#0D1C2E;border:1px solid rgba(0,207,234,.09);border-radius:13px;padding:15px;cursor:pointer;position:relative;overflow:hidden;transition:all .2s;">';
-      html += '<div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0;background:linear-gradient(90deg,'+a.color+','+a.color+'55);"></div>';
-      html += '<div style="display:flex;justify-content:space-between;margin-bottom:11px;">';
-      html += '<div style="width:38px;height:38px;border-radius:9px;background:'+a.color+'10;border:1px solid '+a.color+'25;display:flex;align-items:center;justify-content:center;font-size:16px;">'+a.icon+'</div>';
-      html += '<span style="padding:3px 8px;border-radius:99px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;background:'+(isFree?'rgba(0,200,150,.1)':'rgba(200,150,30,.1)')+';color:'+(isFree?'#00C896':'#E8B040')+';align-self:flex-start;font-family:\'Sora\',sans-serif;">'+a.badge+'</span>';
-      html += '</div>';
-      html += '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;font-family:\'Sora\',sans-serif;">'+a.name+'</div>';
-      html += '<div style="font-size:10.5px;color:#6A94B4;line-height:1.6;margin-bottom:10px;font-family:\'Sora\',sans-serif;">'+a.tagline+'</div>';
-      html += '<div style="display:flex;gap:3px;margin-bottom:9px;">';
-      ['🎤','📷','📎','📊'].forEach(function(ic){ html += '<span style="font-size:10px;padding:2px 6px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.09);">'+ic+'</span>'; });
-      html += '</div>';
-      html += '<div style="font-size:10px;font-weight:600;color:'+a.color+';font-family:\'Sora\',sans-serif;">Open →</div>';
-      html += '</div>';
-    });
-    html += '</div></div>';
   });
+  html += '</nav>';
+  // Bottom
+  html += '<div style="padding:12px;border-top:1px solid rgba(0,207,234,.09);">';
+  html += '<button onclick="window.closeAIPortal()" style="width:100%;padding:8px;border-radius:7px;border:1px solid rgba(0,207,234,.12);background:none;color:#354D62;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">✕ Back to Website</button>';
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
 
-  if(!filtered.length){
-    html += '<div style="text-align:center;padding:60px 0;color:#6A94B4;font-family:\'Sora\',sans-serif;"><div style="font-size:32px;margin-bottom:12px;">🔍</div><div style="font-size:14px;color:#fff;">No assistants found</div><div style="font-size:12px;margin-top:6px;">Try a different search term</div></div>';
+window.pNav = function(v){
+  P.view = v;
+  if(v === 'ai'){ P.aiAssistant = null; P.aiHistory = []; }
+  var main = document.getElementById('portal-main');
+  if(main){
+    main.innerHTML = renderView();
+    main.scrollTop = 0;
   }
-
-  html += '<div style="margin-top:32px;padding:12px 16px;border-radius:9px;background:rgba(255,255,255,.02);border:1px solid rgba(0,207,234,.09);font-size:9.5px;color:#354D62;line-height:1.75;text-align:center;font-family:\'Sora\',sans-serif;">🔒 ipowork Promoter AI provides regulatory information only. Not legal advice, investment advice, or SEBI-regulated services. Based on SEBI ICDR 2018, SEBI LODR 2015 &amp; Companies Act 2013. Engage SEBI-registered MB and legal counsel for formal opinions and IPO execution.</div>';
-  html += '</div></div>';
-
-  $root.innerHTML = html;
-
-  /* Hover effects */
-  document.querySelectorAll('.ai-card').forEach(function(card){
-    var id = card.dataset.id;
-    var a = ASSISTANTS.find(function(x){ return x.id===id; });
-    if(!a) return;
-    card.addEventListener('mouseenter', function(){
-      this.style.transform='translateY(-4px)';
-      this.style.borderColor=a.color+'40';
-      this.style.boxShadow='0 14px 36px rgba(0,0,0,.3)';
+  // Update sidebar active states
+  var sidebar = document.getElementById('portal-sidebar');
+  if(sidebar){
+    sidebar.querySelectorAll('nav > div').forEach(function(el){
+      var id = el.getAttribute('onclick');
+      if(!id) return;
+      var vid = id.match(/'([^']+)'/);
+      if(!vid) return;
+      var active = P.view === vid[1] || (P.view.startsWith('ai') && vid[1] === 'ai');
+      el.style.background = active ? 'rgba(200,150,30,.12)' : 'none';
+      el.style.border = active ? '1px solid rgba(200,150,30,.22)' : '1px solid transparent';
+      var span = el.querySelectorAll('span')[1];
+      if(span){ span.style.color = active ? '#E8B040' : '#6A94B4'; span.style.fontWeight = active ? '700' : '500'; }
     });
-    card.addEventListener('mouseleave', function(){
-      this.style.transform='none';
-      this.style.borderColor='rgba(0,207,234,.09)';
-      this.style.boxShadow='none';
-    });
-  });
+  }
+};
+
+/* ─── VIEW ROUTER ─── */
+function renderView(){
+  switch(P.view){
+    case 'dashboard':  return renderDashboard();
+    case 'aira':       return renderAIRA();
+    case 'gap':        return renderGap();
+    case 'aida':       return renderAIDA();
+    case 'mb-match':   return renderMBMatch();
+    case 'timeline':   return renderTimeline();
+    case 'deals':      return renderDeals();
+    case 'hot-leads':  return renderHotLeads();
+    case 'pipeline':   return renderPipeline();
+    case 'ai':         return renderAIHome();
+    case 'ai-chat':    return renderAIChat();
+    default:           return renderDashboard();
+  }
 }
 
 /* ════════════════════════════════════════════
-   CHAT SCREEN
+   DASHBOARD
 ════════════════════════════════════════════ */
-function renderChat(){
-  var a = state.assistant;
-  var ac = a.color;
-
-  var html = '<div id="ai-chat" style="display:flex;flex-direction:column;height:100%;background:#06101A;font-family:\'Sora\',sans-serif;">';
-
-  /* Chat header */
-  html += '<div style="padding:11px 16px;border-bottom:1px solid rgba(0,207,234,.09);background:#0B1A28;flex-shrink:0;display:flex;align-items:center;gap:10px;">';
-  html += '<button onclick="aiGoHome()" style="background:none;border:1px solid rgba(0,207,234,.09);border-radius:7px;color:#6A94B4;cursor:pointer;padding:5px 12px;font-size:11px;font-family:\'Sora\',sans-serif;white-space:nowrap;">← Back</button>';
-  html += '<div style="width:36px;height:36px;border-radius:10px;background:'+ac+'14;border:1px solid '+ac+'30;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">'+a.icon+'</div>';
-  html += '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:#fff;font-family:\'Sora\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+a.name+'</div>';
-  html += '<div style="font-size:9.5px;color:#6A94B4;font-family:\'Sora\',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+a.tagline+'</div></div>';
-  html += '<span style="padding:3px 9px;border-radius:99px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;background:'+(a.badge==='Free'?'rgba(0,200,150,.1)':'rgba(200,150,30,.1)')+';color:'+(a.badge==='Free'?'#00C896':'#E8B040')+';font-family:\'Sora\',sans-serif;flex-shrink:0;">'+a.badge+'</span>';
-  if(state.history.length){
-    html += '<button onclick="aiClearChat()" style="background:none;border:1px solid rgba(0,207,234,.09);border-radius:6px;color:#354D62;cursor:pointer;padding:4px 10px;font-size:10px;font-family:\'Sora\',sans-serif;flex-shrink:0;white-space:nowrap;">Clear</button>';
-  }
+function renderDashboard(){
+  var isMB = P.role === 'mb';
+  var html = '<div style="padding:28px;">';
+  html += '<div style="margin-bottom:24px;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:26px;font-weight:900;color:#fff;margin-bottom:4px;">Welcome to ipowork '+(isMB?'MB':'Issuer')+' Portal</div>';
+  html += '<div style="font-size:13px;color:#6A94B4;">'+(isMB?'Your deal flow dashboard is active. Explore pre-screened issuers below.':'Get your AIRA score, analyse documents, and find the right Merchant Banker.')+'</div>';
   html += '</div>';
 
-  /* Capability pills */
-  html += '<div style="padding:6px 16px;border-bottom:1px solid rgba(0,207,234,.09);background:rgba(0,0,0,.2);display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;">';
-  ['🎤 Voice','📷 Camera','📄 PDF','📊 Excel/CSV','📝 Word','🖼️ Image'].forEach(function(p){
-    html += '<span style="padding:3px 8px;border-radius:99px;font-size:9px;font-weight:600;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.09);color:#6A94B4;font-family:\'Sora\',sans-serif;">'+p+'</span>';
-  });
-  html += '</div>';
+  if(!isMB){
+    // Company dashboard
+    var airaScore = P.airaResult ? P.airaResult.score : null;
+    var band = airaScore ? (airaScore >= 75 ? 'IPO READY' : airaScore >= 55 ? 'NEAR READY' : 'NOT READY') : null;
+    var bandColor = airaScore ? (airaScore >= 75 ? '#00C896' : airaScore >= 55 ? '#F5A623' : '#F04E65') : null;
 
-  /* Messages */
-  html += '<div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px 16px 8px;">';
-
-  if(!state.history.length){
-    html += '<div style="padding:20px 0;text-align:center;">';
-    html += '<div style="width:56px;height:56px;border-radius:14px;margin:0 auto 12px;background:'+ac+'12;border:1px solid '+ac+'28;display:flex;align-items:center;justify-content:center;font-size:24px;">'+a.icon+'</div>';
-    html += '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:5px;font-family:\'Fraunces\',serif;">'+a.name+'</div>';
-    html += '<div style="font-size:11.5px;color:#6A94B4;line-height:1.7;max-width:380px;margin:0 auto 18px;font-family:\'Sora\',sans-serif;">'+a.desc+'</div>';
-    html += '<div style="display:flex;gap:7px;justify-content:center;flex-wrap:wrap;max-width:420px;margin:0 auto 16px;">';
-    [{icon:'🎤',text:'Speak question'},{icon:'📷',text:'Scan document'},{icon:'📎',text:'Upload file'},{icon:'⌨️',text:'Type question'}].forEach(function(m){
-      html += '<div style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:8px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);font-size:10.5px;color:#6A94B4;font-family:\'Sora\',sans-serif;">'+m.icon+' '+m.text+'</div>';
+    // Quick action cards
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px;">';
+    [
+      {icon:'🎯',title:'AIRA Score',desc:airaScore ? 'Score: '+airaScore+'/100' : 'Not completed yet',action:'aira',color:'#00C896',btn:airaScore?'View Score':'Get Free Score'},
+      {icon:'📋',title:'Gap Analysis',desc:P.gapResult?'Report ready':'Run AIRA first',action:'gap',color:'#00CFEA',btn:'View Analysis'},
+      {icon:'📄',title:'Document Analysis',desc:'Upload & analyse docs',action:'aida',color:'#C8961E',btn:'Analyse Docs'},
+      {icon:'🏦',title:'MB Matcher',desc:'Find the right banker',action:'mb-match',color:'#8B7CF8',btn:'Find MBs'},
+      {icon:'🗓️',title:'IPO Timeline',desc:'Plan your listing',action:'timeline',color:'#F5A623',btn:'Plan Timeline'},
+      {icon:'🤖',title:'Promoter AI',desc:'13 AI assistants',action:'ai',color:'#C8961E',btn:'Open AI Suite'},
+    ].forEach(function(c){
+      html += '<div onclick="pNav(\''+c.action+'\')" style="padding:16px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);cursor:pointer;transition:all .2s;" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+c.color+'33\'" onmouseout="this.style.transform=\'\';this.style.borderColor=\'rgba(0,207,234,.09)\'">';
+      html += '<div style="font-size:22px;margin-bottom:8px;">'+c.icon+'</div>';
+      html += '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:3px;">'+c.title+'</div>';
+      html += '<div style="font-size:10px;color:#354D62;margin-bottom:10px;">'+c.desc+'</div>';
+      html += '<div style="font-size:10px;font-weight:700;color:'+c.color+';">'+c.btn+' →</div>';
+      html += '</div>';
     });
-    html += '</div><div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;">';
-    a.starters.forEach(function(s, i){
-      html += '<button onclick="aiUseStarter('+i+')" style="padding:7px 14px;border-radius:20px;font-size:11px;cursor:pointer;background:#112234;border:1px solid '+ac+'22;color:#6A94B4;font-family:\'Sora\',sans-serif;">'+escHtml(s)+'</button>';
-    });
-    html += '</div></div>';
-  }
+    html += '</div>';
 
-  state.history.forEach(function(msg, idx){
-    var isU = msg.role==='user';
-    html += '<div style="display:flex;gap:9px;margin-bottom:16px;flex-direction:'+(isU?'row-reverse':'row')+';align-items:flex-start;">';
-    html += '<div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:'+(isU?'linear-gradient(135deg,#C8961E,#E8B040)':ac+'18')+';border:'+(isU?'none':'1px solid '+ac+'35')+';display:flex;align-items:center;justify-content:center;font-size:13px;">'+(isU?'👤':'🤖')+'</div>';
-    html += '<div style="max-width:83%;display:flex;flex-direction:column;gap:5px;align-items:'+(isU?'flex-end':'flex-start')+';min-width:0;">';
-    if(msg.atts && msg.atts.length){
-      html += '<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:'+(isU?'flex-end':'flex-start')+';max-width:100%;">';
-      msg.atts.forEach(function(att){
-        html += '<div style="display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:7px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);font-size:10px;color:#6A94B4;font-family:\'Sora\',sans-serif;max-width:180px;">';
-        if(att.preview) html += '<img src="'+att.preview+'" style="width:20px;height:20px;border-radius:3px;object-fit:cover;" alt=""/>';
-        else html += '<span>'+att.icon+'</span>';
-        html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(att.name)+'</span></div>';
-      });
+    // AIRA score display if done
+    if(airaScore){
+      html += '<div style="padding:20px;border-radius:12px;background:linear-gradient(135deg,rgba('+hexToRgb(bandColor)+', .08),rgba(0,0,0,.0));border:1px solid '+bandColor+'33;margin-bottom:20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">';
+      html += '<div style="text-align:center;flex-shrink:0;">';
+      html += '<div style="font-family:\'Fraunces\',serif;font-size:56px;font-weight:900;color:'+bandColor+';line-height:1;">'+airaScore+'</div>';
+      html += '<div style="font-size:10px;color:#6A94B4;margin-top:2px;">out of 100</div>';
+      html += '</div>';
+      html += '<div style="flex:1;">';
+      html += '<div style="font-size:18px;font-weight:900;color:'+bandColor+';font-family:\'Fraunces\',serif;margin-bottom:6px;">'+band+'</div>';
+      html += '<div style="font-size:12px;color:#6A94B4;margin-bottom:12px;">Your latest AIRA assessment result</div>';
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+      html += '<button onclick="pNav(\'gap\')" style="padding:7px 14px;border-radius:7px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-size:11px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;">View Gap Report →</button>';
+      html += '<button onclick="pNav(\'mb-match\')" style="padding:7px 14px;border-radius:7px;border:1px solid rgba(0,207,234,.2);background:none;color:#00CFEA;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">Find MB Matches →</button>';
+      html += '</div></div></div>';
+    } else {
+      // CTA to start AIRA
+      html += '<div onclick="pNav(\'aira\')" style="padding:24px;border-radius:12px;background:rgba(200,150,30,.06);border:2px dashed rgba(200,150,30,.3);cursor:pointer;text-align:center;margin-bottom:20px;" onmouseover="this.style.background=\'rgba(200,150,30,.1)\'" onmouseout="this.style.background=\'rgba(200,150,30,.06)\'">';
+      html += '<div style="font-size:32px;margin-bottom:8px;">🎯</div>';
+      html += '<div style="font-family:\'Fraunces\',serif;font-size:18px;font-weight:900;color:#fff;margin-bottom:5px;">Get Your Free AIRA Score Now</div>';
+      html += '<div style="font-size:12px;color:#6A94B4;margin-bottom:12px;">16-parameter IPO readiness assessment. Takes 3 minutes. Free forever.</div>';
+      html += '<div style="display:inline-block;padding:9px 22px;border-radius:8px;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-size:12px;font-weight:700;">Start AIRA Assessment →</div>';
       html += '</div>';
     }
-    if(msg.content){
-      html += '<div style="padding:10px 14px;border-radius:'+(isU?'12px 4px 12px 12px':'4px 12px 12px 12px')+';background:'+(isU?'linear-gradient(135deg,rgba(200,150,30,.14),rgba(232,176,64,.08))':'#112234')+';border:'+(isU?'1px solid rgba(200,150,30,.22)':'1px solid '+ac+'16')+';font-size:12px;line-height:1.75;color:#C8DFF2;font-family:\'Sora\',sans-serif;word-break:break-word;">'+renderMd(msg.content)+'</div>';
-    }
-    html += '</div></div>';
-  });
 
-  if(state.isLoading){
-    html += '<div style="display:flex;gap:9px;align-items:flex-start;margin-bottom:16px;">';
-    html += '<div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:'+ac+'18;border:1px solid '+ac+'35;display:flex;align-items:center;justify-content:center;font-size:13px;">🤖</div>';
-    html += '<div style="padding:12px 16px;border-radius:4px 12px 12px 12px;background:#112234;border:1px solid '+ac+'16;display:flex;gap:5px;align-items:center;">';
-    for(var i=0;i<3;i++) html += '<div style="width:6px;height:6px;border-radius:50%;background:'+ac+';animation:ai-pulse 1.2s infinite;animation-delay:'+(i*.2)+'s;"></div>';
-    html += '</div></div>';
+  } else {
+    // MB Dashboard
+    var hot = MB_DEALS.filter(function(d){ return d.status==='HOT'; }).length;
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">';
+    [
+      {label:'Total Deals',value:MB_DEALS.length,color:'#00CFEA',icon:'🔗'},
+      {label:'Hot Leads',value:hot,color:'#F04E65',icon:'⚡'},
+      {label:'Avg AIRA Score',value:Math.round(MB_DEALS.reduce(function(s,d){ return s+d.aira; },0)/MB_DEALS.length),color:'#00C896',icon:'📊'},
+      {label:'Pipeline Value',value:'₹590Cr+',color:'#C8961E',icon:'💰'},
+    ].forEach(function(s){
+      html += '<div style="padding:16px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);">';
+      html += '<div style="font-size:20px;margin-bottom:8px;">'+s.icon+'</div>';
+      html += '<div style="font-family:\'Fraunces\',serif;font-size:26px;font-weight:900;color:'+s.color+';line-height:1;">'+s.value+'</div>';
+      html += '<div style="font-size:10px;color:#354D62;margin-top:3px;">'+s.label+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    // Hot deals preview
+    html += '<div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;">';
+    html += '<span style="font-size:13px;font-weight:700;color:#fff;">⚡ Hot Leads (Respond within 48hrs)</span>';
+    html += '<button onclick="pNav(\'deals\')" style="margin-left:auto;padding:5px 14px;border-radius:6px;border:1px solid rgba(0,207,234,.15);background:none;color:#00CFEA;font-size:10px;cursor:pointer;font-family:\'Sora\',sans-serif;">View All →</button>';
+    html += '</div>';
+    html += renderDealCards(MB_DEALS.filter(function(d){ return d.status==='HOT'; }));
   }
 
-  html += '<div id="ai-bottom"></div></div>';
-
-  /* Pending attachments */
-  html += '<div id="ai-atts-strip"></div>';
-
-  /* Input toolbar */
-  html += '<div style="border-top:1px solid rgba(0,207,234,.09);background:#0B1A28;flex-shrink:0;">';
-  html += '<div style="display:flex;gap:5px;align-items:center;padding:8px 12px 4px;flex-wrap:wrap;">';
-  html += '<button onclick="aiToggleVoice()" id="ai-voice-btn" style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:'+(state.isRecording?'1px solid rgba(240,78,101,.5)':'1px solid transparent')+';background:'+(state.isRecording?'rgba(240,78,101,.15)':'none')+';cursor:pointer;color:'+(state.isRecording?'#F04E65':'#6A94B4')+';font-size:11px;font-family:\'Sora\',sans-serif;font-weight:500;">';
-  html += '<span style="font-size:14px;">'+(state.isRecording?'⏹️':'🎤')+'</span>'+(state.isRecording?'Stop':'Voice')+'</button>';
-  html += '<button onclick="aiOpenCamera()" style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:1px solid transparent;background:none;cursor:pointer;color:#6A94B4;font-size:11px;font-family:\'Sora\',sans-serif;font-weight:500;"><span style="font-size:14px;">📷</span>Scan</button>';
-  html += '<label style="display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:7px;border:1px solid transparent;background:none;cursor:pointer;color:#6A94B4;font-size:11px;font-family:\'Sora\',sans-serif;font-weight:500;"><span style="font-size:14px;">📎</span>Upload<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.xlsx,.xls,.csv,.txt" style="display:none;" onchange="aiHandleFiles(this.files)"/></label>';
-  if(state.isRecording){
-    html += '<div style="margin-left:auto;display:flex;align-items:center;gap:5px;">';
-    [12,18,14,20,10].forEach(function(h){ html += '<div style="width:3px;border-radius:2px;background:#F04E65;animation:ai-voicebar .8s ease infinite;height:'+h+'px;"></div>'; });
-    html += '<span style="font-size:10px;color:#F04E65;font-weight:600;font-family:\'Sora\',sans-serif;">Listening…</span></div>';
-  }
   html += '</div>';
-  html += renderAttsStrip();
-  html += '<div style="padding:8px 12px 12px;display:flex;gap:9px;align-items:flex-end;">';
-  html += '<textarea id="ai-input" rows="3" placeholder="Type your question, or attach documents for analysis…" onkeydown="aiInputKey(event)" oninput="aiInputResize(this)" style="flex:1;padding:9px 12px;resize:none;outline:none;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.12);border-radius:9px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12.5px;line-height:1.65;min-height:56px;"></textarea>';
-  html += '<button onclick="aiSend()" id="ai-send-btn" style="width:42px;height:42px;border-radius:9px;border:none;cursor:pointer;flex-shrink:0;background:linear-gradient(135deg,'+ac+','+ac+'cc);color:#06101A;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;">↑</button>';
-  html += '</div>';
-  html += '<div style="font-size:9px;color:#354D62;text-align:center;padding-bottom:8px;font-family:\'Sora\',sans-serif;">Voice • Camera • PDF • Excel • Word • Images • Drag & Drop — Regulatory information only, not legal advice</div>';
-  html += '</div>';
-
-  /* Camera modal placeholder */
-  html += '<div id="ai-camera-modal"></div>';
-
-  html += '</div>';
-  $root.innerHTML = html;
-
-  scrollBottom();
-  setupDragDrop();
+  return html;
 }
 
-function renderAttsStrip(){
-  if(!state.pendingAtts.length) return '';
-  var html = '<div id="ai-atts" style="display:flex;gap:7px;flex-wrap:wrap;padding:6px 12px;border-top:1px solid rgba(0,207,234,.09);background:rgba(0,0,0,.15);">';
-  state.pendingAtts.forEach(function(att, i){
-    html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 9px;border-radius:7px;background:#112234;border:1px solid rgba(0,207,234,.09);max-width:170px;">';
-    if(att.preview) html += '<img src="'+att.preview+'" style="width:22px;height:22px;border-radius:3px;object-fit:cover;" alt=""/>';
-    else html += '<span style="font-size:15px;">'+att.icon+'</span>';
-    html += '<span style="font-size:9.5px;color:#C8DFF2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;font-family:\'Sora\',sans-serif;">'+escHtml(att.name)+'</span>';
-    html += '<button onclick="aiRemoveAtt('+i+')" style="background:none;border:none;color:#354D62;cursor:pointer;font-size:13px;line-height:1;padding:0;flex-shrink:0;">×</button>';
+function hexToRgb(hex){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return r+','+g+','+b;
+}
+
+/* ════════════════════════════════════════════
+   AIRA SCORE
+════════════════════════════════════════════ */
+function renderAIRA(){
+  var html = '<div style="padding:28px;">';
+  html += '<div style="margin-bottom:22px;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:4px;">🎯 AIRA — IPO Readiness Score</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;">16-parameter assessment across 4 dimensions. Score 0–100. Free forever.</div>';
+  html += '</div>';
+
+  if(P.airaResult){
+    html += renderAIRAResult();
+    html += '<button onclick="P.airaResult=null;pNav(\'aira\')" style="margin-top:16px;padding:9px 20px;border-radius:8px;border:1px solid rgba(0,207,234,.15);background:none;color:#6A94B4;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">← Redo Assessment</button>';
+    html += '</div>';
+    return html;
+  }
+
+  // Progress indicator
+  var cats = ['financial','compliance','market','promoter'];
+  html += '<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">';
+  cats.forEach(function(cat){
+    var m = CAT_META[cat];
+    var filled = AIRA_PARAMS.filter(function(p){ return p.cat===cat && P.airaInputs[p.id] !== undefined; }).length;
+    var total  = AIRA_PARAMS.filter(function(p){ return p.cat===cat; }).length;
+    html += '<div style="flex:1;min-width:120px;padding:10px 12px;border-radius:9px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">';
+    html += '<span style="font-size:10px;font-weight:700;color:'+m.color+';">'+m.icon+' '+m.label+'</span>';
+    html += '<span style="font-size:9px;color:#354D62;">'+m.weight+'pts</span>';
+    html += '</div>';
+    html += '<div style="height:3px;border-radius:2px;background:rgba(255,255,255,.05);">';
+    html += '<div style="height:100%;border-radius:2px;background:'+m.color+';width:'+Math.round(filled/total*100)+'%;transition:width .3s;"></div>';
+    html += '</div>';
+    html += '<div style="font-size:9px;color:#354D62;margin-top:4px;">'+filled+'/'+total+' answered</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Form
+  html += '<form id="aira-form" onsubmit="submitAIRA(event)">';
+  cats.forEach(function(cat){
+    var m = CAT_META[cat];
+    var params = AIRA_PARAMS.filter(function(p){ return p.cat===cat; });
+    html += '<div style="margin-bottom:24px;padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(0,207,234,.06);">';
+    html += '<span style="font-size:20px;">'+m.icon+'</span>';
+    html += '<div><div style="font-size:13px;font-weight:700;color:#fff;">'+m.label+'</div>';
+    html += '<div style="font-size:10px;color:#354D62;">'+m.weight+' points · '+params.length+' parameters</div></div>';
+    html += '</div>';
+    params.forEach(function(p){
+      html += '<div style="margin-bottom:14px;">';
+      html += '<label style="display:block;font-size:11px;font-weight:600;color:#7BA0C0;margin-bottom:5px;">'+p.label;
+      html += ' <span style="font-size:9px;color:#354D62;font-weight:400;">— '+p.help+'</span></label>';
+      html += '<select id="aira-'+p.id+'" onchange="airaUpdate(\''+p.id+'\',this.value)" style="width:100%;padding:9px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.1);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12px;outline:none;">';
+      html += '<option value="">— Select —</option>';
+      p.options.forEach(function(opt, i){
+        var sel = P.airaInputs[p.id] === i ? ' selected' : '';
+        html += '<option value="'+i+'"'+sel+'>'+escHtml(opt)+'</option>';
+      });
+      html += '</select></div>';
+    });
+    html += '</div>';
+  });
+
+  // Company context
+  html += '<div style="padding:16px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);margin-bottom:20px;">';
+  html += '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:12px;">📝 Additional Context (Optional — for better AI analysis)</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">';
+  html += '<div><label style="font-size:10px;color:#6A94B4;display:block;margin-bottom:4px;">Industry / Sector</label><input id="aira-sector" value="'+(P.airaInputs.sector||'')+'" oninput="P.airaInputs.sector=this.value" placeholder="e.g. Manufacturing, Healthcare" style="width:100%;padding:8px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.1);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12px;outline:none;box-sizing:border-box;"/></div>';
+  html += '<div><label style="font-size:10px;color:#6A94B4;display:block;margin-bottom:4px;">Approximate Revenue (Last FY)</label><input id="aira-revenue" value="'+(P.airaInputs.revenue||'')+'" oninput="P.airaInputs.revenue=this.value" placeholder="e.g. ₹85 Cr" style="width:100%;padding:8px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.1);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12px;outline:none;box-sizing:border-box;"/></div>';
+  html += '<div><label style="font-size:10px;color:#6A94B4;display:block;margin-bottom:4px;">Years in Operation</label><input id="aira-years" value="'+(P.airaInputs.years||'')+'" oninput="P.airaInputs.years=this.value" placeholder="e.g. 12 years" style="width:100%;padding:8px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.1);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12px;outline:none;box-sizing:border-box;"/></div>';
+  html += '<div><label style="font-size:10px;color:#6A94B4;display:block;margin-bottom:4px;">Target IPO Window</label><input id="aira-target" value="'+(P.airaInputs.target||'')+'" oninput="P.airaInputs.target=this.value" placeholder="e.g. FY26 Q3" style="width:100%;padding:8px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.1);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12px;outline:none;box-sizing:border-box;"/></div>';
+  html += '</div></div>';
+
+  html += '<div id="aira-err" style="display:none;padding:8px 12px;border-radius:7px;background:rgba(240,78,101,.08);border:1px solid rgba(240,78,101,.2);color:#F04E65;font-size:11px;margin-bottom:12px;"></div>';
+  html += '<button type="submit" id="aira-submit-btn" style="width:100%;padding:13px;border-radius:9px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-size:13px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;">🎯 Calculate My AIRA Score (Free)</button>';
+  html += '<div style="font-size:9.5px;color:#354D62;text-align:center;margin-top:8px;">AI-powered analysis · Results in ~15 seconds · Free forever</div>';
+  html += '</form></div>';
+  return html;
+}
+
+window.airaUpdate = function(id, val){
+  if(val !== '') P.airaInputs[id] = parseInt(val);
+  else delete P.airaInputs[id];
+};
+
+window.submitAIRA = async function(e){
+  e.preventDefault();
+  var answered = AIRA_PARAMS.filter(function(p){ return P.airaInputs[p.id] !== undefined; }).length;
+  if(answered < 12){
+    var errEl = document.getElementById('aira-err');
+    if(errEl){ errEl.style.display='block'; errEl.textContent='Please answer at least 12 questions for a meaningful score ('+(16-answered)+' remaining).'; }
+    return;
+  }
+  var btn = document.getElementById('aira-submit-btn');
+  if(btn){ btn.textContent='🔄 Calculating…'; btn.disabled=true; btn.style.opacity='.7'; }
+  // Calculate raw score
+  var rawScore = 0;
+  AIRA_PARAMS.forEach(function(p){
+    if(P.airaInputs[p.id] !== undefined) rawScore += p.scores[P.airaInputs[p.id]] || 0;
+  });
+  // Build inputs summary for AI
+  var summary = 'AIRA Assessment Inputs:\n\n';
+  var catScores = {};
+  ['financial','compliance','market','promoter'].forEach(function(cat){
+    var m = CAT_META[cat];
+    var catRaw = 0, catMax = 0;
+    AIRA_PARAMS.filter(function(p){ return p.cat===cat; }).forEach(function(p){
+      if(P.airaInputs[p.id] !== undefined){
+        catRaw += p.scores[P.airaInputs[p.id]] || 0;
+        summary += '- '+p.label+': '+p.options[P.airaInputs[p.id]]+'\n';
+      }
+      catMax += p.scores[0];
+    });
+    catScores[cat] = { raw: catRaw, max: catMax, pct: Math.round(catRaw/catMax*100) };
+    summary += '\n';
+  });
+  if(P.airaInputs.sector) summary += 'Sector: '+P.airaInputs.sector+'\n';
+  if(P.airaInputs.revenue) summary += 'Revenue: '+P.airaInputs.revenue+'\n';
+  if(P.airaInputs.years) summary += 'Years in operation: '+P.airaInputs.years+'\n';
+  if(P.airaInputs.target) summary += 'Target IPO window: '+P.airaInputs.target+'\n';
+  summary += '\nRaw Score: '+rawScore+'/100';
+
+  try {
+    var sys = `You are AIRA — ipowork's AI Readiness Assessment engine for Indian IPOs. Analyse the assessment inputs and provide a structured IPO readiness report.
+
+The raw score has been calculated as: `+rawScore+`/100.
+Band: `+(rawScore>=75?'IPO READY (≥75)':rawScore>=55?'NEAR READY (55-74)':'NOT READY (<55)')+`
+
+Provide your analysis in EXACTLY this format:
+
+#### AIRA Score: `+rawScore+`/100 — `+(rawScore>=75?'IPO READY ✅':rawScore>=55?'NEAR READY ⚡':'NOT READY 🔴')+`
+
+#### Executive Summary
+[2-3 sentences summarising the company's overall readiness position]
+
+#### Category Breakdown
+Financial Strength: `+catScores.financial.raw+`/`+catScores.financial.max+` (${catScores.financial.pct}%)
+Compliance & Governance: `+catScores.compliance.raw+`/`+catScores.compliance.max+` (${catScores.compliance.pct}%)
+Market & IPO Fit: `+catScores.market.raw+`/`+catScores.market.max+` (${catScores.market.pct}%)
+Promoter Readiness: `+catScores.promoter.raw+`/`+catScores.promoter.max+` (${catScores.promoter.pct}%)
+
+#### Key Strengths ✅
+[3-4 specific strengths from their inputs with regulation context]
+
+#### Critical Gaps 🚨
+[Top 3-5 most important gaps to fix with specific SEBI ICDR 2018 regulation references]
+
+#### Priority Action Plan
+**Immediate (0-3 months):** [2-3 specific actions]
+**Medium-term (3-9 months):** [2-3 specific actions]
+**Pre-DRHP (6-18 months):** [1-2 final steps]
+
+#### Recommended Route
+[SME IPO / Main Board / Too early — with specific reasoning and timeline estimate]
+
+Keep analysis specific, actionable, and grounded in SEBI ICDR 2018 requirements.`;
+
+    var reply = await callAPI(sys, [{ role:'user', content: summary }]);
+    P.airaResult = { score: rawScore, catScores: catScores, analysis: reply, inputs: Object.assign({}, P.airaInputs) };
+    pNav('aira');
+  } catch(err){
+    if(btn){ btn.textContent='🎯 Calculate My AIRA Score (Free)'; btn.disabled=false; btn.style.opacity='1'; }
+    var errEl2 = document.getElementById('aira-err');
+    if(errEl2){ errEl2.style.display='block'; errEl2.textContent='Error: '+(err.message||'Please retry'); }
+  }
+};
+
+function renderAIRAResult(){
+  var r = P.airaResult;
+  var band = r.score >= 75 ? 'IPO READY' : r.score >= 55 ? 'NEAR READY' : 'NOT READY';
+  var bandColor = r.score >= 75 ? '#00C896' : r.score >= 55 ? '#F5A623' : '#F04E65';
+  var html = '';
+  // Score hero
+  html += '<div style="padding:24px;border-radius:14px;background:linear-gradient(135deg,rgba('+hexToRgb(bandColor)+',.07),rgba(0,0,0,0));border:1px solid '+bandColor+'33;margin-bottom:20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;">';
+  html += '<div style="text-align:center;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:72px;font-weight:900;color:'+bandColor+';line-height:1;">'+r.score+'</div>';
+  html += '<div style="font-size:11px;color:#6A94B4;">out of 100</div>';
+  html += '</div>';
+  html += '<div style="flex:1;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:22px;font-weight:900;color:'+bandColor+';margin-bottom:6px;">'+band+'</div>';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  html += '<button onclick="pNav(\'gap\')" style="padding:8px 16px;border-radius:7px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-size:11px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;">📋 Get Gap Analysis →</button>';
+  html += '<button onclick="pNav(\'mb-match\')" style="padding:8px 16px;border-radius:7px;border:1px solid rgba(0,207,234,.2);background:none;color:#00CFEA;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">🏦 Find MB Matches →</button>';
+  html += '<button onclick="pNav(\'timeline\')" style="padding:8px 16px;border-radius:7px;border:1px solid rgba(139,124,248,.2);background:none;color:#8B7CF8;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">🗓️ IPO Timeline →</button>';
+  html += '</div></div></div>';
+  // Category bars
+  html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;">';
+  ['financial','compliance','market','promoter'].forEach(function(cat){
+    var m = CAT_META[cat];
+    var cs = r.catScores[cat];
+    var pct = cs.pct;
+    html += '<div style="padding:14px;border-radius:10px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
+    html += '<span style="font-size:11px;font-weight:600;color:#fff;">'+m.icon+' '+m.label+'</span>';
+    html += '<span style="font-size:12px;font-weight:700;color:'+m.color+';">'+cs.raw+'/'+cs.max+'</span>';
+    html += '</div>';
+    html += '<div style="height:6px;border-radius:3px;background:rgba(255,255,255,.06);">';
+    html += '<div style="height:100%;border-radius:3px;background:'+m.color+';width:'+pct+'%;"></div>';
+    html += '</div>';
+    html += '<div style="font-size:9px;color:#354D62;margin-top:4px;">'+pct+'% of '+m.weight+' pts</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  // AI Analysis
+  html += '<div style="padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);">';
+  html += '<div style="font-size:11px;font-weight:700;color:#C8961E;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;">🤖 AIRA AI Analysis</div>';
+  html += '<div style="font-size:12px;line-height:1.8;color:#C8DFF2;">'+renderMd(r.analysis)+'</div>';
+  html += '</div>';
+  return html;
+}
+
+/* ════════════════════════════════════════════
+   GAP ANALYSIS
+════════════════════════════════════════════ */
+function renderGap(){
+  var html = '<div style="padding:28px;">';
+  html += '<div style="margin-bottom:22px;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:4px;">📋 Gap Analysis Report</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;">AI-generated action plan based on your AIRA assessment.</div>';
+  html += '</div>';
+
+  if(!P.airaResult){
+    html += '<div style="padding:32px;border-radius:12px;background:#0D1C2E;border:2px dashed rgba(0,207,234,.15);text-align:center;">';
+    html += '<div style="font-size:32px;margin-bottom:12px;">🎯</div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">AIRA Score Required First</div>';
+    html += '<div style="font-size:12px;color:#6A94B4;margin-bottom:14px;">Complete your AIRA assessment to generate a personalised gap analysis.</div>';
+    html += '<button onclick="pNav(\'aira\')" style="padding:9px 22px;border-radius:8px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-size:12px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;">Start AIRA Assessment →</button>';
+    html += '</div></div>';
+    return html;
+  }
+
+  if(P.gapResult){
+    html += '<div style="padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);margin-bottom:16px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#C8961E;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;">📋 Your Personalised Gap Report</div>';
+    html += '<div style="font-size:12px;line-height:1.85;color:#C8DFF2;">'+renderMd(P.gapResult)+'</div>';
+    html += '</div>';
+    html += '<button onclick="P.gapResult=null;pNav(\'gap\')" style="padding:8px 18px;border-radius:7px;border:1px solid rgba(0,207,234,.15);background:none;color:#6A94B4;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">Regenerate Report</button>';
+    html += '</div>';
+    return html;
+  }
+
+  // Generate button
+  html += '<div style="padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);margin-bottom:16px;">';
+  html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">';
+  html += '<div style="font-size:13px;font-weight:700;color:#fff;">AIRA Score: <span style="color:'+(P.airaResult.score>=75?'#00C896':P.airaResult.score>=55?'#F5A623':'#F04E65')+';">'+P.airaResult.score+'/100</span></div>';
+  html += '</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;margin-bottom:16px;">Generate a detailed, prioritised gap analysis with specific remediation steps and regulatory references.</div>';
+  html += '<button onclick="generateGap()" id="gap-btn" style="padding:11px 24px;border-radius:8px;border:none;background:linear-gradient(135deg,#00CFEA,#00C896);color:#06101A;font-size:12px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;">🔄 Generate Gap Analysis (AI)</button>';
+  html += '</div>';
+  html += '<div id="gap-loading" style="display:none;text-align:center;padding:32px;color:#6A94B4;font-size:12px;font-family:\'Sora\',sans-serif;">⏳ AI is analysing your gaps…</div>';
+  html += '</div>';
+  return html;
+}
+
+window.generateGap = async function(){
+  var btn = document.getElementById('gap-btn');
+  var loading = document.getElementById('gap-loading');
+  if(btn) btn.style.display='none';
+  if(loading) loading.style.display='block';
+  var r = P.airaResult;
+  var inputs = [];
+  AIRA_PARAMS.forEach(function(p){
+    if(r.inputs[p.id] !== undefined) inputs.push(p.label+': '+p.options[r.inputs[p.id]]+' (Score: '+p.scores[r.inputs[p.id]]+'/'+p.scores[0]+')');
+  });
+  var prompt = 'Company AIRA Score: '+r.score+'/100\n\nDetailed inputs:\n'+inputs.join('\n');
+  if(r.inputs.sector) prompt += '\nSector: '+r.inputs.sector;
+  if(r.inputs.revenue) prompt += '\nRevenue: '+r.inputs.revenue;
+  try {
+    var sys = `You are AIRA's Gap Analysis engine for ipowork.com. Based on the assessment inputs, generate a comprehensive, prioritised gap analysis report.
+
+Output in EXACTLY this format:
+
+#### Gap Analysis — Priority Action Plan
+
+#### 🔴 Critical Gaps (Fix BEFORE approaching any Merchant Banker)
+For each gap: **[Gap Name]** — [specific issue] · Regulation: [SEBI ICDR 2018 / Companies Act reference] · Fix: [specific action + timeline + who to engage]
+
+#### 🟡 Important Gaps (Fix BEFORE DRHP Filing)
+[Same format]
+
+#### 🟢 Minor Items (Address DURING IPO Preparation)
+[Same format]
+
+#### Estimated Remediation Timeline
+[Total time to be SEBI-ready based on gaps identified]
+
+#### Professionals to Engage Now
+[Specific: CA for what, CS for what, legal counsel for what, MB for what]
+
+#### Quick Wins (Can be done in <30 days)
+[2-3 actions that immediately improve readiness]
+
+Be specific with regulation numbers and concrete timelines.`;
+    P.gapResult = await callAPI(sys, [{ role:'user', content: prompt }]);
+    pNav('gap');
+  } catch(err){
+    if(btn){ btn.style.display='block'; btn.textContent='Retry'; }
+    if(loading) loading.style.display='none';
+  }
+};
+
+/* ════════════════════════════════════════════
+   AIDA — DOCUMENT ANALYSIS
+════════════════════════════════════════════ */
+function renderAIDA(){
+  var html = '<div style="padding:28px;">';
+  html += '<div style="margin-bottom:22px;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:4px;">📄 AIDA — Document Analysis</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;">Upload your financial documents. AIDA scans for SEBI ICDR issues before your MB sees them.</div>';
+  html += '</div>';
+
+  // Upload zone
+  html += '<div id="aida-drop" ondragover="event.preventDefault();this.style.borderColor=\'#00CFEA\'" ondragleave="this.style.borderColor=\'rgba(0,207,234,.15)\'" ondrop="aidaDrop(event)" style="padding:28px;border-radius:12px;border:2px dashed rgba(0,207,234,.15);background:rgba(0,207,234,.02);text-align:center;margin-bottom:16px;transition:all .2s;">';
+  html += '<div style="font-size:28px;margin-bottom:8px;">📂</div>';
+  html += '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:5px;">Drop documents here or click to upload</div>';
+  html += '<div style="font-size:11px;color:#354D62;margin-bottom:12px;">Balance Sheet · P&L · Audit Report · GST Returns · MCA Filings · Images · Excel</div>';
+  html += '<label style="display:inline-block;padding:9px 22px;border-radius:8px;border:1px solid rgba(0,207,234,.25);background:rgba(0,207,234,.06);color:#00CFEA;font-size:11px;font-weight:600;cursor:pointer;font-family:\'Sora\',sans-serif;">Choose Files<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.csv,.txt" style="display:none;" onchange="aidaHandleFiles(this.files)"/></label>';
+  html += '<div style="font-size:9px;color:#354D62;margin-top:8px;">PDF, Images, Excel, CSV, Word · Max 5MB per file</div>';
+  html += '</div>';
+
+  // Pending files
+  if(P.aidaFiles && P.aidaFiles.length){
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">';
+    P.aidaFiles.forEach(function(f,i){
+      html += '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:8px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);">';
+      html += '<span style="font-size:14px;">'+f.icon+'</span>';
+      html += '<span style="font-size:10px;color:#C8DFF2;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(f.name)+'</span>';
+      html += '<button onclick="P.aidaFiles.splice('+i+',1);pNav(\'aida\')" style="background:none;border:none;color:#354D62;cursor:pointer;font-size:12px;padding:0;line-height:1;">×</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<button onclick="runAIDA()" id="aida-btn" style="padding:11px 24px;border-radius:8px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-size:12px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;margin-bottom:16px;">🔍 Analyse Documents (AI)</button>';
+  }
+
+  if(P.aidaResult){
+    html += '<div style="padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);">';
+    html += '<div style="font-size:11px;font-weight:700;color:#00C896;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">📄 AIDA Analysis Report</div>';
+    html += '<div style="font-size:12px;line-height:1.85;color:#C8DFF2;">'+renderMd(P.aidaResult)+'</div>';
+    html += '</div>';
+    html += '<button onclick="P.aidaResult=null;P.aidaFiles=[];pNav(\'aida\')" style="margin-top:12px;padding:8px 18px;border-radius:7px;border:1px solid rgba(0,207,234,.15);background:none;color:#6A94B4;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">Analyse More Documents</button>';
+  }
+
+  html += '<div id="aida-loading" style="display:none;text-align:center;padding:32px;color:#6A94B4;font-size:12px;">⏳ AIDA is scanning your documents for SEBI ICDR issues…</div>';
+  html += '</div>';
+  return html;
+}
+
+window.aidaDrop = function(e){
+  e.preventDefault();
+  document.getElementById('aida-drop').style.borderColor='rgba(0,207,234,.15)';
+  aidaHandleFiles(e.dataTransfer.files);
+};
+window.aidaHandleFiles = function(files){
+  if(!P.aidaFiles) P.aidaFiles = [];
+  Array.from(files).forEach(function(file){
+    if(file.size > 5*1024*1024){ alert(file.name+' exceeds 5MB.'); return; }
+    processFile(file).then(function(att){ P.aidaFiles.push(att); pNav('aida'); });
+  });
+};
+window.runAIDA = async function(){
+  var btn = document.getElementById('aida-btn');
+  var loading = document.getElementById('aida-loading');
+  if(btn) btn.style.display='none';
+  if(loading) loading.style.display='block';
+  var sys = `You are AIDA — ipowork's AI Document Analyser for Indian IPOs. Analyse the uploaded documents for SEBI ICDR 2018 compliance issues.
+
+Output format:
+#### AIDA Document Analysis Report
+
+#### Documents Reviewed
+[List each document with type identified]
+
+#### Risk Summary
+Overall Risk Level: [CRITICAL 🔴 / HIGH 🟠 / MEDIUM 🟡 / LOW 🟢]
+
+#### Issues Found 🚨
+For each issue: **[Issue]** · Regulation: [SEBI ICDR 2018 ref] · Impact: [DRHP implication] · Fix: [specific action]
+
+#### SEBI ICDR Compliance Checklist
+[Key items checked with ✅/⚠️/🚨 status]
+
+#### Before Your MB Sees This File
+[Specific items to clean up first]
+
+#### Data Quality Assessment
+[Completeness and reliability of financial data]
+
+Be specific. Reference exact SEBI ICDR 2018 regulation numbers.`;
+  try {
+    var msgContent = [];
+    P.aidaFiles.forEach(function(f){
+      if(f.type==='image') msgContent.push({type:'image',source:{type:'base64',media_type:f.mediaType,data:f.b64}});
+      else if(f.type==='pdf') msgContent.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:f.b64}});
+      else if(f.type==='text') msgContent.push({type:'text',text:f.text});
+    });
+    msgContent.push({type:'text',text:'Please analyse these documents for IPO readiness and SEBI ICDR compliance issues.'});
+    P.aidaResult = await callAPI(sys, [{ role:'user', content: msgContent }]);
+    pNav('aida');
+  } catch(err){
+    if(btn){ btn.style.display='block'; btn.textContent='Retry'; }
+    if(loading) loading.style.display='none';
+    alert('Error: '+(err.message||'Please retry'));
+  }
+};
+
+/* ════════════════════════════════════════════
+   MB MATCH
+════════════════════════════════════════════ */
+function renderMBMatch(){
+  var html = '<div style="padding:28px;">';
+  html += '<div style="margin-bottom:22px;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:4px;">🏦 MB Matcher — Find Your Merchant Banker</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;">AI matches you with the right SEBI-registered Merchant Banker for your deal.</div>';
+  html += '</div>';
+
+  if(P.mbMatchResult){
+    html += '<div style="padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);margin-bottom:16px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#C8961E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">🏦 Your MB Match Report</div>';
+    html += '<div style="font-size:12px;line-height:1.85;color:#C8DFF2;">'+renderMd(P.mbMatchResult)+'</div>';
+    html += '</div>';
+    html += '<button onclick="P.mbMatchResult=null;pNav(\'mb-match\')" style="padding:8px 18px;border-radius:7px;border:1px solid rgba(0,207,234,.15);background:none;color:#6A94B4;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">Redo</button>';
+    html += '</div>';
+    return html;
+  }
+
+  html += '<div style="padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);margin-bottom:16px;">';
+  html += '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:14px;">Tell us about your deal</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">';
+  [
+    {id:'mbm-sector',label:'Sector',placeholder:'e.g. Manufacturing, Healthcare, IT'},
+    {id:'mbm-size',label:'Estimated Issue Size',placeholder:'e.g. ₹50 Cr, ₹150 Cr'},
+    {id:'mbm-board',label:'Target Board',placeholder:'SME (BSE/NSE) or Main Board'},
+    {id:'mbm-geography',label:'Headquarters City',placeholder:'e.g. Mumbai, Delhi, Ahmedabad'},
+    {id:'mbm-aira',label:'AIRA Score (if known)',placeholder:'e.g. 72'},
+    {id:'mbm-timeline',label:'Target Listing',placeholder:'e.g. FY26 Q2'},
+  ].forEach(function(f){
+    html += '<div><label style="font-size:10px;color:#6A94B4;display:block;margin-bottom:4px;">'+f.label+'</label>';
+    html += '<input id="'+f.id+'" placeholder="'+f.placeholder+'" style="width:100%;padding:8px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.1);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12px;outline:none;box-sizing:border-box;"/></div>';
+  });
+  html += '</div>';
+  html += '<button onclick="runMBMatch()" id="mbm-btn" style="width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-size:12px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;">🏦 Find My MB Matches (AI)</button>';
+  html += '</div>';
+  html += '<div id="mbm-loading" style="display:none;text-align:center;padding:32px;color:#6A94B4;font-size:12px;">⏳ ALMS is matching your deal…</div>';
+  html += '</div>';
+  return html;
+}
+
+window.runMBMatch = async function(){
+  var fields = ['sector','size','board','geography','aira','timeline'];
+  var data = {};
+  fields.forEach(function(f){ data[f] = (document.getElementById('mbm-'+f)||{}).value||''; });
+  var prompt = 'Deal Profile:\n'+JSON.stringify(data, null, 2);
+  if(P.airaResult) prompt += '\n\nAIRA Score: '+P.airaResult.score+'/100';
+  var btn = document.getElementById('mbm-btn');
+  var loading = document.getElementById('mbm-loading');
+  if(btn) btn.style.display='none';
+  if(loading) loading.style.display='block';
+  try {
+    var sys = `You are ALMS — ipowork's AI Lead Matching System. Match the issuer with the right Merchant Banker tier and type.
+
+Output:
+#### ALMS Recommendation
+
+#### Recommended MB Tier
+[Tier 1 / 2 / 3 / 4 with reasoning]
+
+#### Ideal MB Profile
+[Specific characteristics to look for: sector expertise, deal size experience, geography, track record]
+
+#### Suggested MB Names (Indicative)
+[3-4 SEBI-registered MB firms that typically handle this type of deal — be specific]
+
+#### Why These MBs
+[For each suggested MB: why they fit this deal]
+
+#### Fee Expectation
+[Typical fee range for this deal size and type]
+
+#### Questions to Ask MBs in First Meeting
+[5 specific due diligence questions for this deal profile]
+
+#### Red Flags to Watch
+[MB-specific red flags for this type of deal]
+
+Base recommendations on actual Indian IPO market knowledge — Tier 1 (Axis Capital, JM Financial, Kotak, IIFL), Tier 2 (Pantomath, Hem Securities, Beeline, Unistone), Tier 3 (Sarthi, Expert Global, Vivro, Sundae Capital).`;
+    P.mbMatchResult = await callAPI(sys, [{ role:'user', content: prompt }]);
+    pNav('mb-match');
+  } catch(err){
+    if(btn){ btn.style.display='block'; }
+    if(loading) loading.style.display='none';
+  }
+};
+
+/* ════════════════════════════════════════════
+   IPO TIMELINE
+════════════════════════════════════════════ */
+function renderTimeline(){
+  var html = '<div style="padding:28px;">';
+  html += '<div style="margin-bottom:22px;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:4px;">🗓️ IPO Timeline Planner</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;">AI-generated week-by-week roadmap from today to listing day.</div>';
+  html += '</div>';
+
+  if(P.timelineResult){
+    html += '<div style="padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);margin-bottom:16px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:#8B7CF8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">🗓️ Your IPO Roadmap</div>';
+    html += '<div style="font-size:12px;line-height:1.85;color:#C8DFF2;">'+renderMd(P.timelineResult)+'</div>';
+    html += '</div>';
+    html += '<button onclick="P.timelineResult=null;pNav(\'timeline\')" style="padding:8px 18px;border-radius:7px;border:1px solid rgba(0,207,234,.15);background:none;color:#6A94B4;font-size:11px;cursor:pointer;font-family:\'Sora\',sans-serif;">Redo</button>';
+    html += '</div>';
+    return html;
+  }
+
+  html += '<div style="padding:20px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);margin-bottom:16px;">';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">';
+  [
+    {id:'tl-target',label:'Target Listing Window',placeholder:'e.g. FY26 Q3 (Oct-Dec 2025)'},
+    {id:'tl-aira',label:'AIRA Score',placeholder:P.airaResult?String(P.airaResult.score):'e.g. 68'},
+    {id:'tl-sector',label:'Sector',placeholder:'e.g. Manufacturing'},
+    {id:'tl-size',label:'Issue Size',placeholder:'e.g. ₹80 Cr'},
+    {id:'tl-gaps',label:'Key Gaps (from Gap Analysis)',placeholder:'e.g. RPT cleanup needed, board constitution'},
+    {id:'tl-mb',label:'MB Status',placeholder:'Not selected / In discussion / Mandated'},
+  ].forEach(function(f){
+    html += '<div><label style="font-size:10px;color:#6A94B4;display:block;margin-bottom:4px;">'+f.label+'</label>';
+    html += '<input id="'+f.id+'" placeholder="'+f.placeholder+'" style="width:100%;padding:8px 11px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.1);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12px;outline:none;box-sizing:border-box;"/></div>';
+  });
+  html += '</div>';
+  html += '<button onclick="runTimeline()" id="tl-btn" style="width:100%;padding:11px;border-radius:8px;border:none;background:linear-gradient(135deg,#8B7CF8,#6B5CE7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;">🗓️ Generate IPO Timeline (AI)</button>';
+  html += '</div>';
+  html += '<div id="tl-loading" style="display:none;text-align:center;padding:32px;color:#6A94B4;font-size:12px;">⏳ Building your personalised IPO roadmap…</div>';
+  html += '</div>';
+  return html;
+}
+
+window.runTimeline = async function(){
+  var data = { target: (document.getElementById('tl-target')||{}).value||'', aira: (document.getElementById('tl-aira')||{}).value||(P.airaResult?P.airaResult.score:''), sector: (document.getElementById('tl-sector')||{}).value||'', size: (document.getElementById('tl-size')||{}).value||'', gaps: (document.getElementById('tl-gaps')||{}).value||'', mb: (document.getElementById('tl-mb')||{}).value||'' };
+  var btn = document.getElementById('tl-btn');
+  var loading = document.getElementById('tl-loading');
+  if(btn) btn.style.display='none';
+  if(loading) loading.style.display='block';
+  try {
+    var sys = `You are the IPO Timeline Planner for ipowork.com. Build a realistic, personalised IPO roadmap.
+
+Standard durations: Preparation 3-18 months; MB mandate to DRHP 3-4 months; SEBI review 45-120 days; post-OL to listing 8-12 weeks.
+
+Output:
+#### Your IPO Roadmap
+
+#### Realistic Listing Target
+[Based on gaps and current status]
+
+#### Phase 1: Pre-MB Preparation
+[Month-by-month actions with responsible party]
+
+#### Phase 2: MB Mandate to DRHP Filing
+[Week-by-week key milestones]
+
+#### Phase 3: SEBI Review & Listing
+[Key checkpoints and timelines]
+
+#### Critical Path
+[Top 3-4 items that will determine your listing date]
+
+#### Cost Estimate
+[Table: MB fee | Legal | Auditor | SEBI fees | Exchange | Registrar | Advertising | Total estimate]
+
+#### Risk Scenarios
+**Optimistic:** [if all goes smoothly]
+**Base case:** [realistic]
+**Delayed:** [if major issue surfaces]
+
+Be realistic for Indian SME/Main Board IPO market.`;
+    P.timelineResult = await callAPI(sys, [{ role:'user', content: JSON.stringify(data, null, 2) }]);
+    pNav('timeline');
+  } catch(err){
+    if(btn){ btn.style.display='block'; }
+    if(loading) loading.style.display='none';
+  }
+};
+
+/* ════════════════════════════════════════════
+   MB DEAL FLOW
+════════════════════════════════════════════ */
+function renderDeals(){
+  var html = '<div style="padding:28px;">';
+  html += '<div style="margin-bottom:18px;display:flex;align-items:center;gap:12px;">';
+  html += '<div><div style="font-family:\'Fraunces\',serif;font-size:24px;font-weight:900;color:#fff;">🔗 Deal Flow</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;">Pre-screened, AIRA-scored issuers. Company identity revealed only after consent.</div></div>';
+  html += '</div>';
+  // Filter tabs
+  html += '<div style="display:flex;gap:6px;margin-bottom:16px;">';
+  ['all','HOT','WARM','PIPELINE'].forEach(function(f){
+    var active = P.dealFilter===f;
+    html += '<button onclick="P.dealFilter=\''+f+'\';pNav(\'deals\')" style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-size:10px;font-weight:700;font-family:\'Sora\',sans-serif;background:'+(active?'linear-gradient(135deg,#C8961E,#E8B040)':'rgba(255,255,255,.05)')+';color:'+(active?'#06101A':'#6A94B4')+';">'+(f==='all'?'All Deals':f)+'</button>';
+  });
+  html += '</div>';
+  var filtered = P.dealFilter==='all' ? MB_DEALS : MB_DEALS.filter(function(d){ return d.status===P.dealFilter; });
+  html += renderDealCards(filtered);
+  html += '</div>';
+  return html;
+}
+
+function renderDealCards(deals){
+  if(!deals.length) return '<div style="padding:32px;text-align:center;color:#354D62;font-size:12px;">No deals in this category</div>';
+  var html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+  deals.forEach(function(d){
+    var statusColor = d.status==='HOT' ? '#F04E65' : d.status==='WARM' ? '#F5A623' : '#6A94B4';
+    var airaColor = d.aira >= 75 ? '#00C896' : d.aira >= 55 ? '#F5A623' : '#F04E65';
+    html += '<div style="padding:16px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);display:flex;align-items:center;gap:14px;flex-wrap:wrap;">';
+    html += '<div style="flex-shrink:0;text-align:center;min-width:60px;">';
+    html += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;color:#C8DFF2;">'+d.code+'</div>';
+    html += '<div style="font-size:9px;color:#354D62;margin-top:2px;">'+d.board+'</div>';
+    html += '</div>';
+    html += '<div style="flex:1;min-width:120px;">';
+    html += '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:2px;">'+d.sector+'</div>';
+    html += '<div style="font-size:10px;color:#354D62;">'+d.size+' · '+d.stage+'</div>';
+    html += '</div>';
+    html += '<div style="text-align:center;">';
+    html += '<div style="font-family:\'Fraunces\',serif;font-size:22px;font-weight:900;color:'+airaColor+';line-height:1;">'+d.aira+'</div>';
+    html += '<div style="font-size:8px;color:#354D62;">AIRA</div>';
+    html += '</div>';
+    html += '<div style="padding:3px 9px;border-radius:99px;font-size:9px;font-weight:700;background:'+statusColor+'15;border:1px solid '+statusColor+'30;color:'+statusColor+';">'+d.status+'</div>';
+    html += '<div style="font-size:9px;color:#354D62;white-space:nowrap;">'+d.age+'</div>';
+    html += '<button style="padding:6px 14px;border-radius:7px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-size:10px;font-weight:700;cursor:pointer;font-family:\'Sora\',sans-serif;white-space:nowrap;">Express Interest</button>';
     html += '</div>';
   });
   html += '</div>';
   return html;
 }
 
-/* ── MARKDOWN RENDERER ── */
-function renderMd(t){
-  if(!t) return '';
-  return t
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/#### (.*)/g,'<div style="color:#E8B040;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin:18px 0 7px;font-family:\'JetBrains Mono\',monospace;">$1</div>')
-    .replace(/### (.*)/g,'<div style="color:#fff;font-size:13px;font-weight:700;margin:14px 0 6px;">$1</div>')
-    .replace(/\*\*(.*?)\*\*/g,'<strong style="color:#fff;font-weight:700;">$1</strong>')
-    .replace(/\*(.*?)\*/g,'<em style="color:#7BA0C0;">$1</em>')
-    .replace(/`(.*?)`/g,'<code style="font-family:\'JetBrains Mono\',monospace;background:rgba(0,207,234,.1);color:#00CFEA;padding:1px 5px;border-radius:3px;font-size:10px;">$1</code>')
-    .replace(/^- (.*)/gm,'<div style="display:flex;gap:8px;margin:3px 0;"><span style="color:#C8961E;flex-shrink:0;font-size:10px;margin-top:3px;">◆</span><span>$1</span></div>')
-    .replace(/\n\n/g,'<br/><br/>').replace(/\n/g,'<br/>');
+function renderHotLeads(){
+  P.dealFilter = 'HOT';
+  return renderDeals();
 }
 
-/* ── ACTIONS ── */
-window.aiSearch = function(v){ state.search=v; renderHome(); };
-window.aiSetCat = function(c){ state.cat=c; renderApp(); };
-window.aiOpenChat = function(id){
-  state.assistant = ASSISTANTS.find(function(a){ return a.id===id; });
-  state.view='chat'; state.history=[]; state.pendingAtts=[];
-  renderChat();
-};
-window.aiGoHome = function(){
-  stopVoice(); stopCamera();
-  state.view='home'; state.assistant=null; state.history=[]; state.pendingAtts=[]; state.isLoading=false;
-  renderHome();
-};
-window.aiClearChat = function(){ state.history=[]; state.pendingAtts=[]; renderChat(); };
-window.aiUseStarter = function(i){
-  var ta = document.getElementById('ai-input');
-  if(ta){ ta.value = state.assistant.starters[i]; ta.focus(); }
-};
-window.aiRemoveAtt = function(i){
-  state.pendingAtts.splice(i,1);
-  var strip = document.getElementById('ai-atts');
-  if(strip) strip.outerHTML = renderAttsStrip();
-};
-window.aiInputKey = function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); aiSend(); }};
-window.aiInputResize = function(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,140)+'px'; };
+function renderPipeline(){
+  var html = '<div style="padding:28px;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:4px;">📊 Deal Pipeline</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;margin-bottom:20px;">Your active deal pipeline and mandate status.</div>';
+  // Pipeline stage view
+  var stages = ['AIRA Complete','Gap Remediation','MB Selection','DRHP Prep'];
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">';
+  stages.forEach(function(stage){
+    var deals = MB_DEALS.filter(function(d){ return d.stage===stage; });
+    html += '<div style="border-radius:11px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);overflow:hidden;">';
+    html += '<div style="padding:10px 12px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(0,207,234,.06);">';
+    html += '<div style="font-size:11px;font-weight:700;color:#fff;">'+stage+'</div>';
+    html += '<div style="font-size:9px;color:#354D62;margin-top:1px;">'+deals.length+' deals</div>';
+    html += '</div>';
+    deals.forEach(function(d){
+      var airaColor = d.aira >= 75 ? '#00C896' : d.aira >= 55 ? '#F5A623' : '#F04E65';
+      html += '<div style="padding:10px 12px;border-bottom:1px solid rgba(0,207,234,.04);">';
+      html += '<div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:#C8DFF2;margin-bottom:2px;">'+d.code+'</div>';
+      html += '<div style="font-size:9px;color:#354D62;margin-bottom:4px;">'+d.sector+' · '+d.size+'</div>';
+      html += '<div style="font-family:\'Fraunces\',serif;font-size:16px;font-weight:900;color:'+airaColor+';">'+d.aira+'<span style="font-size:8px;color:#354D62;font-family:\'Sora\',sans-serif;font-weight:400;"> AIRA</span></div>';
+      html += '</div>';
+    });
+    if(!deals.length) html += '<div style="padding:16px;font-size:10px;color:#354D62;text-align:center;">No deals</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
 
-window.aiSend = async function(){
-  var ta = document.getElementById('ai-input');
-  var text = ta ? ta.value.trim() : '';
-  if((!text && !state.pendingAtts.length) || state.isLoading) return;
-  stopVoice();
-  var userMsg = { role:'user', content:text, atts: state.pendingAtts.slice() };
-  state.history.push(userMsg);
+/* ════════════════════════════════════════════
+   PROMOTER AI HOME
+════════════════════════════════════════════ */
+function renderAIHome(){
+  var search = P.aiSearch.toLowerCase();
+  var filtered = ASSISTANTS.filter(function(a){
+    return (P.aiCat==='All'||a.cat===P.aiCat) && (!search||a.name.toLowerCase().includes(search)||a.tagline.toLowerCase().includes(search));
+  });
+  var html = '<div style="padding:28px;">';
+  html += '<div style="margin-bottom:18px;">';
+  html += '<div style="font-family:\'Fraunces\',serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:4px;">🤖 Promoter AI Suite</div>';
+  html += '<div style="font-size:12px;color:#6A94B4;">13 AI assistants. Voice, camera, document upload. SEBI ICDR 2018 aligned.</div>';
+  html += '</div>';
+  // Search + filter
+  html += '<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px;align-items:center;">';
+  html += '<input id="ai-srch" value="'+escHtml(P.aiSearch)+'" oninput="pAiSearch(this.value)" placeholder="🔍 Search assistants…" style="padding:7px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.09);border-radius:7px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:11px;outline:none;width:200px;"/>';
+  ['All'].concat(AI_CATS).forEach(function(c){
+    var active = P.aiCat===c;
+    html += '<button onclick="pAiCat(\''+c+'\')" style="padding:5px 12px;border-radius:20px;font-size:10px;cursor:pointer;font-family:\'Sora\',sans-serif;font-weight:600;border:none;background:'+(active?'linear-gradient(135deg,#C8961E,#E8B040)':'rgba(255,255,255,.05)')+';color:'+(active?'#06101A':'#6A94B4')+';white-space:nowrap;">'+c+'</button>';
+  });
+  html += '</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">';
+  filtered.forEach(function(a){
+    var isFree = a.badge==='Free';
+    html += '<div onclick="pAiOpen(\''+a.id+'\')" style="padding:15px;border-radius:12px;background:#0D1C2E;border:1px solid rgba(0,207,234,.09);cursor:pointer;position:relative;overflow:hidden;transition:all .2s;" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.borderColor=\''+a.color+'33\'" onmouseout="this.style.transform=\'\';this.style.borderColor=\'rgba(0,207,234,.09)\'">';
+    html += '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,'+a.color+',transparent);"></div>';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:10px;">';
+    html += '<div style="width:36px;height:36px;border-radius:9px;background:'+a.color+'12;border:1px solid '+a.color+'22;display:flex;align-items:center;justify-content:center;font-size:15px;">'+a.icon+'</div>';
+    html += '<span style="padding:2px 7px;border-radius:99px;font-size:8px;font-weight:700;background:'+(isFree?'rgba(0,200,150,.1)':'rgba(200,150,30,.1)')+';color:'+(isFree?'#00C896':'#E8B040')+';align-self:flex-start;">'+a.badge+'</span>';
+    html += '</div>';
+    html += '<div style="font-size:11.5px;font-weight:700;color:#fff;margin-bottom:3px;">'+a.name+'</div>';
+    html += '<div style="font-size:10px;color:#354D62;line-height:1.5;margin-bottom:8px;">'+a.tagline+'</div>';
+    html += '<div style="font-size:10px;font-weight:600;color:'+a.color+';">Open →</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+/* ════════════════════════════════════════════
+   PROMOTER AI CHAT
+════════════════════════════════════════════ */
+function renderAIChat(){
+  var a = P.aiAssistant;
+  var html = '<div id="ai-chat-wrap" style="display:flex;flex-direction:column;height:100%;background:#06101A;">';
+  // Header
+  html += '<div style="padding:11px 16px;border-bottom:1px solid rgba(0,207,234,.09);background:#0B1A28;flex-shrink:0;display:flex;align-items:center;gap:10px;">';
+  html += '<button onclick="P.view=\'ai\';pNav(\'ai\')" style="background:none;border:1px solid rgba(0,207,234,.09);border-radius:7px;color:#6A94B4;cursor:pointer;padding:5px 12px;font-size:11px;font-family:\'Sora\',sans-serif;">← Back</button>';
+  html += '<div style="width:34px;height:34px;border-radius:9px;background:'+a.color+'14;border:1px solid '+a.color+'28;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">'+a.icon+'</div>';
+  html += '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+a.name+'</div>';
+  html += '<div style="font-size:9px;color:#354D62;">'+a.tagline+'</div></div>';
+  html += '<span style="padding:2px 8px;border-radius:99px;font-size:8px;font-weight:700;background:'+(a.badge==='Free'?'rgba(0,200,150,.1)':'rgba(200,150,30,.1)')+';color:'+(a.badge==='Free'?'#00C896':'#E8B040')+';flex-shrink:0;">'+a.badge+'</span>';
+  if(P.aiHistory.length) html += '<button onclick="P.aiHistory=[];pNav(\'ai-chat\')" style="background:none;border:1px solid rgba(0,207,234,.09);border-radius:6px;color:#354D62;cursor:pointer;padding:4px 10px;font-size:10px;font-family:\'Sora\',sans-serif;">Clear</button>';
+  html += '</div>';
+  // Messages
+  html += '<div id="ai-msgs" style="flex:1;overflow-y:auto;padding:16px;min-height:0;">';
+  if(!P.aiHistory.length){
+    html += '<div style="padding:16px 0;text-align:center;">';
+    html += '<div style="width:52px;height:52px;border-radius:13px;margin:0 auto 10px;background:'+a.color+'12;border:1px solid '+a.color+'28;display:flex;align-items:center;justify-content:center;font-size:22px;">'+a.icon+'</div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:5px;font-family:\'Fraunces\',serif;">'+a.name+'</div>';
+    html += '<div style="font-size:11px;color:#6A94B4;max-width:380px;margin:0 auto 16px;line-height:1.65;">'+a.tagline+'</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;">';
+    a.starters.forEach(function(s,i){ html += '<button onclick="aiUseStarter('+i+')" style="padding:7px 14px;border-radius:20px;font-size:10.5px;cursor:pointer;background:#112234;border:1px solid '+a.color+'22;color:#6A94B4;font-family:\'Sora\',sans-serif;">'+escHtml(s)+'</button>'; });
+    html += '</div></div>';
+  }
+  P.aiHistory.forEach(function(msg){
+    var isU = msg.role==='user';
+    html += '<div style="display:flex;gap:8px;margin-bottom:14px;flex-direction:'+(isU?'row-reverse':'row')+';align-items:flex-start;">';
+    html += '<div style="width:28px;height:28px;border-radius:7px;flex-shrink:0;background:'+(isU?'linear-gradient(135deg,#C8961E,#E8B040)':a.color+'18')+';display:flex;align-items:center;justify-content:center;font-size:12px;">'+(isU?'👤':'🤖')+'</div>';
+    html += '<div style="max-width:82%;padding:9px 13px;border-radius:'+(isU?'11px 3px 11px 11px':'3px 11px 11px 11px')+';background:'+(isU?'rgba(200,150,30,.1)':'#112234')+';border:1px solid '+(isU?'rgba(200,150,30,.2)':a.color+'14')+';font-size:11.5px;line-height:1.75;color:#C8DFF2;word-break:break-word;">'+renderMd(msg.content)+'</div>';
+    html += '</div>';
+  });
+  if(P.aiLoading){
+    html += '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:14px;">';
+    html += '<div style="width:28px;height:28px;border-radius:7px;flex-shrink:0;background:'+a.color+'18;display:flex;align-items:center;justify-content:center;font-size:12px;">🤖</div>';
+    html += '<div style="padding:11px 14px;border-radius:3px 11px 11px 11px;background:#112234;border:1px solid '+a.color+'14;display:flex;gap:4px;align-items:center;">';
+    for(var i=0;i<3;i++) html += '<div style="width:5px;height:5px;border-radius:50%;background:'+a.color+';animation:ai-pulse 1.2s infinite;animation-delay:'+(i*.2)+'s;"></div>';
+    html += '</div></div>';
+  }
+  html += '<div id="ai-bottom"></div></div>';
+  // Pending attachments
+  if(P.aiPendingAtts.length){
+    html += '<div style="display:flex;gap:7px;flex-wrap:wrap;padding:6px 12px;border-top:1px solid rgba(0,207,234,.09);background:rgba(0,0,0,.15);">';
+    P.aiPendingAtts.forEach(function(att,i){
+      html += '<div style="display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:7px;background:#112234;border:1px solid rgba(0,207,234,.09);">';
+      if(att.preview) html += '<img src="'+att.preview+'" style="width:20px;height:20px;border-radius:3px;object-fit:cover;"/>';
+      else html += '<span style="font-size:13px;">'+att.icon+'</span>';
+      html += '<span style="font-size:9px;color:#C8DFF2;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(att.name)+'</span>';
+      html += '<button onclick="P.aiPendingAtts.splice('+i+',1);pNav(\'ai-chat\')" style="background:none;border:none;color:#354D62;cursor:pointer;font-size:12px;padding:0;">×</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  // Input
+  html += '<div style="border-top:1px solid rgba(0,207,234,.09);background:#0B1A28;flex-shrink:0;padding:8px 12px 12px;">';
+  html += '<div style="display:flex;gap:5px;margin-bottom:6px;flex-wrap:wrap;">';
+  html += '<button onclick="aiToggleVoice()" style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:'+(P.aiRecording?'1px solid rgba(240,78,101,.4)':'1px solid transparent')+';background:'+(P.aiRecording?'rgba(240,78,101,.1)':'none')+';cursor:pointer;color:'+(P.aiRecording?'#F04E65':'#6A94B4')+';font-size:10px;font-family:\'Sora\',sans-serif;"><span style="font-size:13px;">'+(P.aiRecording?'⏹️':'🎤')+'</span>'+(P.aiRecording?'Stop':'Voice')+'</button>';
+  html += '<button onclick="aiOpenCam()" style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid transparent;background:none;cursor:pointer;color:#6A94B4;font-size:10px;font-family:\'Sora\',sans-serif;"><span style="font-size:13px;">📷</span>Scan</button>';
+  html += '<label style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid transparent;background:none;cursor:pointer;color:#6A94B4;font-size:10px;font-family:\'Sora\',sans-serif;"><span style="font-size:13px;">📎</span>Upload<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.csv,.txt" style="display:none;" onchange="aiHandleUpload(this.files)"/></label>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:8px;align-items:flex-end;">';
+  html += '<textarea id="ai-input" rows="2" placeholder="Type question or attach documents…" onkeydown="aiInputKey(event)" style="flex:1;padding:8px 11px;resize:none;outline:none;background:rgba(255,255,255,.04);border:1px solid rgba(0,207,234,.1);border-radius:8px;color:#C8DFF2;font-family:\'Sora\',sans-serif;font-size:12px;line-height:1.6;box-sizing:border-box;min-height:52px;"></textarea>';
+  html += '<button onclick="aiSendMsg()" style="width:40px;height:40px;border-radius:8px;border:none;cursor:pointer;flex-shrink:0;background:linear-gradient(135deg,'+a.color+','+a.color+'cc);color:#06101A;font-size:15px;display:flex;align-items:center;justify-content:center;">↑</button>';
+  html += '</div></div>';
+  html += '<div id="ai-cam-modal"></div>';
+  html += '</div>';
+  return html;
+}
+
+/* ── AI Chat Actions ── */
+window.pAiSearch = function(v){ P.aiSearch=v; renderAIHome(); var main=document.getElementById('portal-main'); if(main) main.innerHTML=renderView(); };
+window.pAiCat = function(c){ P.aiCat=c; var main=document.getElementById('portal-main'); if(main) main.innerHTML=renderView(); };
+window.pAiOpen = function(id){ P.aiAssistant=ASSISTANTS.find(function(a){return a.id===id;}); P.aiHistory=[]; P.aiPendingAtts=[]; P.view='ai-chat'; var main=document.getElementById('portal-main'); if(main){ main.innerHTML=renderView(); main.scrollTop=0; } };
+window.aiUseStarter = function(i){ var ta=document.getElementById('ai-input'); if(ta){ ta.value=P.aiAssistant.starters[i]; ta.focus(); } };
+window.aiInputKey = function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); aiSendMsg(); } };
+window.aiHandleUpload = function(files){ Array.from(files).forEach(function(f){ if(f.size>5*1024*1024){alert(f.name+' too large');return;} processFile(f).then(function(att){ P.aiPendingAtts.push(att); pNav('ai-chat'); }); }); };
+
+window.aiSendMsg = async function(){
+  var ta=document.getElementById('ai-input');
+  var text=(ta?ta.value.trim():'');
+  if((!text&&!P.aiPendingAtts.length)||P.aiLoading) return;
+  stopAIVoice();
+  var atts=P.aiPendingAtts.slice();
+  P.aiHistory.push({role:'user',content:text,atts:atts});
   if(ta) ta.value='';
-  state.pendingAtts=[];
-  state.isLoading=true;
-  renderChat();
+  P.aiPendingAtts=[];
+  P.aiLoading=true;
+  var main=document.getElementById('portal-main'); if(main) main.innerHTML=renderView();
   try {
-    var apiMsgs = buildApiMsgs(state.history);
-    var reply = await callClaude(state.assistant.sys, apiMsgs);
-    state.history.push({ role:'assistant', content:reply });
-  } catch(e) {
-    state.history.push({ role:'assistant', content:'⚠️ '+(e.message||'Connection error. Please retry.') });
+    var msgs=P.aiHistory.map(function(m){
+      if(m.role==='assistant') return {role:'assistant',content:m.content};
+      if(!m.atts||!m.atts.length) return {role:'user',content:m.content||'Analyse please.'};
+      var c=[];
+      m.atts.forEach(function(a){
+        if(a.type==='image') c.push({type:'image',source:{type:'base64',media_type:a.mediaType,data:a.b64}});
+        else if(a.type==='pdf') c.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:a.b64}});
+        else if(a.type==='text') c.push({type:'text',text:a.text});
+      });
+      if(m.content) c.push({type:'text',text:m.content});
+      return {role:'user',content:c};
+    });
+    var reply=await callAPI(P.aiAssistant.sys, msgs);
+    P.aiHistory.push({role:'assistant',content:reply});
+  } catch(err){
+    P.aiHistory.push({role:'assistant',content:'⚠️ '+(err.message||'Error. Please retry.')});
   }
-  state.isLoading=false;
-  renderChat();
+  P.aiLoading=false;
+  var main2=document.getElementById('portal-main'); if(main2) main2.innerHTML=renderView();
+  setTimeout(function(){ var b=document.getElementById('ai-bottom'); if(b) b.scrollIntoView({behavior:'smooth'}); },80);
 };
 
-/* ── VOICE ── */
+/* ── Voice ── */
 window.aiToggleVoice = function(){
-  if(state.isRecording){ stopVoice(); return; }
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ alert('Voice input requires Chrome browser. Please type your question.'); return; }
-  recognition = new SR();
-  recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-IN';
-  recognition.onresult = function(e){
-    var t = Array.from(e.results).map(function(r){ return r[0].transcript; }).join(' ');
-    var ta = document.getElementById('ai-input');
-    if(ta) ta.value=t;
-  };
-  recognition.onend = function(){ state.isRecording=false; updateVoiceUI(); };
-  recognition.onerror = function(){ state.isRecording=false; updateVoiceUI(); };
-  recognition.start();
-  state.isRecording=true;
-  updateVoiceUI();
+  if(P.aiRecording){ stopAIVoice(); return; }
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ alert('Voice needs Chrome browser.'); return; }
+  recognition=new SR(); recognition.continuous=true; recognition.interimResults=true; recognition.lang='en-IN';
+  recognition.onresult=function(e){ var t=Array.from(e.results).map(function(r){return r[0].transcript;}).join(' '); var ta=document.getElementById('ai-input'); if(ta) ta.value=t; };
+  recognition.onend=function(){ P.aiRecording=false; };
+  recognition.start(); P.aiRecording=true;
 };
-function stopVoice(){ if(recognition){ try{ recognition.stop(); }catch(e){} recognition=null; } state.isRecording=false; }
-function updateVoiceUI(){
-  var btn = document.getElementById('ai-voice-btn');
-  if(!btn) return;
-  var ac = state.assistant ? state.assistant.color : '#00CFEA';
-  btn.innerHTML = '<span style="font-size:14px;">'+(state.isRecording?'⏹️':'🎤')+'</span>'+(state.isRecording?'Stop':'Voice');
-  btn.style.color = state.isRecording ? '#F04E65' : '#6A94B4';
-  btn.style.border = state.isRecording ? '1px solid rgba(240,78,101,.5)' : '1px solid transparent';
-  btn.style.background = state.isRecording ? 'rgba(240,78,101,.15)' : 'none';
-}
+function stopAIVoice(){ if(recognition){try{recognition.stop();}catch(e){} recognition=null;} P.aiRecording=false; }
 
-/* ── CAMERA ── */
-window.aiOpenCamera = function(){
-  var modal = document.getElementById('ai-camera-modal');
-  if(!modal) return;
-  modal.innerHTML = buildCameraModal();
-  startCamera();
-};
-function buildCameraModal(){
-  return '<div id="ai-cam-overlay" onclick="aiCamBgClick(event)" style="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;">'
-    +'<div style="background:#0B1A28;border-radius:14px;overflow:hidden;border:1px solid rgba(0,207,234,.12);max-width:560px;width:100%;">'
-    +'<div style="padding:12px 16px;border-bottom:1px solid rgba(0,207,234,.09);display:flex;justify-content:space-between;align-items:center;">'
-    +'<span style="color:#fff;font-weight:700;font-size:13px;font-family:\'Sora\',sans-serif;">📷 Scan Document</span>'
-    +'<button onclick="aiCloseCamera()" style="background:none;border:none;color:#6A94B4;cursor:pointer;font-size:20px;line-height:1;">×</button></div>'
-    +'<div style="padding:14px;">'
-    +'<div style="border-radius:9px;overflow:hidden;background:#000;aspect-ratio:4/3;position:relative;">'
-    +'<video id="ai-cam-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;"></video>'
-    +'<canvas id="ai-cam-canvas" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;"></canvas>'
-    +'<div id="ai-cam-overlay-frame" style="position:absolute;inset:0;pointer-events:none;">'
-    +'<div style="position:absolute;inset:16px;border:2px solid rgba(0,207,234,.4);border-radius:6px;"></div>'
-    +'<div id="ai-scan-line" style="position:absolute;left:16px;right:16px;height:1px;background:rgba(0,207,234,.35);animation:ai-scan 2s linear infinite;top:50%;"></div>'
-    +'</div>'
-    +'<div id="ai-cam-err" style="display:none;position:absolute;inset:0;background:#06101A;display:flex;align-items:center;justify-content:center;padding:20px;"></div>'
-    +'</div>'
-    +'<canvas id="ai-cap-canvas" style="display:none;"></canvas>'
-    +'<div style="margin-top:10px;display:flex;gap:8px;justify-content:center;" id="ai-cam-btns">'
-    +'<button onclick="aiCapture()" style="padding:9px 26px;border-radius:8px;border:none;background:linear-gradient(135deg,#00CFEA,#00CFEAaa);color:#06101A;font-weight:700;font-size:12px;font-family:\'Sora\',sans-serif;cursor:pointer;">📷 Capture</button>'
-    +'</div>'
-    +'<div style="font-size:9.5px;color:#354D62;text-align:center;margin-top:7px;font-family:\'Sora\',sans-serif;">Position document flat with good lighting</div>'
-    +'</div></div></div>';
-}
-function startCamera(){
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-    showCamErr('Camera not available in this browser.'); return;
+/* ── Camera ── */
+window.aiOpenCam = function(){
+  var m=document.getElementById('ai-cam-modal'); if(!m) return;
+  m.innerHTML='<div id="cam-ov" onclick="if(event.target.id===\'cam-ov\')aiCloseCam()" style="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;"><div style="background:#0B1A28;border-radius:14px;overflow:hidden;border:1px solid rgba(0,207,234,.12);max-width:520px;width:100%;"><div style="padding:11px 16px;border-bottom:1px solid rgba(0,207,234,.09);display:flex;justify-content:space-between;"><span style="color:#fff;font-weight:700;font-size:13px;font-family:\'Sora\',sans-serif;">📷 Scan Document</span><button onclick="aiCloseCam()" style="background:none;border:none;color:#6A94B4;cursor:pointer;font-size:20px;">×</button></div><div style="padding:14px;"><div style="border-radius:9px;overflow:hidden;background:#000;aspect-ratio:4/3;position:relative;"><video id="cam-v" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;"></video><canvas id="cam-disp" style="display:none;position:absolute;inset:0;width:100%;height:100%;"></canvas><div style="position:absolute;inset:16px;border:2px solid rgba(0,207,234,.4);border-radius:5px;pointer-events:none;"></div></div><canvas id="cam-cap" style="display:none;"></canvas><div style="margin-top:10px;display:flex;gap:8px;justify-content:center;" id="cam-btns"><button onclick="aiCamCapture()" style="padding:8px 24px;border-radius:7px;border:none;background:linear-gradient(135deg,#00CFEA,#00C896);color:#06101A;font-weight:700;font-size:12px;cursor:pointer;font-family:\'Sora\',sans-serif;">📷 Capture</button></div></div></div></div>';
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(s){ cameraStream=s; var v=document.getElementById('cam-v'); if(v) v.srcObject=s; }).catch(function(){ alert('Camera access denied.'); });
   }
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}})
-    .then(function(stream){
-      cameraStream=stream;
-      var v=document.getElementById('ai-cam-video');
-      if(v){ v.srcObject=stream; }
-    })
-    .catch(function(){ showCamErr('Camera access denied. Enable camera permissions.'); });
-}
-function showCamErr(msg){
-  var errDiv = document.getElementById('ai-cam-err');
-  if(errDiv){ errDiv.style.display='flex'; errDiv.style.color='#F04E65'; errDiv.style.fontFamily='\'Sora\',sans-serif'; errDiv.style.fontSize='13px'; errDiv.textContent=msg; }
-}
-window.aiCapture = function(){
-  var v=document.getElementById('ai-cam-video');
-  var c=document.getElementById('ai-cap-canvas');
+};
+window.aiCamCapture = function(){
+  var v=document.getElementById('cam-v'), c=document.getElementById('cam-cap');
   if(!v||!c) return;
   c.width=v.videoWidth; c.height=v.videoHeight;
   c.getContext('2d').drawImage(v,0,0);
-  var dataUrl = c.toDataURL('image/jpeg',.9);
-  var vidEl = document.getElementById('ai-cam-video');
-  var frame = document.getElementById('ai-cam-overlay-frame');
-  if(vidEl){ vidEl.style.display='none'; }
-  if(frame){ frame.style.display='none'; }
-  /* Show captured image */
-  var dispCanvas = document.getElementById('ai-cam-canvas');
-  if(dispCanvas){
-    dispCanvas.style.display='block';
-    var ctx2=dispCanvas.getContext('2d');
-    dispCanvas.width=c.width; dispCanvas.height=c.height;
-    ctx2.drawImage(c,0,0);
-  }
-  var btns = document.getElementById('ai-cam-btns');
-  if(btns){
-    btns.innerHTML='<button onclick="aiRetake()" style="padding:9px 18px;border-radius:8px;border:1px solid rgba(0,207,234,.12);background:none;color:#6A94B4;cursor:pointer;font-size:12px;font-family:\'Sora\',sans-serif;">Retake</button>'
-      +'<button onclick="aiConfirmCapture(\''+dataUrl+'\')" style="padding:9px 22px;border-radius:8px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-weight:700;font-size:12px;cursor:pointer;font-family:\'Sora\',sans-serif;">✓ Use Photo</button>';
-  }
+  var url=c.toDataURL('image/jpeg',.9);
+  var d=document.getElementById('cam-disp');
+  if(d){ d.style.display='block'; d.width=c.width; d.height=c.height; d.getContext('2d').drawImage(c,0,0); }
+  var vEl=document.getElementById('cam-v'); if(vEl) vEl.style.display='none';
+  var btns=document.getElementById('cam-btns');
+  if(btns) btns.innerHTML='<button onclick="aiCloseCam()" style="padding:8px 18px;border-radius:7px;border:1px solid rgba(0,207,234,.12);background:none;color:#6A94B4;cursor:pointer;font-size:12px;font-family:\'Sora\',sans-serif;">Retake</button><button onclick="aiConfirmCam(\''+url+'\')" style="padding:8px 20px;border-radius:7px;border:none;background:linear-gradient(135deg,#C8961E,#E8B040);color:#06101A;font-weight:700;font-size:12px;cursor:pointer;font-family:\'Sora\',sans-serif;">✓ Use Photo</button>';
 };
-window.aiRetake = function(){
-  var vidEl=document.getElementById('ai-cam-video');
-  var dispCanvas=document.getElementById('ai-cam-canvas');
-  var frame=document.getElementById('ai-cam-overlay-frame');
-  if(vidEl){ vidEl.style.display='block'; }
-  if(dispCanvas){ dispCanvas.style.display='none'; }
-  if(frame){ frame.style.display='block'; }
-  var btns=document.getElementById('ai-cam-btns');
-  if(btns) btns.innerHTML='<button onclick="aiCapture()" style="padding:9px 26px;border-radius:8px;border:none;background:linear-gradient(135deg,#00CFEA,#00CFEAaa);color:#06101A;font-weight:700;font-size:12px;font-family:\'Sora\',sans-serif;cursor:pointer;">📷 Capture</button>';
-};
-window.aiConfirmCapture = function(dataUrl){
-  var b64 = dataUrl.split(',')[1];
-  state.pendingAtts.push({type:'image',b64:b64,name:'camera-capture.jpg',icon:'📷',preview:dataUrl,mediaType:'image/jpeg'});
-  aiCloseCamera();
-  var strip=document.getElementById('ai-atts');
-  if(strip) strip.outerHTML = renderAttsStrip();
-  else {
-    var toolbar = document.querySelector('#ai-chat > div:last-child > div:nth-child(2)');
-    if(toolbar) toolbar.insertAdjacentHTML('afterend', renderAttsStrip());
-  }
-  renderChat();
-};
-window.aiCloseCamera = function(){ stopCamera(); var m=document.getElementById('ai-camera-modal'); if(m) m.innerHTML=''; };
-window.aiCamBgClick = function(e){ if(e.target.id==='ai-cam-overlay') aiCloseCamera(); };
-function stopCamera(){ if(cameraStream){ cameraStream.getTracks().forEach(function(t){ t.stop(); }); cameraStream=null; } }
+window.aiConfirmCam = function(url){ P.aiPendingAtts.push({type:'image',b64:url.split(',')[1],name:'camera-scan.jpg',icon:'📷',preview:url,mediaType:'image/jpeg'}); aiCloseCam(); pNav('ai-chat'); };
+window.aiCloseCam = function(){ if(cameraStream){cameraStream.getTracks().forEach(function(t){t.stop();}); cameraStream=null;} var m=document.getElementById('ai-cam-modal'); if(m) m.innerHTML=''; };
 
-/* ── FILE HANDLING ── */
-window.aiHandleFiles = function(files){
-  Array.from(files).forEach(function(file){
-    if(file.size > 5*1024*1024){ alert(file.name+' exceeds 5MB limit.'); return; }
-    processFile(file).then(function(att){
-      state.pendingAtts.push(att);
-      var strip=document.getElementById('ai-atts');
-      if(strip) strip.outerHTML = renderAttsStrip();
-      else renderChat();
-    });
-  });
-};
+/* ═══════════════════════════════════════════
+   FILE PROCESSOR
+═══════════════════════════════════════════ */
 function processFile(file){
   return new Promise(function(resolve){
-    var ext=file.name.split('.').pop().toLowerCase();
-    var type=file.type;
-    if(['xlsx','xls','csv'].includes(ext)||type.includes('spreadsheet')||type.includes('csv')){
-      var r=new FileReader();
-      r.onload=function(e){
-        try{
-          var wb=XLSX.read(e.target.result,{type:'array'});
-          var txt='[Spreadsheet: '+file.name+']\n\n';
-          wb.SheetNames.forEach(function(sh){ txt+='=== '+sh+' ===\n'+XLSX.utils.sheet_to_csv(wb.Sheets[sh],{blankrows:false})+'\n\n'; });
-          resolve({type:'text',text:txt,name:file.name,icon:'📊',preview:null});
-        }catch(e){ resolve({type:'text',text:'[Could not parse '+file.name+']',name:file.name,icon:'📊',preview:null}); }
-      };
-      r.readAsArrayBuffer(file);
+    var ext=file.name.split('.').pop().toLowerCase(), type=file.type;
+    if(['xlsx','xls','csv'].includes(ext)){
+      var r=new FileReader(); r.onload=function(e){ try{ var wb=XLSX.read(e.target.result,{type:'array'}); var txt='['+file.name+']\n'; wb.SheetNames.forEach(function(s){ txt+='=== '+s+' ===\n'+XLSX.utils.sheet_to_csv(wb.Sheets[s],{blankrows:false})+'\n'; }); resolve({type:'text',text:txt,name:file.name,icon:'📊',preview:null}); }catch(e){ resolve({type:'text',text:'[Could not parse '+file.name+']',name:file.name,icon:'📊',preview:null}); } }; r.readAsArrayBuffer(file);
     } else if(ext==='txt'||type==='text/plain'){
-      var r=new FileReader();
-      r.onload=function(e){ resolve({type:'text',text:'[Text: '+file.name+']\n\n'+e.target.result,name:file.name,icon:'📄',preview:null}); };
-      r.readAsText(file);
+      var r=new FileReader(); r.onload=function(e){ resolve({type:'text',text:e.target.result,name:file.name,icon:'📄',preview:null}); }; r.readAsText(file);
     } else if(ext==='pdf'||type==='application/pdf'){
-      var r=new FileReader();
-      r.onload=function(e){ resolve({type:'pdf',b64:e.target.result.split(',')[1],name:file.name,icon:'📄',preview:null,mediaType:'application/pdf'}); };
-      r.readAsDataURL(file);
+      var r=new FileReader(); r.onload=function(e){ resolve({type:'pdf',b64:e.target.result.split(',')[1],name:file.name,icon:'📄',preview:null,mediaType:'application/pdf'}); }; r.readAsDataURL(file);
     } else if(type.startsWith('image/')||['jpg','jpeg','png','gif','webp'].includes(ext)){
-      var r=new FileReader();
-      r.onload=function(e){ resolve({type:'image',b64:e.target.result.split(',')[1],name:file.name,icon:'🖼️',preview:e.target.result,mediaType:type.startsWith('image/')?type:'image/'+(ext==='jpg'?'jpeg':ext)}); };
-      r.readAsDataURL(file);
+      var r=new FileReader(); r.onload=function(e){ resolve({type:'image',b64:e.target.result.split(',')[1],name:file.name,icon:'🖼️',preview:e.target.result,mediaType:type||'image/jpeg'}); }; r.readAsDataURL(file);
     } else {
       resolve({type:'text',text:'[File: '+file.name+']',name:file.name,icon:'📎',preview:null});
     }
   });
 }
 
-/* ── DRAG & DROP ── */
-function setupDragDrop(){
-  var chat = document.getElementById('ai-chat');
-  if(!chat) return;
-  chat.addEventListener('dragover', function(e){ e.preventDefault(); chat.style.outline='3px dashed #00CFEA'; chat.style.background='rgba(0,207,234,.04)'; });
-  chat.addEventListener('dragleave', function(){ chat.style.outline=''; chat.style.background=''; });
-  chat.addEventListener('drop', function(e){ e.preventDefault(); chat.style.outline=''; chat.style.background=''; aiHandleFiles(e.dataTransfer.files); });
-}
-
-/* ── CLAUDE API ── */
-function buildApiMsgs(history){
-  return history.map(function(msg){
-    if(msg.role==='assistant') return {role:'assistant',content:msg.content};
-    if(!msg.atts||!msg.atts.length) return {role:'user',content:msg.content||'Please analyse the attached documents.'};
-    var content=[];
-    msg.atts.forEach(function(a){
-      if(a.type==='image') content.push({type:'image',source:{type:'base64',media_type:a.mediaType,data:a.b64}});
-      else if(a.type==='pdf') content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:a.b64}});
-      else if(a.type==='text') content.push({type:'text',text:a.text});
-    });
-    if(msg.content) content.push({type:'text',text:msg.content});
-    return {role:'user',content:content};
-  });
-}
-async function callClaude(systemPrompt, messages){
-  var res = await fetch('https://flat-bread-b021.jiweshkshrivastava.workers.dev/',{
+/* ═══════════════════════════════════════════
+   API CALL
+═══════════════════════════════════════════ */
+async function callAPI(sys, messages){
+  var res = await fetch(WORKER_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json','anthropic-beta':'pdfs-2024-09-25'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:systemPrompt,messages:messages})
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:MODEL,max_tokens:1000,system:sys,messages:messages})
   });
   var data = await res.json();
   if(data.error) throw new Error(data.error.message);
-  return (data.content&&data.content[0]&&data.content[0].text)||'⚠️ Empty response. Please retry.';
+  return (data.content&&data.content[0]&&data.content[0].text)||'No response. Please retry.';
 }
 
-/* ── UTILS ── */
+/* ═══════════════════════════════════════════
+   MARKDOWN + UTILS
+═══════════════════════════════════════════ */
+function renderMd(t){
+  if(!t) return '';
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/#### (.*)/g,'<div style="color:#E8B040;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin:16px 0 6px;">$1</div>')
+    .replace(/### (.*)/g,'<div style="color:#fff;font-size:13px;font-weight:700;margin:12px 0 5px;">$1</div>')
+    .replace(/\*\*(.*?)\*\*/g,'<strong style="color:#fff;">$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em style="color:#7BA0C0;">$1</em>')
+    .replace(/`(.*?)`/g,'<code style="font-family:\'JetBrains Mono\',monospace;background:rgba(0,207,234,.1);color:#00CFEA;padding:1px 5px;border-radius:3px;font-size:10px;">$1</code>')
+    .replace(/^- (.*)/gm,'<div style="display:flex;gap:7px;margin:2px 0;"><span style="color:#C8961E;flex-shrink:0;margin-top:3px;font-size:9px;">◆</span><span>$1</span></div>')
+    .replace(/\n\n/g,'<br/><br/>').replace(/\n/g,'<br/>');
+}
 function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function scrollBottom(){ setTimeout(function(){ var b=document.getElementById('ai-bottom'); if(b) b.scrollIntoView({behavior:'smooth'}); },80); }
 
 })();
-
 </script>
+
 
 </body>
 </html>
