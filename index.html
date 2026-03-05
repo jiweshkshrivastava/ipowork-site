@@ -1620,7 +1620,7 @@ function completeReg(){
       ? 'Invoice will be sent to your registered email.'
       : 'Receipt & invoice sent to your registered email. Subscription renews monthly.';
 
-  showS('s-ok');
+  window.ipoworkLoggedIn=true; window.ipoworkRole=isMB?'mb':'company'; showS('s-ok');
   [0,1,2,3,4].forEach(i=>{ var d=document.getElementById('dot'+i); if(d) d.className='sdot done'; });
 }
 
@@ -1645,7 +1645,7 @@ function doLogin(){
     REG.ls = true;
   } else {
     if(ot !== OTP){ showE('l-err','Incorrect OTP. Use 1234 for demo.'); return; }
-    closeModal(); openAIPortal();
+    window.ipoworkLoggedIn=true; window.ipoworkRole=rl; closeModal(); openAIPortal();
   }
 }
 function toLogin(){ resetAll(); showFlow('l'); }
@@ -1676,6 +1676,10 @@ function resetAll(){
 
 /* ══ AI PORTAL ══ */
 function openAIPortal(){
+  if(!window.ipoworkLoggedIn){
+    openModal('register');
+    return;
+  }
   document.getElementById('ai-portal').classList.add('open');
   document.body.style.overflow='hidden';
   if(window.mountAI) window.mountAI();
@@ -1886,8 +1890,9 @@ var AI_CATS = ["Foundation","Legal & Compliance","Documentation","Strategy","Inv
 window.mountAI = function(){
   $portal = document.getElementById('ai-portal');
   $root   = document.getElementById('ai-root');
-  // Detect role from registration
-  if(window.REG && window.REG.role === 'mb') P.role = 'mb';
+  // Detect role from login/registration
+  if(window.ipoworkRole === 'mb') P.role = 'mb';
+  else if(window.REG && window.REG.role === 'mb') P.role = 'mb';
   else P.role = 'company';
   P.view = 'dashboard';
   renderPortal();
