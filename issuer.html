@@ -1227,8 +1227,18 @@ function renderAIChat(){
   if(P.aiLoading) html+='<div class="msg ai"><div class="typing"><span></span><span></span><span></span></div></div>';
   html+='</div>';
   html+='<div class="chat-input-area"><div class="chat-toolbar">';
+  html+='<div style="display:flex;gap:6px;margin-bottom:8px">';
+  html+='<button class="icon-btn" title="Attach file" onclick="triggerFileUpload()" style="font-size:16px">📎</button>';
+  html+='<button class="icon-btn" id="voice-btn" title="Voice input" onclick="toggleVoice()" style="font-size:16px">🎤</button>';
+  html+='<button class="icon-btn" title="Scan / Photo" onclick="triggerCameraCapture()" style="font-size:16px">📷</button>';
+  html+='<input type="file" id="chat-file-input" style="display:none" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" multiple onchange="handleFileAttach(this)"/>';
+  html+='<input type="file" id="chat-camera-input" style="display:none" accept="image/*" capture="environment" onchange="handleCameraCapture(this)"/>';
+  html+='<div id="attach-preview" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;align-items:center"></div>';
+  html+='</div>';
+  html+='<div style="display:flex;gap:8px;align-items:flex-end">';
   html+='<textarea class="chat-textarea" id="chat-inp" rows="2" placeholder="Ask anything about your IPO..."></textarea>';
   html+='<button class="send-btn" onclick="sendChat()">↑</button>';
+  html+='</div>';
   html+='</div></div></div>';
   return html;
 }
@@ -1302,6 +1312,96 @@ window.addEventListener('beforeinstallprompt', function(e){
     document.body.appendChild(b);
   }, 3000);
 });
+
+/* ── CHAT ATTACHMENTS & VOICE ── */
+window.triggerFileUpload = function(){
+  var el = document.getElementById('chat-file-input');
+  if(el) el.click();
+};
+
+window.triggerCameraCapture = function(){
+  var el = document.getElementById('chat-camera-input');
+  if(el) el.click();
+};
+
+window._attachedFiles = [];
+
+window.handleFileAttach = function(input){
+  var files = Array.from(input.files);
+  files.forEach(function(file){
+    window._attachedFiles.push(file);
+    addAttachPreview(file.name, '📎');
+  });
+  input.value = '';
+};
+
+window.handleCameraCapture = function(input){
+  var files = Array.from(input.files);
+  files.forEach(function(file){
+    window._attachedFiles.push(file);
+    addAttachPreview(file.name, '📷');
+  });
+  input.value = '';
+};
+
+function addAttachPreview(name, icon){
+  var preview = document.getElementById('attach-preview');
+  if(!preview) return;
+  var tag = document.createElement('div');
+  tag.style.cssText = 'display:flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(200,150,30,.1);border:1px solid rgba(200,150,30,.2);border-radius:6px;font-size:10px;color:#C8961E;max-width:120px;overflow:hidden';
+  tag.innerHTML = icon + ' <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + name + '</span>'
+    + '<span onclick="removeAttach(this)" style="cursor:pointer;color:#6A94B4;margin-left:4px;flex-shrink:0">✕</span>';
+  tag.querySelector('span:last-child')._file = name;
+  preview.appendChild(tag);
+}
+
+window.removeAttach = function(btn){
+  var name = btn._file;
+  window._attachedFiles = window._attachedFiles.filter(function(f){ return f.name !== name; });
+  btn.parentElement.remove();
+};
+
+/* ── VOICE INPUT ── */
+var _recognition = null;
+var _voiceActive = false;
+
+window.toggleVoice = function(){
+  var btn = document.getElementById('voice-btn');
+  if(!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)){
+    alert('Voice input is not supported in this browser. Try Chrome.');
+    return;
+  }
+  if(_voiceActive){
+    if(_recognition) _recognition.stop();
+    _voiceActive = false;
+    if(btn){ btn.style.background='none'; btn.style.color=''; btn.textContent='🎤'; }
+    return;
+  }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  _recognition = new SR();
+  _recognition.lang = 'en-IN';
+  _recognition.continuous = false;
+  _recognition.interimResults = false;
+  _recognition.onstart = function(){
+    _voiceActive = true;
+    if(btn){ btn.style.background='rgba(200,150,30,.2)'; btn.style.color='#C8961E'; btn.textContent='🔴'; }
+  };
+  _recognition.onresult = function(e){
+    var transcript = e.results[0][0].transcript;
+    var inp = document.getElementById('chat-inp');
+    if(inp){ inp.value = (inp.value ? inp.value + ' ' : '') + transcript; inp.focus(); }
+  };
+  _recognition.onend = function(){
+    _voiceActive = false;
+    if(btn){ btn.style.background='none'; btn.style.color=''; btn.textContent='🎤'; }
+  };
+  _recognition.onerror = function(e){
+    _voiceActive = false;
+    if(btn){ btn.style.background='none'; btn.style.color=''; btn.textContent='🎤'; }
+    if(e.error === 'not-allowed') alert('Microphone permission denied. Please allow microphone access.');
+  };
+  _recognition.start();
+};
 </script>
 </body>
 </html>
