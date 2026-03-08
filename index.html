@@ -3,423 +3,162 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#06101A"/>
 <title>ipowork — Download App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  
-  body {
-    background: #06101A;
-    color: #fff;
-    font-family: 'Sora', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Background grid */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,207,234,.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,207,234,.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px; }
-
-  /* Header */
-  header {
-    padding: 40px 0 20px;
-    text-align: center;
-  }
-  .logo {
-    font-family: 'Fraunces', serif;
-    font-weight: 900;
-    font-size: 38px;
-    letter-spacing: -1px;
-    color: #fff;
-  }
-  .logo em { color: #C8961E; font-style: normal; }
-  .tagline {
-    font-size: 13px;
-    color: #6A94B4;
-    margin-top: 6px;
-    letter-spacing: .3px;
-  }
-
-  /* Hero */
-  .hero {
-    text-align: center;
-    padding: 48px 0 40px;
-  }
-  .hero h1 {
-    font-family: 'Fraunces', serif;
-    font-weight: 900;
-    font-size: clamp(24px, 5vw, 38px);
-    line-height: 1.2;
-    margin-bottom: 14px;
-  }
-  .hero h1 span { color: #C8961E; }
-  .hero p {
-    font-size: 14px;
-    color: #6A94B4;
-    max-width: 500px;
-    margin: 0 auto;
-    line-height: 1.7;
-  }
-
-  /* App cards */
-  .apps-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    padding-bottom: 60px;
-  }
-  @media(max-width: 580px) {
-    .apps-grid { grid-template-columns: 1fr; }
-  }
-
-  .app-card {
-    background: linear-gradient(160deg, #0D1C2E, #0A1624);
-    border-radius: 24px;
-    padding: 32px 28px 28px;
-    border: 1px solid rgba(255,255,255,.06);
-    position: relative;
-    overflow: hidden;
-    transition: transform .2s, box-shadow .2s;
-  }
-  .app-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 60px rgba(0,0,0,.4);
-  }
-
-  /* Glow blob */
-  .app-card::before {
-    content: '';
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    top: -60px;
-    right: -60px;
-    filter: blur(60px);
-    opacity: .15;
-    pointer-events: none;
-  }
-  .card-issuer::before { background: #C8961E; }
-  .card-mb::before { background: #00CFEA; }
-
-  /* App icon */
-  .app-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    font-family: 'Fraunces', serif;
-    font-weight: 900;
-    font-size: 22px;
-    color: #06101A;
-    flex-shrink: 0;
-  }
-  .icon-issuer { background: linear-gradient(135deg, #C8961E, #E8B040); }
-  .icon-mb     { background: linear-gradient(135deg, #007A90, #00CFEA); }
-
-  .app-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .6px;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-  }
-  .badge-issuer { background: rgba(200,150,30,.12); color: #C8961E; border: 1px solid rgba(200,150,30,.25); }
-  .badge-mb     { background: rgba(0,207,234,.08);  color: #00CFEA; border: 1px solid rgba(0,207,234,.2); }
-
-  .app-name {
-    font-family: 'Fraunces', serif;
-    font-weight: 900;
-    font-size: 22px;
-    margin-bottom: 8px;
-    line-height: 1.2;
-  }
-  .app-desc {
-    font-size: 12px;
-    color: #6A94B4;
-    line-height: 1.7;
-    margin-bottom: 20px;
-  }
-
-  /* Feature pills */
-  .features {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 24px;
-  }
-  .feat {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 600;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.07);
-    color: #8BB0CC;
-  }
-
-  /* Divider */
-  .card-divider {
-    height: 1px;
-    background: rgba(255,255,255,.06);
-    margin-bottom: 20px;
-  }
-
-  /* Download buttons */
-  .btn-primary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 13px;
-    border-radius: 12px;
-    border: none;
-    font-family: 'Sora', sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    cursor: pointer;
-    text-decoration: none;
-    margin-bottom: 10px;
-    transition: opacity .2s, transform .15s;
-  }
-  .btn-primary:hover { opacity: .9; transform: scale(.98); }
-  .btn-primary:active { transform: scale(.96); }
-
-  .btn-issuer { background: linear-gradient(135deg, #C8961E, #E8B040); color: #06101A; }
-  .btn-mb     { background: linear-gradient(135deg, #007A90, #00CFEA); color: #06101A; }
-
-  .btn-secondary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 11px;
-    border-radius: 12px;
-    font-family: 'Sora', sans-serif;
-    font-weight: 600;
-    font-size: 12px;
-    cursor: pointer;
-    text-decoration: none;
-    background: none;
-    border: 1px solid rgba(255,255,255,.1);
-    color: #8BB0CC;
-    transition: border-color .2s, color .2s;
-  }
-  .btn-secondary:hover { border-color: rgba(255,255,255,.2); color: #fff; }
-
-  /* How to install instructions */
-  .install-guide {
-    background: rgba(255,255,255,.02);
-    border: 1px solid rgba(255,255,255,.06);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 24px;
-  }
-  .install-guide h3 {
-    font-size: 13px;
-    font-weight: 700;
-    color: #8BB0CC;
-    text-transform: uppercase;
-    letter-spacing: .6px;
-    margin-bottom: 16px;
-  }
-  .install-steps {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  @media(max-width:580px) { .install-steps { grid-template-columns: 1fr; } }
-
-  .install-platform { }
-  .platform-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 10px;
-  }
-  .platform-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-  }
-  .android-icon { background: rgba(61,220,132,.1); }
-  .apple-icon   { background: rgba(255,255,255,.06); }
-
-  .step-list { list-style: none; }
-  .step-list li {
-    display: flex;
-    gap: 8px;
-    font-size: 11px;
-    color: #6A94B4;
-    line-height: 1.6;
-    margin-bottom: 6px;
-  }
-  .step-num {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.06);
-    color: #8BB0CC;
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  /* Footer */
-  footer {
-    text-align: center;
-    padding: 32px 0 40px;
-    border-top: 1px solid rgba(255,255,255,.05);
-    font-size: 12px;
-    color: #354D62;
-  }
-  footer a { color: #6A94B4; text-decoration: none; }
-  footer a:hover { color: #C8961E; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #06101A; color: #fff; font-family: 'Sora', sans-serif; min-height: 100vh; overflow-x: hidden; }
+.orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: .18; pointer-events: none; animation: float 8s ease-in-out infinite; }
+.orb-1 { width: 500px; height: 500px; background: #C8961E; top: -150px; left: -150px; }
+.orb-2 { width: 400px; height: 400px; background: #00CFEA; bottom: -100px; right: -100px; animation-delay: -4s; }
+.orb-3 { width: 300px; height: 300px; background: #7B2FBE; top: 40%; left: 50%; animation-delay: -2s; }
+@keyframes float { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-30px) scale(1.05)} }
+body::before { content:''; position:fixed; inset:0; background-image: linear-gradient(rgba(0,207,234,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,207,234,.04) 1px,transparent 1px); background-size:44px 44px; pointer-events:none; z-index:0; }
+.wrap { position:relative; z-index:1; max-width:880px; margin:0 auto; padding:0 20px; }
+header { padding:44px 0 10px; text-align:center; }
+.logo-wrap { display:inline-flex; align-items:center; gap:12px; margin-bottom:14px; }
+.logo-icon { width:52px;height:52px; border-radius:14px; background:linear-gradient(135deg,#C8961E,#E8B040); display:flex;align-items:center;justify-content:center; font-family:'Fraunces',serif; font-weight:900;font-size:20px; color:#06101A; box-shadow:0 8px 24px rgba(200,150,30,.35); }
+.logo-text { font-family:'Fraunces',serif; font-weight:900;font-size:34px; letter-spacing:-1px; color:#fff; }
+.logo-text em { color:#E8B040; font-style:normal; }
+.tagline { display:inline-block; padding:5px 16px; background:rgba(200,150,30,.1); border:1px solid rgba(200,150,30,.2); border-radius:20px; font-size:11px;font-weight:600; color:#E8B040; letter-spacing:.5px; text-transform:uppercase; }
+.hero { text-align:center; padding:52px 0 44px; }
+.hero-eyebrow { font-size:11px;font-weight:700; color:#00CFEA; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:16px; }
+.hero h1 { font-family:'Fraunces',serif; font-weight:900; font-size:clamp(32px,6vw,52px); line-height:1.1; margin-bottom:18px; }
+.hero h1 .gold { color:#E8B040; }
+.hero p { font-size:15px;color:#7BA0C0; max-width:480px;margin:0 auto; line-height:1.8; }
+.install-guide { background:rgba(0,207,234,.04); border:1px solid rgba(0,207,234,.12); border-radius:20px; padding:28px 32px; margin-bottom:32px; }
+.install-guide h3 { font-size:13px;font-weight:800; color:#00CFEA; text-transform:uppercase; letter-spacing:.8px; margin-bottom:20px; }
+.install-steps { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+@media(max-width:580px){.install-steps{grid-template-columns:1fr}}
+.platform-label { display:flex;align-items:center;gap:10px; font-size:13px;font-weight:700;color:#fff; margin-bottom:12px; }
+.platform-icon { width:32px;height:32px;border-radius:9px; display:flex;align-items:center;justify-content:center; font-size:16px; }
+.android-icon { background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.2); }
+.apple-icon { background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1); }
+.step-list { list-style:none; }
+.step-list li { display:flex;gap:10px; font-size:12px;color:#6A94B4; line-height:1.6;margin-bottom:8px; align-items:flex-start; }
+.step-num { width:20px;height:20px;border-radius:50%; background:rgba(0,207,234,.1);border:1px solid rgba(0,207,234,.2); color:#00CFEA;font-size:10px;font-weight:800; display:flex;align-items:center;justify-content:center; flex-shrink:0;margin-top:1px; }
+.apps-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; padding-bottom:64px; }
+@media(max-width:580px){.apps-grid{grid-template-columns:1fr}}
+.app-card { border-radius:28px; padding:36px 30px 30px; position:relative; overflow:hidden; transition:transform .25s,box-shadow .25s; }
+.app-card:hover { transform:translateY(-6px); }
+.card-issuer { background:linear-gradient(145deg,#16240E,#0D1C2E,#0A1624); border:1px solid rgba(200,150,30,.2); box-shadow:0 0 0 1px rgba(200,150,30,.05),inset 0 1px 0 rgba(200,150,30,.1); }
+.card-issuer:hover { box-shadow:0 24px 60px rgba(200,150,30,.18),0 0 0 1px rgba(200,150,30,.25); }
+.card-mb { background:linear-gradient(145deg,#061A20,#0A1C2A,#0A1624); border:1px solid rgba(0,207,234,.18); box-shadow:0 0 0 1px rgba(0,207,234,.05),inset 0 1px 0 rgba(0,207,234,.08); }
+.card-mb:hover { box-shadow:0 24px 60px rgba(0,207,234,.15),0 0 0 1px rgba(0,207,234,.25); }
+.app-card::after { content:''; position:absolute; width:240px;height:240px; border-radius:50%; top:-80px;right:-80px; filter:blur(50px); opacity:.14; pointer-events:none; }
+.card-issuer::after { background:#E8B040; }
+.card-mb::after { background:#00CFEA; }
+.app-icon { width:80px;height:80px; border-radius:22px; display:flex;align-items:center;justify-content:center; margin-bottom:22px; font-family:'Fraunces',serif; font-weight:900;font-size:28px; color:#06101A; }
+.icon-issuer { background:linear-gradient(135deg,#C8961E,#F0C040); box-shadow:0 12px 32px rgba(200,150,30,.4); }
+.icon-mb { background:linear-gradient(135deg,#0088A8,#00DFFF); box-shadow:0 12px 32px rgba(0,207,234,.35); }
+.app-badge { display:inline-flex;align-items:center;gap:5px; padding:4px 12px; border-radius:20px; font-size:10px;font-weight:700; letter-spacing:.6px; text-transform:uppercase; margin-bottom:14px; }
+.badge-issuer { background:rgba(200,150,30,.15);color:#F0C040;border:1px solid rgba(200,150,30,.3); }
+.badge-mb { background:rgba(0,207,234,.1);color:#00DFFF;border:1px solid rgba(0,207,234,.25); }
+.app-name { font-family:'Fraunces',serif; font-weight:900;font-size:28px; margin-bottom:10px;line-height:1.1; }
+.app-desc { font-size:12px;color:#6A94B4; line-height:1.8;margin-bottom:22px; }
+.features { display:flex;flex-wrap:wrap;gap:7px;margin-bottom:26px; }
+.feat { padding:5px 11px; border-radius:20px; font-size:10px;font-weight:600; }
+.feat-issuer { background:rgba(200,150,30,.08);border:1px solid rgba(200,150,30,.18);color:#D4A830; }
+.feat-mb { background:rgba(0,207,234,.06);border:1px solid rgba(0,207,234,.18);color:#00CFEA; }
+.card-divider { height:1px;background:rgba(255,255,255,.07);margin-bottom:22px; }
+.btn-primary { display:flex;align-items:center;justify-content:center;gap:9px; width:100%;padding:16px; border-radius:14px;border:none; font-family:'Sora',sans-serif; font-weight:800;font-size:14px; cursor:pointer;text-decoration:none; margin-bottom:10px; transition:opacity .2s,transform .15s; }
+.btn-primary:hover{opacity:.92;transform:scale(.99)} .btn-primary:active{transform:scale(.97)}
+.btn-issuer { background:linear-gradient(135deg,#C8961E,#F0C040); color:#06101A; box-shadow:0 8px 24px rgba(200,150,30,.3); }
+.btn-mb { background:linear-gradient(135deg,#0088A8,#00DFFF); color:#06101A; box-shadow:0 8px 24px rgba(0,207,234,.25); }
+.btn-secondary { display:flex;align-items:center;justify-content:center;gap:8px; width:100%;padding:12px; border-radius:14px; font-family:'Sora',sans-serif; font-weight:600;font-size:12px; cursor:pointer;text-decoration:none; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.1); color:#8BB0CC; transition:all .2s; }
+.btn-secondary:hover{border-color:rgba(255,255,255,.2);color:#fff;background:rgba(255,255,255,.06)}
+footer { text-align:center; padding:36px 0 48px; border-top:1px solid rgba(255,255,255,.06); }
+.footer-logo { font-family:'Fraunces',serif; font-weight:900;font-size:22px; color:#fff;margin-bottom:10px; }
+.footer-logo em { color:#E8B040;font-style:normal; }
+footer p { font-size:11px;color:#354D62;line-height:1.8; }
+footer a { color:#6A94B4;text-decoration:none;transition:color .2s; }
+footer a:hover { color:#E8B040; }
 </style>
 </head>
 <body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
 <div class="wrap">
-
-  <!-- Header -->
   <header>
-    <div class="logo">ipo<em>work</em></div>
-    <div class="tagline">India's AI-powered IPO Readiness Platform</div>
+    <div class="logo-wrap">
+      <div class="logo-icon">iw</div>
+      <div class="logo-text">ipo<em>work</em></div>
+    </div><br/>
+    <span class="tagline">India's AI-powered IPO Readiness Platform</span>
   </header>
-
-  <!-- Hero -->
   <div class="hero">
-    <h1>Two Apps.<br/><span>One Platform.</span></h1>
-    <p>Download the right app for your role — Issuers check their IPO readiness, Merchant Bankers discover and originate deals.</p>
+    <div class="hero-eyebrow">✦ Now available as mobile app</div>
+    <h1>Two Apps.<br/><span class="gold">One Platform.</span></h1>
+    <p>Choose your role — Companies check IPO readiness, Merchant Bankers discover and originate deals. Install on any phone, no App Store needed.</p>
   </div>
-
-  <!-- How to Install -->
   <div class="install-guide">
     <h3>📱 How to Install on Your Phone</h3>
     <div class="install-steps">
-      <div class="install-platform">
-        <div class="platform-label">
-          <div class="platform-icon android-icon">🤖</div>
-          Android (Chrome)
-        </div>
+      <div>
+        <div class="platform-label"><div class="platform-icon android-icon">🤖</div>Android — Chrome</div>
         <ul class="step-list">
-          <li><span class="step-num">1</span> Tap "Open App" button below</li>
-          <li><span class="step-num">2</span> Tap the ⋮ menu (top right)</li>
-          <li><span class="step-num">3</span> Tap "Add to Home screen"</li>
-          <li><span class="step-num">4</span> Tap Add — icon appears on home screen ✅</li>
+          <li><span class="step-num">1</span>Tap "Open App" button below</li>
+          <li><span class="step-num">2</span>Tap ⋮ menu (top right)</li>
+          <li><span class="step-num">3</span>Tap "Add to Home screen"</li>
+          <li><span class="step-num">4</span>Tap Add ✅ Icon appears!</li>
         </ul>
       </div>
-      <div class="install-platform">
-        <div class="platform-label">
-          <div class="platform-icon apple-icon">🍎</div>
-          iPhone (Safari)
-        </div>
+      <div>
+        <div class="platform-label"><div class="platform-icon apple-icon">🍎</div>iPhone — Safari</div>
         <ul class="step-list">
-          <li><span class="step-num">1</span> Tap "Open App" button below</li>
-          <li><span class="step-num">2</span> Tap the Share button ↑ (bottom bar)</li>
-          <li><span class="step-num">3</span> Scroll down → "Add to Home Screen"</li>
-          <li><span class="step-num">4</span> Tap Add — icon appears on home screen ✅</li>
+          <li><span class="step-num">1</span>Tap "Open App" button below</li>
+          <li><span class="step-num">2</span>Tap Share ↑ (bottom bar)</li>
+          <li><span class="step-num">3</span>Tap "Add to Home Screen"</li>
+          <li><span class="step-num">4</span>Tap Add ✅ Icon appears!</li>
         </ul>
       </div>
     </div>
   </div>
-
-  <!-- App Cards -->
   <div class="apps-grid">
-
-    <!-- ISSUER CARD -->
     <div class="app-card card-issuer">
       <div class="app-icon icon-issuer">iw</div>
-      <div class="app-badge badge-issuer">For Companies</div>
+      <div class="app-badge badge-issuer">🏢 For Companies</div>
       <div class="app-name">Issuer<br/>Portal</div>
-      <div class="app-desc">
-        AI-powered IPO readiness score, gap analysis, AIDA document review, and Promoter AI assistant. Built for Indian companies planning an SME or Mainboard IPO.
-      </div>
+      <div class="app-desc">AI-powered IPO readiness score, compliance gap analysis, AIDA document review, MB matchmaking and Promoter AI with voice & file upload.</div>
       <div class="features">
-        <span class="feat">AIRA Score</span>
-        <span class="feat">Gap Analysis</span>
-        <span class="feat">AIDA Review</span>
-        <span class="feat">MB Matchmaking</span>
-        <span class="feat">IPO Timeline</span>
-        <span class="feat">Promoter AI</span>
+        <span class="feat feat-issuer">AIRA Score</span>
+        <span class="feat feat-issuer">Gap Analysis</span>
+        <span class="feat feat-issuer">AIDA Review</span>
+        <span class="feat feat-issuer">MB Match</span>
+        <span class="feat feat-issuer">IPO Timeline</span>
+        <span class="feat feat-issuer">Promoter AI</span>
       </div>
       <div class="card-divider"></div>
-      <a href="issuer.html" class="btn-primary btn-issuer" target="_blank">
-        📲 Open Issuer App
-      </a>
-      <a href="issuer.html" download="ipowork-issuer.html" class="btn-secondary">
-        ⬇ Download HTML File
-      </a>
+      <a href="issuer.html" class="btn-primary btn-issuer" target="_blank">📲 Open Issuer App</a>
+      <a href="issuer.html" download="ipowork-issuer.html" class="btn-secondary">⬇ Download HTML File</a>
     </div>
-
-    <!-- MB CARD -->
     <div class="app-card card-mb">
       <div class="app-icon icon-mb">iw</div>
-      <div class="app-badge badge-mb">For Merchant Bankers</div>
+      <div class="app-badge badge-mb">🏦 For Merchant Bankers</div>
       <div class="app-name">MB<br/>Portal</div>
-      <div class="app-desc">
-        AI deal origination, AIDA risk scan, Express Interest with fee structure, and MB AI assistant. Built for SEBI-registered Merchant Bankers discovering SME IPO mandates.
-      </div>
+      <div class="app-desc">AI deal origination, AIDA risk scan, Express Interest with fee negotiation, and MB AI assistant for SEBI-registered bankers.</div>
       <div class="features">
-        <span class="feat">Deal Pipeline</span>
-        <span class="feat">AIDA Scan</span>
-        <span class="feat">Express Interest</span>
-        <span class="feat">Fee Negotiation</span>
-        <span class="feat">MB Assistant</span>
-        <span class="feat">AIRA Scores</span>
+        <span class="feat feat-mb">Deal Pipeline</span>
+        <span class="feat feat-mb">AIDA Scan</span>
+        <span class="feat feat-mb">Express Interest</span>
+        <span class="feat feat-mb">Fee Structure</span>
+        <span class="feat feat-mb">MB Assistant</span>
+        <span class="feat feat-mb">AIRA Scores</span>
       </div>
       <div class="card-divider"></div>
-      <a href="mb.html" class="btn-primary btn-mb" target="_blank">
-        📲 Open MB App
-      </a>
-      <a href="mb.html" download="ipowork-mb.html" class="btn-secondary">
-        ⬇ Download HTML File
-      </a>
+      <a href="mb.html" class="btn-primary btn-mb" target="_blank">📲 Open MB Portal</a>
+      <a href="mb.html" download="ipowork-mb.html" class="btn-secondary">⬇ Download HTML File</a>
     </div>
-
   </div>
-
-  <!-- Footer -->
   <footer>
-    <p style="margin-bottom:8px">
-      <a href="issuer.html">Issuer Portal</a> &nbsp;·&nbsp;
-      <a href="mb.html">MB Portal</a> &nbsp;·&nbsp;
-      <a href="mailto:hello@ipowork.com">hello@ipowork.com</a>
-    </p>
-    <p>© 2025 ipowork.com &nbsp;·&nbsp; India's IPO Readiness Platform &nbsp;·&nbsp; Powered by Claude AI</p>
+    <div class="footer-logo">ipo<em>work</em></div>
+    <p><a href="issuer.html">Issuer Portal</a> &nbsp;·&nbsp; <a href="mb.html">MB Portal</a> &nbsp;·&nbsp; <a href="mailto:hello@ipowork.com">hello@ipowork.com</a></p>
+    <p style="margin-top:8px">© 2025 ipowork.com &nbsp;·&nbsp; Powered by Claude AI &nbsp;·&nbsp; SEBI Compliant</p>
   </footer>
-
 </div>
 </body>
 </html>
