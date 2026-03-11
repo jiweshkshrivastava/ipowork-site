@@ -1304,18 +1304,54 @@ function renderReports(){
 
 function renderDeepResearch(){
   var html = '<div style="padding:0;height:100%;display:flex;flex-direction:column">';
-  html += '<div style="padding:12px 20px;background:rgba(167,139,250,.05);border-bottom:1px solid rgba(167,139,250,.1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">';
+  // Header bar
+  html += '<div style="padding:12px 20px;background:rgba(167,139,250,.05);border-bottom:1px solid rgba(167,139,250,.1);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0">';
   html += '<div>';
   html += '<div style="font-size:13px;font-weight:800;color:#fff">🧠 Deep Research Analyst</div>';
-  html += '<div style="font-size:10px;color:var(--muted);margin-top:2px">PE/VC 50-parameter · 15 modules · IPO readiness engine for private companies</div>';
+  html += '<div style="font-size:10px;color:var(--muted);margin-top:2px">PE/VC · 50 parameters · 15 modules · AI-powered company intelligence</div>';
   html += '</div>';
-  html += '<button style="padding:6px 14px;border-radius:7px;font-size:10px;font-weight:700;background:rgba(167,139,250,.1);color:#A78BFA;border:1px solid rgba(167,139,250,.2);cursor:pointer;font-family:var(--font)" data-action="open-dr-new">Open Full Page ↗</button>';
+  html += '<a href="deep-research.html" target="_blank" style="flex-shrink:0;padding:7px 16px;border-radius:7px;font-size:11px;font-weight:700;background:rgba(167,139,250,.12);color:#A78BFA;border:1px solid rgba(167,139,250,.25);cursor:pointer;font-family:var(--font);text-decoration:none;display:inline-block">↗ Open Full Page</a>';
   html += '</div>';
-  html += '<div style="flex:1;overflow:hidden">';
-  html += '<iframe src="deep-research.html" id="dr-iframe" title="Deep Research" loading="lazy" allow="camera;microphone" style="width:100%;height:100%;min-height:82vh;border:none;display:block"></iframe>';
+  // Iframe + 404 fallback overlay
+  html += '<div style="flex:1;overflow:hidden;position:relative" id="dr-wrap">';
+  // Fallback shown by default, hidden once iframe loads
+  html += '<div id="dr-fallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:2;padding:32px">';
+  html += '<div style="text-align:center;max-width:480px">';
+  html += '<div style="font-size:48px;margin-bottom:16px">🧠</div>';
+  html += '<div style="font-family:var(--serif);font-size:24px;font-weight:900;color:#fff;margin-bottom:8px">Deep Research Analyst</div>';
+  html += '<div style="font-size:13px;color:var(--muted);line-height:1.75;margin-bottom:24px">AI-powered company intelligence engine. Research any private company across 50 PE/VC parameters — financials, governance, promoters, sector positioning and IPO readiness.</div>';
+  html += '<a href="deep-research.html" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:14px 32px;border-radius:10px;background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(167,139,250,.08));border:1px solid rgba(167,139,250,.35);color:#A78BFA;font-size:13px;font-weight:800;text-decoration:none;font-family:var(--font)">🧠 Launch Deep Research →</a>';
+  html += '<div style="margin-top:14px;font-size:10px;color:var(--dim)">Opens in a new tab · No login required to start</div>';
+  html += '</div></div>';
+  // The iframe
+  html += '<iframe src="deep-research.html" id="dr-iframe" title="Deep Research" loading="lazy" allow="camera;microphone" style="width:100%;height:100%;min-height:82vh;border:none;display:block;position:relative;z-index:1" onload="hideDRFallback(this)" onerror="showDRError()"></iframe>';
   html += '</div>';
   html += '</div>';
   return html;
+}
+
+function hideDRFallback(iframe){
+  // If iframe loaded but got a 404 page, keep fallback visible
+  try {
+    var doc = iframe.contentDocument || iframe.contentWindow.document;
+    var title = doc && doc.title ? doc.title : '';
+    var body = doc && doc.body ? doc.body.innerText : '';
+    if(body.indexOf('404') !== -1 || body.indexOf('File not found') !== -1 || title.indexOf('404') !== -1){
+      showDRError(); return;
+    }
+  } catch(e){ /* cross-origin — assume loaded ok */ }
+  var fb = document.getElementById('dr-fallback');
+  if(fb) fb.style.display = 'none';
+}
+
+function showDRError(){
+  var fb = document.getElementById('dr-fallback');
+  if(fb){
+    fb.style.display = 'flex';
+    // Update fallback message to reflect error state
+    var msg = fb.querySelector('div[style*="margin-bottom:24px"]');
+    if(msg) msg.innerHTML = 'Open the Deep Research Analyst in a new tab for the full experience — AI-powered company intelligence across 50 parameters.';
+  }
 }
 
 </script>
