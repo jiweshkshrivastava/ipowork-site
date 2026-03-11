@@ -860,6 +860,8 @@ function openPortal(){
   P.view='dashboard'; P.aiAsst=null; P.aiHistory=[];
   document.getElementById('portal-overlay').classList.add('open');
   renderSidebar(); renderMain();
+  /* Ensure pNav is accessible globally for inline onclick handlers */
+  window._pNavReady = true;
 }
 function closePortal(){ document.getElementById('portal-overlay').classList.remove('open'); }
 
@@ -869,7 +871,8 @@ function renderSidebar(){
   NAV_ITEMS.forEach(function(item){
     var active = P.view===item.id || P.view===item.id+'-chat';
     var badge = item.id==='watchlist' ? String(wb) : (item.badge||'');
-    html += '<div class="nav-item' + (active?' active':'') + '" data-nav="' + item.id + '">';
+    var navOnclick = (item.id === 'deep-research') ? " onclick=\"window.open('deep-research.html','_blank')\"" : " onclick=\"window.pNav('" + item.id + "')\"";
+    html += '<div class="nav-item' + (active?' active':'') + '"' + navOnclick + ' data-nav="' + item.id + '">';
     html += '<span style="font-size:16px">' + item.icon + '</span>';
     html += '<span>' + item.label + '</span>';
     if(badge) html += '<span class="nav-badge nb-' + (badge==='LIVE'?'free':'num') + '">' + badge + '</span>';
@@ -988,6 +991,15 @@ function bindAfterRender(){
 /* ── DASHBOARD ── */
 function renderDashboard(){
   var html = '<div class="portal-pad">';
+
+  /* Quick-nav shortcut bar — ensures all sections accessible */  
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">';
+  html += '<button onclick="window.pNav(\'radar\')" style="padding:7px 14px;border-radius:8px;background:rgba(255,77,77,.07);border:1px solid rgba(255,77,77,.18);color:#FF6B6B;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">🎯 IPO Radar</button>';
+  html += '<button onclick="window.pNav(\'ai\')" style="padding:7px 14px;border-radius:8px;background:rgba(0,200,150,.07);border:1px solid rgba(0,200,150,.18);color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">🤖 AI Assistants</button>';
+  html += '<button onclick="window.open(\'deep-research.html\',\'_blank\')" style="padding:7px 14px;border-radius:8px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.18);color:#A78BFA;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">🧠 Deep Research ↗</button>';
+  html += '<button onclick="window.pNav(\'watchlist\')" style="padding:7px 14px;border-radius:8px;background:rgba(232,176,64,.07);border:1px solid rgba(232,176,64,.18);color:var(--gold);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">⭐ Watch-list</button>';
+  html += '</div>';
+
 
   /* Deep Research featured card on dashboard */
   html += '<div style="background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(232,176,64,.04));border:1px solid rgba(167,139,250,.15);border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">';
