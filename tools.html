@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>ipowork Free IPO Tools — Eligibility Calculator · Cost Estimator · Timeline · Checklist</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="description" content="Free IPO tools for Indian companies. Check SME IPO eligibility, estimate IPO costs, plan your timeline, and run your readiness checklist. NSE Emerge, BSE SME, Main Board."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900;1,9..144,700&family=Sora:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#050A12;--surf:#0B1628;--card:#0F1E35;--faint:#101C2E;
+      --gold:#E8B040;--gold2:#B8841A;
+      --cyan:#00D4F5;--green:#00C896;--purple:#A78BFA;
+      --red:#F87171;--orange:#FB923C;--blue:#60A5FA;
+      --txt:#E8EDF5;--muted:#7A8CA0;--dim:#3A4A5A;
+      --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);
+      --serif:'Fraunces',serif;--font:'Sora',sans-serif;--mono:'IBM Plex Mono',monospace;
+    }
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--txt);font-family:var(--font);line-height:1.6;overflow-x:hidden;min-height:100vh}
+
+    /* ── PORTAL SWITCHER ── */
+    .ps-bar{background:rgba(5,9,15,.97);border-bottom:1px solid var(--border);padding:6px 20px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10px;position:sticky;top:0;z-index:200}
+    .ps-home{color:var(--gold);text-decoration:none;font-weight:700}
+    .ps-sep{color:var(--dim)}
+    .ps-link{color:var(--muted);text-decoration:none;padding:4px 10px;border-radius:6px;border:1px solid transparent;font-weight:600;transition:.15s;white-space:nowrap}
+    .ps-link:hover{color:#fff;border-color:var(--border2);background:rgba(255,255,255,.04)}
+    .ps-link.on{color:#fff;background:rgba(255,255,255,.06);border-color:var(--border2)}
+
+    /* ── TOPBAR ── */
+    .topbar{background:rgba(5,9,15,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:33px;z-index:199}
+    .tb-logo{font-family:var(--serif);font-weight:900;font-size:18px;color:#fff;text-decoration:none}
+    .tb-logo span{color:var(--gold);font-size:11px;font-weight:400;font-family:var(--font);margin-left:6px}
+    .tb-tabs{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none}
+    .tb-tabs::-webkit-scrollbar{display:none}
+    .tab-btn{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;border:1px solid transparent;background:none;color:var(--muted);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.18s;white-space:nowrap}
+    .tab-btn:hover{color:#fff;background:rgba(255,255,255,.04);border-color:var(--border)}
+    .tab-btn.active{color:#fff;border-color:var(--border2);background:rgba(255,255,255,.07)}
+    .tab-btn .tab-num{font-family:var(--mono);font-size:9px;color:var(--dim);font-weight:600}
+    .tb-cta{flex-shrink:0}
+
+    /* ── LAYOUT ── */
+    .page{display:none;animation:fadeIn .3s ease}
+    .page.active{display:block}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .wrap{max-width:900px;margin:0 auto;padding:36px 24px 80px}
+
+    /* ── PAGE HEADER ── */
+    .pg-header{margin-bottom:32px}
+    .pg-badge{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.9px;padding:4px 14px;border-radius:99px;margin-bottom:12px}
+    .pg-title{font-family:var(--serif);font-size:clamp(24px,4vw,38px);font-weight:900;color:#fff;line-height:1.1;margin-bottom:8px}
+    .pg-sub{font-size:13px;color:var(--muted);line-height:1.75;max-width:580px}
+
+    /* ── FORM ELEMENTS ── */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+    @media(max-width:580px){.form-grid{grid-template-columns:1fr}}
+    .form-group{display:flex;flex-direction:column;gap:5px}
+    .form-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+    .form-input{background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:10px 14px;color:#fff;font-family:var(--font);font-size:13px;font-weight:600;outline:none;transition:.2s;-webkit-appearance:none}
+    .form-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,176,64,.08)}
+    .form-input::placeholder{color:var(--dim)}
+    select.form-input{cursor:pointer}
+    select.form-input option{background:var(--surf)}
+    .form-hint{font-size:10px;color:var(--dim);line-height:1.5}
+    .btn-calc{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:10px;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#060A12;font-family:var(--font);font-size:13px;font-weight:800;border:none;cursor:pointer;transition:.2s;box-shadow:0 4px 20px rgba(232,176,64,.25)}
+    .btn-calc:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,176,64,.4)}
+    .btn-reset{display:inline-flex;align-items:center;gap:6px;padding:12px 20px;border-radius:10px;background:none;border:1px solid var(--border2);color:var(--muted);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.2s;margin-left:10px}
+    .btn-reset:hover{color:#fff;border-color:var(--border2)}
+
+    /* ── RESULT CARDS ── */
+    .result-box{background:var(--surf);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-top:24px;animation:fadeIn .4s ease}
+    .result-header{padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+    .result-icon{font-size:24px}
+    .result-title{font-family:var(--serif);font-size:18px;font-weight:900;color:#fff}
+    .result-sub{font-size:11px;color:var(--muted)}
+    .result-body{padding:20px}
+    .result-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px}
+    .result-row:last-child{border-bottom:none}
+    .result-key{color:var(--muted)}
+    .result-val{font-family:var(--mono);font-weight:700;color:#fff;text-align:right}
+    .result-section-title{font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border)}
+    .result-section-title:first-child{margin-top:0;padding-top:0;border-top:none}
+    /* verdict */
+    .verdict{border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:flex-start;gap:14px}
+    .verdict-icon{font-size:28px;flex-shrink:0;margin-top:2px}
+    .verdict-title{font-family:var(--serif);font-size:20px;font-weight:900;margin-bottom:4px}
+    .verdict-desc{font-size:12px;color:var(--muted);line-height:1.65}
+    .v-yes{background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.2)}
+    .v-yes .verdict-title{color:var(--green)}
+    .v-partial{background:rgba(232,176,64,.06);border:1px solid rgba(232,176,64,.2)}
+    .v-partial .verdict-title{color:var(--gold)}
+    .v-no{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2)}
+    .v-no .verdict-title{color:var(--red)}
+    /* score meter */
+    .score-meter{margin:16px 0}
+    .sm-track{height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;margin:8px 0}
+    .sm-fill{height:100%;border-radius:4px;transition:width 1s ease}
+    .sm-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);font-family:var(--mono)}
+    /* chips */
+    .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+    .chip{font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;display:flex;align-items:center;gap:5px}
+    .chip-ok{background:rgba(0,200,150,.08);color:var(--green);border:1px solid rgba(0,200,150,.2)}
+    .chip-warn{background:rgba(232,176,64,.08);color:var(--gold);border:1px solid rgba(232,176,64,.2)}
+    .chip-fail{background:rgba(248,113,113,.08);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+
+    /* ── COST BREAKDOWN ── */
+    .cost-total{background:linear-gradient(135deg,rgba(232,176,64,.08),rgba(0,212,245,.04));border:1px solid rgba(232,176,64,.2);border-radius:14px;padding:20px 24px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+    .ct-label{font-size:12px;font-weight:700;color:var(--muted)}
+    .ct-value{font-family:var(--serif);font-size:36px;font-weight:900;color:var(--gold)}
+    .ct-sub{font-size:11px;color:var(--dim)}
+    .cost-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .cbr-label{font-size:11px;color:var(--muted);width:160px;flex-shrink:0}
+    .cbr-track{flex:1;height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+    .cbr-fill{height:100%;border-radius:3px;transition:width 1s ease}
+    .cbr-val{font-family:var(--mono);font-size:10px;font-weight:700;width:80px;text-align:right;flex-shrink:0}
+
+    /* ── TIMELINE ── */
+    .tl-filter{display:flex;gap:8px;margin-bottom:28px}
+    .tl-filter-btn{padding:7px 18px;border-radius:8px;border:1px solid var(--border2);background:none;color:var(--muted);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;transition:.18s}
+    .tl-filter-btn.active{background:rgba(232,176,64,.08);border-color:rgba(232,176,64,.3);color:var(--gold)}
+    .timeline{position:relative;padding-left:48px}
+    .timeline::before{content:'';position:absolute;left:15px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--gold),rgba(232,176,64,.1))}
+    .tl-item{position:relative;margin-bottom:0}
+    .tl-item::before{content:'';position:absolute;left:-39px;top:20px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--dim);transition:.3s}
+    .tl-item.done::before{background:var(--green);border-color:var(--green);box-shadow:0 0 10px rgba(0,200,150,.4)}
+    .tl-item.active-tl::before{background:var(--gold);border-color:var(--gold);box-shadow:0 0 12px rgba(232,176,64,.5)}
+    .tl-connector{position:absolute;left:-33px;top:32px;bottom:-20px;width:2px;background:var(--border);z-index:0}
+    .tl-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:16px;cursor:default;transition:.2s;position:relative}
+    .tl-card:hover{border-color:var(--border2);background:rgba(15,30,53,.9)}
+    .tl-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:0}
+    .tl-card-left{flex:1}
+    .tl-phase{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+    .tl-title{font-size:14px;font-weight:800;color:#fff;margin-bottom:2px}
+    .tl-dur{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+    .tl-body{font-size:11px;color:var(--muted);line-height:1.7;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+    .tl-tasks{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+    .tl-task{font-size:10px;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:6px;padding:3px 9px}
+    .tl-both{border-left:2px solid var(--purple)}
+    .tl-sme-only{border-left:2px solid var(--green)}
+    .tl-main-only{border-left:2px solid var(--gold)}
+
+    /* ── CHECKLIST ── */
+    .cl-progress-bar{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:24px}
+    .cl-prog-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .cl-prog-label{font-size:12px;font-weight:700;color:#fff}
+    .cl-prog-count{font-family:var(--mono);font-size:12px;font-weight:700}
+    .cl-prog-track{height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+    .cl-prog-fill{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:4px;transition:width .5s ease}
+    .cl-prog-cats{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .cl-cat-chip{font-size:10px;font-weight:600;color:var(--muted);padding:3px 10px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:99px;cursor:pointer;transition:.15s}
+    .cl-cat-chip.active{color:#fff;border-color:var(--border2);background:rgba(255,255,255,.07)}
+    .cl-section{margin-bottom:20px}
+    .cl-section-head{display:flex;align-items:center;gap:10px;padding:10px 0;margin-bottom:8px;border-bottom:1px solid var(--border)}
+    .cl-section-icon{font-size:18px}
+    .cl-section-title{font-size:13px;font-weight:800;color:#fff;flex:1}
+    .cl-section-count{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--muted)}
+    .cl-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:.15s;border:1px solid transparent;margin-bottom:4px}
+    .cl-item:hover{background:rgba(255,255,255,.02);border-color:var(--border)}
+    .cl-item.checked{background:rgba(0,200,150,.04);border-color:rgba(0,200,150,.1)}
+    .cl-check{width:18px;height:18px;border-radius:5px;border:2px solid var(--dim);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:.2s;font-size:11px}
+    .cl-item.checked .cl-check{background:var(--green);border-color:var(--green);color:#fff}
+    .cl-item-text{flex:1}
+    .cl-item-label{font-size:12px;font-weight:600;color:#fff;line-height:1.4;transition:.2s}
+    .cl-item.checked .cl-item-label{color:var(--muted);text-decoration:line-through}
+    .cl-item-note{font-size:10px;color:var(--dim);margin-top:2px;line-height:1.5}
+    .cl-item-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;flex-shrink:0;margin-top:3px}
+    .cl-must{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+    .cl-imp{background:rgba(232,176,64,.08);color:var(--gold);border:1px solid rgba(232,176,64,.15)}
+    .cl-nice{background:rgba(96,165,250,.08);color:var(--blue);border:1px solid rgba(96,165,250,.15)}
+    /* result CTA */
+    .result-cta{background:linear-gradient(135deg,rgba(232,176,64,.06),rgba(0,200,150,.04));border:1px solid rgba(232,176,64,.15);border-radius:14px;padding:18px 22px;margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .rc-text{font-size:12px;color:var(--muted);line-height:1.6}
+    .rc-text strong{color:#fff;display:block;font-size:13px;margin-bottom:3px}
+    .btn-primary{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:9px;background:linear-gradient(135deg,var(--gold2),var(--gold));color:#060A12;font-family:var(--font);font-size:12px;font-weight:800;text-decoration:none;border:none;cursor:pointer;transition:.2s;box-shadow:0 4px 16px rgba(232,176,64,.2)}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(232,176,64,.35)}
+    .btn-outline-sm{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:9px;background:none;border:1px solid var(--border2);color:var(--muted);font-family:var(--font);font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;transition:.2s}
+    .btn-outline-sm:hover{color:#fff;border-color:var(--gold)}
+
+    /* hidden util */
+    .hidden{display:none!important}
+
+    @media(max-width:600px){
+      .wrap{padding:24px 16px 60px}
+      .cost-total{flex-direction:column;align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+
+<!-- PORTAL SWITCHER -->
+<div class="ps-bar">
+  <a href="index.html" class="ps-home">← ipowork.com</a>
+  <span class="ps-sep">·</span>
+  <a href="issuer.html" class="ps-link">📊 Issuer Portal</a>
+  <a href="mb.html" class="ps-link">🏦 MB Portal</a>
+  <a href="institutions.html" class="ps-link">🏛️ Intelligence</a>
+  <a href="tools.html" class="ps-link on">🧮 Free Tools</a>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="index.html" class="tb-logo">ipowork <span>Free IPO Tools</span></a>
+  <div class="tb-tabs">
+    <button class="tab-btn active" onclick="showTab('eligibility')">
+      <span>✅</span> SME Eligibility <span class="tab-num">01</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('cost')">
+      <span>💰</span> IPO Cost Estimator <span class="tab-num">02</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('timeline')">
+      <span>📅</span> IPO Timeline <span class="tab-num">03</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('checklist')">
+      <span>☑️</span> Readiness Checklist <span class="tab-num">04</span>
+    </button>
+  </div>
+  <div class="tb-cta">
+    <a href="issuer.html" class="btn-primary" style="font-size:11px;padding:7px 16px">Get AIRA Score →</a>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE 1 — SME IPO ELIGIBILITY CALCULATOR
+════════════════════════════════════════ -->
+<div class="page active" id="page-eligibility">
+  <div class="wrap">
+    <div class="pg-header">
+      <span class="pg-badge" style="background:rgba(0,200,150,.07);color:var(--green);border:1px solid rgba(0,200,150,.15)">✅ Tool 01 of 04</span>
+      <h1 class="pg-title">SME IPO Eligibility<br/><span style="color:var(--green)">Calculator</span></h1>
+      <p class="pg-sub">Enter your company's financials to instantly check eligibility for NSE Emerge, BSE SME, or Main Board IPO under SEBI ICDR guidelines.</p>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 28px">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Annual Revenue (₹ Crore)</label>
+          <input class="form-input" id="el-revenue" type="number" placeholder="e.g. 75" min="0"/>
+          <span class="form-hint">Last full financial year</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Net Worth (₹ Crore)</label>
+          <input class="form-input" id="el-networth" type="number" placeholder="e.g. 15" min="0"/>
+          <span class="form-hint">As per latest audited balance sheet</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">PAT — Profit After Tax (₹ Crore)</label>
+          <input class="form-input" id="el-pat" type="number" placeholder="e.g. 8" min="0"/>
+          <span class="form-hint">Latest financial year</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Years of Net Profitability</label>
+          <select class="form-input" id="el-profit-years">
+            <option value="">— Select —</option>
+            <option value="0">No profit yet</option>
+            <option value="1">1 year</option>
+            <option value="2">2 years</option>
+            <option value="3">3 years</option>
+            <option value="4">4+ years</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">EBITDA Margin (%)</label>
+          <input class="form-input" id="el-ebitda" type="number" placeholder="e.g. 18" min="0" max="100"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Company Type</label>
+          <select class="form-input" id="el-type">
+            <option value="">— Select —</option>
+            <option value="public">Public Limited Company</option>
+            <option value="private">Private Limited (needs conversion)</option>
+            <option value="llp">LLP (not eligible)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Target Issue Size (₹ Crore)</label>
+          <input class="form-input" id="el-issue" type="number" placeholder="e.g. 40" min="0"/>
+          <span class="form-hint">How much do you want to raise?</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Paid-up Capital (₹ Crore)</label>
+          <input class="form-input" id="el-capital" type="number" placeholder="e.g. 5" min="0"/>
+        </div>
+      </div>
+      <div>
+        <button class="btn-calc" onclick="calcEligibility()">✅ Check Eligibility Now</button>
+        <button class="btn-reset" onclick="resetEligibility()">↺ Reset</button>
+      </div>
+    </div>
+
+    <div id="el-result" class="hidden"></div>
+
+    <!-- Reference table -->
+    <div style="margin-top:32px">
+      <div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">SEBI ICDR — Quick Reference</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div style="background:var(--card);border:1px solid rgba(0,200,150,.15);border-radius:12px;padding:14px 16px">
+          <div style="font-size:10px;font-weight:800;color:var(--green);margin-bottom:8px;text-transform:uppercase">NSE Emerge / BSE SME</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.8">Post-issue paid-up capital ≤ ₹25 Cr<br/>Net Worth ≥ ₹3 Cr<br/>PAT in 2 of last 3 yrs<br/>Track record ≥ 3 yrs<br/>Issue size ≤ ₹200 Cr<br/>AIRA ≥ 65</div>
+        </div>
+        <div style="background:var(--card);border:1px solid rgba(232,176,64,.15);border-radius:12px;padding:14px 16px">
+          <div style="font-size:10px;font-weight:800;color:var(--gold);margin-bottom:8px;text-transform:uppercase">NSE / BSE Main Board</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.8">Net Worth ≥ ₹15 Cr (3 yrs)<br/>PAT ≥ ₹15 Cr (avg 3 yrs)<br/>Net tangible assets ≥ ₹3 Cr<br/>Issue size typically ≥ ₹300 Cr<br/>3 yrs profitability preferred<br/>AIRA ≥ 78</div>
+        </div>
+        <div style="background:var(--card);border:1px solid rgba(96,165,250,.12);border-radius:12px;padding:14px 16px">
+          <div style="font-size:10px;font-weight:800;color:var(--blue);margin-bottom:8px;text-transform:uppercase">Innovators Growth Platform</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.8">Startups &amp; high-growth cos<br/>No mandatory profitability<br/>QIB allocation 75%<br/>Lock-in 6 months (promoters)<br/>Migration to Main Board possible<br/>SEBI special framework</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE 2 — IPO COST CALCULATOR
+════════════════════════════════════════ -->
+<div class="page" id="page-cost">
+  <div class="wrap">
+    <div class="pg-header">
+      <span class="pg-badge" style="background:rgba(232,176,64,.07);color:var(--gold);border:1px solid rgba(232,176,64,.15)">💰 Tool 02 of 04</span>
+      <h1 class="pg-title">IPO Cost<br/><span style="color:var(--gold)">Estimator</span></h1>
+      <p class="pg-sub">Estimate your total IPO cost — MB fee, legal, audit, marketing, exchange fees, and SEBI charges. SME and Main Board both supported.</p>
+    </div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px 28px">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Target Issue Size (₹ Crore)</label>
+          <input class="form-input" id="cc-issue" type="number" placeholder="e.g. 50" min="1"/>
+          <span class="form-hint">Total amount you want to raise</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">IPO Track</label>
+          <select class="form-input" id="cc-track">
+            <option value="">— Select —</option>
+            <option value="sme">SME IPO (NSE Emerge / BSE SME)</option>
+            <option value="main">Main Board (NSE / BSE)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sector</label>
+          <select class="form-input" id="cc-sector">
+            <option value="general">General / Manufacturing</option>
+            <option value="tech">Technology / SaaS</option>
+            <option value="pharma">Pharma / Healthcare</option>
+            <option value="fmcg">FMCG / Consumer</option>
+            <option value="financial">BFSI / Financial Services</option>
+            <option value="infra">Infrastructure / Real Estate</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fresh Issue vs OFS Split</label>
+          <select class="form-input" id="cc-split">
+            <option value="100-0">100% Fresh Issue</option>
+            <option value="75-25">75% Fresh + 25% OFS</option>
+            <option value="50-50">50% Fresh + 50% OFS</option>
+            <option value="25-75">25% Fresh + 75% OFS</option>
+            <option value="0-100">100% OFS</option>
+          </select>
+          <span class="form-hint">OFS = selling shareholders exit, not fresh capital</span>
+        </div>
+      </div>
+      <button class="btn-calc" onclick="calcCost()">💰 Calculate IPO Costs</button>
+      <button class="btn-reset" onclick="resetCost()">↺ Reset</button>
+    </div>
+
+    <div id="cc-result" class="hidden"></div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE 3 — IPO TIMELINE GUIDE
+════════════════════════════════════════ -->
+<div class="page" id="page-timeline">
+  <div class="wrap">
+    <div class="pg-header">
+      <span class="pg-badge" style="background:rgba(0,212,245,.07);color:var(--cyan);border:1px solid rgba(0,212,245,.12)">📅 Tool 03 of 04</span>
+      <h1 class="pg-title">IPO Timeline<br/><span style="color:var(--cyan)">Guide</span></h1>
+      <p class="pg-sub">Step-by-step timeline for the complete IPO process in India. Filter by SME or Main Board. Realistic durations at each stage.</p>
+    </div>
+
+    <div class="tl-filter">
+      <button class="tl-filter-btn active" onclick="filterTimeline('all',this)">All Tracks</button>
+      <button class="tl-filter-btn" onclick="filterTimeline('sme',this)">SME IPO Only</button>
+      <button class="tl-filter-btn" onclick="filterTimeline('main',this)">Main Board Only</button>
+    </div>
+
+    <!-- Total duration summary -->
+    <div id="tl-summary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:28px">
+      <div style="background:var(--card);border:1px solid rgba(0,200,150,.15);border-radius:12px;padding:14px 16px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">SME IPO Total</div>
+        <div style="font-family:var(--serif);font-size:26px;font-weight:900;color:var(--green)">18–28</div>
+        <div style="font-size:11px;color:var(--muted)">months end-to-end</div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(232,176,64,.15);border-radius:12px;padding:14px 16px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Main Board Total</div>
+        <div style="font-family:var(--serif);font-size:26px;font-weight:900;color:var(--gold)">24–42</div>
+        <div style="font-size:11px;color:var(--muted)">months end-to-end</div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(248,113,113,.12);border-radius:12px;padding:14px 16px;text-align:center">
+        <div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Biggest Mistake</div>
+        <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--red);line-height:1.2;margin:4px 0">Starting too late</div>
+        <div style="font-size:10px;color:var(--muted)">90% of prep happens before DRHP</div>
+      </div>
+    </div>
+
+    <div class="timeline" id="tl-items"></div>
+
+    <div class="result-cta" style="margin-top:32px">
+      <div class="rc-text"><strong>Where are you on this timeline?</strong>Get your AIRA Score and a custom roadmap with exact months for your company.</div>
+      <a href="issuer.html" class="btn-primary">📊 Get My Custom Timeline →</a>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════
+     PAGE 4 — IPO READINESS CHECKLIST
+════════════════════════════════════════ -->
+<div class="page" id="page-checklist">
+  <div class="wrap">
+    <div class="pg-header">
+      <span class="pg-badge" style="background:rgba(167,139,250,.07);color:var(--purple);border:1px solid rgba(167,139,250,.15)">☑️ Tool 04 of 04</span>
+      <h1 class="pg-title">IPO Readiness<br/><span style="color:var(--purple)">Checklist</span></h1>
+      <p class="pg-sub">58-point pre-IPO checklist covering Financial, Governance, Legal, Compliance and Operations. Tick off items as you complete them.</p>
+    </div>
+
+    <!-- Progress -->
+    <div class="cl-progress-bar" id="cl-progress">
+      <div class="cl-prog-header">
+        <span class="cl-prog-label">Overall Readiness</span>
+        <span class="cl-prog-count" id="cl-count" style="color:var(--gold)">0 / 58 complete</span>
+      </div>
+      <div class="cl-prog-track"><div class="cl-prog-fill" id="cl-fill" style="width:0%"></div></div>
+      <div class="cl-prog-cats" id="cl-cats">
+        <span class="cl-cat-chip active" onclick="filterCL('all',this)">All Items</span>
+        <span class="cl-cat-chip" onclick="filterCL('financial',this)">📊 Financial</span>
+        <span class="cl-cat-chip" onclick="filterCL('governance',this)">🏢 Governance</span>
+        <span class="cl-cat-chip" onclick="filterCL('legal',this)">⚖️ Legal</span>
+        <span class="cl-cat-chip" onclick="filterCL('compliance',this)">📋 Compliance</span>
+        <span class="cl-cat-chip" onclick="filterCL('operations',this)">⚙️ Operations</span>
+        <span class="cl-cat-chip" onclick="filterCL('pending',this)">⏳ Pending only</span>
+      </div>
+    </div>
+
+    <div id="cl-body"></div>
+
+    <div id="cl-cta" class="result-cta hidden">
+      <div class="rc-text"><strong>Great progress! Ready for a deeper AIRA analysis?</strong>The AI will score all 8 dimensions and show you your exact IPO probability.</div>
+      <a href="issuer.html" class="btn-primary">📊 Get Full AIRA Score →</a>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ══════════════════════════════════════════════
+// TAB NAVIGATION
+// ══════════════════════════════════════════════
+var TABS = ['eligibility','cost','timeline','checklist'];
+function showTab(id){
+  TABS.forEach(function(t){
+    document.getElementById('page-'+t).classList.toggle('active', t===id);
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){
+    b.classList.toggle('active', TABS[i]===id);
+  });
+  if(id==='timeline' && !TL_BUILT){ buildTimeline(); TL_BUILT=true; }
+  if(id==='checklist' && !CL_BUILT){ buildChecklist(); CL_BUILT=true; }
+  try{ history.replaceState(null, '', '#'+id); }catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+// Read hash from URL on load
+(function(){
+  var h = (location.hash||'').replace('#','');
+  var valid = ['eligibility','cost','timeline','checklist'];
+  if(valid.indexOf(h)!==-1){ showTab(h); }
+  else { showTab('eligibility'); }
+})();
+
+
+// ══════════════════════════════════════════════
+// TOOL 1 — ELIGIBILITY CALCULATOR
+// ══════════════════════════════════════════════
+function calcEligibility(){
+  var rev = parseFloat(document.getElementById('el-revenue').value)||0;
+  var nw  = parseFloat(document.getElementById('el-networth').value)||0;
+  var pat = parseFloat(document.getElementById('el-pat').value)||0;
+  var py  = parseInt(document.getElementById('el-profit-years').value)||0;
+  var eb  = parseFloat(document.getElementById('el-ebitda').value)||0;
+  var typ = document.getElementById('el-type').value;
+  var iss = parseFloat(document.getElementById('el-issue').value)||0;
+  var cap = parseFloat(document.getElementById('el-capital').value)||0;
+
+  if(!rev && !nw && !pat){ alert('Please fill at least Revenue, Net Worth and PAT.'); return; }
+
+  // SME criteria
+  var sme_criteria = [
+    {label:'Net Worth ≥ ₹3 Cr',         pass: nw >= 3,        val: '₹'+nw+' Cr'},
+    {label:'PAT in 2 of 3 years',        pass: py >= 2,        val: py+' year(s)'},
+    {label:'Issue Size ≤ ₹200 Cr',       pass: iss > 0 && iss <= 200, val: iss ? '₹'+iss+' Cr' : 'Not set'},
+    {label:'Post-issue capital ≤ ₹25 Cr',pass: cap > 0 && cap <= 25, val: cap ? '₹'+cap+' Cr' : 'Not set'},
+    {label:'Positive EBITDA',            pass: eb > 0,         val: eb+'%'},
+    {label:'Company is Public Limited',  pass: typ==='public', val: typ||'Not set'},
+  ];
+  var sme_pass = sme_criteria.filter(function(c){return c.pass;}).length;
+  var sme_pct  = Math.round(sme_pass/sme_criteria.length*100);
+  var sme_ok   = sme_pass >= 5 && nw >= 3 && py >= 2 && typ === 'public';
+
+  // Main Board criteria
+  var mb_criteria = [
+    {label:'Net Worth ≥ ₹15 Cr (3 yrs)',  pass: nw >= 15,       val: '₹'+nw+' Cr'},
+    {label:'PAT ≥ ₹15 Cr average',        pass: pat >= 15,      val: '₹'+pat+' Cr'},
+    {label:'3 years profitability',        pass: py >= 3,        val: py+' year(s)'},
+    {label:'Revenue scale (≥ ₹200 Cr)',   pass: rev >= 200,     val: '₹'+rev+' Cr'},
+    {label:'Issue ≥ ₹300 Cr (typical)',   pass: iss >= 300,     val: iss ? '₹'+iss+' Cr' : 'Not set'},
+    {label:'Company is Public Limited',   pass: typ==='public', val: typ||'Not set'},
+  ];
+  var mb_pass = mb_criteria.filter(function(c){return c.pass;}).length;
+  var mb_ok   = mb_pass >= 5 && nw >= 15 && pat >= 15 && py >= 3;
+
+  var html = '<div class="result-box">';
+  html += '<div class="result-header"><div class="result-icon">'+(sme_ok||mb_ok?'✅':'⏳')+'</div><div><div class="result-title">Eligibility Assessment</div><div class="result-sub">Based on SEBI ICDR guidelines — indicative, not legal advice</div></div></div>';
+  html += '<div class="result-body">';
+
+  // Main Board verdict
+  html += '<div class="verdict '+(mb_ok?'v-yes':mb_pass>=3?'v-partial':'v-no')+'">';
+  html += '<div class="verdict-icon">'+(mb_ok?'🏆':mb_pass>=3?'📈':'❌')+'</div>';
+  html += '<div><div class="verdict-title">'+(mb_ok?'Main Board Eligible':mb_pass>=3?'Main Board — Work Needed':'Main Board — Not Yet Ready')+'</div>';
+  html += '<div class="verdict-desc">'+(mb_ok?'Your financials meet the indicative NSE/BSE Main Board thresholds. Engage a SEBI-registered investment bank to confirm eligibility and begin DRHP preparation.':mb_pass>=3?'You are '+(6-mb_pass)+' criteria short of Main Board eligibility. Focus on growing net worth, PAT and revenue scale over the next 12–24 months.':'Main Board requires net worth ≥ ₹15 Cr, PAT ≥ ₹15 Cr and 3 years profitability. Continue building fundamentals.')+'</div>';
+  html += '<div class="chips" style="margin-top:8px">';
+  mb_criteria.forEach(function(c){ html += '<span class="chip '+(c.pass?'chip-ok':'chip-fail')+'">'+(c.pass?'✓':'✗')+' '+c.label+'</span>'; });
+  html += '</div></div></div>';
+
+  // SME verdict
+  html += '<div class="verdict '+(sme_ok?'v-yes':sme_pass>=4?'v-partial':'v-no')+'" style="margin-top:12px">';
+  html += '<div class="verdict-icon">'+(sme_ok?'✅':sme_pass>=4?'⚠️':'❌')+'</div>';
+  html += '<div><div class="verdict-title">'+(sme_ok?'SME IPO Eligible (NSE Emerge / BSE SME)':sme_pass>=4?'SME IPO — Almost There':'SME IPO — Not Yet Ready')+'</div>';
+  html += '<div class="verdict-desc">'+(sme_ok?'Your company meets indicative SME IPO requirements. NSE Emerge and BSE SME are both viable. Start engaging Category I Merchant Bankers now.':sme_pass>=4?'You meet '+sme_pass+'/'+sme_criteria.length+' criteria. Close the remaining gaps — typically 6–18 months.':'SME IPO requires net worth ≥ ₹3 Cr, PAT in 2 of 3 years, and Public Limited status.')+'</div>';
+  html += '<div class="chips" style="margin-top:8px">';
+  sme_criteria.forEach(function(c){ html += '<span class="chip '+(c.pass?'chip-ok':'chip-fail')+'">'+(c.pass?'✓':'✗')+' '+c.label+'</span>'; });
+  html += '</div></div></div>';
+
+  // Non-public warning
+  if(typ === 'private'){ html += '<div style="background:rgba(251,146,60,.06);border:1px solid rgba(251,146,60,.2);border-radius:10px;padding:12px 16px;margin-top:12px;font-size:11px;color:var(--orange)">⚠️ <strong>Conversion required:</strong> Private Limited companies must convert to Public Limited under Companies Act Section 14 before filing DRHP. Typically takes 2–3 months.</div>'; }
+  if(typ === 'llp'){ html += '<div style="background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:12px 16px;margin-top:12px;font-size:11px;color:var(--red)">❌ <strong>LLPs cannot list on Indian stock exchanges.</strong> You must first convert the LLP into a Private Limited Company, then to Public Limited. This process typically takes 6–12 months.</div>'; }
+
+  html += '<div class="result-cta" style="margin-top:16px"><div class="rc-text"><strong>Want a detailed 8-dimension readiness score?</strong>AIRA analyses governance, compliance, financials and more — gives exact IPO probability with gap analysis.</div><a href="issuer.html" class="btn-primary">📊 Get Full AIRA Score →</a></div>';
+  html += '</div></div>';
+
+  var el = document.getElementById('el-result');
+  el.innerHTML = html;
+  el.classList.remove('hidden');
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function resetEligibility(){
+  ['el-revenue','el-networth','el-pat','el-ebitda','el-issue','el-capital'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  ['el-profit-years','el-type'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  document.getElementById('el-result').classList.add('hidden');
+}
+
+
+// ══════════════════════════════════════════════
+// TOOL 2 — COST CALCULATOR
+// ══════════════════════════════════════════════
+function calcCost(){
+  var iss   = parseFloat(document.getElementById('cc-issue').value)||0;
+  var track = document.getElementById('cc-track').value;
+  var sec   = document.getElementById('cc-sector').value;
+  var split = document.getElementById('cc-split').value;
+
+  if(!iss || !track){ alert('Please enter issue size and select a track.'); return; }
+
+  var isSME = track === 'sme';
+
+  // Sector premium on MB fee
+  var secPrem = {general:1, tech:1.1, pharma:1.05, fmcg:1.0, financial:1.15, infra:1.0}[sec]||1;
+
+  // MB / Lead Manager Fee: SME 3–5%, Main 2–4%
+  var mbPctLow  = isSME ? 3.0 : 2.0;
+  var mbPctHigh = isSME ? 5.0 : 4.0;
+  var mbLow  = iss * mbPctLow/100 * secPrem;
+  var mbHigh = iss * mbPctHigh/100 * secPrem;
+
+  // Legal & Secretarial: SME ₹20–60L, Main ₹1–3Cr
+  var legalLow  = isSME ? 0.20 : 1.0;
+  var legalHigh = isSME ? 0.60 : 3.0;
+
+  // Audit & Restatement: SME ₹10–30L, Main ₹50L–2Cr
+  var auditLow  = isSME ? 0.10 : 0.50;
+  var auditHigh = isSME ? 0.30 : 2.0;
+
+  // Registrar & Transfer Agent
+  var rtaLow  = isSME ? 0.05 : 0.25;
+  var rtaHigh = isSME ? 0.12 : 0.75;
+
+  // Exchange Listing Fee
+  var listFee = isSME ? (iss <= 50 ? 0.10 : 0.15) : (iss <= 500 ? 0.30 : 0.50);
+
+  // SEBI filing fee (approx)
+  var sebiFee = isSME ? 0.05 : Math.min(0.01 * iss, 5.0);
+
+  // Marketing & Roadshow: SME ₹5–15L, Main ₹50L–3Cr
+  var mktLow  = isSME ? 0.05 : 0.50;
+  var mktHigh = isSME ? 0.15 : 3.0;
+
+  // Printing & others
+  var printLow  = isSME ? 0.03 : 0.10;
+  var printHigh = isSME ? 0.08 : 0.40;
+
+  // Market Maker (SME only)
+  var mmLow  = isSME ? 0.15 : 0;
+  var mmHigh = isSME ? 0.35 : 0;
+
+  var totalLow  = mbLow  + legalLow  + auditLow  + rtaLow  + listFee + sebiFee + mktLow  + printLow  + mmLow;
+  var totalHigh = mbHigh + legalHigh + auditHigh + rtaHigh + listFee + sebiFee + mktHigh + printHigh + mmHigh;
+
+  var totalPctLow  = (totalLow/iss*100).toFixed(1);
+  var totalPctHigh = (totalHigh/iss*100).toFixed(1);
+
+  function fmt(v){ return v < 1 ? '₹'+(v*100).toFixed(0)+'L' : '₹'+v.toFixed(2)+' Cr'; }
+  function fmtR(l,h){ return fmt(l)+' – '+fmt(h); }
+  function bar(l,h,col,max){ var pct=Math.round((h/max)*100); return '<div class="cbr-fill" style="width:'+pct+'%;background:'+col+'"></div>'; }
+
+  var maxVal = totalHigh * 1.1;
+
+  var items = [
+    {label:'Lead Manager (MB) Fee',     low:mbLow,    high:mbHigh,    col:'#E8B040', note:isSME?'3–5% of issue size':'2–4% of issue size'},
+    {label:'Legal & Secretarial',       low:legalLow, high:legalHigh, col:'#A78BFA', note:'DRHP drafting, legal opinions, company secretarial'},
+    {label:'Statutory Audit & Restatement', low:auditLow, high:auditHigh, col:'#60A5FA', note:'Restated financials + IPO audit'},
+    {label:'Registrar & Transfer Agent',low:rtaLow,   high:rtaHigh,   col:'#00C896', note:'Allotment, demat, refund processing'},
+    {label:'Exchange Listing Fee',      low:listFee,  high:listFee,   col:'#00D4F5', note:isSME?'NSE Emerge / BSE SME fee':'NSE / BSE annual listing fee'},
+    {label:'SEBI Filing Fee',           low:sebiFee,  high:sebiFee,   col:'#FB923C', note:'SEBI registration & observation'},
+    {label:'Marketing & Roadshow',      low:mktLow,   high:mktHigh,   col:'#F59E0B', note:isSME?'Local roadshows, investor meets':'Pan-India roadshow + analyst presentations'},
+    {label:'Printing & Miscellaneous',  low:printLow, high:printHigh, col:'#94A3B8', note:'Prospectus, DRHP printing, incidentals'},
+  ];
+  if(isSME) items.push({label:'Market Maker Fees', low:mmLow, high:mmHigh, col:'#F87171', note:'Mandatory for SME IPOs — 2-year commitment'});
+
+  var html = '<div class="result-box">';
+  html += '<div class="result-header"><div class="result-icon">💰</div><div><div class="result-title">IPO Cost Breakdown</div><div class="result-sub">Estimates based on typical '+(isSME?'SME IPO':'Main Board IPO')+' transactions · Not a formal quote</div></div></div>';
+  html += '<div class="result-body">';
+  html += '<div class="cost-total"><div><div class="ct-label">Total Estimated IPO Cost</div><div class="ct-value">'+fmtR(totalLow,totalHigh)+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--muted)">As % of issue</div><div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--gold)">'+totalPctLow+'–'+totalPctHigh+'%</div><div class="ct-sub">Net proceeds to company: '+fmt(iss-totalHigh)+' – '+fmt(iss-totalLow)+'</div></div></div>';
+
+  items.forEach(function(it){
+    html += '<div class="cost-bar-row"><div class="cbr-label">'+it.label+'</div><div class="cbr-track">'+bar(it.low,it.high,it.col,maxVal)+'</div><div class="cbr-val" style="color:'+it.col+'">'+fmtR(it.low,it.high)+'</div></div>';
+    html += '<div style="font-size:9px;color:var(--dim);margin-bottom:10px;padding-left:172px">'+it.note+'</div>';
+  });
+
+  // Key points
+  html += '<div style="background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:8px">';
+  html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Key Points</div>';
+  var pts = isSME ? [
+    'Market Maker appointment is mandatory for SME IPOs — budget ₹15–35L',
+    'SEBI ICDR requires minimum 50% of net issue to retail investors for SME',
+    'Total cost is higher as % of issue for smaller issue sizes',
+    'Merchant banker fee is the single largest cost — compare 2–3 quotes',
+  ] : [
+    'Book Running Lead Manager (BRLM) fee is negotiable — larger issues get lower %',
+    'Marketing costs scale with deal size — institutional roadshows add up quickly',
+    'Legal costs are higher due to SEBI + exchange dual filing requirements',
+    'Consider appointing co-BRLM for Main Board issues above ₹500 Cr',
+  ];
+  pts.forEach(function(p){ html += '<div style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:var(--muted);margin-bottom:7px"><span style="color:var(--gold);flex-shrink:0">→</span>'+p+'</div>'; });
+  html += '</div>';
+
+  html += '<div class="result-cta" style="margin-top:16px"><div class="rc-text"><strong>Get a detailed IPO cost plan for your company.</strong>AIRA analyses your specific situation and recommends the right merchant bankers for your issue size and sector.</div><a href="issuer.html" class="btn-primary">📊 Get My IPO Plan →</a></div>';
+  html += '</div></div>';
+
+  var el = document.getElementById('cc-result');
+  el.innerHTML = html;
+  el.classList.remove('hidden');
+  el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function resetCost(){
+  document.getElementById('cc-issue').value='';
+  document.getElementById('cc-track').value='';
+  document.getElementById('cc-result').classList.add('hidden');
+}
+
+
+// ══════════════════════════════════════════════
+// TOOL 3 — TIMELINE
+// ══════════════════════════════════════════════
+var TL_BUILT = false;
+var TL_DATA = [
+  {
+    phase:'Phase 1 — Internal Preparation', track:'both',
+    title:'IPO Readiness Diagnosis',
+    dur:'1–3 months',
+    col:'var(--gold)',
+    desc:'Get your AIRA Score. Identify all compliance, financial and governance gaps. Build your IPO roadmap with realistic milestones.',
+    tasks:['AIRA Assessment','Gap Analysis Report','IPO Roadmap Draft','Internal team alignment']
+  },
+  {
+    phase:'Phase 1 — Internal Preparation', track:'both',
+    title:'Corporate Restructuring',
+    dur:'3–12 months',
+    col:'var(--gold)',
+    desc:'Convert Private Limited to Public Limited if required. Simplify group structure. Resolve related party transactions. Eliminate circular holdings.',
+    tasks:['Private→Public conversion','Group structure cleanup','RPT resolution','Promoter shareholding rationalisation','ESOP scheme setup']
+  },
+  {
+    phase:'Phase 2 — Financial Housekeeping', track:'both',
+    title:'Financial Strengthening',
+    dur:'6–18 months',
+    col:'var(--orange)',
+    desc:'Strengthen MIS, upgrade audit firm (Big 4 / Category I preferred for Main Board), restate financials under IndAS, clean up contingent liabilities.',
+    tasks:['Upgrade to IndAS accounting','Appoint Big 4 / reputed auditor','MIS & ERP implementation','3-year financial restatement','Working capital optimisation']
+  },
+  {
+    phase:'Phase 2 — Financial Housekeeping', track:'main',
+    title:'Pre-IPO Capital Raise (Optional)',
+    dur:'3–9 months',
+    col:'var(--orange)',
+    desc:'Main Board companies often raise PE/VC/pre-IPO capital to improve balance sheet and signal institutional validation before DRHP.',
+    tasks:['PE/VC investor identification','Due diligence readiness','Term sheet negotiation','Investment documentation','Cap table management']
+  },
+  {
+    phase:'Phase 3 — Governance & Compliance', track:'both',
+    title:'Board & Governance Strengthening',
+    dur:'3–6 months',
+    col:'var(--green)',
+    desc:'Appoint Independent Directors. Form Audit, Nomination & Remuneration, Stakeholder Relationship Committees. Upgrade secretarial compliance.',
+    tasks:['2+ Independent Directors (SME: 1)','Board committees formation','Corporate governance policy','Secretarial compliance audit','Whistleblower policy']
+  },
+  {
+    phase:'Phase 3 — Governance & Compliance', track:'both',
+    title:'Regulatory Compliance Cleanup',
+    dur:'2–6 months',
+    col:'var(--green)',
+    desc:'Clear all pending ROC filings, statutory dues, litigation disclosures. Obtain key licenses if missing. Ensure SEBI ICDR compliance checklist is clean.',
+    tasks:['ROC filing backlog clearance','Statutory dues clearance','SEBI ICDR compliance check','Pending litigation audit','IPO-specific legal opinion']
+  },
+  {
+    phase:'Phase 4 — Advisor Appointment', track:'both',
+    title:'Merchant Banker & Advisor Appointment',
+    dur:'1–3 months',
+    col:'var(--cyan)',
+    desc:'Appoint SEBI-registered Category I Merchant Banker (Lead Manager). Also appoint legal counsel, registrar, bankers to issue, and market maker (SME).',
+    tasks:['Lead Manager appointment','Legal counsel (issuer lawyer)','Statutory auditor confirmation','Registrar & Transfer Agent','Bankers to the Issue']
+  },
+  {
+    phase:'Phase 5 — DRHP Preparation', track:'both',
+    title:'DRHP Drafting & Due Diligence',
+    dur:'3–6 months (SME) / 4–8 months (Main)',
+    col:'var(--purple)',
+    desc:'Comprehensive due diligence by MB and legal counsel. Draft Draft Red Herring Prospectus (DRHP) covering all SEBI disclosures — financials, litigation, promoters, risk factors.',
+    tasks:['Legal due diligence','Financial due diligence','DRHP drafting (200–500 pages)','Risk factor identification','Objects of the issue','Industry & company analysis']
+  },
+  {
+    phase:'Phase 5 — DRHP Preparation', track:'both',
+    title:'DRHP Filing with SEBI & Exchange',
+    dur:'1 month',
+    col:'var(--purple)',
+    desc:'File DRHP with SEBI and Exchange simultaneously. SEBI processes SME filings via the exchange. Main Board DRHP goes directly to SEBI for observation letter.',
+    tasks:['DRHP filing with SEBI','Exchange filing (NSE/BSE)','Filing fee payment','Public announcement','Merchant banker comfort letter']
+  },
+  {
+    phase:'Phase 6 — SEBI Approval', track:'sme',
+    title:'Exchange Processing (SME)',
+    dur:'15–30 working days',
+    col:'var(--blue)',
+    desc:'For SME IPOs, the exchange processes the DRHP and issues its in-principle approval. SEBI oversight is via exchange. Typically faster than Main Board.',
+    tasks:['Exchange review queries','Reply to clarifications','In-principle approval','RHP finalisation']
+  },
+  {
+    phase:'Phase 6 — SEBI Approval', track:'main',
+    title:'SEBI Observation Letter (Main Board)',
+    dur:'30–75 calendar days',
+    col:'var(--gold)',
+    desc:'SEBI reviews DRHP and issues an observation letter with queries. Company must respond to all queries. Valid for 12 months from date of observation letter.',
+    tasks:['SEBI queries response','Revised DRHP submission','Observation letter receipt','Validity: 12 months']
+  },
+  {
+    phase:'Phase 7 — IPO Launch', track:'both',
+    title:'Roadshow & Price Discovery',
+    dur:'2–4 weeks',
+    col:'var(--orange)',
+    desc:'Management presentations to institutional investors and HNIs. Book building (for Main Board). Price band determination. ASBA process setup.',
+    tasks:['Investor roadshow (SME: local, Main: pan-India)','Anchor investor allocation (Main Board)','Price band finalisation','RHP filing with exchange','ASBA / UPI mandate setup']
+  },
+  {
+    phase:'Phase 7 — IPO Launch', track:'both',
+    title:'IPO Subscription Period',
+    dur:'3 working days (SME) / 3–10 days (Main)',
+    col:'var(--green)',
+    desc:'IPO opens for subscription. Retail, HNI and QIB categories fill bids via ASBA/UPI. Real-time subscription monitoring. Oversubscription is common for well-prepared IPOs.',
+    tasks:['IPO open for bidding','Subscription monitoring','ASBA/UPI processing','Oversubscription handling']
+  },
+  {
+    phase:'Phase 7 — IPO Launch', track:'both',
+    title:'Allotment & Listing',
+    dur:'6 working days post-close',
+    col:'var(--gold)',
+    desc:'Basis of allotment finalised by registrar. Shares credited to demat accounts. Listing on exchange. Market maker (SME) begins operations from Day 1.',
+    tasks:['Allotment finalisation','Demat credit','Refund processing','Exchange listing','Market maker activation (SME)','Trading commences 🎉']
+  },
+];
+
+function buildTimeline(){
+  var container = document.getElementById('tl-items');
+  container.innerHTML = '';
+  TL_DATA.forEach(function(item, i){
+    var div = document.createElement('div');
+    div.className = 'tl-item';
+    div.dataset.track = item.track;
+    var trackLabel = item.track==='sme'?'SME Only':item.track==='main'?'Main Board Only':'Both Tracks';
+    var trackCol = item.track==='sme'?'var(--green)':item.track==='main'?'var(--gold)':'var(--purple)';
+    var borderCls = item.track==='sme'?'tl-sme-only':item.track==='main'?'tl-main-only':'tl-both';
+    div.innerHTML =
+      '<div class="tl-connector"></div>'+
+      '<div class="tl-card '+borderCls+'">'+
+        '<div class="tl-card-header">'+
+          '<div class="tl-card-left">'+
+            '<div class="tl-phase"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+item.col+'"></span>'+item.phase+'<span style="color:'+trackCol+';font-weight:700">'+trackLabel+'</span></div>'+
+            '<div class="tl-title">'+item.title+'</div>'+
+          '</div>'+
+          '<div class="tl-dur" style="background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted)">'+item.dur+'</div>'+
+        '</div>'+
+        '<div class="tl-body">'+item.desc+
+          '<div class="tl-tasks">'+item.tasks.map(function(t){return '<span class="tl-task">'+t+'</span>';}).join('')+'</div>'+
+        '</div>'+
+      '</div>';
+    container.appendChild(div);
+  });
+}
+
+function filterTimeline(track, btn){
+  document.querySelectorAll('.tl-filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.tl-item').forEach(function(el){
+    var t = el.dataset.track;
+    el.style.display = (track==='all' || t===track || t==='both') ? '' : 'none';
+  });
+}
+
+
+// ══════════════════════════════════════════════
+// TOOL 4 — CHECKLIST
+// ══════════════════════════════════════════════
+var CL_BUILT = false;
+var CL_STATE = {};
+var CL_DATA = [
+  {cat:'financial', label:'3 years of audited financial statements available', note:'Under IndAS / Companies Act 2013 format', badge:'must'},
+  {cat:'financial', label:'Auditor is a reputed Chartered Accountant firm', note:'Big 4 or Category I CA firm preferred for Main Board', badge:'must'},
+  {cat:'financial', label:'No qualified audit report in last 3 years', note:'Qualifications are SEBI red flags', badge:'must'},
+  {cat:'financial', label:'Revenue growth is consistent and defensible', note:'Declining revenue trend triggers SEBI queries', badge:'must'},
+  {cat:'financial', label:'EBITDA margin is positive and stable', note:'Minimum 10%+ preferred for SME, 14%+ for Main Board', badge:'must'},
+  {cat:'financial', label:'Working capital is adequate and well-managed', note:'Negative working capital needs clear explanation in DRHP', badge:'imp'},
+  {cat:'financial', label:'Contingent liabilities are identified and disclosed', note:'Tax disputes, guarantees, litigation provisions', badge:'must'},
+  {cat:'financial', label:'Related party transactions are at arm\'s-length', note:'RPTs need specific disclosure and justification', badge:'must'},
+  {cat:'financial', label:'Cash flows from operations are positive', note:'PAT vs OCF divergence is scrutinised heavily', badge:'imp'},
+  {cat:'financial', label:'MIS and ERP system is in place', note:'Needed for quarterly reporting post-listing', badge:'imp'},
+  {cat:'financial', label:'Financial projections are prepared (3–5 year)', note:'For investment bank valuation and roadshow deck', badge:'nice'},
+
+  {cat:'governance', label:'Company is converted to Public Limited', note:'Mandatory before DRHP filing', badge:'must'},
+  {cat:'governance', label:'Board has minimum 2 Independent Directors (SME: 1)', note:'SEBI Listing Obligations require IDs', badge:'must'},
+  {cat:'governance', label:'Audit Committee constituted with ID as chairman', note:'Mandatory under SEBI LODR', badge:'must'},
+  {cat:'governance', label:'Nomination & Remuneration Committee formed', note:'Required under Companies Act and LODR', badge:'must'},
+  {cat:'governance', label:'Stakeholder Relationship Committee formed', note:'Required for listed entities', badge:'imp'},
+  {cat:'governance', label:'Promoter shareholding is rationalized', note:'Cross-holdings and circular structures removed', badge:'must'},
+  {cat:'governance', label:'Promoter group loans taken from the company are cleared', note:'Outstanding loans to promoters are major red flags', badge:'must'},
+  {cat:'governance', label:'ESOP scheme is properly structured (if applicable)', note:'ESOPs need special disclosures and valuation', badge:'imp'},
+  {cat:'governance', label:'Succession plan for key management documented', note:'SEBI asks about key-man risk', badge:'nice'},
+  {cat:'governance', label:'Board meetings held quarterly with minutes documented', note:'Minutes must reflect genuine deliberation', badge:'must'},
+
+  {cat:'legal', label:'All ROC filings are current and up to date', note:'Any overdue filings must be cleared before DRHP', badge:'must'},
+  {cat:'legal', label:'MOA and AOA are updated and IPO-compliant', note:'Objects clause must include IPO objects', badge:'must'},
+  {cat:'legal', label:'No material litigation pending against company/promoters', note:'Litigation > ₹1 Cr or 10% of net worth needs disclosure', badge:'must'},
+  {cat:'legal', label:'Intellectual property (patents, trademarks) are registered', note:'Unregistered IP is a risk factor in DRHP', badge:'imp'},
+  {cat:'legal', label:'All key commercial contracts are properly documented', note:'Customer, supplier, lease, loan agreements', badge:'must'},
+  {cat:'legal', label:'Land/property title is clear and unencumbered', note:'Encumbered assets need disclosure and lender NOC', badge:'must'},
+  {cat:'legal', label:'No pending orders from SEBI, RBI or sectoral regulators', note:'Any regulatory action is an absolute deal-breaker', badge:'must'},
+  {cat:'legal', label:'Promoter/Director criminal background is clean', note:'SEBI checks DIN, PAN history of all directors', badge:'must'},
+  {cat:'legal', label:'Share transfer restrictions (if any) are lifted', note:'Pre-IPO share agreements must be disclosed', badge:'imp'},
+
+  {cat:'compliance', label:'GST registration and all returns filed', note:'GST default is a compliance red flag', badge:'must'},
+  {cat:'compliance', label:'Income tax returns filed for last 3 years', note:'No tax arrears above 1% of net worth', badge:'must'},
+  {cat:'compliance', label:'TDS/TCS filings are current', note:'Any TDS default creates legal liability', badge:'must'},
+  {cat:'compliance', label:'PF and ESIC contributions are current', note:'Labour compliance is checked in due diligence', badge:'must'},
+  {cat:'compliance', label:'Factory/shop/trade licenses are current', note:'All operating licenses must be valid at IPO date', badge:'must'},
+  {cat:'compliance', label:'Environmental clearances are in place (if applicable)', note:'Manufacturing/infra cos need pollution board NOC', badge:'must'},
+  {cat:'compliance', label:'FEMA compliance for any FDI/ECB/ODI', note:'Foreign investment must comply with FEMA regulations', badge:'imp'},
+  {cat:'compliance', label:'SEBI ICDR eligibility criteria verified', note:'Internal check against SME or Main Board criteria', badge:'must'},
+  {cat:'compliance', label:'No debarment/disqualification of directors', note:'Under Companies Act 164 disqualification check', badge:'must'},
+  {cat:'compliance', label:'Statutory registers under Companies Act are maintained', note:'Register of Members, Directors, Charges, etc.', badge:'imp'},
+
+  {cat:'operations', label:'Revenue is diversified (no single customer > 30%)', note:'High customer concentration is a key risk factor', badge:'imp'},
+  {cat:'operations', label:'Key supplier dependencies are documented', note:'Single-source suppliers need risk mitigation plans', badge:'imp'},
+  {cat:'operations', label:'HR policies and employee agreements are documented', note:'Employment contracts, NDAs, non-compete clauses', badge:'imp'},
+  {cat:'operations', label:'Internal audit function is established', note:'Mandatory post-listing; recommended pre-IPO', badge:'must'},
+  {cat:'operations', label:'IT systems and cybersecurity policies are in place', note:'SEBI scrutinises IT risk for tech-dependent businesses', badge:'imp'},
+  {cat:'operations', label:'Insurance coverage is adequate', note:'Fire, public liability, D&O insurance for listed cos', badge:'imp'},
+  {cat:'operations', label:'Objects of the IPO are specific and justified', note:'Vague objects of issue trigger SEBI queries', badge:'must'},
+  {cat:'operations', label:'Capacity utilisation data is tracked and documented', note:'Manufacturing cos need plant capacity disclosures', badge:'imp'},
+  {cat:'operations', label:'Order book / customer contracts support revenue projections', note:'Roadshow investors will ask for pipeline evidence', badge:'imp'},
+  {cat:'operations', label:'Management team depth below the promoter is established', note:'Key man risk is penalised in valuation', badge:'imp'},
+  {cat:'operations', label:'Corporate website, investor relations section ready', note:'Should be live before roadshow begins', badge:'nice'},
+  {cat:'operations', label:'Press coverage and brand positioning plan in place', note:'Media awareness improves IPO subscription rates', badge:'nice'},
+];
+
+function buildChecklist(){
+  var cats = ['financial','governance','legal','compliance','operations'];
+  var catMeta = {
+    financial:  {icon:'📊', title:'Financial Readiness',       col:'var(--green)'},
+    governance: {icon:'🏢', title:'Governance & Board',        col:'var(--gold)'},
+    legal:      {icon:'⚖️', title:'Legal & Shareholding',      col:'var(--purple)'},
+    compliance: {icon:'📋', title:'Regulatory Compliance',     col:'var(--cyan)'},
+    operations: {icon:'⚙️', title:'Operations & Business',     col:'var(--orange)'},
+  };
+  // Init state
+  CL_DATA.forEach(function(item, i){ CL_STATE[i] = false; });
+
+  var html = '';
+  cats.forEach(function(cat){
+    var items = CL_DATA.filter(function(it){ return it.cat===cat; });
+    var meta = catMeta[cat];
+    html += '<div class="cl-section" data-cat="'+cat+'">';
+    html += '<div class="cl-section-head">';
+    html += '<div class="cl-section-icon">'+meta.icon+'</div>';
+    html += '<div class="cl-section-title">'+meta.title+'</div>';
+    html += '<div class="cl-section-count" id="cl-cat-'+cat+'">0/'+items.length+'</div>';
+    html += '</div>';
+    items.forEach(function(item){
+      var idx = CL_DATA.indexOf(item);
+      var badgeCls = item.badge==='must'?'cl-must':item.badge==='imp'?'cl-imp':'cl-nice';
+      var badgeLbl = item.badge==='must'?'Critical':item.badge==='imp'?'Important':'Nice to Have';
+      html += '<div class="cl-item" id="cl-item-'+idx+'" onclick="toggleCL('+idx+')">';
+      html += '<div class="cl-check" id="cl-chk-'+idx+'"></div>';
+      html += '<div class="cl-item-text"><div class="cl-item-label">'+item.label+'</div><div class="cl-item-note">'+item.note+'</div></div>';
+      html += '<div class="cl-item-badge '+badgeCls+'">'+badgeLbl+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  document.getElementById('cl-body').innerHTML = html;
+  updateCLProgress();
+}
+
+function toggleCL(idx){
+  CL_STATE[idx] = !CL_STATE[idx];
+  var item = document.getElementById('cl-item-'+idx);
+  var chk  = document.getElementById('cl-chk-'+idx);
+  item.classList.toggle('checked', CL_STATE[idx]);
+  chk.textContent = CL_STATE[idx] ? '✓' : '';
+  updateCLProgress();
+}
+
+function updateCLProgress(){
+  var total = CL_DATA.length;
+  var done  = Object.values(CL_STATE).filter(Boolean).length;
+  var pct   = Math.round(done/total*100);
+  document.getElementById('cl-count').textContent = done+' / '+total+' complete';
+  document.getElementById('cl-fill').style.width = pct+'%';
+  // Update per-cat counts
+  var cats = ['financial','governance','legal','compliance','operations'];
+  cats.forEach(function(cat){
+    var items = CL_DATA.map(function(it,i){return {it:it,i:i};}).filter(function(x){return x.it.cat===cat;});
+    var catDone = items.filter(function(x){return CL_STATE[x.i];}).length;
+    var el = document.getElementById('cl-cat-'+cat);
+    if(el){ el.textContent = catDone+'/'+items.length; el.style.color = catDone===items.length?'var(--green)':'var(--muted)'; }
+  });
+  if(pct >= 50) document.getElementById('cl-cta').classList.remove('hidden');
+}
+
+function filterCL(type, btn){
+  document.querySelectorAll('.cl-cat-chip').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.cl-section').forEach(function(sec){
+    if(type==='all' || type==='pending'){ sec.style.display=''; }
+    else{ sec.style.display = sec.dataset.cat===type ? '' : 'none'; }
+  });
+  if(type==='pending'){
+    CL_DATA.forEach(function(item, i){
+      var el = document.getElementById('cl-item-'+i);
+      if(el) el.style.display = CL_STATE[i] ? 'none' : '';
+    });
+  } else {
+    CL_DATA.forEach(function(item, i){
+      var el = document.getElementById('cl-item-'+i);
+      if(el) el.style.display = '';
+    });
+  }
+}
+// Pre-initialise timeline + checklist so hash links work immediately
+document.addEventListener('DOMContentLoaded', function(){
+  var h = (location.hash||'').replace('#','');
+  if(h === 'timeline'){ buildTimeline(); TL_BUILT = true; }
+  if(h === 'checklist'){ buildChecklist(); CL_BUILT = true; }
+});
+</script>
+</body>
+</html>
