@@ -198,9 +198,27 @@ a{color:inherit;text-decoration:none}
 .dr-mode-btn{padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;transition:.2s}
 .dr-mode-btn.active{border-color:#A78BFA;color:#A78BFA;background:rgba(167,139,250,.07)}
 
+
+/* ── PORTAL SWITCHER BAR ── */
+.portal-switcher{background:rgba(5,9,15,.95);border-bottom:1px solid rgba(255,255,255,.05);padding:6px 16px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10px}
+.ps-label{color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-right:4px;white-space:nowrap}
+.ps-link{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:6px;text-decoration:none;font-weight:600;font-size:10px;color:var(--muted);border:1px solid transparent;transition:.15s;white-space:nowrap}
+.ps-link:hover{color:#fff;border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.04)}
+.ps-link.active{color:#fff;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
+.ps-home{color:#E8B040 !important}
+.ps-home:hover{background:rgba(232,176,64,.08) !important;border-color:rgba(232,176,64,.2) !important}
+
 </style>
 </head>
 <body>
+<div class="portal-switcher">
+<span class="ps-label">← <a href="index.html" class="ps-link ps-home">ipowork.com</a></span>
+<span class="ps-label" style="margin:0 2px">·</span>
+<a href="issuer.html" class="ps-link">📊 Issuer Portal</a>
+<a href="mb.html" class="ps-link">🏦 MB Portal</a>
+<a href="institutions.html" class="ps-link active" style="color:#00C896;border-color:#00C89625;background:#00C89608">🏛️ Intelligence</a>
+<a href="deep-research.html" class="ps-link">🧠 Deep Research</a>
+</div>
 
 <!-- NAV -->
 <nav class="nav">
@@ -218,6 +236,8 @@ a{color:inherit;text-decoration:none}
     <a href="#pricing">Pricing</a>
     <a href="#who">Who It's For</a>
     <a href="index.html" style="color:var(--dim)">← All Portals</a>
+    <a href="issuer.html" style="color:var(--dim)">📊 Issuers</a>
+    <a href="mb.html" style="color:var(--dim)">🏦 MB</a>
   </div>
   <div class="nav-cta">
     <button class="btn btn-outline" onclick="openM('login')">Log In</button>
@@ -876,8 +896,10 @@ window.pNav = function(v){
 
 function renderMain(){
   var isChat = (P.view==='ai-chat');
+  var isDR = (P.view==='deep-research');
   var pm = document.getElementById('pmain');
-  pm.style.overflow = isChat ? 'hidden' : 'auto';
+  pm.style.overflow = (isChat||isDR) ? 'hidden' : 'auto';
+  pm.style.padding = isDR ? '0' : '';
   var c = '';
   if(P.view==='dashboard')  c = renderDashboard();
   else if(P.view==='radar') c = renderRadar();
@@ -908,14 +930,6 @@ function bindAfterRender(){
   /* Scroll chat to bottom */
   var msgs = document.getElementById('chat-msgs');
   if(msgs) msgs.scrollTop = msgs.scrollHeight;
-
-  /* Deep Research mode toggle */
-  pm.querySelectorAll('[data-drmode]').forEach(function(b){
-    b.addEventListener('click',function(){
-      DR_MODE = this.dataset.drmode;
-      renderMain();
-    });
-  });
 
   /* Open deep research in new tab */
   pm.querySelectorAll('[data-action="open-dr-new"]').forEach(function(b){
@@ -970,6 +984,16 @@ function bindAfterRender(){
 /* ── DASHBOARD ── */
 function renderDashboard(){
   var html = '<div class="portal-pad">';
+
+  /* Deep Research featured card on dashboard */
+  html += '<div style="background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(232,176,64,.04));border:1px solid rgba(167,139,250,.15);border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">';
+  html += '<div>';
+  html += '<div style="font-size:9px;font-weight:700;color:#A78BFA;text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px">🧠 NEW — AI Company Intelligence Engine</div>';
+  html += '<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:3px">Deep Research Analyst</div>';
+  html += '<div style="font-size:11px;color:var(--muted)">PE/VC 50-parameter · 15 modules · IPO readiness engine for any private company</div>';
+  html += '</div>';
+  html += '<button class="btn btn-green" style="padding:9px 18px;font-size:11px;font-weight:700;border:none;cursor:pointer" data-nav="deep-research">Launch Deep Research →</button>';
+  html += '</div>';
   html += '<div class="page-title">Welcome back, ' + SESS.name + ' 👋</div>';
   html += '<div class="page-sub">' + SESS.org + ' · ' + SESS.plan.charAt(0).toUpperCase()+SESS.plan.slice(1) + ' Plan · IPO Intelligence Command Centre</div>';
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px">';
@@ -1276,130 +1300,20 @@ function renderReports(){
 /* ═══════════════════════════════════════════════════════════
    DEEP RESEARCH VIEW — embedded in Intelligence Portal
 ═══════════════════════════════════════════════════════════ */
-var DR_MODE = 'overview'; // 'overview' | 'launch'
 
-var DR_MODULES = [
-  {icon:'🏢',name:'Corporate Identity',cat:'Governance',col:'#A78BFA'},
-  {icon:'👤',name:'Promoter Intelligence',cat:'Governance',col:'#A78BFA'},
-  {icon:'💰',name:'Financial Health',cat:'Financial',col:'#34D399'},
-  {icon:'🏦',name:'Capital Structure',cat:'Financial',col:'#34D399'},
-  {icon:'🏗️',name:'Business Model',cat:'Core',col:'#E8B040'},
-  {icon:'📈',name:'Market Intelligence',cat:'Market',col:'#60A5FA'},
-  {icon:'⚙️',name:'Operations',cat:'Core',col:'#E8B040'},
-  {icon:'📣',name:'Sales & Consumer',cat:'Market',col:'#60A5FA'},
-  {icon:'💻',name:'Technology',cat:'Digital',col:'#00D4F5'},
-  {icon:'👥',name:'Human Capital',cat:'People',col:'#FB923C'},
-  {icon:'⚖️',name:'Legal & Compliance',cat:'Regulatory',col:'#F87171'},
-  {icon:'🌱',name:'ESG & Sustainability',cat:'ESG',col:'#00C896'},
-  {icon:'🎯',name:'Strategic Positioning',cat:'Strategy',col:'#F59E0B'},
-  {icon:'🌍',name:'Economics',cat:'Economics',col:'#8B5CF6'},
-  {icon:'🚀',name:'IPO Readiness Engine',cat:'IPO',col:'#E8B040'}
-];
 
 function renderDeepResearch(){
-  var plan = SESS.plan || 'explorer';
-  var canUse = true; // All plans can access Deep Research
-
-  var html = '<div class="dr-wrap">';
-
-  /* ── Hero ── */
-  html += '<div class="dr-hero">';
-  html += '<div class="dr-hero-badge">🧠 AI Company Intelligence Engine — PE/VC Framework</div>';
-  html += '<div class="dr-hero-title">Deep Research Analyst</div>';
-  html += '<div class="dr-hero-sub">The same 50-parameter framework used by PE/VC funds and the 7 hidden investment bank parameters that decide IPO success. Built for <strong style="color:#fff">unlisted & private companies</strong> where public data is absent.</div>';
-  html += '<div class="dr-feat-row">';
-  html += '<div class="dr-feat">📊 50-Parameter Score</div>';
-  html += '<div class="dr-feat">🔍 15 Analysis Modules</div>';
-  html += '<div class="dr-feat">🚀 IPO Probability Engine</div>';
-  html += '<div class="dr-feat">⚠️ AI Risk Heat Map</div>';
-  html += '<div class="dr-feat">💰 Valuation Range</div>';
-  html += '<div class="dr-feat">📎 Upload Financials</div>';
-  html += '<div class="dr-feat">🎤 Voice Briefing</div>';
-  html += '<div class="dr-feat">📷 Scan Documents</div>';
-  html += '</div></div>';
-
-  /* ── Mode toggle ── */
-  html += '<div class="dr-mode-toggle">';
-  html += '<button class="dr-mode-btn' + (DR_MODE==='overview'?' active':'') + '" data-drmode="overview">📋 Overview & Modules</button>';
-  html += '<button class="dr-mode-btn' + (DR_MODE==='launch'?' active':'') + '" data-drmode="launch">🚀 Launch Analysis Tool</button>';
+  var html = '<div style="padding:0;height:100%;display:flex;flex-direction:column">';
+  html += '<div style="padding:12px 20px;background:rgba(167,139,250,.05);border-bottom:1px solid rgba(167,139,250,.1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">';
+  html += '<div>';
+  html += '<div style="font-size:13px;font-weight:800;color:#fff">🧠 Deep Research Analyst</div>';
+  html += '<div style="font-size:10px;color:var(--muted);margin-top:2px">PE/VC 50-parameter · 15 modules · IPO readiness engine for private companies</div>';
   html += '</div>';
-
-  if(DR_MODE === 'overview'){
-    /* ── 15 Module Cards ── */
-    html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">15 Analysis Modules — PE/VC 50-Parameter Framework</div>';
-    html += '<div class="dr-modules-grid">';
-    DR_MODULES.forEach(function(m, i){
-      html += '<div class="dr-mod-card" style="border-top:2px solid '+m.col+'">';
-      html += '<div class="dr-mod-icon">'+m.icon+'</div>';
-      html += '<div style="font-size:9px;color:var(--dim);font-family:var(--mono);margin-bottom:3px">'+(i+1).toString().padStart(2,'0')+'</div>';
-      html += '<div class="dr-mod-name">'+m.name+'</div>';
-      html += '<div class="dr-mod-cat" style="color:'+m.col+'">'+m.cat+'</div>';
-      html += '</div>';
-    });
-    html += '</div>';
-
-    /* ── What You Get ── */
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">';
-    /* Left: framework */
-    html += '<div class="card" style="padding:18px">';
-    html += '<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:12px">📐 Analysis Framework</div>';
-    var fwItems = [
-      ['PE/VC 50-Parameter Model','Used by PE/VC funds globally for private company valuation'],
-      ['7 Investment Bank Parameters','Hidden factors investment banks evaluate before taking a company to IPO'],
-      ['IPO Probability Score','Likelihood of successful IPO listing with timeline estimate'],
-      ['Valuation Range','Estimated valuation based on peer multiples and financial metrics'],
-      ['Risk Heat Map','Visual map of all risk areas scoring below 6/10'],
-      ['Weighted Investment Score','Overall score using actual PE/VC risk weightings per dimension']
-    ];
-    fwItems.forEach(function(it){
-      html += '<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">';
-      html += '<div style="width:6px;height:6px;border-radius:50%;background:#A78BFA;margin-top:4px;flex-shrink:0"></div>';
-      html += '<div><div style="font-size:11px;font-weight:700;color:#fff">'+it[0]+'</div>';
-      html += '<div style="font-size:10px;color:var(--muted);line-height:1.5">'+it[1]+'</div></div></div>';
-    });
-    html += '</div>';
-    /* Right: output */
-    html += '<div class="card" style="padding:18px">';
-    html += '<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:12px">📊 Output Dashboard</div>';
-    var outItems = [
-      ['Overall Investment Score /10','Weighted composite across all 15 modules'],
-      ['Category Scorecard','8 category scores: Governance, Financial, Core, Market, Digital, People, Regulatory, Strategy'],
-      ['IPO Suitability','SME vs Main Board recommendation with timeline'],
-      ['Signal Tags','[STRONG MOAT] [HIGH INTEGRITY] [IPO READY] etc.'],
-      ['Positive Signals','Top investment thesis positives auto-extracted'],
-      ['Risk Modules','All modules below 6/10 flagged with context'],
-      ['PDF Export','Full report downloadable as PDF'],
-      ['Clipboard Copy','Full text copy for CRM / IM note prep']
-    ];
-    outItems.forEach(function(it){
-      html += '<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">';
-      html += '<div style="width:6px;height:6px;border-radius:50%;background:#34D399;margin-top:4px;flex-shrink:0"></div>';
-      html += '<div><div style="font-size:11px;font-weight:700;color:#fff">'+it[0]+'</div>';
-      html += '<div style="font-size:10px;color:var(--muted);line-height:1.5">'+it[1]+'</div></div></div>';
-    });
-    html += '</div></div>';
-
-    /* ── CTA ── */
-    html += '<div style="background:rgba(124,58,237,.06);border:1px solid rgba(167,139,250,.15);border-radius:14px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">';
-    html += '<div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Ready to analyse a company?</div>';
-    html += '<div style="font-size:11px;color:var(--muted)">Upload financial statements, pitch decks or any documents. Speak your briefing. Get a full PE/VC-grade report.</div></div>';
-    html += '<button class="dr-cta-btn dr-cta-primary" data-drmode="launch">🧠 Launch Deep Research →</button>';
-    html += '</div>';
-
-  } else {
-    /* ── LAUNCH MODE: iframe embed ── */
-    html += '<div class="dr-iframe-wrap">';
-    html += '<div class="dr-iframe-topbar">';
-    html += '<div><div class="dr-iframe-title">🧠 AI Company Intelligence Engine — Deep Research</div>';
-    html += '<div style="font-size:10px;color:var(--dim);margin-top:2px">PE/VC 50-Parameter · 7 Investment Bank Parameters · 15 Modules</div></div>';
-    html += '<div class="dr-iframe-actions">';
-    html += '<button class="dr-iframe-btn" style="background:rgba(167,139,250,.1);color:#A78BFA;border:1px solid rgba(167,139,250,.2)" data-action="open-dr-new">⬡ Open in New Tab</button>';
-    html += '<button class="dr-iframe-btn" style="background:rgba(255,255,255,.04);color:var(--muted);border:1px solid var(--border)" data-drmode="overview">← Overview</button>';
-    html += '</div></div>';
-    html += '<iframe src="deep-research.html" id="dr-iframe" title="Deep Research AI" loading="lazy" allow="camera;microphone"></iframe>';
-    html += '</div>';
-  }
-
+  html += '<button style="padding:6px 14px;border-radius:7px;font-size:10px;font-weight:700;background:rgba(167,139,250,.1);color:#A78BFA;border:1px solid rgba(167,139,250,.2);cursor:pointer;font-family:var(--font)" data-action="open-dr-new">Open Full Page ↗</button>';
+  html += '</div>';
+  html += '<div style="flex:1;overflow:hidden">';
+  html += '<iframe src="deep-research.html" id="dr-iframe" title="Deep Research" loading="lazy" allow="camera;microphone" style="width:100%;height:100%;min-height:82vh;border:none;display:block"></iframe>';
+  html += '</div>';
   html += '</div>';
   return html;
 }
