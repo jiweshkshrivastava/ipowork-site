@@ -2603,6 +2603,7 @@ function closePortal(){ document.getElementById('portal-overlay').classList.remo
 
 var NAV_ITEMS = [
   {id:'dashboard', icon:'🏠', label:'Dashboard', badge:''},
+  {id:'checklist', icon:'📋', label:'IPO Checklist', badge:'NEW'},
   {id:'aira',      icon:'🎯', label:'AIRA Score', badge:'FREE'},
   {id:'gap',       icon:'📋', label:'Gap Analysis', badge:'AI'},
   {id:'aida',      icon:'📄', label:'Document Analysis', badge:'AI'},
@@ -2647,6 +2648,7 @@ function renderMain(){
   else if(P.view==='timeline') content=renderTimeline();
   else if(P.view==='ai') content=renderAIHome();
   else if(P.view==='ai-chat') content=renderAIChat();
+  else if(P.view==='checklist') content=renderIssuerChecklist();
   else content='<div class="portal-pad"><div class="page-title">Coming Soon</div></div>';
   document.getElementById('portal-main').innerHTML=content;
   bindAIDA(); bindChat();
@@ -2658,6 +2660,15 @@ function renderDashboard(){
   var html='<div class="portal-pad">';
   html+='<div class="page-title">Welcome back, '+(SESS.name||'Issuer')+'</div>';
   html+='<div class="page-sub">Your IPO readiness command centre</div>';
+  /* Checklist quick access */
+  html+='<div style="background:linear-gradient(135deg,rgba(155,127,232,.06),rgba(0,207,234,.04));border:1px solid rgba(155,127,232,.25);border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">';
+  html+='<div style="font-size:28px">📋</div>';
+  html+='<div style="flex:1">';
+  html+='<div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:3px">IPO Document Checklist <span style="background:rgba(155,127,232,.15);color:#9B7FE8;border-radius:99px;padding:2px 8px;font-size:9px;font-weight:700">SHARED WITH MB</span></div>';
+  html+='<div style="font-size:11px;color:var(--muted)">Your MB has shared a checklist — see what documents are requested, submit items, respond to queries</div>';
+  html+='</div>';
+  html+='<button onclick="pNav(\'checklist\')" style="padding:8px 18px;border-radius:9px;background:rgba(155,127,232,.12);border:1px solid rgba(155,127,232,.3);color:#9B7FE8;font-size:11px;font-weight:800;cursor:pointer;font-family:var(--font)">View Checklist →</button>';
+  html+='</div>';
   // Stats
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px">';
   var scoreColor = score===null ? 'var(--muted)' : score>=75 ? 'var(--green)' : score>=55 ? 'var(--orange)' : 'var(--red)';
@@ -3416,6 +3427,230 @@ window.showTrackInfo = function(){
     '<button onclick="document.getElementById(\'track-tooltip\').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:#6A94B4;cursor:pointer;font-size:18px">×</button>';
   document.body.appendChild(div);
 };
+
+
+var IPO_CHECKLIST = [
+  {id:'gen', section:"General Information", icon:'🏦', items:["Company Banker details (Name of Contact Person, Telephone, E-Mail, Fax)", "Department wise break up of employees and 2 level below KMPs and Directors", "List of promoters / promoter group / group companies / KMPs", "Brief Profile of promoters / directors / KMPs (date of appointment, experience, qualifications, remuneration)", "PAN, Aadhar, Driving License, Voter ID, Passport, Photographs, Bank Statement (3 months) & ITR of all promoters / directors / KMPs", "Signed CV of all the directors and KMPs", "Demat statement of all the directors, KMPs, Promoters", "KYC of all the shareholders of the company as on date", "Details of MD, CFO and CS along with appointment letters / agreements", "Details of relationship among promoter and promoter group", "Family Relationship between Directors of the company", "List of all relatives of promoters as per Companies Act 2013 with PAN and Aadhar"]},
+  {id:'group', section:"Group Entities Documents", icon:'🏢', items:["3 years Audited Financial Statements along with Auditors report (Group Companies)", "Shareholding Pattern as on date and as at March 2023 (Group Companies)", "Latest MOA (Group Companies)", "Latest AOA (Group Companies)", "COI (Group Companies)", "PAN (Group Companies)", "AOC-4 and MGT-7 of last 3 years (Group Companies)", "3 years Audited Financial Statements (Other Entities)", "Shareholding Pattern as on date (Other Entities)", "Charter Documents like MOA, AOA (Other Entities)", "Registration Documents (Other Entities)"]},
+  {id:'biz', section:"Business Information", icon:'💼', items:["Vision of the company", "Mission of the company", "Logo of Company in CDR, PNG and JPEG format", "Brief description on the Business Model of the company along with business profile", "Main events in history of Company along with details of any awards or recognition", "Corporate Structure / Organizational Structure of the company", "Department wise break-up of KMP & two level below KMP (matching with org structure)", "Chart showing details of subsidiaries", "List of promoters / promoter group companies / group companies / KMPs", "Brief Profile of promoters including Experience, Educational Qualifications", "KYC of promoters / directors / Key Managerial Personnel", "Details of MD, CFO and CS along with appointment letters / agreements", "Details of relationship among promoter group and list of relatives", "Fixed Asset Register of the company", "Insurance Policies taken by the company for employees", "Insurance Policies taken by the company", "Intellectual Property Rights details", "Intellectual Property Rights acquired by the company along with Agreement", "Domain details", "Share Purchase Agreement, Share Subscription Agreement", "Business purchase / transfer agreement", "Total number of employees on payroll of the Company", "Attendance Register of employees of the company", "Appointment letters of all the employees on payroll", "Total number of professionals and consultants", "Contracts entered with professionals and consultants", "Recent Invoices raised by suppliers", "Contractual Agreements", "NSDL agreement", "CDSL agreement", "Website of The Company", "All Loan partners Agreements since inception", "Collaboration agreement / Material contracts", "Rent agreement of registered office and branch offices", "Awards received by the company", "Any recognition to the company"]},
+  {id:'certs', section:"Certifications & Licences", icon:'📋', items:["PAN of the company", "TAN of the company", "GST Registration certificate", "Udyam registration certificate", "Shop and establishment certificate", "Trade License", "ESIC registration certificate", "EPF registration certificate", "Any other licence / certificate"]},
+  {id:'lit', section:"Litigation Information", icon:'⚖️', items:["Details of all litigation pending against or filed by the company", "Details of litigation pending against or filed by Promoters and Directors", "Details of Litigations involving Group Entities and Subsidiary Companies", "Other litigations involving any entities which may have material adverse effect on Company", "Details of past penalties imposed on Company / Directors", "Material developments occurring after last balance sheet date"]},
+  {id:'cap', section:"Capital & Shareholding", icon:'📊', items:["Details of increase in authorised share capital (since incorporation) with ROC Forms", "Details of increase in paid-up share capital (since incorporation) with ROC Forms", "Latest shareholding pattern of Company as on date", "All SH-4 & share transfer deeds (since incorporation, if applicable)", "Share Certificates along with Stamp Duty payment challans"]},
+  {id:'sec', section:"Secretarial Records", icon:'📁', items:["Memorandum and Articles of Association (soft copy) or any changes made therein", "Annual Reports (since inception)", "Minutes book of board meetings (since inception)", "Minutes book of general meetings (since inception)", "AOC-4 & MGT-7 (since inception)", "E-Form MGT-14 filed by the Company (since inception)", "DIR-12 (since inception)", "CHG-1 (since inception)", "CHG-4 (since inception)", "Register of Members", "Register of Debenture Holders", "Register of loans, guarantee, security and acquisitions", "Register of investments not held in own name", "Register of contracts with related party", "Register of directors and KMPs", "Register of details of securities held by Directors and KMPs", "Notice of situation / change of place where foreign register shall be kept"]},
+  {id:'fin', section:"Financial Information", icon:'💰', items:["Financial statements of the Company since inception", "GSTR-1 (filed since inception)", "GSTR-3B (filed since inception)", "GSTR-9 (filed since inception)", "GST Certificates", "ESI / PF returns of the company", "ESI certificate", "PF certificate", "Restated Financial Statements for last 3 years along with Cash Flows", "Top 10 Customers for last 3 years", "Top 10 Suppliers for last 3 years & stub period", "Top 10 Creditors for last 3 years & stub period", "Top 10 Debtors for last 3 years & stub period", "Sanction letter of loan and details & stub period", "Any other licence / certificate"]},
+  {id:'aud', section:"Statutory Auditor Details", icon:'🔍', items:["Name of Audit firm", "FRN (Firm Registration Number)", "Name of Contact person and membership number", "Email ID of Auditor", "Phone number of Auditor", "Address of Audit firm", "Peer Review Certificate"]}
+];
+
+
+/* ══════════════════════════════════════════════
+   ISSUER CHECKLIST — READ from shared storage
+   Issuer sees MB's status + can mark "Submitted"
+   Key: 'cl:issuer_'+SESS.email  (matches MB's key)
+══════════════════════════════════════════════ */
+var ISS_CL_STATE  = {};
+var ISS_CL_FILTER = 'all';
+var ISS_CL_LOADED = false;
+
+/* Statuses visible to issuer */
+var ISS_CL_STATUSES = [
+  {key:'pending',   label:'Pending',    icon:'⏳', col:'#5A8AA4'},
+  {key:'requested', label:'Requested',  icon:'📨', col:'#00CFEA'},
+  {key:'submitted', label:'Submitted',  icon:'📤', col:'#9B7FE8'},
+  {key:'received',  label:'Received',   icon:'✅', col:'#00C896'},
+  {key:'queried',   label:'Query from MB', icon:'❓', col:'#C8961E'},
+  {key:'na',        label:'N/A',        icon:'—',  col:'#3A5A6A'},
+];
+
+function issClGetStatus(secId, idx){
+  return (ISS_CL_STATE[secId] && ISS_CL_STATE[secId][idx])
+    ? ISS_CL_STATE[secId][idx]
+    : {status:'pending', note:'', updatedBy:'', ts:''};
+}
+
+function issClStats(){
+  var total=0, received=0, requested=0, queried=0, submitted=0, pending=0, na=0;
+  IPO_CHECKLIST.forEach(function(sec){
+    sec.items.forEach(function(_,idx){
+      total++;
+      var s = issClGetStatus(sec.id, idx).status;
+      if(s==='received')  received++;
+      else if(s==='requested') requested++;
+      else if(s==='queried')   queried++;
+      else if(s==='submitted') submitted++;
+      else if(s==='na')        na++;
+      else pending++;
+    });
+  });
+  return {total,received,requested,queried,submitted,pending,na};
+}
+
+async function issClLoad(){
+  ISS_CL_STATE = {};
+  ISS_CL_LOADED = false;
+  /* Try loading by email key (MB stores as 'cl:'+deal.id, Issuer loads 'cl:issuer_'+email) */
+  /* For demo — use a shared demo key so both see same data */
+  var key = 'cl:demo_deal';
+  try {
+    var result = await window.storage.get(key, true);
+    if(result && result.value){ ISS_CL_STATE = JSON.parse(result.value); }
+  } catch(e){ ISS_CL_STATE = {}; }
+  ISS_CL_LOADED = true;
+}
+
+async function issClSave(){
+  var key = 'cl:demo_deal';
+  try {
+    await window.storage.set(key, JSON.stringify(ISS_CL_STATE), true);
+  } catch(e){ console.warn('issClSave failed:', e); }
+}
+
+
+function renderIssuerChecklist(){
+  var stats = issClStats();
+  var pct = Math.round((stats.received + stats.submitted) / stats.total * 100);
+  var barCol = pct>=80 ? "#00C896" : pct>=50 ? "#C8961E" : "#6464C8";
+  var h = "<div class='portal-pad'>";
+
+  if(!ISS_CL_LOADED){
+    h += "<div style='text-align:center;padding:40px;color:var(--muted)'>⏳ Loading your checklist...</div>";
+    issClLoad().then(function(){
+      document.getElementById("portal-main").innerHTML = renderIssuerChecklist();
+    });
+    return h + "</div>";
+  }
+
+  h += "<div class='page-title'>📋 IPO Document Checklist</div>";
+  h += "<div class='page-sub'>Your shared checklist with the Merchant Banker — submit documents, respond to queries and track progress.</div>";
+
+  /* Progress card */
+  h += "<div style='background:var(--card);border:1px solid rgba(100,100,200,.25);border-radius:14px;padding:18px;margin-bottom:18px'>";
+  h += "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'>";
+  h += "<div style='font-size:12px;font-weight:700;color:#fff'>Checklist Completion</div>";
+  h += "<div style='font-size:20px;font-weight:900;font-family:var(--serif);color:"+barCol+"'>"+pct+"%</div></div>";
+  h += "<div style='background:rgba(255,255,255,.06);border-radius:99px;height:8px;margin-bottom:14px'>";
+  h += "<div style='height:100%;width:"+pct+"%;background:linear-gradient(90deg,"+barCol+"88,"+barCol+");border-radius:99px;transition:.4s'></div></div>";
+  h += "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:8px'>";
+  [{label:"Total",val:stats.total,icon:"📋",col:"#5A8AA4"},
+   {label:"Received",val:stats.received,icon:"✅",col:"#00C896"},
+   {label:"Requested",val:stats.requested,icon:"📨",col:"#00CFEA"},
+   {label:"Queries",val:stats.queried,icon:"❓",col:"#C8961E"},
+   {label:"Submitted",val:stats.submitted,icon:"📤",col:"#9B7FE8"},
+   {label:"Pending",val:stats.pending,icon:"⏳",col:"#5A8AA4"},
+  ].forEach(function(s){
+    h += "<div style='text-align:center;background:rgba(255,255,255,.03);border-radius:8px;padding:8px 4px'>";
+    h += "<div style='font-size:13px'>"+s.icon+"</div>";
+    h += "<div style='font-family:var(--serif);font-size:20px;font-weight:900;color:"+s.col+"'>"+s.val+"</div>";
+    h += "<div style='font-size:9px;color:var(--muted);margin-top:1px'>"+s.label+"</div></div>";
+  });
+  h += "</div></div>";
+
+  /* Query alert */
+  if(stats.queried > 0){
+    h += "<div style='background:rgba(200,150,30,.07);border:1px solid rgba(200,150,30,.25);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px'>";
+    h += "<div style='font-size:20px'>❓</div>";
+    h += "<div><div style='font-size:12px;font-weight:700;color:var(--gold)'>"+stats.queried+" Queries from your Merchant Banker</div>";
+    h += "<div style='font-size:11px;color:var(--muted)'>Filter by Queries to see all — please respond</div></div></div>";
+  }
+
+  /* Filter bar */
+  h += "<div style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center'>";
+  h += "<span style='font-size:10px;font-weight:700;color:var(--muted)'>Filter:</span>";
+  [{k:"all",l:"All"},{k:"requested",l:"Requested"},{k:"queried",l:"Queries"},
+   {k:"submitted",l:"Submitted"},{k:"received",l:"Received"},{k:"pending",l:"Pending"}]
+  .forEach(function(f){
+    var active = ISS_CL_FILTER===f.k;
+    h += "<button onclick=\"window.issClFilter('" + f.k + "')\""
+       + " style='padding:5px 12px;border-radius:6px;border:1px solid "+(active?"var(--gold)":"rgba(255,255,255,.1)")+";background:"+(active?"rgba(200,150,30,.12)":"none")+";color:"+(active?"var(--gold)":"var(--muted)")+";font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>"+f.l+"</button>";
+  });
+  h += "<button onclick='window.issClRefresh()' style='margin-left:auto;padding:5px 12px;border-radius:6px;border:1px solid rgba(100,100,200,.3);background:rgba(100,100,200,.06);color:#9B7FE8;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>🔄 Refresh</button>";
+  h += "</div>";
+
+  /* Sections and items */
+  IPO_CHECKLIST.forEach(function(sec){
+    var filtered = sec.items.filter(function(_,idx){
+      if(ISS_CL_FILTER==="all") return true;
+      return issClGetStatus(sec.id,idx).status === ISS_CL_FILTER;
+    });
+    if(!filtered.length) return;
+
+    var secDone = sec.items.filter(function(_,idx){
+      var s = issClGetStatus(sec.id,idx).status;
+      return s==="received"||s==="submitted";
+    }).length;
+    var secPct = Math.round(secDone/sec.items.length*100);
+    var scol = secPct===100?"#00C896":secPct>=50?"#C8961E":"#5A8AA4";
+
+    h += "<div style='background:var(--card);border:1px solid rgba(255,255,255,.07);border-radius:14px;margin-bottom:12px;overflow:hidden'>";
+    h += "<div style='display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.05)'>";
+    h += "<span style='font-size:18px'>"+sec.icon+"</span>";
+    h += "<span style='font-size:13px;font-weight:800;color:#fff;flex:1'>"+sec.section+"</span>";
+    h += "<span style='font-size:10px;color:"+scol+";font-weight:700'>"+secDone+"/"+sec.items.length+"</span>";
+    h += "<div style='width:70px;height:5px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin-left:8px'>";
+    h += "<div style='height:100%;width:"+secPct+"%;background:"+scol+";border-radius:99px'></div></div></div>";
+
+    sec.items.forEach(function(item, idx){
+      var st = issClGetStatus(sec.id, idx);
+      if(ISS_CL_FILTER!=="all" && st.status !== ISS_CL_FILTER) return;
+      var stMeta = ISS_CL_STATUSES.find(function(s){return s.key===st.status;})||ISS_CL_STATUSES[0];
+      var isDone = st.status==="received"||st.status==="submitted";
+      var isQuery = st.status==="queried";
+      var rowBg = isQuery ? "background:rgba(200,150,30,.04);" : "";
+
+      h += "<div style='display:flex;align-items:flex-start;gap:10px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.03);"+rowBg+"'>";
+      h += "<div style='width:8px;height:8px;border-radius:50%;background:"+stMeta.col+";flex-shrink:0;margin-top:3px'></div>";
+      h += "<div style='flex:1'>";
+      h += "<div style='font-size:11px;color:"+(isDone?"var(--muted)":"var(--text)")+";line-height:1.5"+(isDone?";opacity:.6":"")+";'>"+item+"</div>";
+      if(st.note){
+        h += "<div style='font-size:10px;color:var(--gold);margin-top:4px;background:rgba(200,150,30,.08);border-radius:6px;padding:5px 9px;border-left:2px solid var(--gold)'>";
+        h += "❓ <strong>Query from MB:</strong> "+st.note+"</div>";
+      }
+      if(st.updatedBy) h += "<div style='font-size:9px;color:var(--dim);margin-top:2px'>"+st.icon+" Updated by "+st.updatedBy+" · "+st.ts+"</div>";
+      h += "</div>";
+      h += "<div style='display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0'>";
+      h += "<span style='padding:3px 9px;border-radius:99px;font-size:9px;font-weight:700;background:"+stMeta.col+"18;color:"+stMeta.col+"'>"+stMeta.icon+" "+stMeta.label+"</span>";
+      if(!isDone && st.status!=="na"){
+        h += "<button onclick=\"window.issClSubmit('"+sec.id+"',"+idx+")\" style='padding:4px 11px;border-radius:7px;background:rgba(155,127,232,.12);border:1px solid rgba(155,127,232,.3);color:#9B7FE8;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>📤 Mark Submitted</button>";
+      }
+      if(isQuery){
+        h += "<button onclick=\"window.issClReply('"+sec.id+"',"+idx+")\" style='padding:4px 11px;border-radius:7px;background:rgba(200,150,30,.12);border:1px solid rgba(200,150,30,.3);color:var(--gold);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>💬 Reply</button>";
+      }
+      h += "</div></div>";
+    });
+    h += "</div>";
+  });
+
+  h += "<div style='font-size:10px;color:var(--dim);text-align:center;padding:12px'>📌 Shared with your Merchant Banker. Submitted = pending MB confirmation. Received = MB confirmed.</div>";
+  h += "</div>";
+  return h;
+}
+
+window.issClFilter = function(f){ ISS_CL_FILTER=f; document.getElementById("portal-main").innerHTML=renderIssuerChecklist(); };
+
+window.issClRefresh = async function(){
+  document.getElementById("portal-main").innerHTML="<div class='portal-pad'><div style='text-align:center;padding:40px;color:var(--muted)'>🔄 Refreshing...</div></div>";
+  await issClLoad();
+  document.getElementById("portal-main").innerHTML=renderIssuerChecklist();
+};
+
+window.issClSubmit = async function(secId, idx){
+  if(!ISS_CL_STATE[secId]) ISS_CL_STATE[secId]={};
+  var prev = ISS_CL_STATE[secId][idx]||{};
+  ISS_CL_STATE[secId][idx]={status:"submitted",note:prev.note||"",updatedBy:(SESS.name||"Issuer")+" (Issuer)",ts:new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}),icon:"📊"};
+  await issClSave();
+  document.getElementById("portal-main").innerHTML=renderIssuerChecklist();
+};
+
+window.issClReply = async function(secId, idx){
+  var reply = prompt("Your reply to the MB query:");
+  if(reply===null) return;
+  if(!ISS_CL_STATE[secId]) ISS_CL_STATE[secId]={};
+  var prev = ISS_CL_STATE[secId][idx]||{};
+  ISS_CL_STATE[secId][idx]={status:"submitted",note:"MB: "+(prev.note||"Query")+" | Reply: "+reply,updatedBy:(SESS.name||"Issuer")+" (Issuer)",ts:new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short"}),icon:"📊"};
+  await issClSave();
+  document.getElementById("portal-main").innerHTML=renderIssuerChecklist();
+};
+
+
 </script>
 </body>
 </html>
