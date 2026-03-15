@@ -247,7 +247,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
 
 <!-- SME vs MAIN BOARD COMPARISON -->
 <div class="section" style="border-top:1px solid var(--border);padding-top:50px;padding-bottom:50px">
-  <div class="sec-badge">⚡ SME IPO + Main Board — Dual-Track Intelligence</div>
+  <div class="sec-badge">⚡ Audit · Tax · IB · Financial Services — All in One Hub</div>
   <h2 class="sec-title">SME IPO &amp; Main Board IPO<br/><span style="color:var(--amber)">Covered Across All 14 Assistants</span></h2>
   <p class="sec-sub">Every AI assistant and reference tool covers both tracks — SME IPO (₹10–300 Cr, NSE Emerge/BSE SME) and Main Board IPO (₹500 Cr+, NSE/BSE). Key differences that matter for compliance and due diligence:</p>
 
@@ -721,6 +721,8 @@ var NAV=[
   {id:'dashboard',        icon:'🏠', label:'Dashboard'},
   {id:'ai',               icon:'🤖', label:'AI Assistants', badge:'14'},
   {id:'academy',          icon:'🎓', label:'Audit & Compliance Academy', badge:'NEW'},
+  {id:'ib-services',      icon:'🏦', label:'Investment Banking Services', badge:'NEW'},
+  {id:'fin-services',     icon:'💹', label:'Financial Services Hub', badge:'NEW'},
   {id:'calendar',         icon:'📅', label:'Compliance Calendar'},
   {id:'checklist',        icon:'🧾', label:'Doc Checklist'},
   {id:'compliance-master',icon:'📋', label:'Master Compliance List', badge:'350+'},
@@ -770,6 +772,10 @@ function renderMain(){
   else if(P.view==='ipo-dataroom') c=renderIPODataroom();
   else if(P.view==='academy') c=renderAcademy();
   else if(P.view==='academy-article') c=renderAcademyArticle();
+  else if(P.view==='ib-services')     c=renderIBServices();
+  else if(P.view==='ib-detail')       c=renderIBDetail();
+  else if(P.view==='fin-services')    c=renderFinServices();
+  else if(P.view==='fin-detail')      c=renderFinDetail();
   else c='<div class="portal-pad"><div class="page-title">Coming Soon</div></div>';
   pm.innerHTML=c;
   bindAfterRender();
@@ -3892,6 +3898,624 @@ window.sendChat=function(){
     P.aiLoading=false;if(sb) sb.disabled=false;
   });
 };
+
+
+/* ══════════════════════════════════════════════════════════════════
+   INVESTMENT BANKING SERVICES — DATA & RENDER
+   8 service tracks: M&A, PE, Debt, Equity, Valuations, 
+   Structured Finance, Project Finance, Restructuring
+══════════════════════════════════════════════════════════════════ */
+
+var IB_SERVICES = [
+  {
+    id:'ma', icon:'🤝', color:'#F5A623', badge:'High Demand',
+    title:'Mergers & Acquisitions (M&A)',
+    desc:'Advisory on buy-side and sell-side transactions — strategic fit assessment, due diligence coordination, deal structuring, regulatory filings and post-merger integration.',
+    skills:['Transaction Due Diligence','Business Valuation (DCF/Comparable)','SPA / SHA Drafting','NCLT Merger Filing (§230-232)','Competition Commission Approvals','Post-Merger Integration'],
+    connections:['M&A Advisory Boutiques','Corporate Law Firms','Valuation Firms (IBBI-registered)','Investment Banks (Axis Capital, JM Financial)'],
+    learn:[
+      {title:'M&A Process: End-to-End Guide',time:'20 min',content:'Deal sourcing → NDA → Information Memorandum → LOI → Due Diligence → SPA → Regulatory clearance → Closing. SEBI Takeover Code for listed companies.'},
+      {title:'Due Diligence Checklist for M&A',time:'15 min',content:'Financial DD (5yr P&L, balance sheet, working capital), Legal DD (title, contracts, litigation), Tax DD (pending demands, advance rulings), Commercial DD (market position, customer concentration).'},
+      {title:'NCLT Merger Filing — §230-232',time:'12 min',content:'Scheme of arrangement filing, shareholder meeting notice, creditor meeting, NCLT order, ROC filing. Timelines: typically 6–18 months. Tax neutrality under §47(vi)/(vii).'},
+      {title:'Valuation for M&A — DCF & Comparables',time:'18 min',content:'Income approach (DCF — free cash flow to firm), Market approach (EV/EBITDA, P/E comps), Asset approach (NAV). Control premium, minority discount, synergy value.'},
+    ],
+    aiPrompt:'Walk me through the financial due diligence checklist for acquiring a manufacturing company — what are the top 10 red flags a CA should flag to the acquirer?',
+    aiId:'ipo-tax-advisor',
+    resources:[
+      {name:'SEBI Takeover Code (SAST 2011)',url:'https://www.sebi.gov.in/legal/regulations/mar-2019/sebi-substantial-acquisition-of-shares-and-takeovers-regulations-2011_42.html'},
+      {name:'Companies Act §230-232 (Mergers)',url:'https://www.mca.gov.in/'},
+      {name:'CCI Combination Regulations',url:'https://www.cci.gov.in/'},
+      {name:'IBBI Valuation Standards',url:'https://www.ibbi.gov.in/'},
+    ]
+  },
+  {
+    id:'pe', icon:'💼', color:'#A78BFA', badge:'Growing',
+    title:'Private Equity & Venture Capital',
+    desc:'Supporting PE/VC transactions — fund due diligence, investment memoranda, term sheet review, FEMA compliance, ESOP structuring, exit planning and secondary transactions.',
+    skills:['PE Due Diligence','Term Sheet Analysis','FEMA/FDI Compliance','ESOP Valuation (Ind AS 102)','Down-round Structuring','Exit Strategy (IPO / Strategic Sale / Secondary)'],
+    connections:['SEBI-registered AIFs (Category I/II/III)','PE Funds (Sequoia, Nexus, General Atlantic)','Fund Administrators','FEMA Consultants'],
+    learn:[
+      {title:'PE Transaction Structure — From LoI to Close',time:'18 min',content:'Term sheet (valuation, anti-dilution, liquidation preference) → DD → SHA → CP satisfaction → Closing → Post-investment monitoring. Key clauses: drag-along, tag-along, ROFR, ROFO.'},
+      {title:'FEMA Compliance for PE Investment',time:'14 min',content:'FDI routes (automatic vs approval), sectoral caps, downstream investment rules, ECB regulations, FC-GPR filing within 30 days, annual return on FLA. ODI compliance for Indian promoters investing abroad.'},
+      {title:'ESOP Valuation & Tax — Ind AS 102',time:'12 min',content:'Fair value of options (Black-Scholes model), vesting schedule accounting, perquisite tax at exercise (§17(2)(vi) IT Act), LTCG/STCG on subsequent sale. SEBI ESOP guidelines for listed.'},
+      {title:'PE Exit Strategies — IPO, Trade Sale, Secondary',time:'15 min',content:'IPO exit: lock-in 6 months post-listing, DRHP disclosures. Trade sale: strategic buyer, valuation negotiation. Secondary: right of first refusal, drag-along execution. Buyback by company.'},
+    ],
+    aiPrompt:'A PE fund wants to invest ₹50 Cr in a manufacturing SME — walk me through the FEMA compliance requirements, required filings and timeline.',
+    aiId:'intl-tax-advisor',
+    resources:[
+      {name:'SEBI AIF Regulations 2012',url:'https://www.sebi.gov.in/'},
+      {name:'RBI FEMA Consolidated FDI Policy',url:'https://www.rbi.org.in/'},
+      {name:'ICAI Guidance Note on ESOP',url:'https://www.icai.org/'},
+    ]
+  },
+  {
+    id:'debt', icon:'🏛️', color:'#00CFEA', badge:'High Volume',
+    title:'Debt Syndication & Structured Finance',
+    desc:'Arranging and structuring debt facilities — working capital, term loans, ECB, NCD/bond issuances, securitisation, credit enhancements and rating advisory.',
+    skills:['Working Capital Assessment','CMA Data Preparation','Credit Rating Advisory (CRISIL/ICRA)','NCD / Bond Structuring','External Commercial Borrowings (ECB)','Securitisation & Asset Monetisation'],
+    connections:['SEBI-registered Merchant Bankers','CRISIL / ICRA / CARE / Acuité','RBI-regulated Banks & NBFCs','Bond Market Platform (BSE Bond)'],
+    learn:[
+      {title:'CMA Data — What Banks Actually Check',time:'16 min',content:'Current Ratio, Debt-Equity, DSCR, FACR, TOL/TNW. Fund flow analysis, projected financials, working capital cycle assessment. Common bank shortlist items. Difference between CC, OD, WCDL.'},
+      {title:'NCD / Bond Issuance — SEBI ILDS',time:'14 min',content:'SEBI Issue and Listing of Non-Convertible Securities Regulations 2021. Credit rating mandatory. Debenture Trust Deed. DRR (Debenture Redemption Reserve). Private placement vs public issue of NCDs.'},
+      {title:'External Commercial Borrowings (ECB)',time:'12 min',content:'ECB Framework: Track I (3yr minimum maturity), Track II (10yr), Track III (3-5yr for specific sectors). Eligible borrowers, recognised lenders. All-in cost ceiling. RBI LRN registration. Form ECB filings.'},
+      {title:'Credit Rating Process & Improving Your Rating',time:'10 min',content:'Rating methodology: business risk, financial risk, management quality, industry risk. CRISIL BBB vs AA distinction. How to improve rating: reduce leverage, improve working capital, diversify revenue, reduce RPT.'},
+    ],
+    aiPrompt:'My client needs ₹25 Cr working capital — compare CC limit, WCDL, and invoice discounting. What CMA data preparation do I need and what banks are most likely to sanction?',
+    aiId:'corporate-tax-advisor',
+    resources:[
+      {name:'SEBI ILDS Regulations 2021',url:'https://www.sebi.gov.in/'},
+      {name:'RBI ECB Master Direction',url:'https://www.rbi.org.in/'},
+      {name:'CRISIL Rating Methodology',url:'https://www.crisil.com/'},
+    ]
+  },
+  {
+    id:'equity', icon:'📈', color:'#00C896', badge:'IPO Linked',
+    title:'Equity Capital Markets (ECM)',
+    desc:'End-to-end equity capital raising — IPO, rights issue, QIP, preferential allotment, ESOP, bonus issues. SEBI ICDR compliance, DRHP preparation and investor relations.',
+    skills:['SEBI ICDR — SME & Main Board','Rights Issue §62 CA 2013','QIP Structuring (Listed Companies)','Preferential Allotment §42/62','Bonus Issue Accounting','Investor Relations Post-IPO'],
+    connections:['SEBI-Registered Category I Merchant Bankers','NSE Emerge / BSE SME Representatives','Stock Brokers / Registrars (CDSL/NSDL)','Institutional Equity Research Desks'],
+    learn:[
+      {title:'Rights Issue — §62 Complete Process',time:'12 min',content:'Board resolution → SEBI filing → Letter of Offer → Entitlement ratio → ASBA application → Allotment → Listing. Renunciation rights. Promoter subscription. Time: 55-70 days. Partial subscription handling.'},
+      {title:'QIP — Quick Institutional Placement',time:'14 min',content:'Only listed companies. Minimum issue price (2-week VWAP or floor price, higher). No SEBI filing required (just exchange intimation). Minimum 10 allottees, no single allottee >50%. Lock-in: 1 year.'},
+      {title:'Preferential Allotment — §42 & SEBI ICDR',time:'12 min',content:'Special resolution. Price: SEBI formula (26-week VWAP for frequently traded). Allotment within 15 days of SR. Filing PAS-3. Lock-in: 6 months (non-promoter), 18 months (promoter up to 20%). Board approval, then SR.'},
+      {title:'Post-IPO Investor Relations — SEBI LODR',time:'10 min',content:'Quarterly results (45 days), annual report (60 days from FY end), continuous disclosures (30 min rule), analyst meets, earnings calls. BRSR for top 1000. Insider trading management (SDD).'},
+    ],
+    aiPrompt:'My listed client wants to raise ₹100 Cr through QIP — walk me through the SEBI ICDR requirements, minimum price calculation, and post-allotment compliance.',
+    aiId:'sebi-compliance-advisor',
+    resources:[
+      {name:'SEBI ICDR Regulations 2018',url:'https://www.sebi.gov.in/'},
+      {name:'SEBI LODR Regulations 2015',url:'https://www.sebi.gov.in/'},
+    ]
+  },
+  {
+    id:'valuation', icon:'⚖️', color:'#F5A623', badge:'IBBI Required',
+    title:'Business Valuation Services',
+    desc:'Registered Valuer (IBBI) services — business valuation for M&A, ESOP, impairment testing, dispute resolution, NCLT schemes, family settlement and tax purposes.',
+    skills:['IBBI Registered Valuer (SFA)','DCF Valuation','Comparable Company / Transaction Analysis','Impairment Testing (Ind AS 36)','ESOP Fair Value (Black-Scholes)','Goodwill Allocation (Ind AS 103)'],
+    connections:['IBBI Registered Valuers Association','Institute of Valuers (IOV)','Investment Banks (for opinion)','NCLT Experts Panel'],
+    learn:[
+      {title:'IBBI Registered Valuer — Who Needs One',time:'10 min',content:'Mandatory for: insolvency (IBBI), company schemes (NCLT §230-232), takeover (SEBI), fairness opinion, ESOP (SEBI guidelines), certain income tax matters (§56(2)(x)). Qualifications: CA/MBA + exam + 3yr experience.'},
+      {title:'DCF Valuation — Step by Step',time:'20 min',content:'Forecast FCFF (5-10 years), select discount rate (WACC = Kd*(1-t)*D/V + Ke*E/V), compute terminal value (Gordon Growth or Exit Multiple), discount to PV, add cash/subtract debt → equity value. Sensitivity analysis mandatory.'},
+      {title:'Impairment Testing — Ind AS 36',time:'14 min',content:'Annual testing for goodwill, indefinite-life intangibles. VIU (Value in Use): discount projected cash flows. FVLCTS (Fair Value Less Cost to Sell). CGU identification. Impairment trigger: market cap < NAV, macro deterioration.'},
+      {title:'Purchase Price Allocation — Ind AS 103',time:'12 min',content:'On acquisition: identify all assets/liabilities at fair value, allocate consideration. Recognise: customer relationships, brand, technology, non-compete agreements. Residual = goodwill. Deferred tax on FV adjustments.'},
+    ],
+    aiPrompt:'I need to value a SaaS company for an acquisition — revenue ₹40 Cr, EBITDA ₹8 Cr, high growth. Walk me through DCF vs Revenue Multiple approaches and which IBBI standard applies.',
+    aiId:'corp-governance-advisor',
+    resources:[
+      {name:'IBBI Registered Valuers',url:'https://www.ibbi.gov.in/'},
+      {name:'ICAI Valuation Standards',url:'https://www.icai.org/'},
+    ]
+  },
+  {
+    id:'restructuring', icon:'🔧', color:'#FF4D6D', badge:'Distressed',
+    title:'Corporate Restructuring & IBC',
+    desc:'Financial and operational restructuring — IBC insolvency proceedings, one-time settlements, debt recast, pre-packaged insolvency (PPIRP), NCLT compromise schemes.',
+    skills:['IBC CIRP Process (§7/§9/§10)','Resolution Plan Preparation','One-Time Settlement (OTS)','Pre-Packaged Insolvency (PPIRP)','NCLT Compromise §230','Debt Recast & Restructuring (RBI Framework)'],
+    connections:['IBBI-registered Insolvency Professionals','Distressed Asset Funds','NARCL / NCLAT Practitioners','RBI-empanelled Restructuring Advisors'],
+    learn:[
+      {title:'IBC CIRP Process — §7/§9/§10',time:'18 min',content:'§7 (Financial Creditor), §9 (Operational Creditor), §10 (Corporate Applicant). Default threshold: ₹1 Cr. NCLT admission → IRP appointment → moratorium → CoC formation → 180 days (+ 90 extension) → Resolution Plan or Liquidation.'},
+      {title:'Resolution Plan — What the CoC Looks For',time:'14 min',content:'Resolution plan must cover: full payment to operational creditors (>liquidation value), fair treatment of stakeholders, continuation of business. Haircut on financial creditors. H1 plan selection. SEBI clearance if company listed.'},
+      {title:'Pre-Packaged Insolvency (PPIRP) for MSMEs',time:'10 min',content:'Available for MSMEs with default ≥₹10L. Base resolution plan from promoter before filing. 90-day timeline. Less disruptive than full CIRP. Promoter continues management.'},
+      {title:'One-Time Settlement (OTS) — RBI Framework',time:'12 min',content:'Available for NPAs. OTS approval: bank board/management committee. Minimum recovery: NRV (Net Realisable Value). Tax implication: §41(1) deemed income for borrower. Impact on credit rating.'},
+    ],
+    aiPrompt:'My client company has ₹8 Cr in NPA debt and the bank has issued demand notice. Compare IBC PPIRP vs OTS vs debt recast — which approach minimises disruption and tax impact?',
+    aiId:'corp-governance-advisor',
+    resources:[
+      {name:'Insolvency and Bankruptcy Code 2016',url:'https://www.ibbi.gov.in/'},
+      {name:'RBI Prudential Framework for Stressed Assets',url:'https://www.rbi.org.in/'},
+    ]
+  },
+  {
+    id:'project-finance', icon:'🏗️', color:'#00CFEA', badge:'Infrastructure',
+    title:'Project Finance & Infrastructure',
+    desc:'Non-recourse and limited-recourse project financing — SPV structuring, concession agreements, lender due diligence support, DSCR modelling and government scheme advisory.',
+    skills:['SPV Structuring','DSCR & Financial Modelling','Concession/PPP Agreement Review','InvIT / REIT Structuring','Viability Gap Funding (VGF)','Escrow & Trust Mechanism'],
+    connections:['Infrastructure Finance Companies (IIFCL, PFC, REC)','Project Finance Banks (SBI, BOB)','PPP Nodal Agencies (NITI Aayog, MoRTH)','InvIT / REIT Trustees'],
+    learn:[
+      {title:'Project Finance Structure — SPV & Waterfall',time:'15 min',content:'Sponsor → SPV (project company) ← Lender syndicate. Revenue waterfall: O&M → Senior debt service → Reserve funds → Junior debt → Equity. Security: charge on project assets, revenue escrow, pledge of sponsor shares.'},
+      {title:'DSCR Modelling — What Lenders Check',time:'12 min',content:'DSCR = CFADS / Debt Service. Minimum DSCR: 1.25x (typically). Average DSCR: 1.5x+ for investment grade. LLCR (Loan Life Coverage Ratio). Sensitivity: construction cost overrun, revenue ramp-up delay, O&M cost increase.'},
+      {title:'InvIT / REIT — Structure and SEBI Rules',time:'14 min',content:'InvIT: infrastructure trust. REIT: real estate trust. SEBI REIT/InvIT Regulations. Mandatory distribution 90%+ of distributable cash flows. Minimum public float. Sponsor lock-in. Tax: pass-through for rental/interest income.'},
+    ],
+    aiPrompt:'My client is setting up a 50MW solar project — how should the SPV be structured, what security package does the lender need, and what are the DSCR requirements for project finance?',
+    aiId:'intl-tax-advisor',
+    resources:[
+      {name:'SEBI InvIT Regulations 2014',url:'https://www.sebi.gov.in/'},
+      {name:'NITI Aayog PPP Framework',url:'https://www.niti.gov.in/'},
+    ]
+  },
+  {
+    id:'intl-advisory', icon:'🌐', color:'#A78BFA', badge:'Cross-Border',
+    title:'International Advisory & FEMA',
+    desc:'Cross-border transactions — FDI/ODI structuring, FEMA compliance, transfer pricing, treaty planning, ADR/GDR issuances, cross-border M&A and GIFT City advisory.',
+    skills:['FEMA FDI / ODI Structuring','Transfer Pricing (ALP — OECD Methods)','DTAA Treaty Planning','ADR / GDR Issuance','GIFT City IFSC Advisory','Round-Tripping Risk Management'],
+    connections:['RBI Authorised Dealers (AD Banks)','Big 4 Transfer Pricing Teams','GIFT City IFSC Authority','International Law Firms (Cyril Amarchand, AZB)'],
+    learn:[
+      {title:'FDI vs ODI — When Each Applies',time:'12 min',content:'FDI: inbound investment into India (FEMA 20). ODI: Indian entity investing abroad (FEMA 120). Key difference: FDI up to sectoral cap (automatic/approval route). ODI: 400% of net worth limit (financial commitment). Prohibited sectors for both.'},
+      {title:'Transfer Pricing — The 6 Methods',time:'18 min',content:'CUP (Comparable Uncontrolled Price), RPM (Resale Price Method), CPM (Cost Plus Method), TNMM (Transactional Net Margin Method), PSM (Profit Split Method), Other method. Most used: TNMM. ALP documentation — Form 3CEB, TP study.'},
+      {title:'GIFT City IFSC — Opportunities for CAs',time:'14 min',content:'IFSC Authority regulations. Banking units, insurance, AIF, NBFC operating. Tax benefits: 10-year holiday, no GST, DDT exemption. GIFT City for listing (IFSC exchanges), aircraft leasing, ship financing. New opportunities for CA firms.'},
+    ],
+    aiPrompt:'My client (Indian company) wants to acquire a Singapore entity for ₹30 Cr — walk me through the ODI filing, FEMA compliance, transfer pricing implications and DTAA benefits.',
+    aiId:'intl-tax-advisor',
+    resources:[
+      {name:'RBI FEMA Master Directions',url:'https://www.rbi.org.in/'},
+      {name:'CBDT Transfer Pricing Rules',url:'https://incometaxindia.gov.in/'},
+      {name:'IFSCA GIFT City',url:'https://ifsca.gov.in/'},
+    ]
+  },
+];
+
+/* IB state */
+P.ibService = null;
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   FINANCIAL SERVICES HUB — DATA & RENDER
+   6 segments: Demat/Trading, Mutual Funds, Insurance, 
+   Wealth Management, NRI Services, Retirement Planning
+══════════════════════════════════════════════════════════════════ */
+
+var FIN_SERVICES = [
+  {
+    id:'demat', icon:'📊', color:'#00C896', badge:'High Volume',
+    title:'Demat & Trading Account Services',
+    desc:'Help clients open demat and trading accounts — understand broker selection, charges, account types, algo trading basics, commodity and currency segments.',
+    skills:['Demat Account Opening (CDSL/NSDL)','Broker Selection & Fee Comparison','Trading Account Basics','Commodity & Currency Derivatives','Algo Trading Fundamentals','Capital Gains Tax Optimisation'],
+    connections:['SEBI-Registered Brokers (Zerodha, Groww, ICICI Direct)','CDSL / NSDL Depository Participants','Discount vs Full-Service Broker Comparison','NSE / BSE Trading Support'],
+    learn:[
+      {title:'Demat Account — How to Open & What to Check',time:'10 min',content:'Documents: PAN, Aadhaar, bank proof, photo. DP charges: AMC (₹300–750/yr), transaction fee (per debit). CDSL vs NSDL — both safe, check your broker. Nomination mandatory from 2023. Joint account rules.'},
+      {title:'Broker Selection — Discount vs Full Service',time:'12 min',content:'Discount brokers (Zerodha, Upstox): ₹0 equity delivery, ₹20 F&O. Full-service (ICICI, HDFC, Sharekhan): research + advisory + RM. Choose based on: trading frequency, need for advice, margin funding needs. Check NSE/BSE member registration.'},
+      {title:'Capital Gains Tax on Securities — Full Guide',time:'16 min',content:'LTCG (>12 months): 12.5% on listed equity gains above ₹1.25L (§112A). STCG: 20% (§111A). F&O: treated as business income. Intraday: speculative income. Set-off: LTCL vs LTCG; STCL vs any capital gain. Advance tax on trading income.'},
+      {title:'Commodity & Currency Derivatives — CA Perspective',time:'10 min',content:'MCX (commodities), NSE/BSE currency. Hedging vs speculation distinction for tax. Genuine hedging: business income/loss. F&O losses: carry forward 8 years (non-speculative). CTT (Commodity Transaction Tax) on non-agri.'},
+    ],
+    aiPrompt:'My CA client has equity investment gains of ₹8 Cr this year — what is the optimal tax strategy for LTCG, STCG, and how should they harvest losses before March 31?',
+    aiId:'direct-tax-advisor',
+    professionals:[
+      {name:'Zerodha (Discount Broker)',role:'₹0 equity delivery · ₹20 F&O · Top rated',contact:'zerodha.com'},
+      {name:'Groww',role:'Simple interface · Good for mutual funds too',contact:'groww.in'},
+      {name:'ICICI Direct',role:'Full service · Research + PMS + Demat',contact:'icicidirect.com'},
+      {name:'CDSL',role:'Depository — check your DP charges',contact:'cdslindia.com'},
+    ]
+  },
+  {
+    id:'mf', icon:'💹', color:'#F5A623', badge:'ARN Required',
+    title:'Mutual Fund Distribution & Advisory',
+    desc:'Become an AMFI-Registered Mutual Fund Distributor (ARN) — help clients with goal-based investments, SIP planning, NFO analysis, tax-efficient funds and direct vs regular.',
+    skills:['AMFI ARN Registration','SIP & Goal-Based Planning','Tax-Efficient Fund Selection','NFO Analysis','Direct vs Regular — Fee Impact','ELSS & Tax Planning §80C'],
+    connections:['AMFI (ARN Registration)',  'BSE StarMF / NSE MF Platform','AMCs (HDFC, SBI, Nippon, Axis)','MF Distributors Network'],
+    learn:[
+      {title:'AMFI ARN — How CAs Can Become MF Distributors',time:'10 min',content:'Eligibility: graduate + NISM-Series-V-A exam (MFD Certification). ARN registration with AMFI. Renewal every 3 years. Trail commission: 0.5–1% on equity, 0.1–0.3% on debt. No entry load since 2009. Direct plan vs Regular plan difference.'},
+      {title:'Goal-Based Investment Planning',time:'14 min',content:'Map goals: retirement corpus, child education, house purchase. Horizon determines allocation: equity (7+ yrs), hybrid (3-7 yrs), debt (<3 yrs). SIP calculation: FV = P × [(1+r)^n − 1]/r × (1+r). Inflation-adjusted return requirement.'},
+      {title:'ELSS — Tax Saving & Returns',time:'10 min',content:'ELSS = Equity Linked Savings Scheme. §80C deduction up to ₹1.5L. 3-year lock-in (shortest among §80C instruments). LTCG on redemption: 12.5% above ₹1.25L. Average 10-year return: 12-15%. SIP or lump sum in March is common mistake.'},
+      {title:'Debt Funds After Budget 2023 — Tax Changes',time:'12 min',content:'Post-April 2023: debt funds with <35% equity taxed at slab rate (no indexation benefit). Only fund with >35% equity + 10% debt eligible for LTCG. Strategy: target maturity funds, FMPs for HNI clients. Bank FD vs Debt Fund post-tax comparison.'},
+    ],
+    aiPrompt:'My client (35 years, ₹2L/month income) wants to retire at 55 with ₹10 Cr corpus. What SIP amount, fund category allocation and tax planning strategy do I recommend?',
+    aiId:'direct-tax-advisor',
+    professionals:[
+      {name:'AMFI',role:'ARN registration + investor education',contact:'amfiindia.com'},
+      {name:'BSE Star MF',role:'Online distribution platform for ARN holders',contact:'bsestarmf.in'},
+      {name:'Nippon India MF',role:'Distributor support + NFO updates',contact:'nipponindiamf.com'},
+      {name:'NISM',role:'NISM-V-A Certification for MFD',contact:'nism.ac.in'},
+    ]
+  },
+  {
+    id:'insurance', icon:'🛡️', color:'#A78BFA', badge:'POSP / Agent',
+    title:'Insurance Distribution & Advisory',
+    desc:'Life, health, general and corporate insurance — become IRDAI-licensed POSP, advise on adequate coverage, corporate key-man policies, ULIP vs term comparison.',
+    skills:['IRDAI POSP Certification','Term Life vs ULIP Analysis','Health Insurance — Corporate & Retail','Key-Man Insurance for Businesses','Fire & Business Interruption Insurance','Premium Payment Tax Treatment §80C / §80D'],
+    connections:['IRDAI (POSP Certification)','LIC / HDFC Life / ICICI Prudential (Life)','Star Health / Niva Bupa (Health)','New India Assurance / Oriental (General)'],
+    learn:[
+      {title:'IRDAI POSP — How CAs Can Distribute Insurance',time:'8 min',content:'Point of Sales Person (POSP): 15-hour training + exam. Can sell: term, health, motor, fire, personal accident — simple standardised products. Commission: 10-30% first year, 5% renewal. No need for full agent license.'},
+      {title:'Term Life vs ULIP — Which to Recommend',time:'12 min',content:'Term: pure protection, low premium (₹10L cover at ₹6,000-10,000/yr for 30yr, non-smoker). ULIP: insurance + investment — high charges first 5 years (IRDA cap: 4% PA mortality + fund). Recommendation: buy term + invest separately. Compare IRR.'},
+      {title:'Health Insurance — Advising Your Clients',time:'12 min',content:'Base plan: ₹5L+ individual, ₹10L+ family floater. Super top-up: cost-effective for higher cover. Key features: room rent limit (avoid sub-limits), pre-existing disease waiting (4yr), co-pay. Corporate group policy: no waiting period. §80D deduction.'},
+      {title:'Key-Man Insurance & Corporate Policies',time:'10 min',content:'Key-man policy: company is proposer + premium payer + beneficiary. Premium: business expenditure (deductible). Benefit: taxable as income under §28 when received. Purpose: protect company against loss of key person. Typically: term policy on director/promoter.'},
+    ],
+    aiPrompt:'My client is a 42-year-old promoter of a ₹100 Cr company. Advise on life insurance (personal + key-man), health insurance, and the tax treatment of all premiums paid.',
+    aiId:'direct-tax-advisor',
+    professionals:[
+      {name:'IRDAI',role:'POSP registration + agent licensing',contact:'irdai.gov.in'},
+      {name:'PolicyBazaar (B2B)',role:'Compare + distribute from one platform',contact:'policybazaar.com'},
+      {name:'HDFC Life',role:'Term + ULIP + CA partner program',contact:'hdfclife.com'},
+      {name:'Star Health',role:'Health insurance specialist',contact:'starhealth.in'},
+    ]
+  },
+  {
+    id:'wealth', icon:'💎', color:'#00CFEA', badge:'HNI Segment',
+    title:'Wealth Management & PMS',
+    desc:'High Net Worth Individual advisory — portfolio management, alternative investments (AIFs, REITs, InvITs), estate planning, family trusts and succession planning.',
+    skills:['HNI Portfolio Construction','Portfolio Management Service (PMS)','AIF Category I/II/III Analysis','REIT / InvIT Investment','Private Wealth Tax Planning','Estate Planning & Will Drafting'],
+    connections:['SEBI-registered PMS Providers','Category III AIF Managers','Private Banks (Kotak, HDFC, Julius Baer)','Estate Planning Lawyers'],
+    learn:[
+      {title:'PMS vs Mutual Funds vs AIF — What to Advise',time:'14 min',content:'PMS: min ₹50L, SEBI-registered, individual portfolio, customised. Charges: 2% management + 20% profit share typically. MF: min ₹500 SIP, pooled, lower cost. AIF Cat II: min ₹1Cr, private equity/debt funds. Cat III: hedge funds, leveraged. Tax differs.'},
+      {title:'Family Trust — When and How to Set Up',time:'12 min',content:'Private Discretionary Trust: settlor (promoter), trustee, beneficiaries (family). Benefits: asset protection, succession planning, bypass probate. Tax: trust taxed at maximum marginal rate (30%) unless specific. Stamp duty: varies by state. Good for: business succession, minor children.'},
+      {title:'REIT / InvIT — CA Client Advisory',time:'10 min',content:'REIT: listed real estate trust (Embassy, Mindspace, Brookfield). InvIT: infrastructure (IRB, IndGrid). Minimum lot: ₹10K-15K. Distribution yield: 5-8% per annum. Tax: dividend (slab), capital gain, interest (slab), SPV income distribution — different tax treatment.'},
+      {title:'Estate Planning for Promoters',time:'14 min',content:'Will: simple, cheapest. Trust: asset protection + succession. HUF: for Hindu families (separate tax entity). Nomination: demat, insurance, bank. Power of Attorney: medical, financial. Registered Will vs unregistered. Joint ownership implications.'},
+    ],
+    aiPrompt:'My client has ₹5 Cr in equity, ₹2 Cr in FDs, a business worth ₹20 Cr and wants to plan estate transfer to 2 children. What is the optimal wealth structure and tax strategy?',
+    aiId:'direct-tax-advisor',
+    professionals:[
+      {name:'SEBI PMS Registry',role:'Verify + compare PMS providers',contact:'sebi.gov.in/pms'},
+      {name:'Kotak Wealth',role:'HNI / UHNI private banking',contact:'kotakwealth.com'},
+      {name:'Motilal Oswal PMS',role:'Equity PMS specialist',contact:'mopms.com'},
+      {name:'NJ Wealth',role:'Large distributor + partner program for CAs',contact:'njwealth.in'},
+    ]
+  },
+  {
+    id:'nri', icon:'✈️', color:'#00C896', badge:'Cross-Border',
+    title:'NRI Financial Services',
+    desc:'Complete financial advisory for Non-Resident Indians — NRE/NRO/FCNR accounts, repatriation rules, DTAA benefits, ITR for NRIs, FEMA compliance and returning NRI planning.',
+    skills:['NRE / NRO / FCNR Account Rules','FEMA Repatriation Rules','NRI ITR Filing (ITR-2 / ITR-3)','DTAA Application for NRIs','Returning NRI — RNOR Status','NRI Investment in India (FDI / PIS)'],
+    connections:['NRI Banking Specialists (HDFC NRI, ICICI NRI)','FEMA & Tax Consultants','RBI Authorised Dealers','International Tax Advisors'],
+    learn:[
+      {title:'NRE vs NRO vs FCNR — Key Differences',time:'10 min',content:'NRE (Non-Resident External): foreign income deposited, fully repatriable, interest tax-free in India. NRO: Indian income (rent, dividends), repatriation limited to USD 1M/year (CA certificate required), interest taxable at 30% (TDS). FCNR: foreign currency deposit (USD/GBP/EUR), fully repatriable.'},
+      {title:'NRI Tax Filing — ITR Obligations',time:'14 min',content:'NRI status: stay in India <182 days in FY (basic test). Taxable: India-sourced income (rent, capital gains, interest on NRO). Not taxable: NRE interest, foreign income. DTAA: reduces withholding on dividends/interest. Form 15CA/15CB for remittances. ITR-2 for most NRIs.'},
+      {title:'Returning NRI — RNOR and Asset Planning',time:'12 min',content:'RNOR (Resident but Not Ordinarily Resident): first 2-3 years after return. Benefits: foreign income not taxable, NRE interest tax-free. Convert NRE to RFC account (Resident Foreign Currency) — maintains repatriability. FEMA: declare foreign assets in schedule FA.'},
+      {title:'NRI Investments in India — PIS & Direct',time:'10 min',content:'Portfolio Investment Scheme (PIS) for listed equity (through NRE/NRO). FDI for unlisted (automatic route for most sectors). Real estate: residential/commercial — direct purchase allowed (not agricultural). Mutual funds on non-PIS NRO basis. Capital gains: same as resident.'},
+    ],
+    aiPrompt:'My NRI client (US-based, 15 years abroad, returning to India next year) has NRE FDs of ₹2 Cr and foreign assets worth $500K. What tax planning should be done NOW before they become resident?',
+    aiId:'intl-tax-advisor',
+    professionals:[
+      {name:'HDFC Bank NRI',role:'NRE/NRO/FCNR + investments',contact:'hdfcbank.com/nri'},
+      {name:'ICICI Bank NRI',role:'Full NRI banking + wealth services',contact:'icicibank.com/nri'},
+      {name:'RBI FEMA',role:'Regulatory circulars for NRI transactions',contact:'rbi.org.in'},
+    ]
+  },
+  {
+    id:'retirement', icon:'🏖️', color:'#F5A623', badge:'Long Term',
+    title:'Retirement & Pension Planning',
+    desc:'Comprehensive retirement planning — NPS, EPF/VPF, PPF, annuities, pension products and Senior Citizen Savings Scheme. Help clients build inflation-beating retirement corpus.',
+    skills:['NPS (National Pension System) Advisory','EPF / VPF Optimisation','PPF — Long-Term Compounding','Senior Citizen Savings Scheme','Annuity vs Systematic Withdrawal','§80CCD Tax Benefits of NPS'],
+    connections:['NPS Trust / PFRDA','EPFO Regional Office','LIC Annuity Products','Bank Senior Citizen FD Specialists'],
+    learn:[
+      {title:'NPS — Complete Guide for CAs and Clients',time:'14 min',content:'Tier I: mandatory, tax benefit. Tier II: voluntary, no lock-in, no extra tax benefit. §80CCD(1B): additional ₹50,000 deduction over §80C limit. Asset allocation: auto choice (age-based) or active. At 60: 40% mandatory annuity, 60% lump sum (tax-free). Employer NPS: §80CCD(2) up to 10% of basic.'},
+      {title:'EPF vs VPF vs PPF — Which to Prioritise',time:'12 min',content:'EPF: mandatory for employees. VPF: voluntary contribution to EPF (same interest rate 8.15%). PPF: 15-year lock-in, ₹1.5L/yr limit, 7.1% (tax-free). Interest on EPF contributions >₹2.5L/yr taxable. Recommendation: max out VPF (higher rate + EEE).'},
+      {title:'Retirement Corpus Calculation',time:'10 min',content:'Required corpus = Annual expense × (1/(r-g)) where r = return rate, g = inflation rate. Example: ₹12L/yr expenses, 6% inflation, 10% return → ₹3 Cr (before inflation-adjustment). Systematic withdrawal plan (SWP) from MF — more tax-efficient than annuity for equity portion.'},
+      {title:'Senior Citizen Tax Planning',time:'12 min',content:'Basic exemption: ₹3L (senior), ₹5L (super senior). SCSS: 8.2% rate, ₹30L limit. PMVVY: guaranteed pension. Tax-free income sources: PPF maturity, LTCG exempt portion, agricultural income. §80TTB: ₹50,000 interest deduction (FD/savings). Standard deduction ₹75,000.'},
+    ],
+    aiPrompt:'My client (55 years, government employee retiring in 5 years with EPF corpus ₹80L + NPS Tier I ₹40L) wants ₹1.5L/month in retirement. What is the optimal withdrawal strategy and tax plan?',
+    aiId:'direct-tax-advisor',
+    professionals:[
+      {name:'NPS Trust / PFRDA',role:'NPS account + returns + PRAN',contact:'npstrust.org.in'},
+      {name:'EPFO',role:'EPF passbook + withdrawal + transfer',contact:'epfindia.gov.in'},
+      {name:'LIC',role:'Jeevan Akshay annuity + pension plans',contact:'licindia.in'},
+    ]
+  },
+];
+
+/* Fin state */
+P.finService = null;
+P.finDetail  = null;
+
+
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER FUNCTIONS — IB SERVICES + FINANCIAL SERVICES
+══════════════════════════════════════════════════════════════ */
+
+/* ── IB Services Hub ── */
+function renderIBServices(){
+  var h='<div class="portal-pad">';
+  h+='<div class="page-title">🏦 Investment Banking Services</div>';
+  h+='<div class="page-sub">Expand your practice beyond audit — 8 high-value IB tracks with step-by-step learning, key skill maps, professional connections and AI-powered advisory support.</div>';
+
+  /* Stats bar */
+  h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">';
+  [['🏦','8','IB Service Tracks'],['📚','30+','Learning Modules'],['🤝','50+','Professional Connections'],['💰','₹2–20L','Typical Fee Range']]
+  .forEach(function(s){
+    h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;text-align:center;flex:1;min-width:100px">';
+    h+='<div style="font-size:16px;margin-bottom:3px">'+s[0]+'</div>';
+    h+='<div style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--amber)">'+s[1]+'</div>';
+    h+='<div style="font-size:9px;color:var(--muted);margin-top:2px">'+s[2]+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+
+  /* CA's IB value proposition banner */
+  h+='<div style="background:rgba(245,166,35,.06);border:1px solid rgba(245,166,35,.15);border-radius:14px;padding:16px 20px;margin-bottom:20px">';
+  h+='<div style="font-size:12px;font-weight:800;color:var(--amber);margin-bottom:6px">💡 Why CAs are Natural IB Advisors</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;font-size:11px;color:var(--muted)">';
+  ['✅ Deep financial analysis expertise — the core of every IB mandate',
+   '✅ Tax structuring knowledge adds direct deal value',
+   '✅ Existing client relationships = built-in deal flow',
+   '✅ Regulatory knowledge (SEBI, RBI, FEMA) reduces risk',
+   '✅ IBC/restructuring is exclusively CA/CS territory',
+   '✅ Valuation under IBBI requires CA/MBA qualification']
+  .forEach(function(p){h+='<div>'+p+'</div>';});
+  h+='</div></div>';
+
+  /* Service cards grid */
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">';
+  IB_SERVICES.forEach(function(svc){
+    h+='<div class="ac-module-card" data-ib-id="'+svc.id+'" style="border-color:'+svc.color+'22;cursor:pointer" onclick="window.openIBService(\''+svc.id+'\')">';
+    h+='<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+svc.color+'"></div>';
+    h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;margin-top:4px">';
+    h+='<span style="font-size:26px">'+svc.icon+'</span>';
+    h+='<span style="font-size:9px;font-weight:700;background:'+svc.color+'18;color:'+svc.color+';border:1px solid '+svc.color+'33;border-radius:99px;padding:2px 8px">'+svc.badge+'</span>';
+    h+='</div>';
+    h+='<div style="font-size:12px;font-weight:800;color:#fff;margin-bottom:5px">'+svc.title+'</div>';
+    h+='<div style="font-size:10px;color:var(--muted);line-height:1.6;margin-bottom:10px">'+svc.desc+'</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
+    svc.skills.slice(0,3).forEach(function(sk){
+      h+='<span style="font-size:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:2px 7px;color:var(--dim)">'+sk+'</span>';
+    });
+    if(svc.skills.length>3) h+='<span style="font-size:9px;color:var(--dim)">+'+( svc.skills.length-3)+' more</span>';
+    h+='</div>';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+    h+='<span style="font-size:10px;color:'+svc.color+';font-weight:700">'+svc.learn.length+' modules · '+svc.connections.length+' connections</span>';
+    h+='<span style="font-size:11px;color:'+svc.color+'">Explore →</span>';
+    h+='</div></div>';
+  });
+  h+='</div></div>';
+  return h;
+}
+
+window.openIBService = function(id){
+  P.ibService = id;
+  P.view = 'ib-detail';
+  renderSidebar(); renderMain();
+  document.getElementById('pmain').scrollTop=0;
+};
+
+function renderIBDetail(){
+  var svc = IB_SERVICES.find(function(s){return s.id===P.ibService;});
+  if(!svc){P.view='ib-services';return renderIBServices();}
+
+  var h='<div class="portal-pad">';
+  /* Back + breadcrumb */
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">';
+  h+='<button onclick="window.pNav(\'ib-services\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;font-family:var(--font)">← Back</button>';
+  h+='<span style="font-size:10px;color:var(--muted)">IB Services / '+svc.title+'</span>';
+  h+='</div>';
+
+  /* Header */
+  h+='<div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;flex-wrap:wrap">';
+  h+='<div style="width:52px;height:52px;border-radius:14px;background:'+svc.color+'15;border:1px solid '+svc.color+'33;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">'+svc.icon+'</div>';
+  h+='<div style="flex:1">';
+  h+='<div style="font-size:9px;font-weight:700;color:'+svc.color+';text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Investment Banking · '+svc.badge+'</div>';
+  h+='<div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:5px">'+svc.title+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted);line-height:1.7;max-width:680px">'+svc.desc+'</div>';
+  h+='</div></div>';
+
+  /* Two-col layout: skills + learning on left, connections + AI on right */
+  h+='<div style="display:grid;grid-template-columns:1fr 340px;gap:16px">';
+
+  /* LEFT */
+  h+='<div>';
+  /* Skills */
+  h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:12px">🎯 Key Skills You\'ll Develop</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">';
+  svc.skills.forEach(function(sk){
+    h+='<div style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:7px">';
+    h+='<div style="width:6px;height:6px;border-radius:50%;background:'+svc.color+';flex-shrink:0"></div>';
+    h+='<span style="font-size:10px;color:var(--muted)">'+sk+'</span></div>';
+  });
+  h+='</div></div>';
+
+  /* Learning modules */
+  h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:10px">📚 Learning Modules</div>';
+  svc.learn.forEach(function(mod,i){
+    h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:8px">';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+    h+='<div style="background:'+svc.color+'18;border:1px solid '+svc.color+'33;border-radius:7px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:'+svc.color+';flex-shrink:0">'+(i+1)+'</div>';
+    h+='<div style="flex:1"><div style="font-size:11px;font-weight:700;color:#fff">'+mod.title+'</div></div>';
+    h+='<span style="font-size:9px;color:var(--dim)">⏱ '+mod.time+'</span>';
+    h+='</div>';
+    h+='<div style="font-size:10px;color:var(--muted);line-height:1.7">'+mod.content+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+
+  /* RIGHT */
+  h+='<div>';
+
+  /* AI Practice card */
+  h+='<div style="background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.15);border-radius:12px;padding:14px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--amber);margin-bottom:8px">🤖 Practice with AI</div>';
+  h+='<div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.65">'+svc.aiPrompt+'</div>';
+  h+='<button class="btn btn-amber btn-sm" data-ai-question="'+svc.aiPrompt.replace(/'/g,"&#39;").replace(/"/g,'&quot;')+'" data-ai-go="'+svc.aiId+'" style="width:100%;justify-content:center">Ask this question →</button>';
+  h+='</div>';
+
+  /* Connections */
+  h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:10px">🤝 Professional Connections</div>';
+  svc.connections.forEach(function(c){
+    h+='<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+    h+='<div style="width:6px;height:6px;border-radius:50%;background:'+svc.color+';flex-shrink:0;margin-top:4px"></div>';
+    h+='<div style="font-size:10px;color:var(--muted)">'+c+'</div></div>';
+  });
+  h+='</div>';
+
+  /* Resources */
+  if(svc.resources && svc.resources.length){
+    h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px">';
+    h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:10px">📋 Key Regulations & Resources</div>';
+    svc.resources.forEach(function(r){
+      h+='<a href="'+r.url+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);text-decoration:none">';
+      h+='<div style="font-size:9px;background:'+svc.color+'18;color:'+svc.color+';border-radius:4px;padding:2px 6px;font-weight:700;flex-shrink:0">REG</div>';
+      h+='<div style="font-size:10px;color:var(--muted)">'+r.name+'</div>';
+      h+='<div style="margin-left:auto;font-size:10px;color:'+svc.color+'">↗</div></a>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+
+  h+='</div></div></div>';
+  return h;
+}
+
+/* ── Financial Services Hub ── */
+function renderFinServices(){
+  var h='<div class="portal-pad">';
+  h+='<div class="page-title">💹 Financial Services Hub</div>';
+  h+='<div class="page-sub">Expand beyond audit — become a one-stop financial advisor for your clients. Demat/trading, mutual funds, insurance, wealth management, NRI services and retirement planning.</div>';
+
+  /* CA opportunity banner */
+  h+='<div style="background:rgba(0,200,150,.05);border:1px solid rgba(0,200,150,.15);border-radius:14px;padding:16px 20px;margin-bottom:20px">';
+  h+='<div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:8px">💡 The CA Financial Advisor Advantage</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">';
+  [['🧾','Tax Expertise','You already know tax on every investment product — use it to add advisory value'],
+   ['🤝','Trust Capital','Clients trust their CA implicitly — the hardest part of financial advisory is already done'],
+   ['📊','Numbers Fluency','Financial modelling for wealth planning is second nature'],
+   ['🔁','Annual Touch','Filing season creates natural touchpoints to cross-sell financial services'],
+  ].forEach(function(p){
+    h+='<div style="display:flex;gap:8px"><div style="font-size:16px;flex-shrink:0">'+p[0]+'</div><div><div style="font-size:10px;font-weight:700;color:#fff;margin-bottom:2px">'+p[1]+'</div><div style="font-size:9px;color:var(--muted);line-height:1.5">'+p[2]+'</div></div></div>';
+  });
+  h+='</div></div>';
+
+  /* Certification overview */
+  h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 18px;margin-bottom:20px">';
+  h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:10px">📜 Certifications to Expand Your Practice</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">';
+  [
+    {cert:'AMFI ARN',body:'NISM-V-A Exam',benefit:'Distribute mutual funds and earn trail commission',color:'#F5A623'},
+    {cert:'IRDAI POSP',body:'15hr Training + Exam',benefit:'Distribute insurance products (term, health, motor)',color:'#A78BFA'},
+    {cert:'NISM XV (RA)',body:'Research Analyst',benefit:'Publish equity research reports and recommendations',color:'#00C896'},
+    {cert:'NISM XXI-A',body:'Portfolio Manager',benefit:'Offer PMS to HNI clients',color:'#00CFEA'},
+    {cert:'CFP (FPSB)',body:'6 modules + exam',benefit:'Certified Financial Planner — global credential',color:'#F5A623'},
+    {cert:'CFA (Level I-III)',body:'3-level program',benefit:'Investment analysis — internationally recognized',color:'#00C896'},
+  ].forEach(function(c){
+    h+='<div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px;border-left:3px solid '+c.color+'">';
+    h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:2px">'+c.cert+'</div>';
+    h+='<div style="font-size:9px;font-weight:700;color:'+c.color+';margin-bottom:4px">'+c.body+'</div>';
+    h+='<div style="font-size:9px;color:var(--muted)">'+c.benefit+'</div>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+
+  /* Service cards */
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">';
+  FIN_SERVICES.forEach(function(svc){
+    h+='<div class="ac-module-card" style="border-color:'+svc.color+'22;cursor:pointer" onclick="window.openFinService(\''+svc.id+'\')">';
+    h+='<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+svc.color+'"></div>';
+    h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;margin-top:4px">';
+    h+='<span style="font-size:26px">'+svc.icon+'</span>';
+    h+='<span style="font-size:9px;font-weight:700;background:'+svc.color+'18;color:'+svc.color+';border:1px solid '+svc.color+'33;border-radius:99px;padding:2px 8px">'+svc.badge+'</span>';
+    h+='</div>';
+    h+='<div style="font-size:12px;font-weight:800;color:#fff;margin-bottom:5px">'+svc.title+'</div>';
+    h+='<div style="font-size:10px;color:var(--muted);line-height:1.6;margin-bottom:10px">'+svc.desc+'</div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">';
+    svc.skills.slice(0,3).forEach(function(sk){
+      h+='<span style="font-size:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:5px;padding:2px 7px;color:var(--dim)">'+sk+'</span>';
+    });
+    h+='</div>';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+    h+='<span style="font-size:10px;color:'+svc.color+';font-weight:700">'+svc.learn.length+' modules · '+svc.professionals.length+' platforms</span>';
+    h+='<span style="font-size:11px;color:'+svc.color+'">Explore →</span>';
+    h+='</div></div>';
+  });
+  h+='</div></div>';
+  return h;
+}
+
+window.openFinService = function(id){
+  P.finService = id;
+  P.view = 'fin-detail';
+  renderSidebar(); renderMain();
+  document.getElementById('pmain').scrollTop=0;
+};
+
+function renderFinDetail(){
+  var svc = FIN_SERVICES.find(function(s){return s.id===P.finService;});
+  if(!svc){P.view='fin-services';return renderFinServices();}
+
+  var h='<div class="portal-pad">';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">';
+  h+='<button onclick="window.pNav(\'fin-services\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;font-family:var(--font)">← Back</button>';
+  h+='<span style="font-size:10px;color:var(--muted)">Financial Services / '+svc.title+'</span>';
+  h+='</div>';
+
+  h+='<div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;flex-wrap:wrap">';
+  h+='<div style="width:52px;height:52px;border-radius:14px;background:'+svc.color+'15;border:1px solid '+svc.color+'33;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">'+svc.icon+'</div>';
+  h+='<div style="flex:1"><div style="font-size:9px;font-weight:700;color:'+svc.color+';text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px">Financial Services · '+svc.badge+'</div>';
+  h+='<div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:5px">'+svc.title+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted);line-height:1.7;max-width:680px">'+svc.desc+'</div></div></div>';
+
+  h+='<div style="display:grid;grid-template-columns:1fr 320px;gap:16px">';
+
+  /* LEFT: skills + learn */
+  h+='<div>';
+  h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:12px">🎯 Skills You\'ll Gain</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  svc.skills.forEach(function(sk){
+    h+='<div style="display:flex;align-items:center;gap:7px;padding:6px 9px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:7px">';
+    h+='<div style="width:5px;height:5px;border-radius:50%;background:'+svc.color+';flex-shrink:0"></div>';
+    h+='<span style="font-size:10px;color:var(--muted)">'+sk+'</span></div>';
+  });
+  h+='</div></div>';
+
+  svc.learn.forEach(function(mod,i){
+    h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-bottom:8px">';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+    h+='<div style="background:'+svc.color+'18;border:1px solid '+svc.color+'33;border-radius:7px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:'+svc.color+';flex-shrink:0">'+(i+1)+'</div>';
+    h+='<div style="flex:1"><div style="font-size:11px;font-weight:700;color:#fff">'+mod.title+'</div></div>';
+    h+='<span style="font-size:9px;color:var(--dim)">⏱ '+mod.time+'</span>';
+    h+='</div>';
+    h+='<div style="font-size:10px;color:var(--muted);line-height:1.7">'+mod.content+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+
+  /* RIGHT */
+  h+='<div>';
+  /* AI */
+  h+='<div style="background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.15);border-radius:12px;padding:14px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--amber);margin-bottom:8px">🤖 Ask AI About This</div>';
+  h+='<div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.65">'+svc.aiPrompt+'</div>';
+  h+='<button class="btn btn-amber btn-sm" data-ai-question="'+svc.aiPrompt.replace(/'/g,"&#39;").replace(/"/g,'&quot;')+'" data-ai-go="'+svc.aiId+'" style="width:100%;justify-content:center">Ask this question →</button>';
+  h+='</div>';
+
+  /* Platforms & Professionals */
+  h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:10px">🔗 Key Platforms & Professionals</div>';
+  svc.professionals.forEach(function(p){
+    h+='<div style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+    h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">';
+    h+='<div style="flex:1">';
+    h+='<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:1px">'+p.name+'</div>';
+    h+='<div style="font-size:9px;color:var(--muted)">'+p.role+'</div>';
+    h+='</div>';
+    h+='<a href="https://'+p.contact+'" target="_blank" style="font-size:9px;color:'+svc.color+';text-decoration:none;padding:3px 8px;border:1px solid '+svc.color+'33;border-radius:5px;white-space:nowrap;flex-shrink:0">Visit ↗</a>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+
+  /* Skills checklist */
+  h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:#fff;margin-bottom:10px">🎯 Skill Tags for Your Practice</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+  svc.skills.forEach(function(sk){
+    h+='<span style="font-size:9px;background:'+svc.color+'12;color:'+svc.color+';border:1px solid '+svc.color+'28;border-radius:5px;padding:3px 8px">'+sk+'</span>';
+  });
+  h+='</div></div>';
+
+  h+='</div>';
+  h+='</div></div>';
+  return h;
+}
+
+
 </script>
 </body>
 </html>
