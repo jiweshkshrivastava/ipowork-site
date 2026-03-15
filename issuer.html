@@ -3507,22 +3507,20 @@ async function issClSave(){
 
 function renderIssuerChecklist(){
   var stats = issClStats();
-  var pct = Math.round((stats.received + stats.submitted) / stats.total * 100);
-  var barCol = pct>=80 ? "#00C896" : pct>=50 ? "#C8961E" : "#6464C8";
+  var pct = Math.round((stats.received+stats.submitted)/stats.total*100);
+  var barCol = pct>=80?"#00C896":pct>=50?"#C8961E":"#6464C8";
   var h = "<div class='portal-pad'>";
 
   if(!ISS_CL_LOADED){
-    h += "<div style='text-align:center;padding:40px;color:var(--muted)'>⏳ Loading your checklist...</div>";
-    issClLoad().then(function(){
-      document.getElementById("portal-main").innerHTML = renderIssuerChecklist();
-    });
-    return h + "</div>";
+    h += "<div style='text-align:center;padding:40px;color:var(--muted)'>⏳ Loading checklist...</div>";
+    issClLoad().then(function(){ document.getElementById("portal-main").innerHTML=renderIssuerChecklist(); });
+    return h+"</div>";
   }
 
   h += "<div class='page-title'>📋 IPO Document Checklist</div>";
-  h += "<div class='page-sub'>Your shared checklist with the Merchant Banker — submit documents, respond to queries and track progress.</div>";
+  h += "<div class='page-sub'>Shared with your Merchant Banker — download their reference docs, upload your completed documents, respond to queries.</div>";
 
-  /* Progress card */
+  /* Progress */
   h += "<div style='background:var(--card);border:1px solid rgba(100,100,200,.25);border-radius:14px;padding:18px;margin-bottom:18px'>";
   h += "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'>";
   h += "<div style='font-size:12px;font-weight:700;color:#fff'>Checklist Completion</div>";
@@ -3535,7 +3533,7 @@ function renderIssuerChecklist(){
    {label:"Requested",val:stats.requested,icon:"📨",col:"#00CFEA"},
    {label:"Queries",val:stats.queried,icon:"❓",col:"#C8961E"},
    {label:"Submitted",val:stats.submitted,icon:"📤",col:"#9B7FE8"},
-   {label:"Pending",val:stats.pending,icon:"⏳",col:"#5A8AA4"},
+   {label:"Pending",val:stats.pending,icon:"⏳",col:"#5A8AA4"}
   ].forEach(function(s){
     h += "<div style='text-align:center;background:rgba(255,255,255,.03);border-radius:8px;padding:8px 4px'>";
     h += "<div style='font-size:13px'>"+s.icon+"</div>";
@@ -3545,37 +3543,35 @@ function renderIssuerChecklist(){
   h += "</div></div>";
 
   /* Query alert */
-  if(stats.queried > 0){
+  if(stats.queried>0){
     h += "<div style='background:rgba(200,150,30,.07);border:1px solid rgba(200,150,30,.25);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px'>";
     h += "<div style='font-size:20px'>❓</div>";
     h += "<div><div style='font-size:12px;font-weight:700;color:var(--gold)'>"+stats.queried+" Queries from your Merchant Banker</div>";
-    h += "<div style='font-size:11px;color:var(--muted)'>Filter by Queries to see all — please respond</div></div></div>";
+    h += "<div style='font-size:11px;color:var(--muted)'>Filter by Queries to review and respond</div></div></div>";
   }
 
-  /* Filter bar */
+  /* Filter + refresh */
   h += "<div style='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center'>";
   h += "<span style='font-size:10px;font-weight:700;color:var(--muted)'>Filter:</span>";
   [{k:"all",l:"All"},{k:"requested",l:"Requested"},{k:"queried",l:"Queries"},
    {k:"submitted",l:"Submitted"},{k:"received",l:"Received"},{k:"pending",l:"Pending"}]
   .forEach(function(f){
-    var active = ISS_CL_FILTER===f.k;
-    h += "<button onclick=\"window.issClFilter('" + f.k + "')\""
-       + " style='padding:5px 12px;border-radius:6px;border:1px solid "+(active?"var(--gold)":"rgba(255,255,255,.1)")+";background:"+(active?"rgba(200,150,30,.12)":"none")+";color:"+(active?"var(--gold)":"var(--muted)")+";font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>"+f.l+"</button>";
+    var active=ISS_CL_FILTER===f.k;
+    h += "<button onclick=\"window.issClFilter('"+f.k+"')\" style='padding:5px 12px;border-radius:6px;border:1px solid "+(active?"var(--gold)":"rgba(255,255,255,.1)")+";background:"+(active?"rgba(200,150,30,.12)":"none")+";color:"+(active?"var(--gold)":"var(--muted)")+";font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>"+f.l+"</button>";
   });
   h += "<button onclick='window.issClRefresh()' style='margin-left:auto;padding:5px 12px;border-radius:6px;border:1px solid rgba(100,100,200,.3);background:rgba(100,100,200,.06);color:#9B7FE8;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>🔄 Refresh</button>";
   h += "</div>";
 
-  /* Sections and items */
+  /* Sections */
   IPO_CHECKLIST.forEach(function(sec){
     var filtered = sec.items.filter(function(_,idx){
       if(ISS_CL_FILTER==="all") return true;
-      return issClGetStatus(sec.id,idx).status === ISS_CL_FILTER;
+      return issClGetStatus(sec.id,idx).status===ISS_CL_FILTER;
     });
     if(!filtered.length) return;
 
     var secDone = sec.items.filter(function(_,idx){
-      var s = issClGetStatus(sec.id,idx).status;
-      return s==="received"||s==="submitted";
+      var s=issClGetStatus(sec.id,idx).status; return s==="received"||s==="submitted";
     }).length;
     var secPct = Math.round(secDone/sec.items.length*100);
     var scol = secPct===100?"#00C896":secPct>=50?"#C8961E":"#5A8AA4";
@@ -3590,13 +3586,18 @@ function renderIssuerChecklist(){
 
     sec.items.forEach(function(item, idx){
       var st = issClGetStatus(sec.id, idx);
-      if(ISS_CL_FILTER!=="all" && st.status !== ISS_CL_FILTER) return;
+      if(ISS_CL_FILTER!=="all" && st.status!==ISS_CL_FILTER) return;
       var stMeta = ISS_CL_STATUSES.find(function(s){return s.key===st.status;})||ISS_CL_STATUSES[0];
       var isDone = st.status==="received"||st.status==="submitted";
       var isQuery = st.status==="queried";
-      var rowBg = isQuery ? "background:rgba(200,150,30,.04);" : "";
+      var isReq = st.status==="requested";
+      var rowBg = isQuery ? "background:rgba(200,150,30,.04);" : isReq ? "background:rgba(0,207,234,.02);" : "";
+      var fileContainerId = "iss-files-"+sec.id+"-"+idx;
 
-      h += "<div style='display:flex;align-items:flex-start;gap:10px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.03);"+rowBg+"'>";
+      h += "<div style='padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.03);"+rowBg+"'>";
+
+      /* Row: dot + text + buttons */
+      h += "<div style='display:flex;align-items:flex-start;gap:10px'>";
       h += "<div style='width:8px;height:8px;border-radius:50%;background:"+stMeta.col+";flex-shrink:0;margin-top:3px'></div>";
       h += "<div style='flex:1'>";
       h += "<div style='font-size:11px;color:"+(isDone?"var(--muted)":"var(--text)")+";line-height:1.5"+(isDone?";opacity:.6":"")+";'>"+item+"</div>";
@@ -3606,20 +3607,35 @@ function renderIssuerChecklist(){
       }
       if(st.updatedBy) h += "<div style='font-size:9px;color:var(--dim);margin-top:2px'>"+st.icon+" Updated by "+st.updatedBy+" · "+st.ts+"</div>";
       h += "</div>";
-      h += "<div style='display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0'>";
+
+      /* Buttons */
+      h += "<div style='display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;align-items:flex-start'>";
       h += "<span style='padding:3px 9px;border-radius:99px;font-size:9px;font-weight:700;background:"+stMeta.col+"18;color:"+stMeta.col+"'>"+stMeta.icon+" "+stMeta.label+"</span>";
+      /* Upload button */
+      h += "<button id='iss-upload-"+sec.id+"-"+idx+"' onclick=\"window.clUploadFile('"+sec.id+"',"+idx+",'Issuer')\" style='padding:4px 10px;border-radius:7px;border:1px solid rgba(155,127,232,.3);background:rgba(155,127,232,.07);color:#9B7FE8;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)'>📎 Upload</button>";
+      /* Submit button */
       if(!isDone && st.status!=="na"){
-        h += "<button onclick=\"window.issClSubmit('"+sec.id+"',"+idx+")\" style='padding:4px 11px;border-radius:7px;background:rgba(155,127,232,.12);border:1px solid rgba(155,127,232,.3);color:#9B7FE8;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>📤 Mark Submitted</button>";
+        h += "<button onclick=\"window.issClSubmit('"+sec.id+"',"+idx+")\" style='padding:4px 11px;border-radius:7px;background:rgba(155,127,232,.12);border:1px solid rgba(155,127,232,.3);color:#9B7FE8;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>📤 Submit</button>";
       }
+      /* Reply button */
       if(isQuery){
         h += "<button onclick=\"window.issClReply('"+sec.id+"',"+idx+")\" style='padding:4px 11px;border-radius:7px;background:rgba(200,150,30,.12);border:1px solid rgba(200,150,30,.3);color:var(--gold);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)'>💬 Reply</button>";
       }
       h += "</div></div>";
+
+      /* File list container */
+      h += "<div id='"+fileContainerId+"' style='padding-left:18px'></div>";
+      h += "</div>";
+
+      /* Async load files */
+      setTimeout((function(sid,i,cid){ return function(){
+        window.clRenderFiles(sid,i,cid);
+      }; })(sec.id, idx, fileContainerId), 50);
     });
     h += "</div>";
   });
 
-  h += "<div style='font-size:10px;color:var(--dim);text-align:center;padding:12px'>📌 Shared with your Merchant Banker. Submitted = pending MB confirmation. Received = MB confirmed.</div>";
+  h += "<div style='font-size:10px;color:var(--dim);text-align:center;padding:12px'>📌 Shared with your Merchant Banker. Upload documents (max 4MB each) — MB sees them instantly. Submitted = pending MB confirmation.</div>";
   h += "</div>";
   return h;
 }
@@ -3651,6 +3667,178 @@ window.issClReply = async function(secId, idx){
 };
 
 
+
+/* ══════════════════════════════════════════════════════════
+   SHARED FILE UPLOAD / DOWNLOAD SYSTEM
+   Both MB and Issuer upload/download via window.storage
+   Key: 'clf:demo_deal:{secId}:{idx}' | shared:true
+══════════════════════════════════════════════════════════ */
+
+function clFileKey(secId, idx){ return 'clf:demo_deal:'+secId+':'+idx; }
+
+/* Load files for a specific item */
+async function clLoadFiles(secId, idx){
+  try {
+    var r = await window.storage.get(clFileKey(secId,idx), true);
+    return r && r.value ? JSON.parse(r.value) : [];
+  } catch(e){ return []; }
+}
+
+/* Save files list for an item */
+async function clSaveFiles(secId, idx, files){
+  try {
+    await window.storage.set(clFileKey(secId,idx), JSON.stringify(files), true);
+  } catch(e){ console.warn('clSaveFiles failed:', e); }
+}
+
+/* Trigger file picker, read as base64, store */
+window.clUploadFile = function(secId, idx, party){
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.txt,.csv';
+  input.multiple = true;
+  input.onchange = async function(){
+    var files = Array.from(input.files);
+    if(!files.length) return;
+
+    /* Show uploading indicator */
+    var uploadBtn = document.getElementById('cl-upload-'+secId+'-'+idx);
+    if(uploadBtn){ uploadBtn.textContent='⏳ Uploading...'; uploadBtn.disabled=true; }
+
+    /* Load existing files */
+    var existing = await clLoadFiles(secId, idx);
+
+    /* Process each file */
+    var promises = files.map(function(file){
+      return new Promise(function(resolve){
+        /* 4MB limit per file to stay within 5MB storage limit */
+        if(file.size > 4*1024*1024){
+          alert(file.name+' is too large (max 4MB). Please compress and retry.');
+          resolve(null); return;
+        }
+        var reader = new FileReader();
+        reader.onload = function(e){
+          resolve({
+            id:   Date.now()+'-'+Math.random().toString(36).slice(2,8),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            b64:  e.target.result, /* data:type;base64,... */
+            uploader: (typeof SESS !== 'undefined' ? (SESS.name||party) : party),
+            party: party,
+            ts:   new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    var newFiles = (await Promise.all(promises)).filter(Boolean);
+    var allFiles = existing.concat(newFiles);
+    await clSaveFiles(secId, idx, allFiles);
+
+    /* Auto-update status to submitted/received depending on party */
+    if(party==='Issuer' && typeof ISS_CL_STATE !== 'undefined'){
+      if(!ISS_CL_STATE[secId]) ISS_CL_STATE[secId]={};
+      var prev = ISS_CL_STATE[secId][idx]||{};
+      if(prev.status!=='received'){
+        ISS_CL_STATE[secId][idx]={
+          status:'submitted', note:(prev.note||'')+'[Doc uploaded]',
+          updatedBy:(SESS&&SESS.name?SESS.name:'Issuer')+' (Issuer)',
+          ts:new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),
+          icon:'📊'
+        };
+        await issClSave();
+      }
+    }
+    if(party==='MB' && typeof CL_STATE !== 'undefined'){
+      if(!CL_STATE[secId]) CL_STATE[secId]={};
+      var prev2 = CL_STATE[secId][idx]||{};
+      if(!prev2.status || prev2.status==='pending'){
+        CL_STATE[secId][idx]={
+          status:'received', note:(prev2.note||'')+'[Doc received]',
+          updatedBy:(SESS&&SESS.name?SESS.name:'MB')+' (MB)',
+          ts:new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),
+          icon:'🏦'
+        };
+        await clSave();
+      }
+    }
+
+    /* Refresh view */
+    var mainEl = document.getElementById('portal-main') || document.getElementById('pmain');
+    if(mainEl){
+      if(party==='MB') mainEl.innerHTML = renderChecklist();
+      else mainEl.innerHTML = renderIssuerChecklist();
+    }
+  };
+  input.click();
+};
+
+/* Download a file */
+window.clDownloadFile = function(b64, name){
+  var a = document.createElement('a');
+  a.href = b64;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
+/* Delete a file */
+window.clDeleteFile = async function(secId, idx, fileId, party){
+  if(!confirm('Delete this file?')) return;
+  var files = await clLoadFiles(secId, idx);
+  var updated = files.filter(function(f){ return f.id !== fileId; });
+  await clSaveFiles(secId, idx, updated);
+  var mainEl = document.getElementById('portal-main') || document.getElementById('pmain');
+  if(mainEl){
+    if(party==='MB') mainEl.innerHTML = renderChecklist();
+    else mainEl.innerHTML = renderIssuerChecklist();
+  }
+};
+
+/* Render file list for an item (inline async — loads and injects) */
+window.clRenderFiles = async function(secId, idx, containerId){
+  var el = document.getElementById(containerId);
+  if(!el) return;
+  var files = await clLoadFiles(secId, idx);
+  if(!files.length){ el.innerHTML=''; return; }
+  var html = '<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">';
+  files.forEach(function(f){
+    var sizeStr = f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB';
+    var partyCol = f.party==='MB' ? '#00CFEA' : '#9B7FE8';
+    var partyIcon = f.party==='MB' ? '🏦' : '📊';
+    html += '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:6px 10px">';
+    html += '<span style="font-size:14px">'+getFileIcon(f.name)+'</span>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">'+f.name+'</div>';
+    html += '<div style="font-size:9px;color:var(--dim)">'+sizeStr+' · '+partyIcon+' <span style="color:'+partyCol+'">'+f.party+'</span> · '+f.ts+'</div>';
+    html += '</div>';
+    html += '<button onclick="window.clDownloadFile(\''+f.id+'\',\''+f.name+'\')" style="padding:3px 9px;border-radius:6px;border:1px solid rgba(0,200,150,.3);background:rgba(0,200,150,.08);color:var(--green);font-size:10px;font-weight:700;cursor:pointer">⬇ Download</button>';
+    html += '<button onclick="window.clDeleteFile(\''+secId+'\','+idx+',\''+f.id+'\',\''+(typeof CL_STATE!=='undefined'?'MB':'Issuer')+'\')" style="padding:3px 7px;border-radius:6px;border:1px solid rgba(255,77,109,.25);background:none;color:var(--red);font-size:11px;cursor:pointer">✕</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+};
+
+/* Helper: get file icon by extension */
+function getFileIcon(name){
+  var ext = (name||'').split('.').pop().toLowerCase();
+  var icons = {pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',jpg:'🖼',jpeg:'🖼',png:'🖼',zip:'🗜',csv:'📊',txt:'📃'};
+  return icons[ext]||'📎';
+}
+
+/* Async download by storage ID */
+window.clDownloadFile = async function(fileId, name){
+  /* fileId here is actually the full b64 data URL stored in the file object */
+  /* We pass the b64 directly from the rendered HTML */
+  var a = document.createElement('a');
+  a.href = fileId;  /* fileId = b64 data URL */
+  a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+};
 </script>
 </body>
 </html>
