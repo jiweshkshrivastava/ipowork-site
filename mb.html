@@ -212,6 +212,7 @@ select.inp option{background:var(--surface)}
   </a>
   <div class="nav-links">
     <a href="#features">Features</a>
+    <a href="tools.html" style="color:var(--gold);font-weight:700">🧮 Free Tools</a>
     <a href="#deals">Deal Flow</a>
     <a href="#how">How It Works</a>
     <a href="#pricing">Pricing</a>
@@ -850,6 +851,7 @@ var MB_DEALS = [
 
 var NAV_ITEMS = [
   {id:'dashboard', icon:'🏠', label:'Dashboard',         badge:''},
+  {id:'checklist',  icon:'✅', label:'IPO Checklist', badge:'NEW'},
   {id:'deals',     icon:'🔗', label:'Deal Flow',         badge:'LIVE'},
   {id:'hot-leads', icon:'⚡', label:'Hot Leads',         badge:'3'},
   {id:'pipeline',  icon:'📊', label:'Pipeline',          badge:''},
@@ -990,6 +992,7 @@ function renderMain(){
   else if(P.view==='pricing')   content=renderPricing();
   else if(P.view==='ai')        content=renderAIHome();
   else if(P.view==='ai-chat')   content=renderAIChat();
+  else if(P.view==='checklist') content=renderChecklist();
   else content='<div class="portal-pad"><div class="page-title">Coming Soon</div></div>';
   document.getElementById('portal-main').innerHTML=content;
   bindChat();
@@ -1001,6 +1004,16 @@ function renderDashboard(){
   var avg=Math.round(MB_DEALS.reduce(function(s,d){ return s+d.aira; },0)/MB_DEALS.length);
   var html='<div class="portal-pad">';
   // Upgrade banner
+  /* Checklist quick access */
+  html+='<div style="background:var(--card);border:1px solid rgba(0,200,150,.2);border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">';
+  html+='<div style="font-size:28px">✅</div>';
+  html+='<div style="flex:1">';
+  html+='<div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:3px">IPO Document Checklist <span style="background:rgba(0,200,150,.12);color:var(--green);border-radius:99px;padding:2px 8px;font-size:9px;font-weight:700">SHARED</span></div>';
+  html+='<div style="font-size:11px;color:var(--muted)">118 items across 9 sections — track with issuer in real time · MB updates · Issuer submits · ipowork monitors</div>';
+  html+='</div>';
+  html+='<button onclick="pNav(\'checklist\')" style="padding:8px 18px;border-radius:9px;background:rgba(0,200,150,.12);border:1px solid rgba(0,200,150,.25);color:var(--green);font-size:11px;font-weight:800;cursor:pointer;font-family:var(--font)">Open Checklist →</button>';
+  html+='</div>';
+
   html+='<div style="padding:14px 18px;border-radius:12px;background:linear-gradient(135deg,rgba(0,207,234,.06),rgba(8,30,47,1));border:1px solid rgba(0,207,234,.2);display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:20px">';
   html+='<div style="font-size:22px">🎉</div>';
   html+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px">You are on the Free Plan — Unlock Full Deal Flow</div>';
@@ -1507,6 +1520,270 @@ window.addEventListener('beforeinstallprompt', function(e){
     document.body.appendChild(b);
   }, 3000);
 });
+
+
+var IPO_CHECKLIST = [
+  {id:'gen', section:"General Information", icon:'🏦', items:["Company Banker details (Name of Contact Person, Telephone, E-Mail, Fax)", "Department wise break up of employees and 2 level below KMPs and Directors", "List of promoters / promoter group / group companies / KMPs", "Brief Profile of promoters / directors / KMPs (date of appointment, experience, qualifications, remuneration)", "PAN, Aadhar, Driving License, Voter ID, Passport, Photographs, Bank Statement (3 months) & ITR of all promoters / directors / KMPs", "Signed CV of all the directors and KMPs", "Demat statement of all the directors, KMPs, Promoters", "KYC of all the shareholders of the company as on date", "Details of MD, CFO and CS along with appointment letters / agreements", "Details of relationship among promoter and promoter group", "Family Relationship between Directors of the company", "List of all relatives of promoters as per Companies Act 2013 with PAN and Aadhar"]},
+  {id:'group', section:"Group Entities Documents", icon:'🏢', items:["3 years Audited Financial Statements along with Auditors report (Group Companies)", "Shareholding Pattern as on date and as at March 2023 (Group Companies)", "Latest MOA (Group Companies)", "Latest AOA (Group Companies)", "COI (Group Companies)", "PAN (Group Companies)", "AOC-4 and MGT-7 of last 3 years (Group Companies)", "3 years Audited Financial Statements (Other Entities)", "Shareholding Pattern as on date (Other Entities)", "Charter Documents like MOA, AOA (Other Entities)", "Registration Documents (Other Entities)"]},
+  {id:'biz', section:"Business Information", icon:'💼', items:["Vision of the company", "Mission of the company", "Logo of Company in CDR, PNG and JPEG format", "Brief description on the Business Model of the company along with business profile", "Main events in history of Company along with details of any awards or recognition", "Corporate Structure / Organizational Structure of the company", "Department wise break-up of KMP & two level below KMP (matching with org structure)", "Chart showing details of subsidiaries", "List of promoters / promoter group companies / group companies / KMPs", "Brief Profile of promoters including Experience, Educational Qualifications", "KYC of promoters / directors / Key Managerial Personnel", "Details of MD, CFO and CS along with appointment letters / agreements", "Details of relationship among promoter group and list of relatives", "Fixed Asset Register of the company", "Insurance Policies taken by the company for employees", "Insurance Policies taken by the company", "Intellectual Property Rights details", "Intellectual Property Rights acquired by the company along with Agreement", "Domain details", "Share Purchase Agreement, Share Subscription Agreement", "Business purchase / transfer agreement", "Total number of employees on payroll of the Company", "Attendance Register of employees of the company", "Appointment letters of all the employees on payroll", "Total number of professionals and consultants", "Contracts entered with professionals and consultants", "Recent Invoices raised by suppliers", "Contractual Agreements", "NSDL agreement", "CDSL agreement", "Website of The Company", "All Loan partners Agreements since inception", "Collaboration agreement / Material contracts", "Rent agreement of registered office and branch offices", "Awards received by the company", "Any recognition to the company"]},
+  {id:'certs', section:"Certifications & Licences", icon:'📋', items:["PAN of the company", "TAN of the company", "GST Registration certificate", "Udyam registration certificate", "Shop and establishment certificate", "Trade License", "ESIC registration certificate", "EPF registration certificate", "Any other licence / certificate"]},
+  {id:'lit', section:"Litigation Information", icon:'⚖️', items:["Details of all litigation pending against or filed by the company", "Details of litigation pending against or filed by Promoters and Directors", "Details of Litigations involving Group Entities and Subsidiary Companies", "Other litigations involving any entities which may have material adverse effect on Company", "Details of past penalties imposed on Company / Directors", "Material developments occurring after last balance sheet date"]},
+  {id:'cap', section:"Capital & Shareholding", icon:'📊', items:["Details of increase in authorised share capital (since incorporation) with ROC Forms", "Details of increase in paid-up share capital (since incorporation) with ROC Forms", "Latest shareholding pattern of Company as on date", "All SH-4 & share transfer deeds (since incorporation, if applicable)", "Share Certificates along with Stamp Duty payment challans"]},
+  {id:'sec', section:"Secretarial Records", icon:'📁', items:["Memorandum and Articles of Association (soft copy) or any changes made therein", "Annual Reports (since inception)", "Minutes book of board meetings (since inception)", "Minutes book of general meetings (since inception)", "AOC-4 & MGT-7 (since inception)", "E-Form MGT-14 filed by the Company (since inception)", "DIR-12 (since inception)", "CHG-1 (since inception)", "CHG-4 (since inception)", "Register of Members", "Register of Debenture Holders", "Register of loans, guarantee, security and acquisitions", "Register of investments not held in own name", "Register of contracts with related party", "Register of directors and KMPs", "Register of details of securities held by Directors and KMPs", "Notice of situation / change of place where foreign register shall be kept"]},
+  {id:'fin', section:"Financial Information", icon:'💰', items:["Financial statements of the Company since inception", "GSTR-1 (filed since inception)", "GSTR-3B (filed since inception)", "GSTR-9 (filed since inception)", "GST Certificates", "ESI / PF returns of the company", "ESI certificate", "PF certificate", "Restated Financial Statements for last 3 years along with Cash Flows", "Top 10 Customers for last 3 years", "Top 10 Suppliers for last 3 years & stub period", "Top 10 Creditors for last 3 years & stub period", "Top 10 Debtors for last 3 years & stub period", "Sanction letter of loan and details & stub period", "Any other licence / certificate"]},
+  {id:'aud', section:"Statutory Auditor Details", icon:'🔍', items:["Name of Audit firm", "FRN (Firm Registration Number)", "Name of Contact person and membership number", "Email ID of Auditor", "Phone number of Auditor", "Address of Audit firm", "Peer Review Certificate"]}
+];
+
+
+/* ══════════════════════════════════════════════════════════
+   IPO CHECKLIST — SHARED TRACKER
+   MB sees all items; marks status; Issuer & ipowork track
+══════════════════════════════════════════════════════════ */
+
+/* State: CL_STATE[secId][itemIdx] = {status, note, updatedBy, ts} */
+var CL_STATE  = {};
+var CL_FILTER = 'all';     /* all | pending | received | queried | na */
+var CL_DEAL   = null;      /* selected deal/issuer */
+var CL_VIEW   = 'list';    /* list | summary */
+
+/* Status options */
+var CL_STATUSES = [
+  {key:'pending',  label:'Pending',  icon:'⏳', col:'#5A8AA4'},
+  {key:'requested',label:'Requested',icon:'📨', col:'#00CFEA'},
+  {key:'received', label:'Received', icon:'✅', col:'#00C896'},
+  {key:'queried',  label:'Query',    icon:'❓', col:'#C8961E'},
+  {key:'na',       label:'N/A',      icon:'—',  col:'#3A5A6A'},
+];
+
+function clGetStatus(secId, idx){
+  return (CL_STATE[secId] && CL_STATE[secId][idx]) ? CL_STATE[secId][idx] : {status:'pending', note:'', updatedBy:'', ts:''};
+}
+
+function clStats(){
+  var total=0, received=0, requested=0, queried=0, na=0;
+  IPO_CHECKLIST.forEach(function(sec){
+    sec.items.forEach(function(_, idx){
+      total++;
+      var s=clGetStatus(sec.id, idx).status;
+      if(s==='received')  received++;
+      else if(s==='requested') requested++;
+      else if(s==='queried')   queried++;
+      else if(s==='na')        na++;
+    });
+  });
+  return {total:total, received:received, requested:requested, queried:queried, na:na,
+          pending:total-received-requested-queried-na};
+}
+
+function renderChecklist(){
+  var stats = clStats();
+  var pct   = Math.round(stats.received/stats.total*100);
+  var h = '<div class="portal-pad">';
+
+  /* ── TOP: Title + Deal Selector ── */
+  h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">';
+  h += '<div>';
+  h += '<div class="page-title">✅ IPO Document Checklist</div>';
+  h += '<div class="page-sub" style="margin-bottom:0">Shared tracker — MB updates status · Issuer tracks what to submit · ipowork monitors progress in real time</div>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  h += '<select id="cl-deal-sel" onchange="window.clSelectDeal(this.value)" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-family:var(--font);font-size:11px;min-width:200px">';
+  h += '<option value="">— Select Issuer / Deal —</option>';
+  MB_DEALS.forEach(function(d){
+    h += '<option value="'+d.id+'"'+(CL_DEAL===d.id?' selected':'')+'>'+d.name+' (AIRA '+d.aira+')</option>';
+  });
+  h += '</select>';
+  h += '<button onclick="window.clExport()" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(0,207,234,.3);background:rgba(0,207,234,.06);color:var(--cyan);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">⬇ Export</button>';
+  h += '</div></div>';
+
+  /* ── PROGRESS BAR ── */
+  var barCol = pct>=80?'#00C896':pct>=50?'#C8961E':'#00CFEA';
+  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+  h += '<div style="font-size:12px;font-weight:700;color:#fff">Overall Progress</div>';
+  h += '<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:'+barCol+'">'+pct+'%</div>';
+  h += '</div>';
+  h += '<div style="background:rgba(255,255,255,.06);border-radius:99px;height:8px;margin-bottom:14px">';
+  h += '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+barCol+'88,'+barCol+');border-radius:99px;transition:.4s"></div></div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px">';
+  [
+    {label:'Total',     val:stats.total,     col:'#5A8AA4', icon:'📋'},
+    {label:'Received',  val:stats.received,  col:'#00C896', icon:'✅'},
+    {label:'Requested', val:stats.requested, col:'#00CFEA', icon:'📨'},
+    {label:'Query',     val:stats.queried,   col:'#C8961E', icon:'❓'},
+    {label:'Pending',   val:stats.pending,   col:'#5A8AA4', icon:'⏳'},
+    {label:'N/A',       val:stats.na,        col:'#3A5A6A', icon:'—'},
+  ].forEach(function(st){
+    h += '<div style="text-align:center;background:rgba(255,255,255,.03);border-radius:8px;padding:10px 6px">';
+    h += '<div style="font-size:14px">'+st.icon+'</div>';
+    h += '<div style="font-family:var(--serif);font-size:22px;font-weight:900;color:'+st.col+'">'+st.val+'</div>';
+    h += '<div style="font-size:9px;color:var(--muted);margin-top:2px">'+st.label+'</div></div>';
+  });
+  h += '</div></div>';
+
+  /* ── THREE-PARTY STATUS INDICATOR ── */
+  h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">';
+  h += '<div style="background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.2);border-radius:10px;padding:10px 16px;flex:1;min-width:160px">';
+  h += '<div style="font-size:10px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🏦 Merchant Banker</div>';
+  h += '<div style="font-size:11px;color:var(--muted)">Updates status · Adds queries · Marks received · Exports to issuer</div></div>';
+  h += '<div style="background:rgba(0,207,234,.06);border:1px solid rgba(0,207,234,.2);border-radius:10px;padding:10px 16px;flex:1;min-width:160px">';
+  h += '<div style="font-size:10px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">📊 Issuer</div>';
+  h += '<div style="font-size:11px;color:var(--muted)">Sees pending/requested items · Submits documents · Responds to queries</div></div>';
+  h += '<div style="background:rgba(200,150,30,.06);border:1px solid rgba(200,150,30,.2);border-radius:10px;padding:10px 16px;flex:1;min-width:160px">';
+  h += '<div style="font-size:10px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🔭 ipowork Platform</div>';
+  h += '<div style="font-size:11px;color:var(--muted)">Real-time AIRA score integration · Tracks all deals · Compliance risk alerts</div></div>';
+  h += '</div>';
+
+  /* ── FILTER BAR ── */
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center">';
+  h += '<span style="font-size:10px;font-weight:700;color:var(--muted)">Filter:</span>';
+  ['all','pending','requested','received','queried','na'].forEach(function(f){
+    var labels={all:'All Items',pending:'Pending',requested:'Requested',received:'Received',queried:'Query',na:'N/A'};
+    var active=CL_FILTER===f;
+    h += '<button onclick="window.clFilter(\''+f+'\')" style="padding:5px 12px;border-radius:6px;border:1px solid '+(active?'var(--cyan)':'rgba(255,255,255,.1)')+';background:'+(active?'rgba(0,207,234,.12)':'none')+';color:'+(active?'var(--cyan)':'var(--muted)')+';font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">'+labels[f]+'</button>';
+  });
+  h += '<button onclick="window.clMarkAll(\'requested\')" style="margin-left:auto;padding:5px 12px;border-radius:6px;border:1px solid rgba(0,207,234,.3);background:rgba(0,207,234,.06);color:var(--cyan);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">📨 Request All Pending</button>';
+  h += '</div>';
+
+  /* ── SECTIONS + ITEMS ── */
+  IPO_CHECKLIST.forEach(function(sec){
+    var secItems = sec.items.filter(function(_, idx){
+      if(CL_FILTER==='all') return true;
+      return clGetStatus(sec.id, idx).status === CL_FILTER;
+    });
+    if(secItems.length===0) return;
+
+    var secReceived = sec.items.filter(function(_, idx){ return clGetStatus(sec.id, idx).status==='received'; }).length;
+    var secPct = Math.round(secReceived/sec.items.length*100);
+    var secCol = secPct===100?'#00C896':secPct>=50?'#C8961E':'#5A8AA4';
+
+    h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden">';
+    /* Section header */
+    h += '<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)">';
+    h += '<span style="font-size:18px">'+sec.icon+'</span>';
+    h += '<span style="font-size:13px;font-weight:800;color:#fff;flex:1">'+sec.section+'</span>';
+    h += '<span style="font-size:10px;color:'+secCol+';font-weight:700">'+secReceived+'/'+sec.items.length+'</span>';
+    h += '<div style="width:80px;height:5px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin-left:8px">';
+    h += '<div style="height:100%;width:'+secPct+'%;background:'+secCol+';border-radius:99px;transition:.3s"></div></div>';
+    h += '</div>';
+
+    /* Items */
+    sec.items.forEach(function(item, idx){
+      var st = clGetStatus(sec.id, idx);
+      if(CL_FILTER !== 'all' && st.status !== CL_FILTER) return;
+
+      var stMeta = CL_STATUSES.find(function(s){ return s.key===st.status; }) || CL_STATUSES[0];
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.03);transition:.15s" id="cl-row-'+sec.id+'-'+idx+'">';
+      /* Status dot */
+      h += '<div style="width:8px;height:8px;border-radius:50%;background:'+stMeta.col+';flex-shrink:0"></div>';
+      /* Item text */
+      h += '<div style="flex:1;font-size:11px;color:'+(st.status==='received'?'var(--muted)':'var(--text)')+';line-height:1.5'+(st.status==='received'?';text-decoration:line-through;opacity:.6':'')+'">';
+      h += item;
+      if(st.note) h += '<div style="font-size:10px;color:var(--gold);margin-top:2px">💬 '+st.note+'</div>';
+      if(st.updatedBy) h += '<div style="font-size:9px;color:var(--dim);margin-top:1px">'+st.icon+' '+st.updatedBy+' · '+st.ts+'</div>';
+      h += '</div>';
+      /* Status selector */
+      h += '<select onchange="window.clSetStatus(\''+sec.id+'\','+idx+',this.value)" style="background:var(--card);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:4px 8px;color:var(--text);font-family:var(--font);font-size:10px;min-width:104px">';
+      CL_STATUSES.forEach(function(s){
+        h += '<option value="'+s.key+'"'+(st.status===s.key?' selected':'')+'>'+s.icon+' '+s.label+'</option>';
+      });
+      h += '</select>';
+      /* Note button */
+      h += '<button onclick="window.clAddNote(\''+sec.id+'\','+idx+')" title="Add note/query" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:4px 8px;color:var(--muted);font-size:13px;cursor:pointer">💬</button>';
+      h += '</div>';
+    });
+    h += '</div>';
+  });
+
+  h += '<div style="font-size:10px;color:var(--dim);text-align:center;padding:12px">📌 Initial checklist from due diligence document — further items generated based on documents reviewed. Mark as N/A if not applicable for this company.</div>';
+  h += '</div>';
+  return h;
+}
+
+window.clSelectDeal = function(dealId){
+  CL_DEAL = dealId || null;
+  /* In production: load CL_STATE from server for this deal */
+  /* For demo: reset state */
+  /* CL_STATE = {}; */
+  pNav('checklist');
+};
+
+window.clFilter = function(f){
+  CL_FILTER = f;
+  document.getElementById('portal-main').innerHTML = renderChecklist();
+  /* Re-bind selects and buttons after innerHTML set */
+};
+
+window.clSetStatus = function(secId, idx, status){
+  if(!CL_STATE[secId]) CL_STATE[secId] = {};
+  var prev = CL_STATE[secId][idx] || {};
+  CL_STATE[secId][idx] = {
+    status: status,
+    note:   prev.note || '',
+    updatedBy: SESS.name + ' (MB)',
+    ts:     new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}),
+    icon:   '🏦'
+  };
+  /* Update row visually without full re-render */
+  var row = document.getElementById('cl-row-'+secId+'-'+idx);
+  if(row){
+    document.getElementById('portal-main').innerHTML = renderChecklist();
+  }
+};
+
+window.clAddNote = function(secId, idx){
+  var note = prompt('Add query / note for this item:');
+  if(note === null) return;
+  if(!CL_STATE[secId]) CL_STATE[secId] = {};
+  var prev = CL_STATE[secId][idx] || {status:'queried'};
+  CL_STATE[secId][idx] = {
+    status:    note ? 'queried' : prev.status,
+    note:      note,
+    updatedBy: SESS.name + ' (MB)',
+    ts:        new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),
+    icon:      '🏦'
+  };
+  document.getElementById('portal-main').innerHTML = renderChecklist();
+};
+
+window.clMarkAll = function(status){
+  IPO_CHECKLIST.forEach(function(sec){
+    sec.items.forEach(function(_, idx){
+      var cur = clGetStatus(sec.id, idx);
+      if(cur.status === 'pending'){
+        if(!CL_STATE[sec.id]) CL_STATE[sec.id] = {};
+        CL_STATE[sec.id][idx] = {
+          status: status,
+          note: '',
+          updatedBy: SESS.name + ' (MB)',
+          ts: new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),
+          icon: '🏦'
+        };
+      }
+    });
+  });
+  document.getElementById('portal-main').innerHTML = renderChecklist();
+};
+
+window.clExport = function(){
+  var lines = ['IPO Document Checklist Export','Generated: '+new Date().toLocaleDateString('en-IN'),'Deal: '+(CL_DEAL||'(not selected)'),'',''];
+  IPO_CHECKLIST.forEach(function(sec){
+    lines.push('');
+    lines.push('=== '+sec.section.toUpperCase()+' ===');
+    sec.items.forEach(function(item, idx){
+      var st = clGetStatus(sec.id, idx);
+      var stLabel = CL_STATUSES.find(function(s){return s.key===st.status;}).label;
+      var line = '['+stLabel+'] '+item;
+      if(st.note) line += ' | Note: '+st.note;
+      lines.push(line);
+    });
+  });
+  var blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'IPO_Checklist_'+(CL_DEAL||'export')+'_'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click();
+};
+
 </script>
 </body>
 </html>
