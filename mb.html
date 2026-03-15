@@ -1605,12 +1605,10 @@ function renderChecklist(){
   var pct   = Math.round(stats.received/stats.total*100);
   var h = '<div class="portal-pad">';
 
-  /* ── TOP: Title + Deal Selector ── */
+  /* Title + deal selector */
   h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">';
-  h += '<div>';
-  h += '<div class="page-title">✅ IPO Document Checklist</div>';
-  h += '<div class="page-sub" style="margin-bottom:0">Shared tracker — MB updates status · Issuer tracks what to submit · ipowork monitors progress in real time</div>';
-  h += '</div>';
+  h += '<div><div class="page-title">✅ IPO Document Checklist</div>';
+  h += '<div class="page-sub" style="margin-bottom:0">Shared tracker — update status · upload reference documents · Issuer downloads &amp; submits · ipowork monitors</div></div>';
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
   h += '<select id="cl-deal-sel" onchange="window.clSelectDeal(this.value)" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-family:var(--font);font-size:11px;min-width:200px">';
   h += '<option value="">— Select Issuer / Deal —</option>';
@@ -1621,23 +1619,21 @@ function renderChecklist(){
   h += '<button onclick="window.clExport()" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(0,207,234,.3);background:rgba(0,207,234,.06);color:var(--cyan);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">⬇ Export</button>';
   h += '</div></div>';
 
-  /* ── PROGRESS BAR ── */
+  /* Progress */
   var barCol = pct>=80?'#00C896':pct>=50?'#C8961E':'#00CFEA';
   h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
   h += '<div style="font-size:12px;font-weight:700;color:#fff">Overall Progress</div>';
-  h += '<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:'+barCol+'">'+pct+'%</div>';
-  h += '</div>';
+  h += '<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:'+barCol+'">'+pct+'%</div></div>';
   h += '<div style="background:rgba(255,255,255,.06);border-radius:99px;height:8px;margin-bottom:14px">';
   h += '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,'+barCol+'88,'+barCol+');border-radius:99px;transition:.4s"></div></div>';
   h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px">';
-  [
-    {label:'Total',     val:stats.total,     col:'#5A8AA4', icon:'📋'},
-    {label:'Received',  val:stats.received,  col:'#00C896', icon:'✅'},
-    {label:'Requested', val:stats.requested, col:'#00CFEA', icon:'📨'},
-    {label:'Query',     val:stats.queried,   col:'#C8961E', icon:'❓'},
-    {label:'Pending',   val:stats.pending,   col:'#5A8AA4', icon:'⏳'},
-    {label:'N/A',       val:stats.na,        col:'#3A5A6A', icon:'—'},
+  [{label:'Total',val:stats.total,col:'#5A8AA4',icon:'📋'},
+   {label:'Received',val:stats.received,col:'#00C896',icon:'✅'},
+   {label:'Requested',val:stats.requested,col:'#00CFEA',icon:'📨'},
+   {label:'Query',val:stats.queried,col:'#C8961E',icon:'❓'},
+   {label:'Pending',val:stats.pending,col:'#5A8AA4',icon:'⏳'},
+   {label:'N/A',val:stats.na,col:'#3A5A6A',icon:'—'},
   ].forEach(function(st){
     h += '<div style="text-align:center;background:rgba(255,255,255,.03);border-radius:8px;padding:10px 6px">';
     h += '<div style="font-size:14px">'+st.icon+'</div>';
@@ -1646,81 +1642,93 @@ function renderChecklist(){
   });
   h += '</div></div>';
 
-  /* ── THREE-PARTY STATUS INDICATOR ── */
+  /* Three-party legend */
   h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px">';
-  h += '<div style="background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.2);border-radius:10px;padding:10px 16px;flex:1;min-width:160px">';
-  h += '<div style="font-size:10px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🏦 Merchant Banker</div>';
-  h += '<div style="font-size:11px;color:var(--muted)">Updates status · Adds queries · Marks received · Exports to issuer</div></div>';
-  h += '<div style="background:rgba(0,207,234,.06);border:1px solid rgba(0,207,234,.2);border-radius:10px;padding:10px 16px;flex:1;min-width:160px">';
-  h += '<div style="font-size:10px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">📊 Issuer</div>';
-  h += '<div style="font-size:11px;color:var(--muted)">Sees pending/requested items · Submits documents · Responds to queries</div></div>';
-  h += '<div style="background:rgba(200,150,30,.06);border:1px solid rgba(200,150,30,.2);border-radius:10px;padding:10px 16px;flex:1;min-width:160px">';
-  h += '<div style="font-size:10px;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🔭 ipowork Platform</div>';
-  h += '<div style="font-size:11px;color:var(--muted)">Real-time AIRA score integration · Tracks all deals · Compliance risk alerts</div></div>';
+  [{col:'#00C896',bg:'rgba(0,200,150,.06)',border:'rgba(0,200,150,.2)',title:'🏦 Merchant Banker',desc:'Updates status · uploads reference docs · adds queries'},
+   {col:'#00CFEA',bg:'rgba(0,207,234,.06)',border:'rgba(0,207,234,.2)',title:'📊 Issuer',          desc:'Downloads your docs · uploads completed documents · replies to queries'},
+   {col:'#C8961E',bg:'rgba(200,150,30,.06)',border:'rgba(200,150,30,.2)',title:'🔭 ipowork',        desc:'Monitors progress across all deals · AIRA score integration'},
+  ].forEach(function(p){
+    h += '<div style="background:'+p.bg+';border:1px solid '+p.border+';border-radius:10px;padding:10px 14px;flex:1;min-width:160px">';
+    h += '<div style="font-size:10px;font-weight:800;color:'+p.col+';text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">'+p.title+'</div>';
+    h += '<div style="font-size:11px;color:var(--muted)">'+p.desc+'</div></div>';
+  });
   h += '</div>';
 
-  /* ── FILTER BAR ── */
+  /* Filter bar */
   h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center">';
   h += '<span style="font-size:10px;font-weight:700;color:var(--muted)">Filter:</span>';
-  ['all','pending','requested','received','queried','na'].forEach(function(f){
-    var labels={all:'All Items',pending:'Pending',requested:'Requested',received:'Received',queried:'Query',na:'N/A'};
-    var active=CL_FILTER===f;
-    h += '<button onclick="window.clFilter(\''+f+'\')" style="padding:5px 12px;border-radius:6px;border:1px solid '+(active?'var(--cyan)':'rgba(255,255,255,.1)')+';background:'+(active?'rgba(0,207,234,.12)':'none')+';color:'+(active?'var(--cyan)':'var(--muted)')+';font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">'+labels[f]+'</button>';
+  [{k:'all',l:'All'},{k:'pending',l:'Pending'},{k:'requested',l:'Requested'},
+   {k:'received',l:'Received'},{k:'queried',l:'Queries'},{k:'na',l:'N/A'}]
+  .forEach(function(f){
+    var active=CL_FILTER===f.k;
+    h += '<button onclick="window.clFilter(\''+f.k+'\')" style="padding:5px 12px;border-radius:6px;border:1px solid '+(active?'var(--cyan)':'rgba(255,255,255,.1)')+';background:'+(active?'rgba(0,207,234,.12)':'none')+';color:'+(active?'var(--cyan)':'var(--muted)')+';font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">'+f.l+'</button>';
   });
   h += '<button onclick="window.clMarkAll(\'requested\')" style="margin-left:auto;padding:5px 12px;border-radius:6px;border:1px solid rgba(0,207,234,.3);background:rgba(0,207,234,.06);color:var(--cyan);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">📨 Request All Pending</button>';
   h += '</div>';
 
-  /* ── SECTIONS + ITEMS ── */
+  /* Sections */
   IPO_CHECKLIST.forEach(function(sec){
-    var secItems = sec.items.filter(function(_, idx){
+    var secItems = sec.items.filter(function(_,idx){
       if(CL_FILTER==='all') return true;
-      return clGetStatus(sec.id, idx).status === CL_FILTER;
+      return clGetStatus(sec.id,idx).status===CL_FILTER;
     });
-    if(secItems.length===0) return;
+    if(!secItems.length) return;
 
-    var secReceived = sec.items.filter(function(_, idx){ return clGetStatus(sec.id, idx).status==='received'; }).length;
-    var secPct = Math.round(secReceived/sec.items.length*100);
+    var secRec = sec.items.filter(function(_,idx){ return clGetStatus(sec.id,idx).status==='received'; }).length;
+    var secPct = Math.round(secRec/sec.items.length*100);
     var secCol = secPct===100?'#00C896':secPct>=50?'#C8961E':'#5A8AA4';
 
     h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;overflow:hidden">';
-    /* Section header */
     h += '<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border)">';
     h += '<span style="font-size:18px">'+sec.icon+'</span>';
     h += '<span style="font-size:13px;font-weight:800;color:#fff;flex:1">'+sec.section+'</span>';
-    h += '<span style="font-size:10px;color:'+secCol+';font-weight:700">'+secReceived+'/'+sec.items.length+'</span>';
+    h += '<span style="font-size:10px;color:'+secCol+';font-weight:700">'+secRec+'/'+sec.items.length+'</span>';
     h += '<div style="width:80px;height:5px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;margin-left:8px">';
-    h += '<div style="height:100%;width:'+secPct+'%;background:'+secCol+';border-radius:99px;transition:.3s"></div></div>';
+    h += '<div style="height:100%;width:'+secPct+'%;background:'+secCol+';border-radius:99px"></div></div>';
     h += '</div>';
 
-    /* Items */
     sec.items.forEach(function(item, idx){
       var st = clGetStatus(sec.id, idx);
-      if(CL_FILTER !== 'all' && st.status !== CL_FILTER) return;
+      if(CL_FILTER!=='all' && st.status!==CL_FILTER) return;
+      var stMeta = CL_STATUSES.find(function(s){return s.key===st.status;})||CL_STATUSES[0];
+      var fileContainerId = 'cl-files-'+sec.id+'-'+idx;
 
-      var stMeta = CL_STATUSES.find(function(s){ return s.key===st.status; }) || CL_STATUSES[0];
-      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.03);transition:.15s" id="cl-row-'+sec.id+'-'+idx+'">';
-      /* Status dot */
-      h += '<div style="width:8px;height:8px;border-radius:50%;background:'+stMeta.col+';flex-shrink:0"></div>';
-      /* Item text */
-      h += '<div style="flex:1;font-size:11px;color:'+(st.status==='received'?'var(--muted)':'var(--text)')+';line-height:1.5'+(st.status==='received'?';text-decoration:line-through;opacity:.6':'')+'">';
-      h += item;
-      if(st.note) h += '<div style="font-size:10px;color:var(--gold);margin-top:2px">💬 '+st.note+'</div>';
+      h += '<div style="padding:12px 18px;border-bottom:1px solid rgba(255,255,255,.03)">';
+
+      /* Row 1: status dot + item text + controls */
+      h += '<div style="display:flex;align-items:flex-start;gap:10px">';
+      h += '<div style="width:8px;height:8px;border-radius:50%;background:'+stMeta.col+';flex-shrink:0;margin-top:3px"></div>';
+      h += '<div style="flex:1">';
+      h += '<div style="font-size:11px;color:'+(st.status==='received'?'var(--muted)':'var(--text)')+';line-height:1.5'+(st.status==='received'?';opacity:.6':'')+'">';
+      h += item+'</div>';
+      if(st.note) h += '<div style="font-size:10px;color:var(--gold);margin-top:3px">💬 '+st.note+'</div>';
       if(st.updatedBy) h += '<div style="font-size:9px;color:var(--dim);margin-top:1px">'+st.icon+' '+st.updatedBy+' · '+st.ts+'</div>';
       h += '</div>';
-      /* Status selector */
+
+      /* Controls: status select + note + upload */
+      h += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex-shrink:0">';
       h += '<select onchange="window.clSetStatus(\''+sec.id+'\','+idx+',this.value)" style="background:var(--card);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:4px 8px;color:var(--text);font-family:var(--font);font-size:10px;min-width:104px">';
       CL_STATUSES.forEach(function(s){
         h += '<option value="'+s.key+'"'+(st.status===s.key?' selected':'')+'>'+s.icon+' '+s.label+'</option>';
       });
       h += '</select>';
-      /* Note button */
       h += '<button onclick="window.clAddNote(\''+sec.id+'\','+idx+')" title="Add note/query" style="background:none;border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:4px 8px;color:var(--muted);font-size:13px;cursor:pointer">💬</button>';
+      h += '<button id="cl-upload-'+sec.id+'-'+idx+'" onclick="window.clUploadFile(\''+sec.id+'\','+idx+',\'MB\')" title="Upload document" style="padding:4px 10px;border-radius:7px;border:1px solid rgba(0,207,234,.3);background:rgba(0,207,234,.07);color:var(--cyan);font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">📎 Upload</button>';
+      h += '</div></div>';
+
+      /* Row 2: file list container (loaded async) */
+      h += '<div id="'+fileContainerId+'" style="padding-left:18px"></div>';
       h += '</div>';
+
+      /* Async load files for this item */
+      setTimeout((function(sid,i,cid){ return function(){
+        window.clRenderFiles(sid,i,cid);
+      }; })(sec.id, idx, fileContainerId), 50);
     });
     h += '</div>';
   });
 
-  h += '<div style="font-size:10px;color:var(--dim);text-align:center;padding:12px">📌 Initial checklist from due diligence document — further items generated based on documents reviewed. Mark as N/A if not applicable for this company.</div>';
+  h += '<div style="font-size:10px;color:var(--dim);text-align:center;padding:12px">📌 Initial checklist from due diligence. Files stored securely — max 4MB per file. Both MB and Issuer can upload and download.</div>';
   h += '</div>';
   return h;
 }
@@ -1812,6 +1820,178 @@ window.clExport = function(){
   a.click();
 };
 
+
+/* ══════════════════════════════════════════════════════════
+   SHARED FILE UPLOAD / DOWNLOAD SYSTEM
+   Both MB and Issuer upload/download via window.storage
+   Key: 'clf:demo_deal:{secId}:{idx}' | shared:true
+══════════════════════════════════════════════════════════ */
+
+function clFileKey(secId, idx){ return 'clf:demo_deal:'+secId+':'+idx; }
+
+/* Load files for a specific item */
+async function clLoadFiles(secId, idx){
+  try {
+    var r = await window.storage.get(clFileKey(secId,idx), true);
+    return r && r.value ? JSON.parse(r.value) : [];
+  } catch(e){ return []; }
+}
+
+/* Save files list for an item */
+async function clSaveFiles(secId, idx, files){
+  try {
+    await window.storage.set(clFileKey(secId,idx), JSON.stringify(files), true);
+  } catch(e){ console.warn('clSaveFiles failed:', e); }
+}
+
+/* Trigger file picker, read as base64, store */
+window.clUploadFile = function(secId, idx, party){
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.txt,.csv';
+  input.multiple = true;
+  input.onchange = async function(){
+    var files = Array.from(input.files);
+    if(!files.length) return;
+
+    /* Show uploading indicator */
+    var uploadBtn = document.getElementById('cl-upload-'+secId+'-'+idx);
+    if(uploadBtn){ uploadBtn.textContent='⏳ Uploading...'; uploadBtn.disabled=true; }
+
+    /* Load existing files */
+    var existing = await clLoadFiles(secId, idx);
+
+    /* Process each file */
+    var promises = files.map(function(file){
+      return new Promise(function(resolve){
+        /* 4MB limit per file to stay within 5MB storage limit */
+        if(file.size > 4*1024*1024){
+          alert(file.name+' is too large (max 4MB). Please compress and retry.');
+          resolve(null); return;
+        }
+        var reader = new FileReader();
+        reader.onload = function(e){
+          resolve({
+            id:   Date.now()+'-'+Math.random().toString(36).slice(2,8),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            b64:  e.target.result, /* data:type;base64,... */
+            uploader: (typeof SESS !== 'undefined' ? (SESS.name||party) : party),
+            party: party,
+            ts:   new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    var newFiles = (await Promise.all(promises)).filter(Boolean);
+    var allFiles = existing.concat(newFiles);
+    await clSaveFiles(secId, idx, allFiles);
+
+    /* Auto-update status to submitted/received depending on party */
+    if(party==='Issuer' && typeof ISS_CL_STATE !== 'undefined'){
+      if(!ISS_CL_STATE[secId]) ISS_CL_STATE[secId]={};
+      var prev = ISS_CL_STATE[secId][idx]||{};
+      if(prev.status!=='received'){
+        ISS_CL_STATE[secId][idx]={
+          status:'submitted', note:(prev.note||'')+'[Doc uploaded]',
+          updatedBy:(SESS&&SESS.name?SESS.name:'Issuer')+' (Issuer)',
+          ts:new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),
+          icon:'📊'
+        };
+        await issClSave();
+      }
+    }
+    if(party==='MB' && typeof CL_STATE !== 'undefined'){
+      if(!CL_STATE[secId]) CL_STATE[secId]={};
+      var prev2 = CL_STATE[secId][idx]||{};
+      if(!prev2.status || prev2.status==='pending'){
+        CL_STATE[secId][idx]={
+          status:'received', note:(prev2.note||'')+'[Doc received]',
+          updatedBy:(SESS&&SESS.name?SESS.name:'MB')+' (MB)',
+          ts:new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),
+          icon:'🏦'
+        };
+        await clSave();
+      }
+    }
+
+    /* Refresh view */
+    var mainEl = document.getElementById('portal-main') || document.getElementById('pmain');
+    if(mainEl){
+      if(party==='MB') mainEl.innerHTML = renderChecklist();
+      else mainEl.innerHTML = renderIssuerChecklist();
+    }
+  };
+  input.click();
+};
+
+/* Download a file */
+window.clDownloadFile = function(b64, name){
+  var a = document.createElement('a');
+  a.href = b64;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
+/* Delete a file */
+window.clDeleteFile = async function(secId, idx, fileId, party){
+  if(!confirm('Delete this file?')) return;
+  var files = await clLoadFiles(secId, idx);
+  var updated = files.filter(function(f){ return f.id !== fileId; });
+  await clSaveFiles(secId, idx, updated);
+  var mainEl = document.getElementById('portal-main') || document.getElementById('pmain');
+  if(mainEl){
+    if(party==='MB') mainEl.innerHTML = renderChecklist();
+    else mainEl.innerHTML = renderIssuerChecklist();
+  }
+};
+
+/* Render file list for an item (inline async — loads and injects) */
+window.clRenderFiles = async function(secId, idx, containerId){
+  var el = document.getElementById(containerId);
+  if(!el) return;
+  var files = await clLoadFiles(secId, idx);
+  if(!files.length){ el.innerHTML=''; return; }
+  var html = '<div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">';
+  files.forEach(function(f){
+    var sizeStr = f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB';
+    var partyCol = f.party==='MB' ? '#00CFEA' : '#9B7FE8';
+    var partyIcon = f.party==='MB' ? '🏦' : '📊';
+    html += '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:6px 10px">';
+    html += '<span style="font-size:14px">'+getFileIcon(f.name)+'</span>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">'+f.name+'</div>';
+    html += '<div style="font-size:9px;color:var(--dim)">'+sizeStr+' · '+partyIcon+' <span style="color:'+partyCol+'">'+f.party+'</span> · '+f.ts+'</div>';
+    html += '</div>';
+    html += '<button onclick="window.clDownloadFile(\''+f.id+'\',\''+f.name+'\')" style="padding:3px 9px;border-radius:6px;border:1px solid rgba(0,200,150,.3);background:rgba(0,200,150,.08);color:var(--green);font-size:10px;font-weight:700;cursor:pointer">⬇ Download</button>';
+    html += '<button onclick="window.clDeleteFile(\''+secId+'\','+idx+',\''+f.id+'\',\''+(typeof CL_STATE!=='undefined'?'MB':'Issuer')+'\')" style="padding:3px 7px;border-radius:6px;border:1px solid rgba(255,77,109,.25);background:none;color:var(--red);font-size:11px;cursor:pointer">✕</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+};
+
+/* Helper: get file icon by extension */
+function getFileIcon(name){
+  var ext = (name||'').split('.').pop().toLowerCase();
+  var icons = {pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',jpg:'🖼',jpeg:'🖼',png:'🖼',zip:'🗜',csv:'📊',txt:'📃'};
+  return icons[ext]||'📎';
+}
+
+/* Async download by storage ID */
+window.clDownloadFile = async function(fileId, name){
+  /* fileId here is actually the full b64 data URL stored in the file object */
+  /* We pass the b64 directly from the rendered HTML */
+  var a = document.createElement('a');
+  a.href = fileId;  /* fileId = b64 data URL */
+  a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+};
 </script>
 </body>
 </html>
