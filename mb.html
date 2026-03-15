@@ -1540,11 +1540,36 @@ var IPO_CHECKLIST = [
    MB sees all items; marks status; Issuer & ipowork track
 ══════════════════════════════════════════════════════════ */
 
-/* State: CL_STATE[secId][itemIdx] = {status, note, updatedBy, ts} */
+/* ═══════════════════════════════════════════════
+   SHARED CHECKLIST STATE — persists via window.storage
+   Key: 'cl:'+CL_DEAL  |  shared:true (visible to Issuer too)
+═══════════════════════════════════════════════ */
 var CL_STATE  = {};
-var CL_FILTER = 'all';     /* all | pending | received | queried | na */
-var CL_DEAL   = null;      /* selected deal/issuer */
-var CL_VIEW   = 'list';    /* list | summary */
+var CL_FILTER = 'all';
+var CL_DEAL   = null;
+var CL_LOADED = false;
+
+/* Save entire CL_STATE for current deal to shared storage */
+async function clSave(){
+  if(!CL_DEAL) return;
+  try {
+    await window.storage.set('cl:'+CL_DEAL, JSON.stringify(CL_STATE), true);
+  } catch(e){ console.warn('clSave failed:', e); }
+}
+
+/* Load CL_STATE for a deal from shared storage */
+async function clLoad(dealId){
+  CL_STATE = {};
+  CL_LOADED = false;
+  if(!dealId){ CL_LOADED=true; return; }
+  try {
+    var result = await window.storage.get('cl:'+dealId, true);
+    if(result && result.value){
+      CL_STATE = JSON.parse(result.value);
+    }
+  } catch(e){ CL_STATE = {}; }
+  CL_LOADED = true;
+}
 
 /* Status options */
 var CL_STATUSES = [
@@ -1700,11 +1725,15 @@ function renderChecklist(){
   return h;
 }
 
-window.clSelectDeal = function(dealId){
+window.clSelectDeal = async function(dealId){
   CL_DEAL = dealId || null;
-  /* In production: load CL_STATE from server for this deal */
-  /* For demo: reset state */
-  /* CL_STATE = {}; */
+  if(CL_DEAL){
+    document.getElementById('portal-main').innerHTML =
+      '<div class="portal-pad"><div style="text-align:center;padding:40px;color:var(--muted)">⏳ Loading checklist for this deal...</div></div>';
+    await clLoad(CL_DEAL);
+  } else {
+    CL_STATE = {};
+  }
   pNav('checklist');
 };
 
@@ -1714,24 +1743,21 @@ window.clFilter = function(f){
   /* Re-bind selects and buttons after innerHTML set */
 };
 
-window.clSetStatus = function(secId, idx, status){
+window.clSetStatus = async function(secId, idx, status){
   if(!CL_STATE[secId]) CL_STATE[secId] = {};
   var prev = CL_STATE[secId][idx] || {};
   CL_STATE[secId][idx] = {
-    status: status,
-    note:   prev.note || '',
-    updatedBy: SESS.name + ' (MB)',
-    ts:     new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}),
-    icon:   '🏦'
+    status:    status,
+    note:      prev.note || '',
+    updatedBy: (SESS.name||'MB') + ' (MB)',
+    ts:        new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}),
+    icon:      '🏦'
   };
-  /* Update row visually without full re-render */
-  var row = document.getElementById('cl-row-'+secId+'-'+idx);
-  if(row){
-    document.getElementById('portal-main').innerHTML = renderChecklist();
-  }
+  await clSave();
+  document.getElementById('portal-main').innerHTML = renderChecklist();
 };
 
-window.clAddNote = function(secId, idx){
+window.clAddNote = async function(secId, idx){
   var note = prompt('Add query / note for this item:');
   if(note === null) return;
   if(!CL_STATE[secId]) CL_STATE[secId] = {};
@@ -1739,14 +1765,15 @@ window.clAddNote = function(secId, idx){
   CL_STATE[secId][idx] = {
     status:    note ? 'queried' : prev.status,
     note:      note,
-    updatedBy: SESS.name + ' (MB)',
+    updatedBy: (SESS.name||'MB') + ' (MB)',
     ts:        new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),
     icon:      '🏦'
   };
+  await clSave();
   document.getElementById('portal-main').innerHTML = renderChecklist();
 };
 
-window.clMarkAll = function(status){
+window.clMarkAll = async function(status){
   IPO_CHECKLIST.forEach(function(sec){
     sec.items.forEach(function(_, idx){
       var cur = clGetStatus(sec.id, idx);
@@ -1762,6 +1789,7 @@ window.clMarkAll = function(status){
       }
     });
   });
+  await clSave();
   document.getElementById('portal-main').innerHTML = renderChecklist();
 };
 
