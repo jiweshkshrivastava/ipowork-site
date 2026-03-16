@@ -112,9 +112,9 @@ select.inp option{background:var(--surface)}
 #portal-overlay.open{display:flex}
 .portal-topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
 .portal-layout{display:flex;flex:1;overflow:hidden}
-.portal-sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto;flex-shrink:0;position:relative}
+.portal-sidebar{width:200px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto;flex-shrink:0;position:relative}
 .portal-main{flex:1;overflow-y:auto;background:var(--bg)}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:.15s;font-size:12px;font-weight:600;color:var(--muted);border-left:3px solid transparent}
+.nav-item{display:flex;align-items:center;white-space:nowrap;overflow:hidden;gap:10px;padding:10px 20px;cursor:pointer;transition:.15s;font-size:12px;font-weight:600;color:var(--muted);border-left:3px solid transparent}
 .nav-item:hover{background:rgba(0,207,234,.04);color:var(--text)}
 .nav-item.active{border-left-color:var(--cyan);color:var(--text);background:rgba(0,207,234,.05)}
 .nav-badge{padding:1px 6px;border-radius:99px;font-size:8px;font-weight:700;margin-left:auto}
@@ -122,7 +122,7 @@ select.inp option{background:var(--surface)}
 .nav-badge.new{background:rgba(0,200,150,.12);color:var(--green)}
 .nav-badge.ai{background:rgba(0,207,234,.12);color:var(--cyan)}
 /* PORTAL CARDS */
-.portal-pad{padding:28px}
+.portal-body{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px)}.portal-pad{padding:24px}
 .page-title{font-family:'Fraunces',serif;font-size:24px;font-weight:900;color:#fff;margin-bottom:4px}
 .page-sub{font-size:12px;color:var(--muted);margin-bottom:24px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
@@ -404,6 +404,9 @@ function renderMain(){
   else c = '<div class="portal-pad"><div class="page-title">Coming Soon</div></div>';
   pm.innerHTML = c;
   bindChat();
+  /* Bind soft capture btn after each render */
+  var ssb=document.getElementById('soft-save-btn');
+  if(ssb) ssb.onclick=function(){ captureAndContinue('soft-email','soft-mobile','soft-consent','soft-err'); };
 }
 
 window.pNav = function(v){
@@ -447,70 +450,53 @@ var AIRA_PARAMS = [
 /* ── DASHBOARD ── */
 function renderDashboard(){
   var html = '<div class="portal-pad">';
-  html += '<div class="page-title">Welcome'+(SESS.name ? ', '+SESS.name : '')+'</div>';
-  html += '<div class="page-sub">Your IPO readiness command centre</div>';
-
-  if(!SESS.email){
-    html += '<div style="background:linear-gradient(135deg,rgba(232,176,64,.08),rgba(8,30,47,1));border:1px solid rgba(232,176,64,.3);border-radius:14px;padding:20px 24px;margin-bottom:20px">';
-    html += '<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">Start with a free IPO Readiness Score</div>';
-    html += '<div style="font-size:11px;color:var(--muted);margin-bottom:14px">Enter your details to unlock all free tools.</div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
-    html += '<input class="inp" id="d-email" type="email" placeholder="Work email" autocomplete="email"/>';
-    html += '<input class="inp" id="d-mobile" type="tel" placeholder="Mobile (+91...)" autocomplete="tel"/>';
-    html += '</div>';
-    html += '<label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin-bottom:10px">';
-    html += '<input type="checkbox" id="d-consent" style="margin-top:2px;accent-color:#E8B040;flex-shrink:0"/>';
-    html += '<span style="font-size:10px;color:var(--dim)">I agree to be contacted by ipowork via email and WhatsApp regarding IPO services. I can opt out anytime.</span>';
-    html += '</label>';
-    html += '<div id="d-cap-err" class="err"></div>';
-    html += '<button class="btn btn-gold" style="width:100%" onclick="captureAndContinue(\'d-email\',\'d-mobile\',\'d-consent\',\'d-cap-err\')">Get Started Free &#8594;</button>';
-    html += '</div>';
-  }
+  html += '<div class="page-title">&#128202; IPO Readiness Hub</div>';
+  html += '<div class="page-sub" style="margin-bottom:24px">All tools free — no login required. Click any tool to start.</div>';
 
   var tools = [
-    {nav:'aira',     icon:'📊', title:'IPO Readiness Score',      desc:'16-parameter AI assessment',      badge:'FREE',   col:'rgba(0,200,150,.15)'},
-    {nav:'gap',      icon:'🔍', title:'Compliance Gap Analyzer',  desc:'ROC, Tax, Governance gaps',       badge:'FREE',   col:'rgba(248,113,113,.1)'},
-    {nav:'aida',     icon:'📄', title:'AIDA Document Review',     desc:'Upload PDF/DOCX — AI review',     badge:'FREE',   col:'rgba(0,212,245,.08)'},
-    {nav:'checklist',icon:'📋', title:'IPO Checklist',            desc:'Shared with your MB',              badge:'SHARED', col:'rgba(155,127,232,.08)'},
-    {nav:'mb-match', icon:'🏦', title:'Merchant Banker Match',    desc:'AI-matched SEBI-registered MBs',  badge:'FREE',   col:'rgba(155,127,232,.08)'},
-    {nav:'ai',       icon:'🤖', title:'AI Assistants',            desc:'19 AI tools for IPO prep',         badge:'FREE',col:'rgba(232,176,64,.06)'},
+    {nav:'aira',     icon:'&#128202;', col:'#E8B040', title:'IPO Readiness Score',      desc:'16 parameters · AI analysis · 3 min',   badge:'FREE'},
+    {nav:'gap',      icon:'&#128269;', col:'#FF6B6B', title:'Compliance Gap Analyzer',  desc:'ROC · SEBI ICDR · Tax · Governance',     badge:'FREE'},
+    {nav:'aida',     icon:'&#128196;', col:'#00CFEA', title:'AIDA Document Review',     desc:'Upload PDF/Word/Excel · AI analyses',    badge:'FREE'},
+    {nav:'checklist',icon:'&#128203;', col:'#9B7FE8', title:'IPO Checklist',            desc:'Shared with your Merchant Banker',       badge:'SHARED'},
+    {nav:'mb-match', icon:'&#127970;', col:'#A78BFA', title:'Merchant Banker Match',    desc:'AI-matched SEBI-registered MBs',         badge:'FREE'},
+    {nav:'ai',       icon:'&#129504;', col:'#00C896', title:'19 AI Assistants',         desc:'IPO · Tax · Legal · Governance AI',      badge:'FREE'},
   ];
-  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">';
+
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px">';
   tools.forEach(function(t){
-    var bc = t.badge==='FREE'?'#00C896': t.badge==='SHARED'?'#00CFEA':'#E8B040';
-    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;cursor:pointer" onclick="pNav(\''+t.nav+'\')">';
-    html += '<div style="font-size:24px;margin-bottom:8px">'+t.icon+'</div>';
-    html += '<div style="font-size:12px;font-weight:800;color:#fff;margin-bottom:3px">'+t.title+'</div>';
-    html += '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+t.desc+'</div>';
-    html += '<span style="font-size:9px;font-weight:700;color:'+bc+';background:'+bc+'18;border-radius:4px;padding:2px 7px">'+t.badge+'</span>';
+    html += '<div data-nav="'+t.nav+'" onclick="pNav(this.dataset.nav)" style="cursor:pointer;background:var(--card);border:1px solid var(--border);border-left:4px solid '+t.col+';border-radius:12px;padding:16px 18px;transition:.15s">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+    html += '<span style="font-size:22px">'+t.icon+'</span>';
+    html += '<span style="font-size:9px;font-weight:700;color:'+t.col+';background:'+t.col+'18;border-radius:4px;padding:2px 8px">'+t.badge+'</span>';
+    html += '</div>';
+    html += '<div style="font-size:13px;font-weight:800;color:#fff;margin-bottom:4px">'+t.title+'</div>';
+    html += '<div style="font-size:11px;color:var(--muted)">'+t.desc+'</div>';
     html += '</div>';
   });
   html += '</div>';
 
-  /* Soft email capture strip — not blocking, just helpful */
+  /* Soft email capture — bottom, non-blocking */
   if(!SESS.email){
-    html += '<div style="margin-top:20px;background:rgba(232,176,64,.04);border:1px solid rgba(232,176,64,.12);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
-    html += '<div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:2px">&#128233; Save and share your report</div>';
-    html += '<div style="font-size:10px;color:var(--muted)">Enter your email to receive your IPO Readiness Report and gap analysis by email.</div></div>';
-    html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
-    html += '<input class="inp" id="soft-email" type="email" placeholder="Work email" style="width:200px" autocomplete="email"/>';
-    html += '<input class="inp" id="soft-mobile" type="tel" placeholder="+91 mobile" style="width:140px" autocomplete="tel"/>';
-    html += '<label style="display:flex;gap:6px;align-items:center;cursor:pointer">';
-    html += '<input type="checkbox" id="soft-consent" style="accent-color:#E8B040"/>';
-    html += '<span style="font-size:9px;color:var(--dim)">I consent to ipowork contacting me. I can opt out anytime.</span>';
-    html += '</label>';
+    html += '<div style="background:rgba(232,176,64,.04);border:1px solid rgba(232,176,64,.15);border-radius:10px;padding:14px 18px">';
+    html += '<div style="font-size:11px;font-weight:700;color:#E8B040;margin-bottom:10px">&#128233; Get your report by email (optional)</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">';
+    html += '<input class="inp" id="soft-email" type="email" placeholder="Work email" style="flex:1;min-width:180px" autocomplete="email"/>';
+    html += '<input class="inp" id="soft-mobile" type="tel" placeholder="+91 mobile" style="flex:1;min-width:140px" autocomplete="tel"/>';
     html += '<button class="btn btn-gold btn-sm" id="soft-save-btn">Save &#8594;</button>';
-    html += '</div><div id="soft-err" class="err"></div></div>';
+    html += '</div>';
+    html += '<label style="display:flex;gap:6px;align-items:flex-start;margin-top:8px;cursor:pointer">';
+    html += '<input type="checkbox" id="soft-consent" style="margin-top:2px;accent-color:#E8B040;flex-shrink:0"/>';
+    html += '<span style="font-size:9px;color:var(--dim)">I agree to be contacted by ipowork via email and WhatsApp regarding IPO services. I can opt out anytime.</span>';
+    html += '</label>';
+    html += '<div id="soft-err" class="err" style="margin-top:4px"></div>';
+    html += '</div>';
+
   }
 
   html += '</div>';
-  /* bind soft capture btn after render */
-  setTimeout(function(){
-    var btn = document.getElementById('soft-save-btn');
-    if(btn) btn.onclick = function(){ captureAndContinue('soft-email','soft-mobile','soft-consent','soft-err'); };
-  }, 10);
   return html;
 }
+
 
 /* ── IPO READINESS SCORE ── */
 function renderAIRA(){
