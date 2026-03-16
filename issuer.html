@@ -407,27 +407,13 @@ function renderMain(){
 }
 
 window.pNav = function(v){
-  if(v==='ai' || v==='ai-chat'){
-    if(!SESS.email){
-      requireAuth('🤖 Unlock 19 AI Tools', 'Sign up free — takes 30 seconds. Unlock all 19 IPO AI assistants immediately.',
-        function(){ P.view='ai'; P.aiAssistant=null; renderSidebar(); renderMain(); document.getElementById('portal-main').scrollTop=0; }
-      );
-      return;
-    }
-    P.aiAssistant = null;
-  }
+  if(v==='ai' || v==='ai-chat') P.aiAssistant = null;
   P.view = v;
   renderSidebar(); renderMain();
   document.getElementById('portal-main').scrollTop = 0;
 };
 
 window.startAI = function(id){
-  if(!SESS.email){
-    requireAuth('🤖 Unlock AI Advisor', 'Sign up free to chat with all 19 IPO AI assistants.',
-      function(){ P.aiAssistant=id; P.aiHistory=[]; P.view='ai-chat'; renderSidebar(); renderMain(); document.getElementById('portal-main').scrollTop=0; }
-    );
-    return;
-  }
   P.aiAssistant=id; P.aiHistory=[];
   P.view='ai-chat';
   renderSidebar(); renderMain();
@@ -499,7 +485,30 @@ function renderDashboard(){
     html += '<span style="font-size:9px;font-weight:700;color:'+bc+';background:'+bc+'18;border-radius:4px;padding:2px 7px">'+t.badge+'</span>';
     html += '</div>';
   });
-  html += '</div></div>';
+  html += '</div>';
+
+  /* Soft email capture strip — not blocking, just helpful */
+  if(!SESS.email){
+    html += '<div style="margin-top:20px;background:rgba(232,176,64,.04);border:1px solid rgba(232,176,64,.12);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+    html += '<div style="flex:1;min-width:200px"><div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:2px">&#128233; Save and share your report</div>';
+    html += '<div style="font-size:10px;color:var(--muted)">Enter your email to receive your IPO Readiness Report and gap analysis by email.</div></div>';
+    html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">';
+    html += '<input class="inp" id="soft-email" type="email" placeholder="Work email" style="width:200px" autocomplete="email"/>';
+    html += '<input class="inp" id="soft-mobile" type="tel" placeholder="+91 mobile" style="width:140px" autocomplete="tel"/>';
+    html += '<label style="display:flex;gap:6px;align-items:center;cursor:pointer">';
+    html += '<input type="checkbox" id="soft-consent" style="accent-color:#E8B040"/>';
+    html += '<span style="font-size:9px;color:var(--dim)">I consent to ipowork contacting me. I can opt out anytime.</span>';
+    html += '</label>';
+    html += '<button class="btn btn-gold btn-sm" id="soft-save-btn">Save &#8594;</button>';
+    html += '</div><div id="soft-err" class="err"></div></div>';
+  }
+
+  html += '</div>';
+  /* bind soft capture btn after render */
+  setTimeout(function(){
+    var btn = document.getElementById('soft-save-btn');
+    if(btn) btn.onclick = function(){ captureAndContinue('soft-email','soft-mobile','soft-consent','soft-err'); };
+  }, 10);
   return html;
 }
 
@@ -550,7 +559,6 @@ function renderAIRA(){
   html += '<div id="aira-preview" style="margin-bottom:12px"></div>';
   html += '<button class="btn btn-gold" style="width:100%;padding:14px" onclick="runAIRA()">&#128202; Run IPO Readiness Analysis &#8594;</button>';
 
-  if(!SESS.email){ html += '</div>'; }
   html += '</div>';
   return html;
 }
@@ -718,22 +726,112 @@ function renderAIDA(){
 
 window.runAIDA = function(){
   if(!P.aidaFiles.length){ alert('Please upload at least one document.'); return; }
+
+  /* Check if any files need PDF.js text extraction */
+  var needsPDFExtraction = P.aidaFiles.some(function(f){ return f.kind==='pdf' && !f.text; });
+
+  if(needsPDFExtraction){
+    /* Load PDF.js and extract text from all PDFs before sending */
+    P.loading=true; renderMain();
+    window._aidaExtractPDFs(function(){ window._aidaSend(); });
+    return;
+  }
   P.loading=true; renderMain();
-  var contentBlocks = [];
-  contentBlocks.push({type:'text', text:'Analyse ALL documents provided for IPO readiness and SEBI ICDR 2018 compliance. Provide: 1) Documents Reviewed 2) Risk Summary (CRITICAL/HIGH/MEDIUM/LOW) 3) Issues Found with regulation reference 4) SEBI ICDR Compliance Checklist 5) Financial Data Quality 6) Governance and Legal Review 7) Top 5 Immediate Recommendations.'});
-  P.aidaFiles.forEach(function(f){
-    if(f.kind==='pdf'){ contentBlocks.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:f.b64},title:f.name}); }
-    else if(f.kind==='image'){ contentBlocks.push({type:'text',text:'\n--- Image: '+f.name+' ---'}); contentBlocks.push({type:'image',source:{type:'base64',media_type:f.mediaType||'image/jpeg',data:f.b64}}); }
-    else { contentBlocks.push({type:'text',text:'\n--- Document: '+f.name+' ---\n'+(f.text||'(empty)')}); }
+  window._aidaSend();
+};
+
+window._aidaExtractPDFs = function(done){
+  var pdfLib = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  function loadPDFJS(cb){
+    if(window.pdfjsLib){ cb(); return; }
+    var s=document.createElement('script'); s.src=pdfLib;
+    s.onload=function(){
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      cb();
+    };
+    document.head.appendChild(s);
+  }
+  loadPDFJS(function(){
+    var pdfs = P.aidaFiles.filter(function(f){ return f.kind==='pdf' && !f.text; });
+    var processed = 0;
+    if(!pdfs.length){ done(); return; }
+    pdfs.forEach(function(f){
+      var dataURL = 'data:application/pdf;base64,'+f.b64;
+      window.pdfjsLib.getDocument(dataURL).promise.then(function(pdf){
+        var pages = []; var total = pdf.numPages;
+        var getPage = function(n){
+          pdf.getPage(n).then(function(page){
+            page.getTextContent().then(function(tc){
+              pages.push(tc.items.map(function(i){return i.str;}).join(' '));
+              if(n < total) getPage(n+1);
+              else {
+                f.text = pages.join('\n\n--- Page Break ---\n\n').substring(0, 20000);
+                f.kind = 'text'; /* Now treat as text */
+                processed++;
+                if(processed===pdfs.length) done();
+              }
+            });
+          });
+        };
+        getPage(1);
+      }).catch(function(){
+        f.text = '(PDF text extraction failed — document may be scanned/image-based. Key metadata: '+f.name+')';
+        f.kind = 'text';
+        processed++;
+        if(processed===pdfs.length) done();
+      });
+    });
   });
-  var to = setTimeout(function(){ P.loading=false; P.aidaResult='Request timed out. Please try with smaller files or upgrade Worker plan.'; renderMain(); }, 60000);
-  fetch(WORKER, {method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,
-      system:'You are AIDA, the ipowork AI Document Analyser. Expert in SEBI ICDR 2018, Companies Act 2013, Ind AS, SEBI LODR 2015.',
-      messages:[{role:'user',content:contentBlocks}]})
-  }).then(function(r){return r.json();})
-  .then(function(d){ clearTimeout(to); P.loading=false; P.aidaResult=(d.content||[]).map(function(c){return c.text||'';}).join(''); renderMain(); })
-  .catch(function(err){ clearTimeout(to); P.loading=false; P.aidaResult='Error: '+err.message; renderMain(); });
+};
+
+window._aidaSend = function(){
+  /* Build message as single text payload for reliable Worker delivery */
+  var docSummary = '=== DOCUMENTS FOR AIDA IPO ANALYSIS ===\n\n';
+  P.aidaFiles.forEach(function(f){
+    docSummary += '--- Document: '+f.name+' ('+f.type+') ---\n';
+    if(f.text){
+      docSummary += f.text.substring(0, 15000);
+    } else if(f.kind==='image'){
+      docSummary += '[Image file — '+f.name+' — visual document submitted for review]';
+    } else {
+      docSummary += '[Binary file — '+f.name+' — could not extract text]';
+    }
+    docSummary += '\n\n';
+  });
+
+  var systemPrompt = 'You are AIDA, the ipowork AI Document Analyser for Indian IPO readiness. You have deep expertise in SEBI ICDR 2018, Companies Act 2013, Ind AS financial standards, and SEBI LODR 2015. Analyse the documents provided and produce a comprehensive IPO document review report.';
+  var userPrompt = docSummary + '\n\nProvide a detailed analysis in this exact format:\n\n1. DOCUMENTS REVIEWED\nList each document, type, and key contents identified\n\n2. RISK SUMMARY\nCRITICAL risks (will block IPO):\nHIGH risks (will delay IPO):\nMEDIUM risks (should fix before DRHP):\nLOW risks (can address post-IPO):\n\n3. ISSUES FOUND\nFor each issue: Description | SEBI/Law Reference | Severity | Recommended Fix\n\n4. SEBI ICDR 2018 COMPLIANCE CHECKLIST\nCheck each key requirement\n\n5. FINANCIAL DATA QUALITY\nCompleteness, restatement needs, Ind AS compliance\n\n6. GOVERNANCE & LEGAL REVIEW\nBoard, RPT, secretarial compliance, legal title issues\n\n7. TOP 5 IMMEDIATE ACTIONS\nPrioritised actions before merchant banker engagement';
+
+  var to = setTimeout(function(){
+    P.loading=false;
+    P.aidaResult = '⏱️ Request timed out. For large documents, the Cloudflare Worker needs the Paid plan (upgrades CPU from 10ms to 50ms). Try uploading one document at a time, or use text/CSV format.';
+    renderMain();
+  }, 90000);
+
+  fetch(WORKER, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [{role:'user', content: userPrompt}]
+    })
+  })
+  .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(function(d){
+    clearTimeout(to);
+    P.loading=false;
+    var text = (d.content||[]).map(function(c){ return c.text||''; }).join('');
+    P.aidaResult = text || '⚠️ No response received. Please try again.';
+    renderMain();
+  })
+  .catch(function(err){
+    clearTimeout(to);
+    P.loading=false;
+    P.aidaResult = '🌐 Error: '+(err.message||'Network error')+'. Please check your internet connection and try again.';
+    renderMain();
+  });
 };
 
 /* ── MERCHANT BANKER MATCH ── */
