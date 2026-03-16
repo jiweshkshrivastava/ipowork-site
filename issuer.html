@@ -297,6 +297,21 @@ body {
 /* ── Scrollbar ── */
 .portal-main::-webkit-scrollbar { width: 4px; }
 .portal-main::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+
+  .ai-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+  .ai-card{padding:18px 16px;border-radius:14px;background:var(--card);border:1px solid var(--border2,rgba(255,255,255,.06));cursor:pointer;transition:all .2s ease;position:relative;overflow:hidden}
+  .ai-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.12);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+  .ai-card-icon{font-size:24px;margin-bottom:10px;display:block}
+  .ai-card-name{font-size:12px;font-weight:700;color:var(--text,#C8D4DC);margin-bottom:4px;line-height:1.3}
+  .ai-card-tag{font-size:10px;color:var(--muted,#7A8B99);line-height:1.5}
+  .ai-badge{position:absolute;top:10px;right:10px;padding:2px 7px;border-radius:99px;font-size:8px;font-weight:800;letter-spacing:.3px}
+  .ai-badge.free{background:rgba(123,191,160,.12);color:#7BBFA0}
+  .ai-badge.premium{background:rgba(191,160,106,.12);color:#BFA06A}
+  .ai-cat-header{display:flex;align-items:center;gap:10px;padding:8px 0;margin:24px 0 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .ai-cat-title{font-size:11px;font-weight:800;color:var(--text,#C8D4DC);text-transform:uppercase;letter-spacing:.8px}
+  .ai-cat-count{font-size:9px;font-weight:700;background:rgba(255,255,255,.06);color:var(--muted,#7A8B99);border-radius:99px;padding:2px 7px}
+  .ai-filter-pill{padding:5px 13px;border-radius:99px;border:1px solid rgba(255,255,255,.08);background:none;color:var(--muted,#7A8B99);font-size:11px;cursor:pointer;transition:.15s;font-family:inherit}
+  .ai-filter-pill.active,.ai-filter-pill:hover{background:rgba(123,184,196,.1);color:#7BB8C4;border-color:rgba(123,184,196,.3)}
 </style></head>
 <body>
 
@@ -1033,35 +1048,98 @@ var AI_ASSISTANTS=[
    starters:['What are my MB obligations after the company lists?','What quarterly disclosures must my issuer client make?','How do I handle an insider trading complaint post-listing?']},
 ];
 function renderAIHome(){
-  var html='<div class="portal-pad"><div class="page-title">🤖 Promoter AI Suite</div><div class="page-sub">13 AI assistants — tuned for merchant banker workflows</div>';
-  html+='<input class="inp" style="margin-bottom:16px" placeholder="Search assistants..." oninput="filterAI(this.value)"/>';
-  var cats=[...new Set(AI_ASSISTANTS.map(function(a){ return a.cat; }))];
-  html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px">';
-  html+='<button style="padding:5px 12px;border-radius:99px;border:1px solid var(--cyan);background:rgba(0,207,234,.1);color:var(--cyan);font-size:11px;font-weight:700;cursor:pointer" onclick="filterAI(\'\')">All</button>';
+  var html = '<div class="portal-pad">';
+  html += '<div class="page-title">&#129504; IPO AI Assistants</div>';
+  html += '<div class="page-sub" style="margin-bottom:20px">19 AI advisors — tuned for every stage of your IPO journey. Click any to start chatting.</div>';
+
+  /* Search + filter pills */
+  html += '<div style="margin-bottom:18px">';
+  html += '<input class="inp" id="ai-search" style="margin-bottom:12px;max-width:400px" placeholder="&#128269; Search assistants..." oninput="filterAI(this.value)"/>';
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap" id="ai-pills">';
+  html += '<button class="ai-filter-pill active" onclick="filterCat(\'\',this)">All</button>';
+
+  var catColors = {"Foundation":"#7BBFA0","Legal & Compliance":"#7BB8C4","Strategy":"#BFA06A","Documentation":"#9B8EC4","Investor Readiness":"#C4876B","Planning":"#B87B83"};
+  var catIcons  = {"Foundation":"&#127959;","Legal & Compliance":"&#9878;","Strategy":"&#127919;","Documentation":"&#128221;","Investor Readiness":"&#129309;","Planning":"&#128197;"};
+
+  var cats = [];
+  AI_ASSISTANTS.forEach(function(a){ if(cats.indexOf(a.cat)===-1) cats.push(a.cat); });
   cats.forEach(function(c){
-    html+='<button style="padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:none;color:var(--muted);font-size:11px;cursor:pointer" onclick="filterAI(\''+c+'\')">'+c+'</button>';
+    var col = catColors[c] || 'var(--muted)';
+    html += '<button class="ai-filter-pill" onclick="filterCat(\''+c+'\',this)" style="border-color:'+col+'22;color:'+col+'">'+catIcons[c]+' '+c+'</button>';
   });
-  html+='</div><div class="ai-grid" id="ai-grid">';
-  var colors=['var(--cyan)','var(--gold)','var(--green)','var(--orange)','#9B7FE8'];
-  AI_ASSISTANTS.forEach(function(a,i){
-    var clr=colors[i%colors.length];
-    html+='<div class="ai-card" onclick="openAI(\''+a.id+'\')">';
-    html+='<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+clr+'"></div>';
-    html+='<div class="ai-badge '+(a.free?'free':'premium')+'">'+(a.free?'FREE':'PRO')+'</div>';
-    html+='<div class="ai-card-icon">'+a.icon+'</div>';
-    html+='<div class="ai-card-name">'+a.name+'</div>';
-    html+='<div class="ai-card-tag">'+a.tag+'</div></div>';
+  html += '</div></div>';
+
+  /* Group cards by category */
+  var catMap = {};
+  AI_ASSISTANTS.forEach(function(a){ if(!catMap[a.cat]) catMap[a.cat]=[]; catMap[a.cat].push(a); });
+
+  var catOrder = ["Foundation","Legal & Compliance","Strategy","Documentation","Investor Readiness","Planning"];
+  var cardColors = ["#7BBFA0","#7BB8C4","#BFA06A","#9B8EC4","#C4876B","#B87B83"];
+
+  html += '<div id="ai-content">';
+  catOrder.forEach(function(cat, ci){
+    var assistants = catMap[cat] || [];
+    if(!assistants.length) return;
+    var col = catColors[cat] || cardColors[ci % cardColors.length];
+    var ico = catIcons[cat] || '&#129504;';
+
+    html += '<div class="ai-cat-section" data-cat="'+cat+'">';
+    html += '<div class="ai-cat-header">';
+    html += '<span style="font-size:16px">'+ico+'</span>';
+    html += '<span class="ai-cat-title">'+cat+'</span>';
+    html += '<span class="ai-cat-count">'+assistants.length+' assistants</span>';
+    html += '</div>';
+    html += '<div class="ai-grid">';
+
+    assistants.forEach(function(a){
+      html += '<div class="ai-card" data-aid="'+a.id+'" onclick="startAI(this.dataset.aid)">';
+      html += '<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+col+'"></div>';
+      html += '<span class="ai-badge '+(a.free?'free':'premium')+'">'+(a.free?'FREE':'PRO')+'</span>';
+      html += '<span class="ai-card-icon">'+a.icon+'</span>';
+      html += '<div class="ai-card-name">'+a.name+'</div>';
+      html += '<div class="ai-card-tag">'+a.tag+'</div>';
+      html += '</div>';
+    });
+
+    html += '</div></div>';
   });
-  html+='</div></div>';
+
+  html += '</div>';
+  html += '</div>';
   return html;
 }
 
-window.filterAI=function(q){
-  document.querySelectorAll('.ai-card').forEach(function(card,i){
-    var a=AI_ASSISTANTS[i];
-    card.style.display=(!q||a.name.toLowerCase().includes(q.toLowerCase())||a.cat.toLowerCase().includes(q.toLowerCase()))?'':'none';
+window.filterAI = function(q){
+  q = q.toLowerCase();
+  document.querySelectorAll('.ai-card').forEach(function(card, i){
+    var a = AI_ASSISTANTS[i];
+    var show = !q || (a && (a.name.toLowerCase().includes(q) || a.cat.toLowerCase().includes(q) || (a.tag||'').toLowerCase().includes(q)));
+    card.style.display = show ? '' : 'none';
+  });
+  /* Show/hide category sections based on visible cards */
+  document.querySelectorAll('.ai-cat-section').forEach(function(sec){
+    var visibleCards = sec.querySelectorAll('.ai-card:not([style*="none"])');
+    sec.style.display = visibleCards.length ? '' : 'none';
   });
 };
+
+window.filterCat = function(cat, btn){
+  /* Update active pill */
+  document.querySelectorAll('.ai-filter-pill').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+
+  if(!cat){
+    /* Show all */
+    document.querySelectorAll('.ai-cat-section').forEach(function(s){ s.style.display=''; });
+    document.querySelectorAll('.ai-card').forEach(function(c){ c.style.display=''; });
+    return;
+  }
+  document.querySelectorAll('.ai-cat-section').forEach(function(sec){
+    sec.style.display = sec.dataset.cat===cat ? '' : 'none';
+  });
+};
+
+
 
 window.openAI=function(id){
   var a=AI_ASSISTANTS.find(function(x){ return x.id===id; });
