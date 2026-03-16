@@ -405,7 +405,7 @@ body {
     <div style="font-size:10px;color:#C8A96E;font-weight:700;margin-left:2px">ISSUER PORTAL</div>
     <div style="flex:1"></div>
     <div style="font-size:11px;color:var(--muted)" id="portal-user-name"></div>
-    <button class="btn btn-outline" style="padding:5px 12px;font-size:11px;margin-left:12px" onclick="closePortal()">← Exit</button>
+    <div id="credit-wallet" onclick="showTopUp()" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:99px;background:rgba(191,160,106,.06);border:1px solid rgba(191,160,106,.12);margin-right:8px">&#128179; <span style="font-size:11px;font-weight:700;color:#BFA06A">5</span></div><button class="btn btn-outline" style="padding:5px 12px;font-size:11px;margin-left:12px" onclick="closePortal()">← Exit</button>
   </div>
   <div class="portal-body">
     <div class="portal-sidebar" id="portal-sidebar"></div>
@@ -419,7 +419,7 @@ var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 var SESS   = { name:'', email:'', mobile:'', plan:'free', consent:false, ts:'' };
 var P      = {
   view:'dashboard', aiAssistant:null, aiHistory:[], aiLoading:false,
-  airaResult:null, airaAnswers:{}, gapResult:null,
+  airaResult:null, airaAnswers:{}, airaRuns:0, aidaRuns:0, gapResult:null,
   aidaResult:null, aidaFiles:[], mbResult:null, timelineResult:null,
 };
 
@@ -448,6 +448,7 @@ function submitQuickAccess(){
   if(!mobile||mobile.replace(/[\s+\-()]/g,'').length<10){ err.textContent='Please enter a valid mobile number.'; err.classList.add('show'); return; }
   if(!consent){ err.textContent='Please accept the terms to continue.'; err.classList.add('show'); return; }
   SESS.email=email; SESS.mobile=mobile; SESS.name=email.split('@')[0]; SESS.consent=true; SESS.ts=new Date().toISOString();
+  if(typeof creditLoad==='function') creditLoad(email);
   closeModal('quickaccess');
   var pun=document.getElementById('portal-user-name'); if(pun) pun.textContent=SESS.name;
   if(QA_CALLBACK){ var fn=QA_CALLBACK; QA_CALLBACK=null; fn(); }
@@ -481,6 +482,7 @@ window.captureAndContinue = function(emailId, mobileId, consentId, errId){
 /* ── PORTAL ── */
 function openPortal(){
   closeModal('quickaccess'); closeModal('quicklogin');
+  if(SESS.email && typeof creditLoad==='function') creditLoad(SESS.email);
   document.getElementById('portal-overlay').classList.add('open');
   var pun=document.getElementById('portal-user-name'); if(pun) pun.textContent=SESS.name||'Issuer';
   P.view='dashboard'; renderSidebar(); renderMain();
@@ -703,6 +705,13 @@ function updateAIRAPreview(){
 window.runAIRA = function(){
   var answered = Object.keys(P.airaAnswers).filter(function(k){ return P.airaAnswers[k]!==''; }).length;
   if(answered < 8){ alert('Please answer at least 8 parameters to run the analysis.'); return; }
+  /* First run free, reruns cost 2 credits */
+  if(P.airaRuns > 0 && typeof creditCheck==='function'){
+    var _c=creditCheck('aira-rerun');
+    if(!_c.ok){ creditShowInsufficient(_c.cost,_c.balance,'IPO Readiness Score rerun'); return; }
+    creditDeduct('aira-rerun');
+  }
+  P.airaRuns = (P.airaRuns||0) + 1;
   P.loading=true; renderMain();
   var summary = AIRA_PARAMS.map(function(p){
     var val = P.airaAnswers[p.id];
@@ -844,6 +853,13 @@ function renderAIDA(){
 
 window.runAIDA = function(){
   if(!P.aidaFiles.length){ alert('Please upload at least one document.'); return; }
+  /* 3 free AIDA uses, then 3 credits each */
+  if((P.aidaRuns||0) >= 3 && typeof creditCheck==='function'){
+    var _c=creditCheck('aida-iss-doc');
+    if(!_c.ok){ creditShowInsufficient(_c.cost,_c.balance,'AIDA Document Review'); return; }
+    creditDeduct('aida-iss-doc');
+  }
+  P.aidaRuns = (P.aidaRuns||0) + 1;
 
   /* Check if any files need PDF.js text extraction */
   var needsPDFExtraction = P.aidaFiles.some(function(f){ return f.kind==='pdf' && !f.text; });
@@ -1191,6 +1207,11 @@ function bindChat(){
 window.sendChat=function(){
   var inp=document.getElementById('chat-inp');
   if(!inp||!inp.value.trim()||P.aiLoading) return;
+  if(typeof creditCheck==='function'){
+    var _c=creditCheck('ai-chat-iss');
+    if(!_c.ok){ creditShowInsufficient(_c.cost||1,_c.balance||0,'AI Chat'); return; }
+    creditDeduct('ai-chat-iss');
+  }
   var msg=inp.value.trim(); inp.value='';
   P.aiHistory.push({role:'user',content:msg});
   P.aiLoading=true; renderMain();
@@ -2456,6 +2477,323 @@ function crmFiltered(){
     }
     return true;
   });
+}
+
+
+/* ── CREDIT ENGINE ── */
+var CREDIT_PORTAL="iss"; var CREDIT_FREE=5;
+
+/* ══════════════════════════════════════════════════════════════════
+   iPOWORK CREDIT ENGINE — Shared across CA/CS, Issuer, Institutions
+   Storage: window.storage key 'credits:{portal}:{email}' shared:false
+══════════════════════════════════════════════════════════════════ */
+
+/* ── PORTAL IDENTITY (set per portal) ── */
+/* CA/CS:        CREDIT_PORTAL = 'ca'  — FREE_CREDITS = 10 */
+/* Issuer:       CREDIT_PORTAL = 'iss' — FREE_CREDITS = 5  */
+/* Institutions: CREDIT_PORTAL = 'inst'— FREE_CREDITS = 10 */
+
+var CREDIT_PORTAL   = 'ca';   /* overridden per portal */
+var CREDIT_FREE     = 10;     /* free credits on first use */
+var CREDIT_BALANCE  = null;   /* null = not loaded yet */
+var CREDIT_EMAIL    = null;   /* current user email */
+
+/* ── CREDIT PACKS (per portal) ── */
+var CREDIT_PACKS = {
+  ca: [
+    { id:'ca50',   credits:50,   price:199,  label:'Starter',      desc:'Try it out',            popular:false },
+    { id:'ca200',  credits:200,  price:599,  label:'Professional', desc:'Regular CA/CS use',     popular:true  },
+    { id:'ca500',  credits:500,  price:1199, label:'Power',        desc:'Heavy users',           popular:false },
+    { id:'ca2000', credits:2000, price:3999, label:'CA Firm',      desc:'Team of 5–10',          popular:false },
+  ],
+  iss: [
+    { id:'iss50',  credits:50,   price:149,  label:'Starter',      desc:'First-time users',      popular:false },
+    { id:'iss200', credits:200,  price:499,  label:'Growth',       desc:'Active fundraising',    popular:true  },
+    { id:'iss500', credits:500,  price:999,  label:'Pre-IPO',      desc:'DRHP preparation',      popular:false },
+  ],
+  inst: [
+    { id:'inst100', credits:100, price:999,  label:'Analyst Pack', desc:'Extra AI queries',      popular:false },
+    { id:'inst500', credits:500, price:3999, label:'Fund Pack',    desc:'Team research',         popular:true  },
+  ],
+};
+
+/* ── CREDIT COSTS ── */
+var CREDIT_COSTS = {
+  /* CA/CS */
+  'ai-chat':          1,
+  'ai-chat-long':     2,
+  'compliance-gap':   3,
+  'aida-doc':         5,
+  'ipo-scorecard':    3,
+  'ib-question':      2,
+  'fin-question':     2,
+  /* Issuer */
+  'aira-rerun':       2,
+  'gap-rerun':        2,
+  'mb-match-rerun':   2,
+  'aida-iss-doc':     3,
+  'ai-chat-iss':      1,
+  'roadmap':          10,
+  /* Institutions */
+  'ai-chat-inst':     2,
+  'deep-research-mod':2,
+};
+
+/* ── LOAD / SAVE ── */
+async function creditLoad(email){
+  if(!email) return;
+  CREDIT_EMAIL = email;
+  var key = 'credits:'+CREDIT_PORTAL+':'+email.replace(/[@.]/g,'_');
+  try {
+    var res = await window.storage.get(key, false);
+    if(res && res.value){
+      var data = JSON.parse(res.value);
+      CREDIT_BALANCE = data.balance !== undefined ? data.balance : CREDIT_FREE;
+    } else {
+      /* First time — give free credits */
+      CREDIT_BALANCE = CREDIT_FREE;
+      await creditSave();
+    }
+  } catch(e){
+    CREDIT_BALANCE = CREDIT_FREE;
+  }
+  creditUpdateWallet();
+}
+
+async function creditSave(){
+  if(CREDIT_EMAIL === null) return;
+  var key = 'credits:'+CREDIT_PORTAL+':'+CREDIT_EMAIL.replace(/[@.]/g,'_');
+  try {
+    await window.storage.set(key, JSON.stringify({balance:CREDIT_BALANCE, ts:Date.now()}), false);
+  } catch(e){ console.warn('Credit save error',e); }
+}
+
+/* ── CHECK + DEDUCT ── */
+function creditCheck(action){
+  var cost = CREDIT_COSTS[action] || 1;
+  if(CREDIT_BALANCE === null){ return {ok:false, reason:'loading'}; }
+  if(CREDIT_BALANCE < cost){ return {ok:false, reason:'insufficient', cost:cost, balance:CREDIT_BALANCE}; }
+  return {ok:true, cost:cost};
+}
+
+async function creditDeduct(action){
+  var cost = CREDIT_COSTS[action] || 1;
+  CREDIT_BALANCE = Math.max(0, (CREDIT_BALANCE||0) - cost);
+  await creditSave();
+  creditUpdateWallet();
+  return CREDIT_BALANCE;
+}
+
+/* ── WALLET DISPLAY ── */
+function creditUpdateWallet(){
+  var el = document.getElementById('credit-wallet');
+  if(!el) return;
+  var low = CREDIT_BALANCE !== null && CREDIT_BALANCE <= 5;
+  var col = low ? '#C47080' : '#BFA06A';
+  el.innerHTML = '<span style="font-size:12px">&#128179;</span> '
+    + '<span style="font-size:11px;font-weight:700;color:'+col+'">'
+    + (CREDIT_BALANCE !== null ? CREDIT_BALANCE : '...')
+    + ' credits</span>'
+    + (low ? '<span style="font-size:9px;color:#C47080;margin-left:4px">Low</span>' : '');
+  el.onclick = function(){ showTopUp(); };
+  el.style.cursor = 'pointer';
+}
+
+/* ── TOP-UP MODAL ── */
+function showTopUp(prefillPack){
+  var packs = CREDIT_PACKS[CREDIT_PORTAL] || CREDIT_PACKS.ca;
+  var existingModal = document.getElementById('credit-modal');
+  if(existingModal) existingModal.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'credit-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+
+  var h = '<div style="background:var(--surface,#151B26);border:1px solid rgba(255,255,255,.08);border-radius:20px;width:100%;max-width:540px;padding:28px;max-height:90vh;overflow-y:auto">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+  h += '<div style="font-family:var(--serif,serif);font-size:20px;font-weight:900;color:var(--text,#D0DCE8)">&#128179; Top Up Credits</div>';
+  h += '<button onclick="document.getElementById(\'credit-modal\').remove()" style="background:none;border:none;color:var(--muted,#7A8B99);font-size:18px;cursor:pointer">&#x2715;</button>';
+  h += '</div>';
+  h += '<div style="font-size:11px;color:var(--muted,#7A8B99);margin-bottom:20px">Current balance: <strong style="color:var(--text,#D0DCE8)">'+(CREDIT_BALANCE||0)+' credits</strong></div>';
+
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">';
+  packs.forEach(function(pack){
+    var perCredit = (pack.price/pack.credits).toFixed(2);
+    h += '<div data-packid="'+pack.id+'" onclick="creditSelectPack(this)" style="border:2px solid '+(pack.popular?'var(--gold,#BFA06A)':'rgba(255,255,255,.08)')+';border-radius:14px;padding:16px;cursor:pointer;position:relative;background:'+(pack.popular?'rgba(191,160,106,.06)':'none')+'" class="credit-pack-card">';
+    if(pack.popular) h += '<div style="position:absolute;top:-1px;right:12px;background:var(--gold,#BFA06A);color:#0F1318;font-size:8px;font-weight:800;padding:2px 8px;border-radius:0 0 6px 6px;letter-spacing:.5px">BEST VALUE</div>';
+    h += '<div style="font-size:13px;font-weight:800;color:var(--text,#D0DCE8);margin-bottom:3px">'+pack.label+'</div>';
+    h += '<div style="font-size:22px;font-weight:900;font-family:var(--serif,serif);color:var(--gold,#BFA06A);margin-bottom:2px">'+pack.credits+' <span style="font-size:12px;font-weight:400;color:var(--muted,#7A8B99)">credits</span></div>';
+    h += '<div style="font-size:18px;font-weight:900;color:var(--text,#D0DCE8);margin-bottom:4px">&#8377;'+pack.price+'</div>';
+    h += '<div style="font-size:9px;color:var(--dim,#2E3D52)">&#8377;'+perCredit+' per credit &nbsp;&bull;&nbsp; '+pack.desc+'</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  h += '<div id="credit-pack-selected" style="background:rgba(191,160,106,.06);border:1px solid rgba(191,160,106,.15);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:none">';
+  h += '<div style="font-size:11px;color:var(--muted,#7A8B99)">Selected: <strong id="credit-pack-label" style="color:var(--text,#D0DCE8)"></strong></div>';
+  h += '</div>';
+
+  /* Contact for payment (Razorpay integration note) */
+  h += '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:10px;color:var(--muted,#7A8B99);line-height:1.6">';
+  h += '&#128274; Secure payment via Razorpay. Credits are added instantly after payment confirmation. No subscription — pay only when you need more.';
+  h += '</div>';
+
+  h += '<button id="credit-pay-btn" onclick="creditInitiatePayment()" class="btn btn-gold" style="width:100%;justify-content:center;opacity:.4;pointer-events:none">Select a pack to continue &#8594;</button>';
+  h += '<div style="text-align:center;margin-top:10px;font-size:9px;color:var(--dim,#2E3D52)">Credits never expire &nbsp;&bull;&nbsp; Instant activation &nbsp;&bull;&nbsp; GST invoice available</div>';
+  h += '</div>';
+
+  overlay.innerHTML = h;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+
+  if(prefillPack){
+    var card = overlay.querySelector('[data-packid="'+prefillPack+'"]');
+    if(card) creditSelectPack(card);
+  } else {
+    /* Auto-select the popular pack */
+    var popular = overlay.querySelector('[data-packid]');
+    packs.forEach(function(p){ if(p.popular){ var c=overlay.querySelector('[data-packid="'+p.id+'"]'); if(c) creditSelectPack(c); } });
+  }
+}
+
+var CREDIT_SELECTED_PACK = null;
+
+window.creditSelectPack = function(el){
+  document.querySelectorAll('.credit-pack-card').forEach(function(c){
+    c.style.border = '2px solid rgba(255,255,255,.08)';
+    c.style.background = 'none';
+  });
+  el.style.border = '2px solid var(--gold,#BFA06A)';
+  el.style.background = 'rgba(191,160,106,.08)';
+
+  var packId = el.dataset.packid;
+  var packs = CREDIT_PACKS[CREDIT_PORTAL] || CREDIT_PACKS.ca;
+  CREDIT_SELECTED_PACK = packs.find(function(p){ return p.id===packId; });
+
+  if(CREDIT_SELECTED_PACK){
+    var sel = document.getElementById('credit-pack-selected');
+    var lbl = document.getElementById('credit-pack-label');
+    if(sel) sel.style.display='block';
+    if(lbl) lbl.textContent = CREDIT_SELECTED_PACK.label+' — '+CREDIT_SELECTED_PACK.credits+' credits for ₹'+CREDIT_SELECTED_PACK.price;
+    var btn = document.getElementById('credit-pay-btn');
+    if(btn){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; btn.textContent='Pay ₹'+CREDIT_SELECTED_PACK.price+' → Get '+CREDIT_SELECTED_PACK.credits+' Credits'; }
+  }
+};
+
+window.creditInitiatePayment = function(){
+  if(!CREDIT_SELECTED_PACK){ alert('Please select a credit pack.'); return; }
+  var pack = CREDIT_SELECTED_PACK;
+
+  /* Razorpay integration */
+  var RAZORPAY_KEY = 'rzp_test_IW4kpkIbBRJ5B9'; /* Replace with live key */
+  if(typeof Razorpay === 'undefined'){
+    var s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload = function(){ creditInitiatePayment(); };
+    document.head.appendChild(s);
+    return;
+  }
+
+  var options = {
+    key: RAZORPAY_KEY,
+    amount: pack.price * 100, /* paise */
+    currency: 'INR',
+    name: 'ipowork',
+    description: pack.label+' — '+pack.credits+' AI Credits',
+    image: '',
+    prefill: {
+      email: CREDIT_EMAIL || '',
+      contact: (typeof SESS !== 'undefined' && SESS.phone) ? SESS.phone : '',
+    },
+    notes: {
+      portal:  CREDIT_PORTAL,
+      pack_id: pack.id,
+      credits: pack.credits,
+      email:   CREDIT_EMAIL || '',
+    },
+    theme: { color:'#BFA06A' },
+    handler: async function(response){
+      /* Payment success — add credits */
+      CREDIT_BALANCE = (CREDIT_BALANCE||0) + pack.credits;
+      await creditSave();
+      creditUpdateWallet();
+      var modal = document.getElementById('credit-modal');
+      if(modal) modal.remove();
+      creditShowSuccess(pack.credits, response.razorpay_payment_id);
+    },
+    modal: {
+      ondismiss: function(){
+        /* User closed Razorpay — do nothing */
+      }
+    }
+  };
+
+  var rzp = new Razorpay(options);
+  rzp.open();
+};
+
+function creditShowSuccess(credits, paymentId){
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML = '<div style="background:var(--surface,#151B26);border:1px solid rgba(91,184,150,.3);border-radius:20px;padding:32px;text-align:center;max-width:360px;width:100%">'
+    + '<div style="font-size:48px;margin-bottom:12px">&#127881;</div>'
+    + '<div style="font-family:var(--serif,serif);font-size:20px;font-weight:900;color:var(--text,#D0DCE8);margin-bottom:8px">'+credits+' Credits Added!</div>'
+    + '<div style="font-size:12px;color:var(--muted,#7A8B99);margin-bottom:8px">Your new balance: <strong style="color:var(--text,#D0DCE8)">'+(CREDIT_BALANCE||0)+' credits</strong></div>'
+    + '<div style="font-size:10px;color:var(--dim,#2E3D52);margin-bottom:20px">Payment ID: '+paymentId+'</div>'
+    + '<button onclick="this.closest(\'div\').parentElement.remove()" class="btn btn-gold" style="width:100%;justify-content:center">Continue &#8594;</button>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){ if(overlay.parentElement) overlay.remove(); }, 5000);
+}
+
+/* ── GATE: wrap any AI call ── */
+async function creditGate(action, proceedFn, portalLabel){
+  /* If storage not available or not logged in — allow freely */
+  if(typeof window.storage === 'undefined'){ proceedFn(); return; }
+
+  /* Load credits if not loaded */
+  var userEmail = (typeof SESS !== 'undefined' && SESS.email) ? SESS.email : null;
+  if(CREDIT_BALANCE === null && userEmail){
+    await creditLoad(userEmail);
+  }
+
+  var check = creditCheck(action);
+  if(check.ok){
+    await creditDeduct(action);
+    proceedFn();
+  } else if(check.reason === 'insufficient'){
+    creditShowInsufficient(check.cost, check.balance, portalLabel);
+  } else {
+    /* Storage issue — allow anyway */
+    proceedFn();
+  }
+}
+
+function creditShowInsufficient(cost, balance, label){
+  var packs = CREDIT_PACKS[CREDIT_PORTAL] || CREDIT_PACKS.ca;
+  var recommended = packs.find(function(p){ return p.popular; }) || packs[1] || packs[0];
+  var existingModal = document.getElementById('credit-modal');
+  if(existingModal) existingModal.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'credit-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML = '<div style="background:var(--surface,#151B26);border:1px solid rgba(196,112,128,.2);border-radius:20px;padding:28px;max-width:420px;width:100%;text-align:center">'
+    + '<div style="font-size:40px;margin-bottom:12px">&#128179;</div>'
+    + '<div style="font-family:var(--serif,serif);font-size:18px;font-weight:900;color:var(--text,#D0DCE8);margin-bottom:8px">Not enough credits</div>'
+    + '<div style="font-size:12px;color:var(--muted,#7A8B99);margin-bottom:6px">'+(label||'This action')+' costs <strong style="color:var(--text,#D0DCE8)">'+cost+' credits</strong>. You have <strong style="color:#C47080">'+balance+'</strong>.</div>'
+    + '<div style="font-size:11px;color:var(--dim,#2E3D52);margin-bottom:20px">Top up to continue — credits never expire.</div>'
+    + '<div style="display:flex;gap:10px">'
+    + '<button onclick="document.getElementById(\'credit-modal\').remove()" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:none;color:var(--muted,#7A8B99);font-size:11px;cursor:pointer;font-family:var(--font,inherit)">Cancel</button>'
+    + '<button onclick="document.getElementById(\'credit-modal\').remove();showTopUp(\''+recommended.id+'\')" class="btn btn-gold" style="flex:2;justify-content:center">Top Up — from &#8377;'+packs[0].price+' &#8594;</button>'
+    + '</div></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+}
+
+/* ── WALLET HTML (insert into portal topbar) ── */
+function creditWalletHTML(){
+  return '<div id="credit-wallet" onclick="showTopUp()" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:99px;background:rgba(191,160,106,.06);border:1px solid rgba(191,160,106,.12)" title="Click to top up credits">&#128179; <span style="font-size:11px;font-weight:700;color:#BFA06A">'+(CREDIT_BALANCE!==null?CREDIT_BALANCE:'...')+' credits</span></div>';
 }
 
 </script>
