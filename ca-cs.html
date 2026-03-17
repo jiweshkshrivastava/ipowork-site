@@ -721,6 +721,7 @@ var NAV=[
   {id:'dashboard',        icon:'🏠', label:'Dashboard'},
   {id:'ai',               icon:'🤖', label:'AI Assistants', badge:'14'},
   {id:'academy',          icon:'🎓', label:'Audit & Compliance Academy', badge:'NEW'},
+  {id:'formats',          icon:'📁', label:'Compliance Formats Library', badge:'60+'},
   {id:'ib-services',      icon:'🏦', label:'Investment Banking Services', badge:'NEW'},
   {id:'fin-services',     icon:'💹', label:'Financial Services Hub', badge:'NEW'},
   {id:'calendar',         icon:'📅', label:'Compliance Calendar'},
@@ -770,6 +771,7 @@ function renderMain(){
   else if(P.view==='compliance-master') c=renderComplianceMaster();
   else if(P.view==='ipo-scorecard') c=renderIPOScorecard();
   else if(P.view==='ipo-dataroom') c=renderIPODataroom();
+  else if(P.view==='formats') c=renderFormats();
   else if(P.view==='academy') c=renderAcademy();
   else if(P.view==='academy-article') c=renderAcademyArticle();
   else if(P.view==='ib-services')     c=renderIBServices();
@@ -4847,6 +4849,572 @@ function creditShowInsufficient(cost, balance, label){
 function creditWalletHTML(){
   return '<div id="credit-wallet" onclick="showTopUp()" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:99px;background:rgba(191,160,106,.06);border:1px solid rgba(191,160,106,.12)" title="Click to top up credits">&#128179; <span style="font-size:11px;font-weight:700;color:#BFA06A">'+(CREDIT_BALANCE!==null?CREDIT_BALANCE:'...')+' credits</span></div>';
 }
+
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   COMPLIANCE FORMATS LIBRARY — ipowork CA/CS Hub
+   Comprehensive database of all Indian compliance forms, returns,
+   formats and templates across every regulatory body
+══════════════════════════════════════════════════════════════════ */
+
+var FMT_STATE = { filter:'', category:'', authority:'', view:'grid', selected:null };
+
+/* ── FORMATS DATABASE ── */
+var FORMATS_LIB = [
+
+  /* ══════════ INCOME TAX — RETURNS ══════════ */
+  {id:'itr1', auth:'IT', cat:'Income Tax Returns', icon:'📋',
+   name:'ITR-1 (Sahaj)', tag:'Individuals — Salary, one house, other income up to ₹50L',
+   fields:['Basic info','Salary income','House property','Other income','TDS/TCS','Tax computation'],
+   due:'31 July (non-audit)', url:'https://incometaxindia.gov.in/', notes:'Salaried individuals, no business income, agriculture ≤₹5000'},
+  {id:'itr2', auth:'IT', cat:'Income Tax Returns', icon:'📋',
+   name:'ITR-2', tag:'Individuals with capital gains, multiple properties, foreign income',
+   fields:['Salary','House property','Capital gains (LTCG/STCG)','Foreign assets','Schedule AL'],
+   due:'31 July (non-audit)', url:'https://incometaxindia.gov.in/', notes:'No business/professional income'},
+  {id:'itr3', auth:'IT', cat:'Income Tax Returns', icon:'📋',
+   name:'ITR-3', tag:'Individuals/HUF with PGBP (business or profession)',
+   fields:['PGBP','Balance sheet','P&L','Capital account','Partner share'],
+   due:'31 July / 31 Oct (audit)', url:'https://incometaxindia.gov.in/', notes:'For partners in firms, professionals'},
+  {id:'itr4', auth:'IT', cat:'Income Tax Returns', icon:'📋',
+   name:'ITR-4 (Sugam)', tag:'Presumptive income — §44AD, §44ADA, §44AE',
+   fields:['Presumptive business','Presumptive profession','Transport business'],
+   due:'31 July', url:'https://incometaxindia.gov.in/', notes:'Turnover ≤₹3Cr (44AD), receipts ≤₹75L (44ADA)'},
+  {id:'itr5', auth:'IT', cat:'Income Tax Returns', icon:'📋',
+   name:'ITR-5', tag:'Firms, LLPs, AOPs, BOIs, artificial juridical persons',
+   fields:['Firm income','Partner details','Balance sheet','P&L','Schedule LA'],
+   due:'31 July / 31 Oct', url:'https://incometaxindia.gov.in/', notes:''},
+  {id:'itr6', auth:'IT', cat:'Income Tax Returns', icon:'📋',
+   name:'ITR-6', tag:'Companies (other than §11 exempt)',
+   fields:['Company income','MAT computation','Balance sheet','P&L','Schedule OL'],
+   due:'31 Oct / 30 Nov (TP)', url:'https://incometaxindia.gov.in/', notes:'Mandatory e-filing; audit mandatory'},
+  {id:'itr7', auth:'IT', cat:'Income Tax Returns', icon:'📋',
+   name:'ITR-7', tag:'Trusts, political parties, scientific research institutions §139(4A/4B/4C/4D)',
+   fields:['Accumulation','Application','Anonymous donations','FCRA receipts'],
+   due:'31 Oct', url:'https://incometaxindia.gov.in/', notes:'Charitable trusts, religious trusts'},
+
+  /* ══════════ INCOME TAX — AUDIT FORMS ══════════ */
+  {id:'form3ca', auth:'IT', cat:'Tax Audit Forms', icon:'🔍',
+   name:'Form 3CA', tag:'Audit report under §44AB — accounts audited under other law',
+   fields:['Auditor declaration','Reference to statutory audit','Annexure reference'],
+   due:'30 Sep', url:'https://incometaxindia.gov.in/', notes:'Companies, LLPs audited under CA/LLP Act'},
+  {id:'form3cb', auth:'IT', cat:'Tax Audit Forms', icon:'🔍',
+   name:'Form 3CB', tag:'Audit report under §44AB — accounts not audited under other law',
+   fields:['Auditor declaration','Books examined','Disclosures'],
+   due:'30 Sep', url:'https://incometaxindia.gov.in/', notes:'Firms, individuals, trusts not covered by 3CA'},
+  {id:'form3cd', auth:'IT', cat:'Tax Audit Forms', icon:'🔍',
+   name:'Form 3CD', tag:'Statement of particulars required under §44AB — 44 clauses',
+   fields:['Clause 1-9: Basic info','Clause 10-18: P&L items','Clause 19-29: Deductions','Clause 30-44: Special items','MSME payments §43B(h)','TDS compliance','Related party transactions','Deemed income'],
+   due:'30 Sep', url:'https://incometaxindia.gov.in/', notes:'Most critical tax audit form — 44 detailed clauses'},
+  {id:'form3ceb', auth:'IT', cat:'Tax Audit Forms', icon:'🔍',
+   name:'Form 3CEB', tag:'Transfer Pricing — audit report by CA §92E',
+   fields:['International transactions','SDT details','ALP determination','Method used','Comparables'],
+   due:'30 Nov', url:'https://incometaxindia.gov.in/', notes:'Mandatory for all international transactions & SDT'},
+  {id:'form10b', auth:'IT', cat:'Tax Audit Forms', icon:'🔍',
+   name:'Form 10B', tag:'Audit report for charitable/religious trusts §12A',
+   fields:['Receipts','Application','Accumulation','Anonymous donations','Foreign contributions'],
+   due:'30 Sep', url:'https://incometaxindia.gov.in/', notes:'Trusts with income >₹1Cr; new form from FY23'},
+  {id:'form15ca', auth:'IT', cat:'Tax Audit Forms', icon:'🔍',
+   name:'Form 15CA', tag:'Declaration for foreign remittance (Part A/B/C/D)',
+   fields:['Remitter details','Payee details','Nature of remittance','TDS deducted','Treaty benefit'],
+   due:'Before remittance', url:'https://incometaxindia.gov.in/', notes:'CA certificate 15CB required for Part C'},
+  {id:'form15cb', auth:'IT', cat:'Tax Audit Forms', icon:'🔍',
+   name:'Form 15CB', tag:'CA certificate for foreign remittance §195',
+   fields:['CA certification','DTAA applicability','TDS rate determination','Gross/net remittance'],
+   due:'Before remittance', url:'https://incometaxindia.gov.in/', notes:'Required for taxable remittances >₹5L'},
+  {id:'form26as', auth:'IT', cat:'Tax Audit Forms', icon:'🔍',
+   name:'Form 26AS / AIS / TIS', tag:'Annual Information Statement — tax credit reconciliation',
+   fields:['TDS/TCS credits','Advance tax','SFT transactions','Foreign remittances','Interest/dividends'],
+   due:'Always available', url:'https://incometaxindiaefiling.gov.in/', notes:'AIS replaced 26AS from FY21; check before filing'},
+
+  /* ══════════ GST — RETURNS ══════════ */
+  {id:'gstr1', auth:'GST', cat:'GST Returns', icon:'🧾',
+   name:'GSTR-1', tag:'Outward supplies — B2B, B2C, exports, credit notes',
+   fields:['B2B invoices','B2C large (>₹2.5L)','Exports','Credit/debit notes','NIL returns','HSN summary'],
+   due:'11th (monthly) / 13th (QRMP quarterly)', url:'https://www.gst.gov.in/', notes:'Critical for recipient ITC in GSTR-2B'},
+  {id:'gstr3b', auth:'GST', cat:'GST Returns', icon:'🧾',
+   name:'GSTR-3B', tag:'Monthly self-assessed summary return + tax payment',
+   fields:['Outward supply summary','ITC eligible','ITC reversal (Rule 42/43)','Tax payable','Cash ledger'],
+   due:'20th monthly', url:'https://www.gst.gov.in/', notes:'Payment must match — interest @18%pa on delay'},
+  {id:'gstr9', auth:'GST', cat:'GST Returns', icon:'🧾',
+   name:'GSTR-9', tag:'Annual return — reconciliation of monthly returns',
+   fields:['Table 4: Outward supplies','Table 6: ITC declared','Table 8: ITC reconciliation with 2A','Table 9: Tax paid','Table 16: Refunds/demands'],
+   due:'31 December', url:'https://www.gst.gov.in/', notes:'Turnover >₹2Cr mandatory; reconcile with 3B/1'},
+  {id:'gstr9c', auth:'GST', cat:'GST Returns', icon:'🧾',
+   name:'GSTR-9C', tag:'GST Audit / Reconciliation Statement (CA certified)',
+   fields:['Turnover reconciliation','Tax payable reconciliation','ITC reconciliation','Unreconciled differences','Auditor certification'],
+   due:'31 December', url:'https://www.gst.gov.in/', notes:'Mandatory for turnover >₹5Cr; CA/CMA certification'},
+  {id:'gstr2b', auth:'GST', cat:'GST Returns', icon:'🧾',
+   name:'GSTR-2B', tag:'Auto-generated ITC availability statement',
+   fields:['B2B ITC available','Import of goods','ISD distribution','Reversal required'],
+   due:'Auto-generated 14th', url:'https://www.gst.gov.in/', notes:'Match with books before claiming ITC per §16(2)(aa)'},
+  {id:'gstr10', auth:'GST', cat:'GST Returns', icon:'🧾',
+   name:'GSTR-10', tag:'Final return on GST cancellation',
+   fields:['Stock on cancellation date','ITC reversal on stock','Tax payable','Closing liabilities'],
+   due:'3 months of cancellation', url:'https://www.gst.gov.in/', notes:'Mandatory on voluntary/suo-motu cancellation'},
+  {id:'rfd01', auth:'GST', cat:'GST Returns', icon:'🧾',
+   name:'RFD-01 (GST Refund)', tag:'Application for GST refund — export, inverted duty, excess cash',
+   fields:['Refund type','Statement of invoices','IGST on exports','Inverted duty structure','Excess balance'],
+   due:'2 years from relevant date', url:'https://www.gst.gov.in/', notes:'Online on GST portal; CA certificate for amounts >₹2L'},
+
+  /* ══════════ ROC / MCA FORMS ══════════ */
+  {id:'aoc4', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'AOC-4 / AOC-4 XBRL', tag:'Filing of financial statements with ROC — §137',
+   fields:['Balance sheet','P&L','Notes to accounts','Director report','Auditor report','XBRL tags (listed)'],
+   due:'30 days from AGM', url:'https://www.mca.gov.in/', notes:'XBRL mandatory for listed + top 500 unlisted'},
+  {id:'mgt7', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'MGT-7 / MGT-7A', tag:'Annual return — §92 Companies Act 2013',
+   fields:['Registered office','Share capital','Debentures','Members list','Directors KMP','Promoter details','Penalties'],
+   due:'60 days from AGM', url:'https://www.mca.gov.in/', notes:'MGT-7A for small companies (simplified form)'},
+  {id:'dir12', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'DIR-12', tag:'Appointment/resignation of directors and KMP',
+   fields:['Director DIN','Appointment/resignation date','New director consent (DIR-2)','Resignation letter'],
+   due:'30 days of change', url:'https://www.mca.gov.in/', notes:'Penalty: ₹50,000 per day of delay'},
+  {id:'dir3kyc', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'DIR-3 KYC', tag:'Annual KYC for DIN holders — all directors',
+   fields:['Mobile OTP','Email OTP','Address proof','Photo ID'],
+   due:'30 September annually', url:'https://www.mca.gov.in/', notes:'DIN deactivated if not filed; web-based and form-based'},
+  {id:'mgt14', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'MGT-14', tag:'Filing of board/general meeting resolutions §117',
+   fields:['Resolution type','Extract of resolution','Date of meeting','Votes cast','Explanatory statement'],
+   due:'30 days of passing', url:'https://www.mca.gov.in/', notes:'Ordinary + special resolutions; not required for small co resolutions'},
+  {id:'pas3', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'PAS-3', tag:'Return of allotment of shares/securities §75',
+   fields:['Allottee details','Class of shares','Mode of allotment','Consideration','Valuation report'],
+   due:'30 days of allotment', url:'https://www.mca.gov.in/', notes:'With FORM PAS-4 (letter of offer) for rights issue'},
+  {id:'cht1', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'CHG-1 / CHG-9', tag:'Registration of charge (mortgage/hypothecation) §77',
+   fields:['Charge holder details','Assets charged','Amount secured','Terms of charge','Satisfaction date'],
+   due:'30 days of creation', url:'https://www.mca.gov.in/', notes:'CHG-9 for debenture charge; late fee up to 10x'},
+  {id:'inc22a', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'INC-22A (ACTIVE)', tag:'Active company tagging — registered office verification',
+   fields:['GPS coordinates photo','Latest utility bill','Director OTP'],
+   due:'One-time / on demand', url:'https://www.mca.gov.in/', notes:'Strike off risk if not filed; marked ACTIVE/INACTIVE'},
+  {id:'fc4', auth:'ROC', cat:'ROC / MCA Annual Returns', icon:'🏛️',
+   name:'FC-4', tag:'Annual return for foreign companies operating in India',
+   fields:['Principal business address','Share capital','Directors','Financial statements of Indian ops'],
+   due:'60 days of AGM', url:'https://www.mca.gov.in/', notes:'Section 380-393 CA 2013; XBRL for listed foreign cos'},
+
+  /* ══════════ ACCOUNTING STANDARDS ══════════ */
+  {id:'ias1', auth:'IND-AS', cat:'Accounting Standards Formats', icon:'📊',
+   name:'Ind AS 1 — Statement of Profit and Loss', tag:'P&L format — comprehensive income presentation',
+   fields:['Revenue from operations','Other income','Employee benefits expense','Finance costs','Depreciation','Exceptional items','Tax expense','OCI items'],
+   due:'Annual reporting', url:'https://www.mca.gov.in/Ministry/pdf/IndAS.pdf', notes:'Single statement or two-statement approach'},
+  {id:'ias7', auth:'IND-AS', cat:'Accounting Standards Formats', icon:'📊',
+   name:'Ind AS 7 — Statement of Cash Flows', tag:'Cash flow — operating, investing, financing',
+   fields:['Operating cash flow (direct/indirect)','Investing activities','Financing activities','Reconciliation to cash and equivalents'],
+   due:'Annual reporting', url:'https://www.mca.gov.in/', notes:'Direct method recommended; indirect most common'},
+  {id:'schiii', auth:'IND-AS', cat:'Accounting Standards Formats', icon:'📊',
+   name:'Schedule III — Balance Sheet Format', tag:'Companies Act 2013 mandatory balance sheet format',
+   fields:['Equity & liabilities side','Non-current assets','Current assets','Notes format 1-28','Prior period comparatives'],
+   due:'Annual reporting', url:'https://www.mca.gov.in/', notes:'Division I (Ind AS), Division II (non-Ind AS), Division III (NBFCs)'},
+  {id:'ias108', auth:'IND-AS', cat:'Accounting Standards Formats', icon:'📊',
+   name:'Ind AS 108 — Operating Segments', tag:'Segment reporting format for listed/large companies',
+   fields:['Segment revenue','Segment profit/loss','Segment assets','Reconciliations','Geographic info'],
+   due:'Annual + interim', url:'https://www.mca.gov.in/', notes:'Mandatory if equity/debt listed; management approach'},
+  {id:'ias17', auth:'IND-AS', cat:'Accounting Standards Formats', icon:'📊',
+   name:'Ind AS 17 — Leases (Superseded by Ind AS 116)', tag:'Right-of-use asset and lease liability format',
+   fields:['ROU asset schedule','Lease liability maturity analysis','Depreciation on ROU','Interest on lease liability','Short-term lease exemption'],
+   due:'Annual reporting', url:'https://www.mca.gov.in/', notes:'Effective from 1 Apr 2019; massive balance sheet impact'},
+  {id:'ias36', auth:'IND-AS', cat:'Accounting Standards Formats', icon:'📊',
+   name:'Ind AS 36 — Impairment Disclosure', tag:'Impairment testing disclosure format',
+   fields:['CGU identification','VIU/FVLCTS computation','Key assumptions','Sensitivity analysis','Goodwill allocation'],
+   due:'Annual reporting', url:'https://www.mca.gov.in/', notes:'Annual testing for goodwill; trigger-based for others'},
+  {id:'ias103', auth:'IND-AS', cat:'Accounting Standards Formats', icon:'📊',
+   name:'Ind AS 103 — Business Combination (PPA)', tag:'Purchase price allocation disclosure',
+   fields:['Fair value of assets acquired','Identifiable intangibles','Goodwill calculation','Deferred tax on FV','Non-controlling interest'],
+   due:'At acquisition + next annual', url:'https://www.mca.gov.in/', notes:'Mandatory for all acquisitions; IBBI valuation required'},
+
+  /* ══════════ AUDITING STANDARDS ══════════ */
+  {id:'sa700', auth:'ICAI', cat:'Auditing Standards — Report Formats', icon:'🔍',
+   name:'SA 700 — Auditor\'s Report (Revised)', tag:'Standard audit report for statutory audit',
+   fields:['Title','Addressee','Opinion paragraph','Basis for opinion','Going concern','Key audit matters','Other information','Management responsibility','Auditor responsibility','Signature block'],
+   due:'Before AGM', url:'https://www.icai.org/', notes:'Completely revised from FY19; key audit matters for listed'},
+  {id:'sa705', auth:'ICAI', cat:'Auditing Standards — Report Formats', icon:'🔍',
+   name:'SA 705 — Modified Opinion', tag:'Qualified/Adverse/Disclaimer format',
+   fields:['Modified opinion type','Basis paragraph','Effect on financial statements','Impact on EPS if material'],
+   due:'Before AGM', url:'https://www.icai.org/', notes:'Must disclose if CARO findings lead to qualification'},
+  {id:'sa706', auth:'ICAI', cat:'Auditing Standards — Report Formats', icon:'🔍',
+   name:'SA 706 — Emphasis of Matter / Other Matters', tag:'EOM and OM paragraph formats',
+   fields:['EOM para: litigation/going concern/restatement','OM para: prior year comparatives','Sequencing in report'],
+   due:'Before AGM', url:'https://www.icai.org/', notes:'EOM — draws attention without modifying opinion'},
+  {id:'caro2020', auth:'ICAI', cat:'Auditing Standards — Report Formats', icon:'🔍',
+   name:'CARO 2020 — 21 Clauses', tag:'Companies Auditor\'s Report Order — all applicable companies',
+   fields:['Clause 1: Property/assets','Clause 2: Inventory','Clause 3: Loans to related parties','Clause 4: Investments/loans/guarantees','Clause 5: Deposits','Clause 6: Cost records','Clause 7: Statutory dues','Clause 8: Unrecorded income','Clause 9: Defaults','Clause 10: Fraud','Clause 11: Nidhi companies','Clause 12: Related party transactions','Clause 13: Internal audit','Clause 14: Cash losses','Clause 15: Non-cash transactions','Clause 16: NBFC registration','Clause 17: Cash management','Clause 18: Undisclosed companies','Clause 19: Funds used for specified purpose','Clause 20: Unspent CSR','Clause 21: Qualifications in subsidiary audits'],
+   due:'As part of audit report', url:'https://www.icai.org/', notes:'CARO 2020 effective FY22; much more detailed than 2016'},
+  {id:'sa230', auth:'ICAI', cat:'Auditing Standards — Report Formats', icon:'🔍',
+   name:'SA 230 — Audit Documentation Format', tag:'Working paper structure and retention',
+   fields:['Planning file','Permanent file','Current year working papers','Summary memorandum','Review notes','Completion checklist'],
+   due:'60 days post report', url:'https://www.icai.org/', notes:'7-year retention; peer review basis'},
+  {id:'mr3', auth:'ICAI', cat:'Auditing Standards — Report Formats', icon:'🔍',
+   name:'Form MR-3 — Secretarial Audit Report', tag:'Annual secretarial audit under §204',
+   fields:['Companies Act compliance','SEBI regulations','FEMA/RBI compliance','Industry laws','Environmental/labour laws','Board structure','Share capital events'],
+   due:'Part of Board Report', url:'https://www.icai.org/', notes:'Mandatory for listed + large unlisted (PUC >₹50Cr); CS signature'},
+
+  /* ══════════ VALUATIONS ══════════ */
+  {id:'val-ibbi1', auth:'IBBI', cat:'Valuation Formats', icon:'⚖️',
+   name:'Registered Valuer Report — Securities (SFA)', tag:'IBBI standard valuation report format for shares',
+   fields:['Executive summary','Engagement terms','Company overview','Industry analysis','Methodology selected (DCF/Comparables/NAV)','DCF: FCFF projections 5-10yr','WACC calculation','Terminal value','Enterprise value → equity bridge','Valuation conclusion','Discount for lack of marketability','Assumptions & limitations'],
+   due:'As required', url:'https://www.ibbi.gov.in/', notes:'IBBI RVs must be used for insolvency, scheme of arrangement, ESOP'},
+  {id:'val-esop', auth:'ICAI', cat:'Valuation Formats', icon:'⚖️',
+   name:'ESOP Valuation — Black-Scholes Format (Ind AS 102)', tag:'Fair value of options at grant date',
+   fields:['Grant date','Exercise price','Current FMV','Expected volatility (historical)','Risk-free rate','Expected dividend yield','Expected option life','Black-Scholes output','Vesting schedule','Total ESOP charge year-wise'],
+   due:'At grant and each period', url:'https://www.icai.org/', notes:'Ind AS 102 — charge spread over vesting period'},
+  {id:'val-dma', auth:'SEBI', cat:'Valuation Formats', icon:'⚖️',
+   name:'Fairness Opinion — Takeover / Merger', tag:'Investment banker fairness opinion format',
+   fields:['Transaction overview','Valuation methods employed','DCF analysis','Comparable companies','Comparable transactions','Premiums analysis','Fairness conclusion','Limitations and assumptions'],
+   due:'Before board approval', url:'https://www.sebi.gov.in/', notes:'Required for SEBI takeover code / related party transactions'},
+  {id:'val-nbfc', auth:'RBI', cat:'Valuation Formats', icon:'⚖️',
+   name:'Net Asset Value (NAV) — Investment Funds', tag:'Mutual fund / AIF NAV computation format',
+   fields:['Security valuations (AMFI methodology)','Accruals','Expenses','Dividend/bonus adjustments','Units outstanding','NAV per unit'],
+   due:'Daily / weekly / monthly', url:'https://www.amfiindia.com/', notes:'SEBI (MF) Regulations 1996; AMFI valuation guidelines'},
+
+  /* ══════════ SEBI FORMS ══════════ */
+  {id:'drhp', auth:'SEBI', cat:'SEBI / IPO Forms', icon:'📈',
+   name:'DRHP — Draft Red Herring Prospectus', tag:'IPO filing with SEBI — ICDR 2018 format',
+   fields:['Cover page — price band/issue size','Risk factors (20-30 pages)','Business overview','Industry analysis','MD&A','Related party transactions','Management bios','Financial statements (3yr restated)','Object of the issue','Basis of issue price','Statutory and other information'],
+   due:'Filed with SEBI before IPO open', url:'https://www.sebi.gov.in/', notes:'SEBI reviews in 30 days; multiple iterations expected'},
+  {id:'form-a', auth:'SEBI', cat:'SEBI / IPO Forms', icon:'📈',
+   name:'SEBI Form A — IPO Application Format', tag:'Application cum CAF for retail investors',
+   fields:['Applicant name','PAN','Demat account (DP ID + Client ID)','ASBA bank account','Bid lots and price band','Category (RII/NII/QIB)'],
+   due:'IPO subscription period', url:'https://www.sebi.gov.in/', notes:'ASBA mandatory from 2016; no cheque applications'},
+  {id:'sfcb', auth:'SEBI', cat:'SEBI / IPO Forms', icon:'📈',
+   name:'SFCB — Statement of Financial Condition (Broker)', tag:'SEBI broker net worth certificate format',
+   fields:['Net worth computation','Capital adequacy','Client funds segregation','Margin collection proof'],
+   due:'Half-yearly', url:'https://www.sebi.gov.in/', notes:'CA certificate required; minimum net worth ₹1Cr for broker'},
+  {id:'insider', auth:'SEBI', cat:'SEBI / IPO Forms', icon:'📈',
+   name:'Initial/Continual Disclosure (PIT Regulations)', tag:'Insider trading disclosure — designated persons',
+   fields:['Holding pre-transaction','Transaction details','Post-transaction holding','Nature of securities','Disclosure mode (XBRL)'],
+   due:'2 trading days of transaction', url:'https://www.sebi.gov.in/', notes:'SEBI PIT Regulations 2015; SDD system for trading plan'},
+  {id:'brsr', auth:'SEBI', cat:'SEBI / IPO Forms', icon:'📈',
+   name:'BRSR — Business Responsibility & Sustainability Report', tag:'9 principles ESG reporting for listed companies',
+   fields:['Section A: Company profile','Section B: Management policies','Section C: 9 NGRBC principles','P1: Ethics','P2: Product responsibility','P3: Employee wellbeing','P4: Stakeholder engagement','P5: Human rights','P6: Environment','P7: Policy advocacy','P8: Inclusive growth','P9: Customer value'],
+   due:'Part of Annual Report', url:'https://www.sebi.gov.in/', notes:'Mandatory for top 1000 listed by market cap from FY23'},
+
+  /* ══════════ NSE / BSE FORMS ══════════ */
+  {id:'xbrl-fin', auth:'NSE/BSE', cat:'NSE / BSE Filings', icon:'📉',
+   name:'XBRL Financial Results — Quarterly', tag:'Ind AS financial results in XBRL format §33 LODR',
+   fields:['Standalone quarterly P&L','Consolidated quarterly P&L','Balance sheet (half-yearly)','Audit/review report','Segment reporting'],
+   due:'45 days (Q1/Q2/Q3), 60 days (Q4)', url:'https://www.bseindia.com/', notes:'BSE XBRL portal + NSE NEAPS system; auditor review mandatory from Q2'},
+  {id:'lodr33', auth:'NSE/BSE', cat:'NSE / BSE Filings', icon:'📉',
+   name:'LODR Regulation 33 — Financial Results', tag:'Format for listed company quarterly results',
+   fields:['Standalone P&L','Consolidated P&L','Notes','Auditor report','Management comment'],
+   due:'45 days post quarter', url:'https://www.sebi.gov.in/', notes:'SEBI LODR 2015; penalty for delay up to ₹1L per day'},
+  {id:'lodr30', auth:'NSE/BSE', cat:'NSE / BSE Filings', icon:'📉',
+   name:'LODR Regulation 30 — Continuous Disclosure', tag:'Material event disclosure within 30 minutes',
+   fields:['Board meeting outcomes','Merger/acquisition','Change in KMP','AGM/EGM outcomes','Court orders','Rating changes','Award/termination of major contracts'],
+   due:'30 minutes of event', url:'https://www.sebi.gov.in/', notes:'Company secretary must file on exchange portals immediately'},
+  {id:'agm-notice', auth:'NSE/BSE', cat:'NSE / BSE Filings', icon:'📉',
+   name:'AGM Notice + Explanatory Statement', tag:'§102 Companies Act — notice format for general meetings',
+   fields:['Agenda items','Explanatory statement for each item','Director disclosure §184','Related party transaction approval','Scrutiniser appointment','E-voting instructions (NSDL/CDSL)'],
+   due:'21 clear days before meeting', url:'https://www.mca.gov.in/', notes:'LODR: 21 days notice; send to exchanges simultaneously'},
+  {id:'reconciliation', auth:'NSE/BSE', cat:'NSE / BSE Filings', icon:'📉',
+   name:'Reconciliation of Share Capital Audit', tag:'Quarterly audit of share capital in demat form §55A SEBI',
+   fields:['Share capital as per registers','Demat with NSDL','Demat with CDSL','Physical shares','Reconciliation difference','Reason for difference'],
+   due:'30 days post quarter', url:'https://www.sebi.gov.in/', notes:'CA / PCS certificate; mandatory for all listed companies'},
+
+  /* ══════════ RBI / FEMA FORMS ══════════ */
+  {id:'fc-gpr', auth:'RBI', cat:'RBI / FEMA Forms', icon:'🏦',
+   name:'Form FC-GPR', tag:'FDI reporting — issue of shares to non-resident §6(3) FEMA 20',
+   fields:['Investee company details','Non-resident investor details','Number of shares','Consideration received','Valuation report (per RBI)','Remittance evidence (FIRC/eBRC)','CS certificate'],
+   due:'30 days of receiving remittance', url:'https://www.rbi.org.in/', notes:'Filed on FIRMS portal; valuation mandatory for equity'},
+  {id:'fc-trs', auth:'RBI', cat:'RBI / FEMA Forms', icon:'🏦',
+   name:'Form FC-TRS', tag:'Transfer of shares between resident and non-resident',
+   fields:['Transferor / transferee details','Class of shares','Transfer price','Pricing guidelines compliance','Payment mode','No-objection from RBI (if needed)'],
+   due:'60 days of transfer', url:'https://www.rbi.org.in/', notes:'FIRMS portal; pricing must be per RBI guidelines'},
+  {id:'form-ecb', auth:'RBI', cat:'RBI / FEMA Forms', icon:'🏦',
+   name:'Form ECB / ECB-2', tag:'External commercial borrowing registration and monthly return',
+   fields:['Borrower details','Lender details','Loan amount','Purpose','End use','Draw down details','Repayments','OI balance'],
+   due:'LRN within 7 days; monthly return by 7th', url:'https://www.rbi.org.in/', notes:'LRN from RBI → monthly ECB-2 return through AD bank'},
+  {id:'fla', auth:'RBI', cat:'RBI / FEMA Forms', icon:'🏦',
+   name:'Annual Return on Foreign Liabilities & Assets (FLA)', tag:'Annual FEMA compliance for Indian companies with FDI/ODI',
+   fields:['FDI received (equity + others)','ODI made','FLA balances','Income flows','Dividend paid','Share capital outstanding'],
+   due:'15 July (for FY ending March)', url:'https://www.rbi.org.in/', notes:'Online on FLAIR portal; penalty for non-filing ₹5000/day'},
+  {id:'form-odi', auth:'RBI', cat:'RBI / FEMA Forms', icon:'🏦',
+   name:'Form ODI — Overseas Direct Investment', tag:'Indian company investing abroad FEMA 120',
+   fields:['Indian party details','Foreign entity details','Nature of investment','Financial commitment','Purpose','Approval route'],
+   due:'Before investment (approval) / 30 days (automatic)', url:'https://www.rbi.org.in/', notes:'Automatic route up to 400% of net worth; FIRMS portal'},
+  {id:'trs', auth:'RBI', cat:'RBI / FEMA Forms', icon:'🏦',
+   name:'Form A2 — Outward Remittance', tag:'Application for outward foreign exchange remittance',
+   fields:['Purpose code','Remittee details','Currency and amount','Underlying transaction','Declaration','15CA/15CB reference'],
+   due:'Before remittance', url:'https://www.rbi.org.in/', notes:'Submitted to AD Bank; aligned with purpose codes FEMA'},
+
+  /* ══════════ PROVIDENT FUND / ESI ══════════ */
+  {id:'pf-ecr', auth:'EPFO', cat:'Labour Law / PF / ESI', icon:'👷',
+   name:'ECR 2.0 — Electronic Challan cum Return (PF)', tag:'Monthly PF return for all registered establishments',
+   fields:['Employee UAN','Gross wages','EPF wages','EPS wages','EPF employee share 12%','EPF employer 3.67%','EPS employer 8.33%','EDLI 0.5%'],
+   due:'15th of following month', url:'https://www.epfindia.gov.in/', notes:'Payment by 15th; ECR upload on EPFO portal unified'},
+  {id:'esi-return', auth:'ESIC', cat:'Labour Law / PF / ESI', icon:'👷',
+   name:'ESIC Return — Form 5', tag:'Half-yearly ESI return for registered employers',
+   fields:['Total employees','Wages paid','ESI contributions — employer 3.25% + employee 0.75%','Accident reports','Dispensary details'],
+   due:'11 May (Oct–Mar), 11 Nov (Apr–Sep)', url:'https://www.esic.in/', notes:'Threshold: ₹21,000 per month wages; 10+ employees'},
+  {id:'pt-return', auth:'STATE', cat:'Labour Law / PF / ESI', icon:'👷',
+   name:'Professional Tax Return (State-wise)', tag:'Monthly/annual PT deduction and remittance',
+   fields:['Employee list','Salary slabs','PT deducted per employee','Total PT','Challan number'],
+   due:'Monthly (some states), Annual', url:'https://state.gov.in/', notes:'Max ₹2500/yr per employee; deductible under §16(iii) IT Act'},
+
+  /* ══════════ CUSTOMS / IMPORT-EXPORT ══════════ */
+  {id:'bill-entry', auth:'CUSTOMS', cat:'Customs / Import-Export', icon:'🚢',
+   name:'Bill of Entry (Import)', tag:'Customs declaration for imported goods',
+   fields:['Importer IEC','HS code','CIF value','Basic customs duty','IGST on import','Anti-dumping/safeguard','Bill of lading','Invoice + packing list'],
+   due:'Before clearance', url:'https://www.cbic.gov.in/', notes:'Home consumption / warehouse / transit as applicable'},
+  {id:'shipping-bill', auth:'CUSTOMS', cat:'Customs / Import-Export', icon:'🚢',
+   name:'Shipping Bill (Export)', tag:'Customs declaration for exported goods',
+   fields:['Exporter IEC','HS code','FOB value','IGST refund claim','Drawback claim','Let export order','ARE-1 (for excisable goods)'],
+   due:'Before shipment', url:'https://www.cbic.gov.in/', notes:'IGST refund auto-processed via ICEGATE-GSTN link'},
+  {id:'form15cb-nri', auth:'CUSTOMS', cat:'Customs / Import-Export', icon:'🚢',
+   name:'eBRC — Export Bills Realisation Certificate', tag:'FEMA compliance for export proceeds realisation',
+   fields:['Invoice number','FOB value','Currency','Realisation date','Realised amount','Bank endorsement'],
+   due:'Within 9 months of export', url:'https://www.dgft.gov.in/', notes:'DGFT portal; needed for RoDTEP/SEIS/advance authorisation'},
+
+  /* ══════════ INSOLVENCY / IBC ══════════ */
+  {id:'ibc-cirp', auth:'IBBI', cat:'IBC / Insolvency Forms', icon:'⚖️',
+   name:'Form 1 — Application for CIRP (Financial Creditor §7)', tag:'NCLT application to initiate insolvency',
+   fields:['Financial creditor details','Amount of default','Date of default','Evidence of debt','Evidence of default','Proposed IRP','Annexed documents'],
+   due:'On default ≥₹1Cr', url:'https://www.ibbi.gov.in/', notes:'NCLT admission within 14 days; IRP appointed'},
+  {id:'ibc-resolution', auth:'IBBI', cat:'IBC / Insolvency Forms', icon:'⚖️',
+   name:'Information Memorandum — Resolution Plan Format', tag:'IM and RP format for IBC CIRP process',
+   fields:['Corporate debtor profile','Financial history (5yr)','Assets list','Liabilities list','Pending litigation','Business plan','CoC details','Liquidation value','Fair value'],
+   due:'During CIRP (180+90 days)', url:'https://www.ibbi.gov.in/', notes:'IBBI IM model framework; minimum information requirements'},
+
+  /* ══════════ OTHER REGULATORY ══════════ */
+  {id:'fcra', auth:'MHA', cat:'Other Regulatory Forms', icon:'📝',
+   name:'FC-6A / FCRA Annual Return', tag:'Annual return for foreign contribution receipt §18 FCRA 2010',
+   fields:['Foreign contributions received by source','Purpose-wise utilisation','Bank account balance','District-wise utilisation (FC-6D)'],
+   due:'31 December (for year ending March)', url:'https://fcraonline.nic.in/', notes:'NGOs/trusts receiving foreign funds; renewal every 5yr'},
+  {id:'csr', auth:'ROC', cat:'Other Regulatory Forms', icon:'📝',
+   name:'CSR-1 + CSR-2 — CSR Annual Filing', tag:'CSR registration and annual reporting §135',
+   fields:['CSR-1: Implementing agency registration','CSR-2: Annual CSR expenditure','Ongoing projects','Completed projects','Amount spent vs obligation','Unspent amount and transfer details'],
+   due:'31 March (CSR-2 with AOC-4)', url:'https://www.mca.gov.in/', notes:'Mandatory for companies with net profit ≥₹5Cr or turnover ≥₹1000Cr'},
+  {id:'form26q', auth:'IT', cat:'TDS Returns', icon:'📋',
+   name:'Form 26Q — TDS on Non-Salary Payments', tag:'Quarterly TDS return for contractors, professionals, rent, interest',
+   fields:['Deductor TAN','Challan details','Deductee PAN','Nature of payment (section)','Amount paid','TDS deducted','Certificate issuance'],
+   due:'31 Jul/31 Oct/31 Jan/31 May', url:'https://incometaxindia.gov.in/', notes:'26QB (property), 26QC (rent), 26QD (contractor payment)'},
+  {id:'form24q', auth:'IT', cat:'TDS Returns', icon:'📋',
+   name:'Form 24Q — TDS on Salary', tag:'Quarterly TDS return for salary payments',
+   fields:['Employee PAN/Aadhar','Salary breakup','Declarations (HRA/LTA/80C/80D)','TDS computed','Challans'],
+   due:'31 Jul/31 Oct/31 Jan/31 May', url:'https://incometaxindia.gov.in/', notes:'Q4 includes Annexure II (Form 16 data)'},
+  {id:'form27q', auth:'IT', cat:'TDS Returns', icon:'📋',
+   name:'Form 27Q — TDS on NRI Payments', tag:'TDS on payments to non-residents §195',
+   fields:['NRI payee details','Country of residence','DTAA applicable','Rate of TDS','Gross amount paid','Tax deducted'],
+   due:'Quarterly', url:'https://incometaxindia.gov.in/', notes:'Lower deduction certificate from ITO if applicable'},
+];
+
+/* ── AUTHORITIES + CATEGORIES ── */
+var FMT_AUTHS = {
+  'IT':     { label:'Income Tax',      col:'#D4A853', icon:'🏛️' },
+  'GST':    { label:'GST',             col:'#5DB896', icon:'🧾' },
+  'ROC':    { label:'ROC / MCA',       col:'#64B5C8', icon:'🏢' },
+  'IND-AS': { label:'Ind AS / ICAI',   col:'#9B8EC4', icon:'📊' },
+  'ICAI':   { label:'ICAI / Auditing', col:'#9B8EC4', icon:'🔍' },
+  'SEBI':   { label:'SEBI',            col:'#C47080', icon:'📈' },
+  'NSE/BSE':{ label:'NSE / BSE',       col:'#64B5C8', icon:'📉' },
+  'RBI':    { label:'RBI / FEMA',      col:'#D4A853', icon:'🏦' },
+  'IBBI':   { label:'IBBI / IBC',      col:'#C4895A', icon:'⚖️' },
+  'EPFO':   { label:'EPFO / ESI',      col:'#5DB896', icon:'👷' },
+  'ESIC':   { label:'ESIC',            col:'#5DB896', icon:'👷' },
+  'STATE':  { label:'State / PT',      col:'#8090A8', icon:'📍' },
+  'CUSTOMS':{ label:'Customs / DGFT',  col:'#C4895A', icon:'🚢' },
+  'MHA':    { label:'MHA / FCRA',      col:'#8090A8', icon:'📝' },
+};
+
+/* ── RENDER FORMATS HOME ── */
+function renderFormats(){
+  var fmt = FMT_STATE;
+  var filtered = FORMATS_LIB.filter(function(f){
+    var q = fmt.filter.toLowerCase();
+    var matchSearch = !q || f.name.toLowerCase().includes(q) || f.cat.toLowerCase().includes(q) || f.tag.toLowerCase().includes(q) || f.auth.toLowerCase().includes(q);
+    var matchCat    = !fmt.category || f.cat === fmt.category;
+    var matchAuth   = !fmt.authority || f.auth === fmt.authority;
+    return matchSearch && matchCat && matchAuth;
+  });
+
+  var cats = [];
+  var authKeys = [];
+  FORMATS_LIB.forEach(function(f){
+    if(cats.indexOf(f.cat)===-1) cats.push(f.cat);
+    if(authKeys.indexOf(f.auth)===-1) authKeys.push(f.auth);
+  });
+
+  var h = '<div class="portal-pad">';
+  h += '<div class="page-title">&#128196; Compliance Formats Library</div>';
+  h += '<div class="page-sub" style="margin-bottom:20px">'+FORMATS_LIB.length+' forms & formats across Income Tax, GST, ROC, SEBI, RBI, ICAI, NSE/BSE, IBBI and all major Indian legislation</div>';
+
+  /* Stats bar */
+  h += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">';
+  var authGroups = {};
+  FORMATS_LIB.forEach(function(f){ authGroups[f.auth]=(authGroups[f.auth]||0)+1; });
+  Object.keys(FMT_AUTHS).forEach(function(k){
+    if(!authGroups[k]) return;
+    var a = FMT_AUTHS[k];
+    h += '<div style="background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:8px 12px;border-left:3px solid '+a.col+';cursor:pointer;min-width:80px" onclick="FMT_STATE.authority=(FMT_STATE.authority===\''+k+'\' ? \'\' : \''+k+'\');renderMain()">';
+    h += '<div style="font-size:14px">'+a.icon+'</div>';
+    h += '<div style="font-size:11px;font-weight:700;color:'+(fmt.authority===k?a.col:'var(--text)')+';margin-top:2px">'+a.label+'</div>';
+    h += '<div style="font-size:10px;color:var(--muted)">'+authGroups[k]+' forms</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  /* Search + filters */
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">';
+  h += '<input class="inp" id="fmt-search" style="flex:1;min-width:200px;max-width:320px" placeholder="&#128269; Search forms, returns, formats..." value="'+escFmt(fmt.filter)+'" oninput="FMT_STATE.filter=this.value;renderMain()"/>';
+  h += '<select class="inp" style="width:auto" onchange="FMT_STATE.category=this.value;renderMain()">';
+  h += '<option value="">All Categories</option>';
+  cats.forEach(function(c){ h += '<option value="'+c+'"'+(fmt.category===c?' selected':'')+'>'+c+'</option>'; });
+  h += '</select>';
+  if(fmt.filter||fmt.category||fmt.authority){
+    h += '<span style="font-size:11px;color:var(--muted)">'+filtered.length+' results</span>';
+    h += '<button onclick="FMT_STATE={filter:\'\',category:\'\',authority:\'\',view:\'grid\',selected:null};renderMain()" class="btn btn-outline btn-sm">Clear</button>';
+  }
+  h += '</div>';
+
+  if(!filtered.length){
+    h += '<div style="text-align:center;padding:40px;color:var(--muted)">No forms found for your search. <a onclick="FMT_STATE.filter=\'\';FMT_STATE.category=\'\';FMT_STATE.authority=\'\';renderMain()" style="color:var(--gold);cursor:pointer">Clear filters</a></div>';
+    h += '</div>'; return h;
+  }
+
+  /* Group by category and render */
+  var catMap = {};
+  filtered.forEach(function(f){ if(!catMap[f.cat]) catMap[f.cat]=[]; catMap[f.cat].push(f); });
+
+  Object.keys(catMap).forEach(function(cat){
+    var items = catMap[cat];
+    var authCol = (FMT_AUTHS[items[0].auth]||{col:'var(--muted)'}).col;
+
+    h += '<div style="margin-bottom:24px">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border2)">';
+    h += '<span style="font-size:16px">'+items[0].icon+'</span>';
+    h += '<span style="font-size:12px;font-weight:800;color:var(--text)">'+cat+'</span>';
+    h += '<span style="font-size:9px;font-weight:700;background:'+authCol+'18;color:'+authCol+';border-radius:99px;padding:2px 8px">'+items.length+'</span>';
+    h += '</div>';
+
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">';
+    items.forEach(function(f){
+      var auth = FMT_AUTHS[f.auth] || {col:'var(--muted)', label:f.auth};
+      h += '<div data-fmtid="'+f.id+'" onclick="fmtOpen(this.dataset.fmtid)" style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;cursor:pointer;transition:.15s;border-left:3px solid '+auth.col+'">';
+      h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">';
+      h += '<div style="font-size:12px;font-weight:800;color:var(--text);line-height:1.3">'+f.name+'</div>';
+      h += '<span style="font-size:8px;font-weight:700;background:'+auth.col+'18;color:'+auth.col+';border-radius:4px;padding:2px 6px;white-space:nowrap;flex-shrink:0">'+auth.label+'</span>';
+      h += '</div>';
+      h += '<div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:8px">'+f.tag+'</div>';
+      h += '<div style="display:flex;align-items:center;justify-content:space-between">';
+      if(f.due){ h += '<span style="font-size:9px;color:var(--dim)">&#128197; '+f.due+'</span>'; }
+      h += '<span style="font-size:10px;color:'+auth.col+'">View fields &#8594;</span>';
+      h += '</div></div>';
+    });
+    h += '</div></div>';
+  });
+
+  h += '</div>';
+  return h;
+}
+
+/* ── FORMAT DETAIL VIEW ── */
+window.fmtOpen = function(id){
+  var f = FORMATS_LIB.find(function(x){ return x.id===id; });
+  if(!f) return;
+  FMT_STATE.selected = id;
+
+  var auth = FMT_AUTHS[f.auth] || {col:'var(--muted)', label:f.auth, icon:'📋'};
+
+  var overlay = document.createElement('div');
+  overlay.id = 'fmt-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;display:flex;align-items:center;justify-content:center;padding:16px';
+
+  var h = '<div style="background:var(--surface);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto;padding:0">';
+
+  /* Header */
+  h += '<div style="padding:20px 24px;border-bottom:1px solid var(--border2);position:sticky;top:0;background:var(--surface);z-index:1">';
+  h += '<div style="display:flex;align-items:flex-start;gap:12px">';
+  h += '<div style="width:44px;height:44px;border-radius:12px;background:'+auth.col+'18;border:1px solid '+auth.col+'33;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">'+f.icon+'</div>';
+  h += '<div style="flex:1">';
+  h += '<div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--text)">'+f.name+'</div>';
+  h += '<div style="font-size:10px;color:'+auth.col+';font-weight:700;margin-top:2px">'+auth.icon+' '+auth.label+'</div>';
+  h += '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">'+f.tag+'</div>';
+  h += '</div>';
+  h += '<button onclick="document.getElementById(\'fmt-modal\').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;flex-shrink:0">&#x2715;</button>';
+  h += '</div></div>';
+
+  /* Key details strip */
+  h += '<div style="display:flex;gap:0;border-bottom:1px solid var(--border2)">';
+  if(f.due){
+    h += '<div style="flex:1;padding:12px 16px;border-right:1px solid var(--border2)">';
+    h += '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:3px">Due Date</div>';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text)">'+f.due+'</div>';
+    h += '</div>';
+  }
+  if(f.auth){
+    h += '<div style="flex:1;padding:12px 16px;border-right:1px solid var(--border2)">';
+    h += '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:3px">Authority</div>';
+    h += '<div style="font-size:11px;font-weight:700;color:'+auth.col+'">'+auth.label+'</div>';
+    h += '</div>';
+  }
+  h += '<div style="flex:1;padding:12px 16px">';
+  h += '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:3px">Category</div>';
+  h += '<div style="font-size:11px;font-weight:700;color:var(--text)">'+f.cat+'</div>';
+  h += '</div></div>';
+
+  /* Fields */
+  h += '<div style="padding:20px 24px;border-bottom:1px solid var(--border2)">';
+  h += '<div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:10px">&#128203; Key Fields / Sections</div>';
+  h += '<div style="display:flex;flex-direction:column;gap:6px">';
+  f.fields.forEach(function(field){
+    h += '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:rgba(255,255,255,.02);border-radius:7px">';
+    h += '<div style="width:5px;height:5px;border-radius:50%;background:'+auth.col+';flex-shrink:0;margin-top:5px"></div>';
+    h += '<div style="font-size:11px;color:var(--muted)">'+field+'</div>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+
+  /* Notes */
+  if(f.notes){
+    h += '<div style="padding:16px 24px;border-bottom:1px solid var(--border2)">';
+    h += '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:6px">Key Notes</div>';
+    h += '<div style="font-size:11px;color:var(--muted);line-height:1.7;background:rgba(255,255,255,.02);border-radius:8px;padding:10px 12px">'+f.notes+'</div>';
+    h += '</div>';
+  }
+
+  /* Actions */
+  h += '<div style="padding:16px 24px;display:flex;gap:8px;flex-wrap:wrap">';
+  if(f.url){
+    h += '<a href="'+f.url+'" target="_blank" class="btn btn-gold btn-sm" style="text-decoration:none">&#128279; Official Source &#8599;</a>';
+  }
+  /* Ask AI about this form */
+  var aiQ = 'Walk me through '+f.name+' in detail — key requirements, common errors CAs make, and the top things to check before filing.';
+  h += '<button onclick="document.getElementById(\'fmt-modal\').remove(); fmtAskAI(\''+f.id+'\')" class="btn btn-outline btn-sm">&#129504; Ask AI About This Form</button>';
+  h += '</div>';
+  h += '</div>';
+
+  overlay.innerHTML = h;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+};
+
+window.fmtAskAI = function(id){
+  var f = FORMATS_LIB.find(function(x){ return x.id===id; });
+  if(!f) return;
+  /* Pre-fill AI chat with question about this form */
+  var asst = (typeof AI_ASSISTANTS !== 'undefined')
+    ? (AI_ASSISTANTS.find(function(a){ return a.id==='gst-advisor' || a.cat==='Tax & Compliance'; }) || AI_ASSISTANTS[0])
+    : null;
+  if(asst){
+    P.aiAssistant = asst;
+    P.aiHistory   = [{role:'user', content:'Tell me everything important about '+f.name+' — requirements, due dates, key fields, common errors and what to verify before filing. Include any recent amendments.'}];
+    P.aiLoading   = true;
+    P.view        = 'ai-chat';
+    renderSidebar(); renderMain();
+    /* Auto-send */
+    if(typeof window.sendChat === 'function'){
+      setTimeout(function(){ window.sendChat && window.sendChat(true); }, 100);
+    }
+  } else {
+    alert('AI assistant not available. Navigate to AI Assistants to ask about this form.');
+  }
+};
+
+function escFmt(str){ return String(str||'').replace(/"/g,'&quot;'); }
+
 
 </script>
 </body>
