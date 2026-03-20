@@ -323,7 +323,7 @@ body {
   <a href="mb.html" class="ps-link">🏦 MB Portal</a>
   <a href="institutions.html" class="ps-link">🏛️ Intelligence</a>
   <a href="deep-research.html" class="ps-link">🧠 Deep Research</a>
-  <a href="ca-cs.html" class="ps-link">⚖️ CA/CS Hub</a>
+  <a href="ca-cs.html" class="ps-link">⚖️ CA/CS Professionals Hub</a>
 </div>
 
 <!-- QUICK ACCESS MODAL (email + phone + consent) -->
@@ -498,6 +498,7 @@ var NAV_ITEMS=[
   {id:'aida',      icon:'📄', label:'AIDA Document Review',    badge:'FREE'},
   {id:'mb-match',  icon:'🏦', label:'Merchant Banker Match',   badge:'FREE'},
   {id:'timeline',  icon:'📅', label:'IPO Roadmap Builder',     badge:'PRO'},
+  {id:'experts',   icon:'🤝', label:'Consult Expert',            badge:'NEW'},
   {id:'journey',   icon:'🗺️', label:'My IPO Journey',         badge:'NEW'},
   {id:'ai',        icon:'🤖', label:'AI Assistants',           badge:'19'},
 ];
@@ -532,8 +533,10 @@ function renderMain(){
   else if(P.view==='aida')   c = renderAIDA();
   else if(P.view==='mb-match') c = renderMBMatch();
   else if(P.view==='timeline') c = renderTimeline();
+  else if(P.view==='experts') c = renderExperts();
   else if(P.view==='journey') c = renderCRMIssuer();
   else if(P.view==='ai')     c = renderAIHome();
+  else if(P.view==='experts') c = renderExpertConsult(P.expertContext||'');
   else if(P.view==='ai-chat')  c = renderAIChat();
   else c = '<div class="portal-pad"><div class="page-title">Coming Soon</div></div>';
   pm.innerHTML = c;
@@ -600,6 +603,7 @@ function renderDashboard(){
     {nav:'checklist',icon:'&#128203;', col:'#9B7FE8', title:'IPO Checklist',            desc:'Shared with your Merchant Banker',       badge:'SHARED'},
     {nav:'mb-match', icon:'&#127970;', col:'#A78BFA', title:'Merchant Banker Match',    desc:'AI-matched SEBI-registered MBs',         badge:'FREE'},
     {nav:'ai',       icon:'&#129504;', col:'#7BBFA0', title:'19 AI Assistants',         desc:'IPO · Tax · Legal · Governance AI',      badge:'FREE'},
+    {nav:'experts',  icon:'🩺',         col:'#C47080', title:'Fix Now — Consult Expert',  desc:'Connect with ICAI/ICSI verified IPO professionals', badge:'HOT'},
   ];
 
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px">';
@@ -2988,6 +2992,122 @@ function creditShowInsufficient(cost, balance, label){
 function creditWalletHTML(){
   return '<div id="credit-wallet" onclick="showTopUp()" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;border-radius:99px;background:rgba(191,160,106,.06);border:1px solid rgba(191,160,106,.12)" title="Click to top up credits">&#128179; <span style="font-size:11px;font-weight:700;color:#BFA06A">'+(CREDIT_BALANCE!==null?CREDIT_BALANCE:'...')+' credits</span></div>';
 }
+
+
+/* ── EXPERT CONSULTANTS DATA ── */
+var IPOWORK_EXPERTS = [
+  {id:'e1', name:'CA Rajiv Mehta', role:'IPO & SEBI Compliance Specialist', exp:'18 years', firms:'Helped 40+ SME IPOs list on NSE Emerge', speciality:'SEBI ICDR, DRHP, RPT Compliance', fee:'₹5,000/hr', avail:'Available this week', icon:'👨‍💼', col:'#5DB896'},
+  {id:'e2', name:'CS Priya Sharma', role:'Company Secretary & RoC Expert', exp:'14 years', firms:'Ex-ICSI faculty, 60+ company secretarial mandates', speciality:'MCA filings, Board governance, Secretarial audit', fee:'₹3,500/hr', avail:'Available today', icon:'👩‍⚖️', col:'#64B5C8'},
+  {id:'e3', name:'CA Vikram Gupta', role:'CFO Advisory & Financial Restating', exp:'22 years', firms:'Big4 alumni, 25+ IPO financial restatements', speciality:'Ind AS restatement, DRHP financials, MD&A', fee:'₹8,000/hr', avail:'Next available: Mon', icon:'📊', col:'#C8A86E'},
+  {id:'e4', name:'Adv. Sunita Patel', role:'SEBI & Capital Market Lawyer', exp:'16 years', firms:'Boutique capital markets law firm', speciality:'Takeover code, SEBI enforcement, insider trading', fee:'₹7,000/hr', avail:'Available this week', icon:'⚖️', col:'#9B8EC4'},
+  {id:'e5', name:'CA Amit Joshi', role:'Tax Due Diligence & Structuring', exp:'20 years', firms:'Restructured 30+ pre-IPO corporate structures', speciality:'Tax DD, RPT cleanup, holding structure', fee:'₹6,000/hr', avail:'Available today', icon:'💰', col:'#C4895A'},
+];
+
+function renderExpertConsult(context){
+  var h = '<div class="portal-pad">';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">';
+  h += '<button onclick="history.go(-1);renderMain()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">←</button>';
+  h += '<div class="page-title" style="margin:0">🩺 Fix Now — Consult an Expert</div></div>';
+  h += '<div class="page-sub" style="margin-bottom:24px">Connect with verified IPO professionals — fix gaps and prepare for listing. ICAI/ICSI registered.</div>';
+
+  /* Filter by context */
+  var experts = IPOWORK_EXPERTS;
+
+  h += '<div style="display:flex;flex-direction:column;gap:14px">';
+  experts.forEach(function(e){
+    h += '<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">';
+    h += '<div style="width:52px;height:52px;border-radius:12px;background:'+e.col+'18;border:1px solid '+e.col+'33;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">'+e.icon+'</div>';
+    h += '<div style="flex:1;min-width:200px">';
+    h += '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:2px">'+e.name+'</div>';
+    h += '<div style="font-size:11px;color:'+e.col+';font-weight:700;margin-bottom:6px">'+e.role+'</div>';
+    h += '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">'+e.firms+'</div>';
+    h += '<div style="font-size:10px;color:var(--dim)">🎯 '+e.speciality+'</div>';
+    h += '</div>';
+    h += '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0">';
+    h += '<div style="font-size:12px;font-weight:800;color:var(--text)">'+e.fee+'</div>';
+    h += '<div style="font-size:9px;color:var(--green)">🟢 '+e.avail+'</div>';
+    h += '<div style="font-size:9px;color:var(--muted)">'+e.exp+' experience</div>';
+    h += '<button data-eid="'+e.id+'" onclick="expertContact(this.dataset.eid)" style="padding:7px 16px;border-radius:8px;background:'+e.col+'18;border:1px solid '+e.col+'44;color:'+e.col+';font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">Quick Connect →</button>';
+    h += '</div></div>';
+  });
+  h += '</div>';
+
+  h += '<div style="margin-top:20px;padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid var(--border2);border-radius:10px;font-size:10px;color:var(--muted)">All experts are ICAI/ICSI registered professionals. ipowork verifies credentials and facilitates introduction only. Engagement terms are directly between you and the expert.</div>';
+  h += '</div>';
+  return h;
+}
+
+window.expertContact = function(id){
+  var e = IPOWORK_EXPERTS.find(function(x){ return x.id===id; });
+  if(!e) return;
+  var msg = 'Quick Connect Request sent for ' + e.name + '. We will share your contact details with the expert and they will reach out within 2 business hours.';
+  alert(msg);
+  /* In production: POST to backend with SESS.email + expert id */
+};
+
+
+function renderExperts(){
+  var experts=[
+    {name:'Hem Securities Ltd',type:'Merchant Banker',exp:'200+ SME IPOs',sectors:'Manufacturing, Pharma, Auto',sebi:'INM000010883',rating:4.8,tag:'Top SME MB',col:'#5DB896'},
+    {name:'Pantomath Capital',type:'Merchant Banker',exp:'150+ IPOs',sectors:'IT, FMCG, Healthcare',sebi:'INM000012236',rating:4.7,tag:'Main Board Specialist',col:'#64B5C8'},
+    {name:'GYR Capital Advisors',type:'Merchant Banker',exp:'80+ SME IPOs',sectors:'Textile, Chemicals, Retail',sebi:'INM000015798',rating:4.5,tag:'SME Specialist',col:'#C8A86E'},
+    {name:'Beeline Capital',type:'Merchant Banker',exp:'100+ IPOs',sectors:'Infrastructure, Real Estate',sebi:'INM000012771',rating:4.6,tag:'Growth Companies',col:'#9B8EC4'},
+    {name:'SPA Mergers Advisors',type:'Merchant Banker',exp:'180+ Mandates',sectors:'Diversified',sebi:'INM000009809',rating:4.7,tag:'Large Cap Deals',col:'#C4895A'},
+    {name:'A&M Tax Advisory',type:'CA Firm',exp:'500+ IPO Clients',sectors:'All sectors',sebi:'ICAI Registered',rating:4.9,tag:'Tax + IPO DD',col:'#5DB896'},
+    {name:'Khaitan & Co',type:'Legal Advisor',exp:'300+ IPOs',sectors:'All sectors',sebi:'Bar Council',rating:4.8,tag:'DRHP Drafting',col:'#C8A86E'},
+    {name:'IndusLaw',type:'Legal Advisor',exp:'200+ IPOs',sectors:'Tech, Finance, Manufacturing',sebi:'Bar Council',rating:4.7,tag:'SEBI Filings',col:'#64B5C8'},
+  ];
+  var h='<div class="portal-pad">';
+  h+='<div class="page-title">&#128204; Consult Expert</div>';
+  h+='<div class="page-sub" style="margin-bottom:20px">Verified Merchant Bankers, CA firms and legal advisors for your IPO journey</div>';
+  if(P.airaResult){
+    h+='<div style="background:rgba(200,169,110,.06);border:1px solid rgba(200,169,110,.15);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:11px;color:var(--muted)">&#128202; Our AI will pre-brief the expert on your AIRA score and compliance gaps to save time on the call.</div>';
+  }
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">';
+  experts.forEach(function(e){
+    h+='<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:16px;border-top:3px solid '+e.col+'">';
+    h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">';
+    h+='<div><div style="font-size:12px;font-weight:800;color:var(--text)">'+e.name+'</div>';
+    h+='<div style="font-size:10px;color:'+e.col+';font-weight:700;margin-top:2px">'+e.type+'</div></div>';
+    h+='<span style="font-size:8px;background:'+e.col+'18;color:'+e.col+';border-radius:4px;padding:2px 6px;font-weight:700">'+e.tag+'</span>';
+    h+='</div>';
+    h+='<div style="font-size:10px;color:var(--muted);margin-bottom:3px">'+e.exp+'</div>';
+    h+='<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+e.sectors+'</div>';
+    h+='<div style="font-size:9px;color:var(--dim);margin-bottom:10px">SEBI: '+e.sebi+' &nbsp;&#9733; '+e.rating+'</div>';
+    h+='<button data-ename="'+e.name.replace(/"/g,'&quot;')+'" onclick="expertConnect(this.dataset.ename)" style="width:100%;padding:8px;border-radius:8px;background:'+e.col+'18;border:1px solid '+e.col+'33;color:'+e.col+';font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">Quick Connect &#8594;</button>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+  return h;
+}
+
+window.expertConnect = function(name){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<div style="background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:24px;max-width:420px;width:100%;text-align:center">'
+    +'<div style="font-size:36px;margin-bottom:10px">&#128204;</div>'
+    +'<div style="font-family:var(--serif);font-size:17px;font-weight:900;color:var(--text);margin-bottom:8px">Connect with '+name+'</div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.7">Team responds within 1 business day. Your AIRA score and company profile will be shared.</div>'
+    +'<input id="exp-email" class="inp" type="email" placeholder="Your email" style="margin-bottom:8px" value="'+(SESS&&SESS.email?SESS.email:'')+'"/>'
+    +'<input id="exp-phone" class="inp" type="tel" placeholder="Your phone" style="margin-bottom:14px" value="'+(SESS&&SESS.mobile?SESS.mobile:'')+'"/>'
+    +'<button onclick="expertSend(\''+name.replace(/'/g,"\\'")+'\')" class="btn btn-gold" style="width:100%;justify-content:center">Send Request &#8594;</button>'
+    +'<button onclick="this.closest(\'div\').parentElement.remove()" style="margin-top:8px;background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--font)">Cancel</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+};
+
+window.expertSend = function(name){
+  var email=(document.getElementById('exp-email')||{value:''}).value.trim();
+  if(!email){ alert('Please enter your email.'); return; }
+  if(SESS) SESS.email=email;
+  document.querySelectorAll('div[style*="z-index:500"]').forEach(function(el){ el.remove(); });
+  var c=document.createElement('div');
+  c.style.cssText='position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid rgba(93,184,150,.3);border-radius:12px;padding:14px 18px;z-index:600;max-width:300px';
+  c.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--text)">&#10003; Request Sent!</div><div style="font-size:11px;color:var(--muted);margin-top:4px">'+name+' team will contact you soon.</div>';
+  document.body.appendChild(c);
+  setTimeout(function(){ c.remove(); },5000);
+};
 
 </script>
 
