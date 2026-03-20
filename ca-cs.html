@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>ipowork CA/CS Hub — AI Tax, Compliance & Registration Intelligence</title>
+<title>ipowork CA/CS Professionals Hub — AI Tax, Compliance & Registration Intelligence</title>
 <meta name="description" content="AI assistants for CAs and CSs — GST, Customs, Direct Tax, State Taxes, Registrations, 350+ compliance checklist, IPO Readiness Scorecard (100-point), 500-document DRHP data room and full compliance calendar."/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -160,7 +160,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="tb-logo" onclick="location.href='index.html'">ipowork <sup>CA/CS HUB</sup></div>
+  <div class="tb-logo" onclick="location.href='index.html'">ipowork <sup>PROFESSIONALS HUB</sup></div>
   <div class="tb-sep"></div>
   <div class="tb-title">⚖️ Tax · Compliance · IPO Readiness AI</div>
   <div class="tb-links">
@@ -177,7 +177,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
 
 <!-- HERO -->
 <div class="hero">
-  <div class="hero-badge">⚖️ ipowork CA/CS Hub — Powered by Claude AI</div>
+  <div class="hero-badge">⚖️ ipowork ipowork Professionals Hub — Powered by Claude AI</div>
   <h1 class="hero-title">AI Intelligence for<br/><span style="color:var(--amber)">Chartered Accountants</span><br/>&amp; Company Secretaries</h1>
   <p class="hero-sub">14 specialised AI assistants covering every dimension of Indian taxation, compliance and business registration — built for practicing CA/CS professionals.</p>
   <div class="pill-row">
@@ -206,6 +206,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
     <button class="btn btn-amber" onclick="openSignIn()">🚀 Sign In — Free Access →</button>
     <a href="issuer.html" class="btn btn-outline">📊 IPO Readiness Check</a>
   </div>
+  <div style="text-align:center;margin-top:10px"><button onclick="openPortal()" style="background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:var(--font);text-decoration:underline">or skip sign-in and explore as demo</button></div>
 </div>
 
 <!-- ACADEMY PREVIEW SECTION -->
@@ -560,7 +561,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
 <div class="portal-overlay" id="portal-overlay">
   <div class="portal-topbar">
     <div style="font-family:var(--serif);font-weight:900;font-size:15px;color:#fff">ipowork</div>
-    <div style="font-size:10px;color:var(--amber);font-weight:700;margin-left:3px">CA/CS HUB</div>
+    <div style="font-size:10px;color:var(--amber);font-weight:700;margin-left:3px">PROFESSIONALS HUB</div>
     <div style="flex:1"></div>
     <!-- Global search -->
     <div style="position:relative;margin-right:10px">
@@ -696,7 +697,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
     <a href="issuer.html">Issuer Portal</a>
     <a href="mb.html">MB Portal</a>
     <a href="institutions.html">Institutions</a>
-    <a href="ca-cs.html">CA/CS Hub</a>
+    <a href="ca-cs.html">CA/CS Professionals Hub</a>
     <a href="ipo-academy.html">IPO Academy</a>
     <a href="tools.html">Free Tools</a>
   </div>
@@ -721,6 +722,7 @@ function openPortal(){
   if(typeof creditLoad==='function' && SESS.email) creditLoad(SESS.email);
   /* Reset state */
   P.view='dashboard'; P.aiAsst=null; P.aiHistory=[];
+  if(typeof caClientLoad==='function') caClientLoad();
   /* Show portal — set each style property individually (cssText overwrites position:fixed!) */
   var ov = document.getElementById('portal-overlay');
   if(ov){
@@ -752,6 +754,7 @@ function closePortal(){document.getElementById('portal-overlay').classList.remov
 /* ── NAV ── */
 var NAV=[
   {id:'dashboard',        icon:'🏠', label:'Dashboard'},
+  {id:'crm',              icon:'🗂️', label:'Client CRM', badge:'NEW'},
   {id:'ai',               icon:'🤖', label:'AI Assistants', badge:'14'},
   {id:'academy',          icon:'🎓', label:'Audit & Compliance Academy', badge:'NEW'},
   {id:'formats',          icon:'📁', label:'Compliance Formats Library', badge:'60+'},
@@ -801,6 +804,7 @@ function renderMain(){
   pm.style.overflow=(P.view==='ai-chat')?'hidden':'auto';
   var c='';
   if(P.view==='dashboard')  c=renderDashboard();
+  else if(P.view==='crm') c=renderClientCRM();
   else if(P.view==='ai')    c=renderAIHome();
   else if(P.view==='ai-chat') c=renderAIChat();
   else if(P.view==='calendar') c=renderCalendar();
@@ -3791,11 +3795,8 @@ window.startAcademyModule = function(modId){
 
 /* ── BIND ── */
 function bindAfterRender(){
-  var _action = (typeof userMsg !== 'undefined' && String(userMsg||'').length > 400) ? 'ai-chat-long' : 'ai-chat';
-  var _cb = arguments[arguments.length-1];
-  var _args = Array.prototype.slice.call(arguments);
-  creditGate(_action, function(){ _bindAfterRender_actual.apply(null, _args); }, 'AI Chat');
-  return;
+  /* Direct call — bindAfterRender binds DOM events, not an AI call */
+  _bindAfterRender_actual();
 }
 
 function _bindAfterRender_actual(){
@@ -5054,7 +5055,7 @@ window.hideSearchResults = function(){
 <div id="modal-signin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:20px;width:100%;max-width:440px;padding:28px 28px 24px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--text)">Welcome to ipowork CA/CS Hub</div>
+      <div style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--text)">Welcome to ipowork CA/CS Professionals Hub</div>
       <button onclick="document.getElementById('modal-signin').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">&#x2715;</button>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:20px">Sign in to access all tools, save your progress and get your AI credit balance.</div>
@@ -5080,10 +5081,10 @@ window.hideSearchResults = function(){
       <span style="font-size:10px;color:var(--dim);line-height:1.55">I agree to be contacted by ipowork via email and WhatsApp about platform updates, AI tools and compliance news. I can opt out anytime.</span>
     </label>
     <div id="si-err" style="font-size:10px;color:#C47080;margin-bottom:8px;display:none"></div>
-    <button onclick="submitSignIn()" class="btn btn-gold" style="width:100%;justify-content:center;padding:12px">Access CA/CS Hub Free &#8594;</button>
+    <button onclick="submitSignIn()" class="btn btn-gold" style="width:100%;justify-content:center;padding:12px">Access CA/CS Professionals Hub Free &#8594;</button>
     <div style="text-align:center;margin-top:10px;font-size:10px;color:var(--dim)">Already have an account? <span style="color:var(--amber);cursor:pointer" onclick="quickReturnUser()">Quick login &#8594;</span></div>
     <div style="text-align:center;margin-top:8px">
-      <button onclick="openPortal()" style="background:none;border:none;color:var(--dim);font-size:10px;cursor:pointer;font-family:var(--font)">Skip — continue as demo</button>
+      <button onclick="openPortal()" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--font);padding:8px 20px;border-radius:7px;margin-top:4px;width:100%">Skip — Continue as Demo (no sign-in)</button>
     </div>
   </div>
 </div>
@@ -5624,6 +5625,330 @@ window.hideSearchResults = function(){
   var res = document.getElementById('search-results');
   if(res) res.style.display='none';
 };
+
+
+
+
+/* ═══════════════════════════════════════════════════════
+   CA/CS CLIENT CRM — Professionals Hub
+   Add clients, track IPO readiness, manage workflow
+═══════════════════════════════════════════════════════ */
+
+var CRM_KEY_CA = 'ca_crm_clients';
+var CA_CRM = { clients:[], loaded:false, view:'list', editId:null, filter:'' };
+
+var CRM_STAGES_CA = [
+  {id:'lead',      label:'Lead',           col:'#8090A8', icon:'🔭'},
+  {id:'onboarded', label:'Onboarded',       col:'#C8A86E', icon:'📋'},
+  {id:'aira',      label:'AIRA Done',       col:'#D4A853', icon:'📊'},
+  {id:'gaps',      label:'Gaps Fixing',     col:'#9B8EC4', icon:'🔧'},
+  {id:'mb-search', label:'MB Search',       col:'#64B5C8', icon:'🤝'},
+  {id:'filing',    label:'Filing Stage',    col:'#5DB896', icon:'📝'},
+  {id:'listed',    label:'Listed',          col:'#5DB896', icon:'🎉'},
+];
+
+var CRM_SERVICES_CA = [
+  'Tax Audit','Statutory Audit','GST Advisory','ROC Filing',
+  'FEMA/RBI Compliance','IPO Advisory','Valuation','Due Diligence',
+  'Transfer Pricing','Company Formation','ESOP Advisory','Other'
+];
+
+async function caClientLoad(){
+  if(CA_CRM.loaded) return;
+  try {
+    var res = await window.storage.get(CRM_KEY_CA, false);
+    if(res && res.value) CA_CRM.clients = JSON.parse(res.value);
+    else CA_CRM.clients = getSampleClients();
+  } catch(e){ CA_CRM.clients = getSampleClients(); }
+  CA_CRM.loaded = true;
+}
+
+async function caClientSave(){
+  try { await window.storage.set(CRM_KEY_CA, JSON.stringify(CA_CRM.clients), false); }
+  catch(e){ console.warn('CRM save error',e); }
+}
+
+function getSampleClients(){
+  return [
+    {id:'C001', company:'Stellar Pharma Pvt Ltd', contact:'Rajesh Kumar', email:'rajesh@stellar.com', phone:'98765 43210',
+     sector:'Pharma', service:'IPO Advisory', stage:'aira', aira:74, issues:3,
+     notes:'AIRA done. 3 governance gaps. Needs independent director.', 
+     tasks:[{text:'File ROC forms',done:false},{text:'Appoint independent director',done:false}],
+     created:'10 Mar 2025'},
+    {id:'C002', company:'Apex Auto Components', contact:'Priya Mehta', email:'priya@apex.com', phone:'98765 11111',
+     sector:'Auto', service:'Tax Audit', stage:'onboarded', aira:null, issues:0,
+     notes:'Annual tax audit ongoing. Q4 financials pending.',
+     tasks:[{text:'Collect Q4 P&L',done:true},{text:'3CD preparation',done:false}],
+     created:'01 Mar 2025'},
+  ];
+}
+
+function renderClientCRM(){
+  if(!CA_CRM.loaded){
+    caClientLoad().then(function(){ renderMain(); });
+    return '<div class="portal-pad"><div class="page-title">Loading CRM...</div></div>';
+  }
+
+  var clients = CA_CRM.clients.filter(function(c){
+    var q = CA_CRM.filter.toLowerCase();
+    return !q || (c.company||'').toLowerCase().includes(q) || (c.contact||'').toLowerCase().includes(q) || (c.service||'').toLowerCase().includes(q);
+  });
+
+  var h = '<div class="portal-pad">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px">';
+  h += '<div><div class="page-title">&#128202; Client CRM</div>';
+  h += '<div class="page-sub" style="margin:0">'+CA_CRM.clients.length+' clients · '+CA_CRM.clients.filter(function(c){return c.stage==='filing'||c.stage==='listed';}).length+' in IPO pipeline</div></div>';
+  h += '<button onclick="caCRMShowAdd()" class="btn btn-gold btn-sm">+ Add Client</button>';
+  h += '</div>';
+
+  /* Stage summary pills */
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">';
+  CRM_STAGES_CA.forEach(function(s){
+    var cnt = CA_CRM.clients.filter(function(c){ return c.stage===s.id; }).length;
+    if(!cnt) return;
+    h += '<div style="padding:5px 12px;border-radius:8px;background:'+s.col+'12;border:1px solid '+s.col+'30;font-size:10px;font-weight:700;color:'+s.col+'">';
+    h += s.icon+' '+s.label+' ('+cnt+')</div>';
+  });
+  h += '</div>';
+
+  /* Search */
+  h += '<input class="inp" style="margin-bottom:14px" placeholder="&#128269; Search clients..." value="'+escCRM(CA_CRM.filter)+'" oninput="CA_CRM.filter=this.value;renderMain()"/>';
+
+  if(!clients.length){
+    h += '<div style="text-align:center;padding:48px;color:var(--muted)">No clients yet. <button onclick="caCRMShowAdd()" class="btn btn-gold btn-sm">+ Add your first client</button></div>';
+    h += '</div>'; return h;
+  }
+
+  /* Client cards */
+  h += '<div style="display:flex;flex-direction:column;gap:10px">';
+  clients.forEach(function(c){
+    var stage = CRM_STAGES_CA.find(function(s){ return s.id===c.stage; })||CRM_STAGES_CA[0];
+    var scoreCol = c.aira>=78?'var(--green)':c.aira>=65?'var(--gold)':'var(--red)';
+    var pendingTasks = (c.tasks||[]).filter(function(t){ return !t.done; }).length;
+
+    h += '<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-left:3px solid '+stage.col+'">';
+    /* Info */
+    h += '<div style="flex:1;min-width:180px">';
+    h += '<div style="font-size:12px;font-weight:800;color:var(--text)">'+escCRM(c.company)+'</div>';
+    h += '<div style="font-size:10px;color:var(--muted);margin-top:2px">'+escCRM(c.contact)+' · '+escCRM(c.service)+'</div>';
+    if(c.notes) h += '<div style="font-size:10px;color:var(--dim);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">'+escCRM(c.notes.slice(0,60))+'</div>';
+    h += '</div>';
+    /* Stage */
+    h += '<span style="font-size:9px;font-weight:700;background:'+stage.col+'18;color:'+stage.col+';border-radius:99px;padding:3px 9px;white-space:nowrap">'+stage.icon+' '+stage.label+'</span>';
+    /* AIRA */
+    if(c.aira){ h += '<div style="text-align:center;min-width:40px"><div style="font-size:16px;font-weight:900;font-family:var(--serif);color:'+scoreCol+'">'+c.aira+'</div><div style="font-size:8px;color:var(--dim)">AIRA</div></div>'; }
+    /* Tasks */
+    if(pendingTasks){ h += '<div style="font-size:10px;color:var(--amber)">&#10003; '+pendingTasks+' task'+(pendingTasks>1?'s':'')+' pending</div>'; }
+    /* Actions */
+    h += '<div style="display:flex;gap:6px">';
+    h += '<button data-cid="'+c.id+'" onclick="caCRMOpenClient(this.dataset.cid)" class="btn btn-outline btn-sm">Open</button>';
+    h += '</div>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ── ADD CLIENT ── */
+window.caCRMShowAdd = function(){
+  var ov = document.createElement('div');
+  ov.id = 'crm-ca-modal';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+  var h = '<div style="background:var(--surface);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:520px;padding:24px;max-height:90vh;overflow-y:auto">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">';
+  h += '<div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--text)">Add New Client</div>';
+  h += '<button onclick="document.getElementById(\'crm-ca-modal\').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">&#x2715;</button></div>';
+  h += crmField2('Company Name *','new-co','text','');
+  h += crmField2('Contact Person','new-ct','text','');
+  h += crmField2('Email','new-em','email','');
+  h += crmField2('Phone','new-ph','tel','');
+  h += '<div style="margin-bottom:10px"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Service</label>';
+  h += '<select id="new-svc" class="inp">';
+  CRM_SERVICES_CA.forEach(function(s){ h += '<option>'+s+'</option>'; });
+  h += '</select></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Stage</label>';
+  h += '<div style="display:flex;gap:5px;flex-wrap:wrap">';
+  CRM_STAGES_CA.forEach(function(s){
+    var active = s.id==='lead';
+    h += '<button type="button" data-stage="'+s.id+'" onclick="caStgPick(this)" style="padding:4px 10px;border-radius:99px;border:1px solid '+(active?s.col:'rgba(255,255,255,.08)')+';background:'+(active?s.col+'18':'none')+';color:'+(active?s.col:'var(--muted)')+';font-size:9px;font-weight:700;cursor:pointer;font-family:var(--font)">'+s.icon+' '+s.label+'</button>';
+  });
+  h += '</div><input type="hidden" id="new-stg" value="lead"/></div>';
+  h += crmField2('AIRA Score (if known)','new-aira','number','');
+  h += crmField2('Notes','new-notes','text','');
+  h += '<button onclick="caCRMCreate()" class="btn btn-gold" style="width:100%;justify-content:center;margin-top:4px">Add Client &#8594;</button>';
+  h += '<div id="crm-ca-err" style="font-size:10px;color:var(--red);margin-top:6px"></div>';
+  h += '</div>';
+  ov.innerHTML = h;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+};
+
+window.caStgPick = function(btn){
+  btn.closest('div').querySelectorAll('button').forEach(function(b){
+    var s = CRM_STAGES_CA.find(function(x){ return x.id===b.dataset.stage; });
+    if(s){ b.style.border='1px solid rgba(255,255,255,.08)'; b.style.background='none'; b.style.color='var(--muted)'; }
+  });
+  var s = CRM_STAGES_CA.find(function(x){ return x.id===btn.dataset.stage; });
+  if(s){ btn.style.border='1px solid '+s.col; btn.style.background=s.col+'18'; btn.style.color=s.col; }
+  document.getElementById('new-stg').value = btn.dataset.stage;
+};
+
+window.caCRMCreate = async function(){
+  var co = gv2('new-co');
+  var err = document.getElementById('crm-ca-err');
+  if(!co){ err.textContent='Company name required.'; return; }
+  var now = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  var client = {
+    id: 'C'+Date.now().toString(36).toUpperCase(),
+    company: co, contact: gv2('new-ct'), email: gv2('new-em'),
+    phone: gv2('new-ph'), service: (document.getElementById('new-svc')||{value:'Other'}).value,
+    stage: (document.getElementById('new-stg')||{value:'lead'}).value,
+    aira: parseInt(gv2('new-aira'))||null, notes: gv2('new-notes'),
+    tasks:[], created: now,
+  };
+  CA_CRM.clients.unshift(client);
+  await caClientSave();
+  document.getElementById('crm-ca-modal').remove();
+  renderMain();
+};
+
+/* ── CLIENT DETAIL ── */
+window.caCRMOpenClient = function(id){
+  var c = CA_CRM.clients.find(function(x){ return x.id===id; });
+  if(!c) return;
+  var stage = CRM_STAGES_CA.find(function(s){ return s.id===c.stage; })||CRM_STAGES_CA[0];
+  var scoreCol = c.aira>=78?'#5DB896':c.aira>=65?'#D4A853':'#C47080';
+
+  var ov = document.createElement('div');
+  ov.id = 'crm-ca-modal';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
+
+  var h = '<div style="background:var(--surface);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:660px;max-height:90vh;overflow-y:auto">';
+  /* Header */
+  h += '<div style="padding:18px 22px;border-bottom:1px solid var(--border2);display:flex;align-items:flex-start;gap:12px;position:sticky;top:0;background:var(--surface);z-index:1">';
+  h += '<div style="flex:1"><div style="font-family:var(--serif);font-size:17px;font-weight:900;color:var(--text)">'+escCRM(c.company)+'</div>';
+  h += '<div style="font-size:10px;color:var(--muted);margin-top:3px">'+escCRM(c.contact)+' · '+escCRM(c.email)+'</div></div>';
+  if(c.aira){ h += '<div style="text-align:center;padding:0 10px"><div style="font-size:26px;font-weight:900;font-family:var(--serif);color:'+scoreCol+'">'+c.aira+'</div><div style="font-size:9px;color:var(--muted)">AIRA</div></div>'; }
+  h += '<button onclick="document.getElementById(\'crm-ca-modal\').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">&#x2715;</button></div>';
+
+  /* Stage selector */
+  h += '<div style="padding:12px 22px;border-bottom:1px solid var(--border2)">';
+  h += '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:6px">Pipeline Stage</div>';
+  h += '<div style="display:flex;gap:5px;flex-wrap:wrap">';
+  CRM_STAGES_CA.forEach(function(s){
+    var active = c.stage===s.id;
+    h += '<button data-cid="'+c.id+'" data-stg="'+s.id+'" onclick="caCRMSetStage(this.dataset.cid,this.dataset.stg)" style="padding:4px 10px;border-radius:99px;border:1px solid '+(active?s.col:'rgba(255,255,255,.08)')+';background:'+(active?s.col+'18':'none')+';color:'+(active?s.col:'var(--muted)')+';font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">'+s.icon+' '+s.label+'</button>';
+  });
+  h += '</div></div>';
+
+  /* Two col */
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">';
+  /* Left: edit */
+  h += '<div style="padding:18px 22px;border-right:1px solid var(--border2)">';
+  h += crmField2('Company',c.company,'ed-co','text');
+  h += crmField2('Contact',c.contact||'','ed-ct','text');
+  h += crmField2('Email',c.email||'','ed-em','email');
+  h += crmField2('Phone',c.phone||'','ed-ph','tel');
+  h += crmField2('AIRA Score',c.aira||'','ed-aira','number');
+  h += '<div style="margin-bottom:10px"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Service</label>';
+  h += '<select id="ed-svc" class="inp">';
+  CRM_SERVICES_CA.forEach(function(s){ h += '<option'+(c.service===s?' selected':'')+'>'+s+'</option>'; });
+  h += '</select></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Notes</label>';
+  h += '<textarea id="ed-notes" class="inp" rows="3" style="resize:vertical">'+escCRM(c.notes||'')+'</textarea></div>';
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button data-cid="'+c.id+'" onclick="caCRMSave(this.dataset.cid)" class="btn btn-gold btn-sm" style="flex:1;justify-content:center">Save</button>';
+  h += '<button data-cid="'+c.id+'" onclick="caCRMDelete(this.dataset.cid)" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(196,112,128,.3);background:none;color:var(--red);font-size:10px;cursor:pointer">Delete</button>';
+  h += '</div></div>';
+
+  /* Right: tasks */
+  h += '<div style="padding:18px 22px">';
+  h += '<div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:10px">Tasks & Checklist</div>';
+  h += '<div style="display:flex;gap:6px;margin-bottom:12px">';
+  h += '<input id="new-task-inp" class="inp" style="flex:1;font-size:11px" placeholder="Add task..."/>';
+  h += '<button data-cid="'+c.id+'" onclick="caCRMAddTask(this.dataset.cid)" class="btn btn-gold btn-sm">Add</button>';
+  h += '</div>';
+  h += '<div style="display:flex;flex-direction:column;gap:6px;max-height:250px;overflow-y:auto">';
+  if(!(c.tasks||[]).length){
+    h += '<div style="font-size:10px;color:var(--dim);text-align:center;padding:16px">No tasks yet</div>';
+  }
+  (c.tasks||[]).forEach(function(t, idx){
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card);border-radius:8px">';
+    h += '<input type="checkbox" '+(t.done?'checked':'')+' data-cid="'+c.id+'" data-idx="'+idx+'" onchange="caCRMToggleTask(this.dataset.cid,this.dataset.idx)" style="accent-color:var(--green);flex-shrink:0"/>';
+    h += '<span style="font-size:11px;color:'+(t.done?'var(--dim)':'var(--text)')+';'+(t.done?'text-decoration:line-through':'')+'">'+escCRM(t.text)+'</span>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  /* AI quick access */
+  h += '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border2)">';
+  h += '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:8px">Quick AI Actions</div>';
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+  h += '<button onclick="document.getElementById(\'crm-ca-modal\').remove();window.pNav(\'ai\')" class="btn btn-outline btn-sm">&#129504; AI Advisors</button>';
+  h += '<button onclick="document.getElementById(\'crm-ca-modal\').remove();window.pNav(\'formats\')" class="btn btn-outline btn-sm">&#128196; Forms Library</button>';
+  h += '</div></div>';
+  h += '</div></div></div>';
+
+  ov.innerHTML = h;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+};
+
+window.caCRMSave = async function(id){
+  var c = CA_CRM.clients.find(function(x){ return x.id===id; });
+  if(!c) return;
+  c.company  = gv2('ed-co')||c.company;
+  c.contact  = gv2('ed-ct'); c.email = gv2('ed-em');
+  c.phone    = gv2('ed-ph'); c.notes = gv2('ed-notes');
+  c.aira     = parseInt(gv2('ed-aira'))||c.aira;
+  c.service  = (document.getElementById('ed-svc')||{value:c.service}).value;
+  await caClientSave();
+  document.getElementById('crm-ca-modal').remove();
+  renderMain();
+};
+
+window.caCRMSetStage = async function(id, stage){
+  var c = CA_CRM.clients.find(function(x){ return x.id===id; });
+  if(!c) return;
+  c.stage = stage;
+  await caClientSave();
+  document.getElementById('crm-ca-modal').remove();
+  caCRMOpenClient(id);
+};
+
+window.caCRMAddTask = async function(id){
+  var c = CA_CRM.clients.find(function(x){ return x.id===id; });
+  if(!c) return;
+  var t = gv2('new-task-inp');
+  if(!t.trim()) return;
+  c.tasks = c.tasks||[];
+  c.tasks.push({text:t, done:false});
+  await caClientSave();
+  document.getElementById('crm-ca-modal').remove();
+  caCRMOpenClient(id);
+};
+
+window.caCRMToggleTask = async function(id, idx){
+  var c = CA_CRM.clients.find(function(x){ return x.id===id; });
+  if(!c||!c.tasks) return;
+  c.tasks[parseInt(idx)].done = !c.tasks[parseInt(idx)].done;
+  await caClientSave();
+};
+
+window.caCRMDelete = async function(id){
+  if(!confirm('Delete this client?')) return;
+  CA_CRM.clients = CA_CRM.clients.filter(function(x){ return x.id!==id; });
+  await caClientSave();
+  document.getElementById('crm-ca-modal').remove();
+  renderMain();
+};
+
+function crmField2(label, val, id, type){
+  return '<div style="margin-bottom:10px"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">'+label+'</label><input id="'+id+'" type="'+type+'" class="inp" value="'+escCRM(String(val||''))+'" style="font-size:11px"/></div>';
+}
+function gv2(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
+function escCRM(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 
 </script>
 </body>
