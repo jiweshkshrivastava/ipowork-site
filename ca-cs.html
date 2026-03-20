@@ -77,10 +77,10 @@ a{color:inherit;text-decoration:none}
 .t-tds{background:rgba(0,212,245,.12);color:var(--cyan)}
 .t-pf{background:rgba(255,107,107,.12);color:var(--red)}
 /* PORTAL */
-#portal-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:300;flex-direction:column}
-#portal-overlay.open{display:flex}
+#portal-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:var(--bg,#0F1318);z-index:9999;flex-direction:column;width:100%;height:100%}
+#portal-overlay.open{display:flex!important}
 .portal-topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
-.portal-layout{display:flex;flex:1;overflow:hidden}
+.portal-layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px)}
 .portal-sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);padding:12px 0 80px;overflow-y:auto;flex-shrink:0;position:relative;scrollbar-width:thin}
 .portal-main{flex:1;overflow-y:auto;background:var(--bg)}
 .portal-pad{padding:28px}
@@ -714,18 +714,26 @@ function openPortal(){
   if(!SESS.name){ SESS.name='CA Professional'; SESS.email='demo@ipowork.com'; SESS.org='Demo Practice'; SESS.demo=true; }
   /* Update topbar */
   var pu = document.getElementById('portal-user');
-  if(pu) pu.textContent = SESS.name + (SESS.org?' · '+SESS.org:'');
+  if(pu) pu.textContent = SESS.name + (SESS.org ? ' · '+SESS.org : '');
   var sb = document.getElementById('topbar-signin-btn');
   if(sb) sb.style.display = 'none';
   /* Load credits */
   if(typeof creditLoad==='function' && SESS.email) creditLoad(SESS.email);
   /* Reset state */
   P.view='dashboard'; P.aiAsst=null; P.aiHistory=[];
-  /* Show portal — use both class AND inline style for reliability */
+  /* Show portal — set each style property individually (cssText overwrites position:fixed!) */
   var ov = document.getElementById('portal-overlay');
   if(ov){
+    ov.style.display    = 'flex';
+    ov.style.position   = 'fixed';
+    ov.style.top        = '0';
+    ov.style.left       = '0';
+    ov.style.right      = '0';
+    ov.style.bottom     = '0';
+    ov.style.zIndex     = '9999';
+    ov.style.flexDirection = 'column';
+    ov.style.background = '#0F1318';
     ov.classList.add('open');
-    ov.style.cssText = 'display:flex !important; flex-direction:column;';
   }
   /* Render content */
   renderSidebar();
