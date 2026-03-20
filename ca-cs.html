@@ -152,7 +152,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
 @media(max-width:768px){
   .topbar{padding:0 16px}.tb-links{display:none}
   .hero{padding:88px 16px 50px}.section{padding:40px 16px}
-  .portal-sidebar{display:none}
+  .portal-sidebar{display:flex;flex-direction:column}
 }
 </style>
 </head>
@@ -710,12 +710,26 @@ var P      = {view:'dashboard', aiAsst:null, aiHistory:[], aiLoading:false};
 
 /* ── OPEN/CLOSE ── */
 function openPortal(){
-  if(typeof creditLoad==='function' && P.email) creditLoad(P.email);
-  if(!SESS.name){SESS.name='CA Professional';SESS.email='demo@ipowork.com';SESS.org='Demo Practice';SESS.demo=true;}
-  document.getElementById('portal-user').textContent = SESS.name+' · '+SESS.org;
-  P.view='dashboard';P.aiAsst=null;P.aiHistory=[];
-  document.getElementById('portal-overlay').classList.add('open');
-  renderSidebar();renderMain();
+  /* Set SESS defaults if demo */
+  if(!SESS.name){ SESS.name='CA Professional'; SESS.email='demo@ipowork.com'; SESS.org='Demo Practice'; SESS.demo=true; }
+  /* Update topbar */
+  var pu = document.getElementById('portal-user');
+  if(pu) pu.textContent = SESS.name + (SESS.org?' · '+SESS.org:'');
+  var sb = document.getElementById('topbar-signin-btn');
+  if(sb) sb.style.display = 'none';
+  /* Load credits */
+  if(typeof creditLoad==='function' && SESS.email) creditLoad(SESS.email);
+  /* Reset state */
+  P.view='dashboard'; P.aiAsst=null; P.aiHistory=[];
+  /* Show portal — use both class AND inline style for reliability */
+  var ov = document.getElementById('portal-overlay');
+  if(ov){
+    ov.classList.add('open');
+    ov.style.cssText = 'display:flex !important; flex-direction:column;';
+  }
+  /* Render content */
+  renderSidebar();
+  renderMain();
 }
 function openPortalAI(id){
   openPortal();
