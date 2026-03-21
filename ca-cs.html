@@ -723,6 +723,12 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
 
 
 
+
+
+
+
+
+
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 var SESS   = {name:'', email:'', org:'', demo:false};
 var P      = {view:'dashboard', aiAsst:null, aiHistory:[], aiLoading:false};
@@ -904,6 +910,64 @@ function renderDashboard(){
 }
 
 /* ── AI DATA ── */
+
+
+
+
+
+</script>
+
+
+
+
+
+
+
+<!-- SIGN IN MODAL -->
+<div id="modal-signin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:20px;width:100%;max-width:440px;padding:28px 28px 24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--text)">Welcome to ipowork CA/CS Professionals Hub</div>
+      <button onclick="document.getElementById('modal-signin').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">&#x2715;</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:20px">Sign in to access all tools, save your progress and get your AI credit balance.</div>
+
+    <div style="margin-bottom:10px">
+      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Your Name</label>
+      <input class="inp" id="si-name" type="text" placeholder="CA Rajesh Kumar" autocomplete="name"/>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Work Email</label>
+      <input class="inp" id="si-email" type="email" placeholder="rajesh@yourfirm.com" autocomplete="email"/>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Mobile Number</label>
+      <input class="inp" id="si-mobile" type="tel" placeholder="+91 98765 43210" autocomplete="tel"/>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Organisation / Firm (Optional)</label>
+      <input class="inp" id="si-org" type="text" placeholder="ABC & Associates" autocomplete="organization"/>
+    </div>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin-bottom:14px">
+      <input type="checkbox" id="si-consent" style="margin-top:2px;accent-color:var(--amber);flex-shrink:0"/>
+      <span style="font-size:10px;color:var(--dim);line-height:1.55">I agree to be contacted by ipowork via email and WhatsApp about platform updates, AI tools and compliance news. I can opt out anytime.</span>
+    </label>
+    <div id="si-err" style="font-size:10px;color:#C47080;margin-bottom:8px;display:none"></div>
+    <button onclick="submitSignIn()" class="btn btn-gold" style="width:100%;justify-content:center;padding:12px">Access CA/CS Professionals Hub Free &#8594;</button>
+    <div style="text-align:center;margin-top:10px;font-size:10px;color:var(--dim)">Already have an account? <span style="color:var(--amber);cursor:pointer" onclick="quickReturnUser()">Quick login &#8594;</span></div>
+    <div style="text-align:center;margin-top:8px">
+      <button onclick="openPortal()" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--font);padding:8px 20px;border-radius:7px;margin-top:4px;width:100%">Skip — Continue as Demo (no sign-in)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+
+
+
+
 var CA_AI=[
 {id:'gst-advisor',cat:'Indirect Tax',icon:'📦',name:'GST Intelligence Advisor',
  tag:'CGST/SGST/IGST, ITC, returns, e-invoicing, GST audit, notices',free:true,
@@ -4281,6 +4345,19 @@ var FIN_SERVICES = [
   },
 ];
 
+
+
+
+
+
+</script>
+<script>
+
+
+
+
+
+
 /* Fin state */
 P.finService = null;
 P.finDetail  = null;
@@ -4930,39 +5007,6 @@ document.addEventListener('DOMContentLoaded', function(){
 /* ── GLOBAL SEARCH ── */
 var SEARCH_INDEX = null;
 
-function buildSearchIndex(){
-  if(SEARCH_INDEX) return;
-  SEARCH_INDEX = [];
-  /* NAV items */
-  NAV.forEach(function(item){
-    SEARCH_INDEX.push({type:'nav', icon:item.icon, label:item.label, id:item.id, action:function(){ window.pNav(item.id); }});
-  });
-  /* Formats library */
-  if(typeof FORMATS_LIB !== 'undefined'){
-    FORMATS_LIB.forEach(function(f){
-      SEARCH_INDEX.push({type:'format', icon:f.icon, label:f.name, sub:f.tag, id:f.id,
-        action:function(){ window.pNav('formats'); setTimeout(function(){ window.fmtOpen(f.id); },300); }});
-    });
-  }
-  /* Academy topics */
-  if(typeof ACADEMY_DATA !== 'undefined'){
-    ACADEMY_DATA.forEach(function(mod){
-      (mod.topics||[]).forEach(function(t){
-        SEARCH_INDEX.push({type:'academy', icon:'🎓', label:t.title||t, sub:mod.title, id:mod.id+'_'+Math.random(),
-          action:function(){ P.view='academy'; renderMain(); }});
-      });
-    });
-  }
-  /* AI Assistants */
-  var _aiData = (typeof CA_AI!=='undefined'?CA_AI:(typeof AI_ASSISTANTS!=='undefined'?AI_ASSISTANTS:[]));
-  if(_aiData.length){
-    _aiData.forEach(function(a){
-      SEARCH_INDEX.push({type:'ai', icon:a.icon, label:a.name, sub:a.tag, id:a.id,
-        action:function(){ window.startAI(a.id); }});
-    });
-  }
-}
-
 window.globalSearch = function(q){
   buildSearchIndex();
   var res = document.getElementById('search-results');
@@ -5024,47 +5068,9 @@ window.hideSearchResults = function(){
 
 
 
-</script>
 
-<!-- SIGN IN MODAL -->
-<div id="modal-signin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:400;align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:20px;width:100%;max-width:440px;padding:28px 28px 24px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--text)">Welcome to ipowork CA/CS Professionals Hub</div>
-      <button onclick="document.getElementById('modal-signin').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">&#x2715;</button>
-    </div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:20px">Sign in to access all tools, save your progress and get your AI credit balance.</div>
 
-    <div style="margin-bottom:10px">
-      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Your Name</label>
-      <input class="inp" id="si-name" type="text" placeholder="CA Rajesh Kumar" autocomplete="name"/>
-    </div>
-    <div style="margin-bottom:10px">
-      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Work Email</label>
-      <input class="inp" id="si-email" type="email" placeholder="rajesh@yourfirm.com" autocomplete="email"/>
-    </div>
-    <div style="margin-bottom:10px">
-      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Mobile Number</label>
-      <input class="inp" id="si-mobile" type="tel" placeholder="+91 98765 43210" autocomplete="tel"/>
-    </div>
-    <div style="margin-bottom:10px">
-      <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Organisation / Firm (Optional)</label>
-      <input class="inp" id="si-org" type="text" placeholder="ABC & Associates" autocomplete="organization"/>
-    </div>
-    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin-bottom:14px">
-      <input type="checkbox" id="si-consent" style="margin-top:2px;accent-color:var(--amber);flex-shrink:0"/>
-      <span style="font-size:10px;color:var(--dim);line-height:1.55">I agree to be contacted by ipowork via email and WhatsApp about platform updates, AI tools and compliance news. I can opt out anytime.</span>
-    </label>
-    <div id="si-err" style="font-size:10px;color:#C47080;margin-bottom:8px;display:none"></div>
-    <button onclick="submitSignIn()" class="btn btn-gold" style="width:100%;justify-content:center;padding:12px">Access CA/CS Professionals Hub Free &#8594;</button>
-    <div style="text-align:center;margin-top:10px;font-size:10px;color:var(--dim)">Already have an account? <span style="color:var(--amber);cursor:pointer" onclick="quickReturnUser()">Quick login &#8594;</span></div>
-    <div style="text-align:center;margin-top:8px">
-      <button onclick="openPortal()" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--font);padding:8px 20px;border-radius:7px;margin-top:4px;width:100%">Skip — Continue as Demo (no sign-in)</button>
-    </div>
-  </div>
-</div>
 
-<script>
 
 
 
@@ -5893,7 +5899,19 @@ function escCRM(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt
 
 
 
+
+
+
+
+
+
 </script>
+
+
+
+
+
+
 </body>
 </html>
 
