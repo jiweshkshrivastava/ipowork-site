@@ -5635,68 +5635,115 @@ function renderClientCRM(){
     return '<div class="portal-pad"><div class="page-title">Loading CRM...</div></div>';
   }
 
+  var q = (CA_CRM.filter||'').toLowerCase();
   var clients = CA_CRM.clients.filter(function(c){
-    var q = CA_CRM.filter.toLowerCase();
-    return !q || (c.company||'').toLowerCase().includes(q) || (c.contact||'').toLowerCase().includes(q) || (c.service||'').toLowerCase().includes(q);
+    return !q || (c.company||'').toLowerCase().includes(q) ||
+           (c.contact||'').toLowerCase().includes(q) ||
+           (c.service||'').toLowerCase().includes(q);
   });
 
-  var h = '<div class="portal-pad">';
-  h += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px">';
-  h += '<div><div class="page-title">&#128202; Client CRM</div>';
-  h += '<div class="page-sub" style="margin:0">'+CA_CRM.clients.length+' clients · '+CA_CRM.clients.filter(function(c){return c.stage==='filing'||c.stage==='listed';}).length+' in IPO pipeline</div></div>';
-  h += '<button onclick="caCRMShowAdd()" class="btn btn-gold btn-sm">+ Add Client</button>';
-  h += '</div>';
+  /* Stats */
+  var stageCount = {};
+  CRM_STAGES_CA.forEach(function(s){ stageCount[s.id]=0; });
+  CA_CRM.clients.forEach(function(c){ if(stageCount[c.stage]!==undefined) stageCount[c.stage]++; });
+  var totalPipeline = CA_CRM.clients.filter(function(c){ return c.stage==='filing'||c.stage==='listed'; }).length;
 
-  /* Stage summary pills */
+  var h = '<div class="portal-pad">';
+
+  /* Header */
+  h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">';
+  h += '<div><div class="page-title">&#128202; Client CRM</div>';
+  h += '<div class="page-sub" style="margin:0">'+CA_CRM.clients.length+' clients · '+totalPipeline+' in IPO pipeline</div></div>';
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button onclick="CA_CRM.view=\'kanban\';renderMain()" class="btn btn-sm '+(CA_CRM.view==='kanban'?'btn-gold':'btn-outline')+'">&#9783; Kanban</button>';
+  h += '<button onclick="CA_CRM.view=\'list\';renderMain()" class="btn btn-sm '+(CA_CRM.view==='list'?'btn-gold':'btn-outline')+'">&#9776; List</button>';
+  h += '<button onclick="caCRMShowAdd()" class="btn btn-gold btn-sm">+ Add Client</button>';
+  h += '</div></div>';
+
+  /* Stage stats strip */
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">';
   CRM_STAGES_CA.forEach(function(s){
-    var cnt = CA_CRM.clients.filter(function(c){ return c.stage===s.id; }).length;
-    if(!cnt) return;
-    h += '<div style="padding:5px 12px;border-radius:8px;background:'+s.col+'12;border:1px solid '+s.col+'30;font-size:10px;font-weight:700;color:'+s.col+'">';
-    h += s.icon+' '+s.label+' ('+cnt+')</div>';
+    var cnt = stageCount[s.id]||0;
+    h += '<div style="background:var(--card);border:1px solid var(--border2);border-radius:9px;padding:8px 12px;border-top:3px solid '+s.col+'">';
+    h += '<div style="font-size:9px;color:var(--muted)">'+s.label+'</div>';
+    h += '<div style="font-size:18px;font-weight:900;font-family:var(--serif);color:'+s.col+'">'+cnt+'</div>';
+    h += '</div>';
   });
   h += '</div>';
 
   /* Search */
-  h += '<input class="inp" style="margin-bottom:14px" placeholder="&#128269; Search clients..." value="'+escCRM(CA_CRM.filter)+'" oninput="CA_CRM.filter=this.value;renderMain()"/>';
+  h += '<input class="inp" style="margin-bottom:16px;max-width:360px" placeholder="&#128269; Search clients, contact, service..." value="'+escCRM(CA_CRM.filter)+'" oninput="CA_CRM.filter=this.value;renderMain()"/>';
 
   if(!clients.length){
-    h += '<div style="text-align:center;padding:48px;color:var(--muted)">No clients yet. <button onclick="caCRMShowAdd()" class="btn btn-gold btn-sm">+ Add your first client</button></div>';
+    h += '<div style="text-align:center;padding:48px;color:var(--muted)">No clients'+(q?' matching "'+escCRM(q)+'"':'')+'. <button onclick="caCRMShowAdd()" class="btn btn-gold btn-sm">+ Add Client</button></div>';
     h += '</div>'; return h;
   }
 
-  /* Client cards */
-  h += '<div style="display:flex;flex-direction:column;gap:10px">';
-  clients.forEach(function(c){
-    var stage = CRM_STAGES_CA.find(function(s){ return s.id===c.stage; })||CRM_STAGES_CA[0];
-    var scoreCol = c.aira>=78?'var(--green)':c.aira>=65?'var(--gold)':'var(--red)';
-    var pendingTasks = (c.tasks||[]).filter(function(t){ return !t.done; }).length;
+  /* ── KANBAN VIEW ── */
+  if(CA_CRM.view === 'kanban'){
+    h += '<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:16px;min-height:300px">';
+    CRM_STAGES_CA.forEach(function(stage){
+      var stageClients = clients.filter(function(c){ return c.stage===stage.id; });
+      h += '<div style="min-width:200px;width:200px;flex-shrink:0">';
+      /* Column header */
+      h += '<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--surface);border-radius:10px 10px 0 0;border-bottom:3px solid '+stage.col+';margin-bottom:8px">';
+      h += '<span style="font-size:14px">'+stage.icon+'</span>';
+      h += '<span style="font-size:11px;font-weight:800;color:var(--text)">'+stage.label+'</span>';
+      h += '<span style="margin-left:auto;font-size:9px;font-weight:700;background:'+stage.col+'18;color:'+stage.col+';border-radius:99px;padding:2px 6px">'+stageClients.length+'</span>';
+      h += '</div>';
+      /* Cards */
+      h += '<div style="display:flex;flex-direction:column;gap:8px">';
+      stageClients.forEach(function(c){
+        var scoreCol = c.aira>=78?'var(--green)':c.aira>=65?'var(--gold)':'var(--red)';
+        var pending  = (c.tasks||[]).filter(function(t){ return !t.done; }).length;
+        h += '<div data-cid="'+c.id+'" onclick="caCRMOpenClient(this.dataset.cid)" style="background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:11px 12px;cursor:pointer;border-left:3px solid '+stage.col+'">';
+        h += '<div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:3px">'+escCRM(c.company)+'</div>';
+        h += '<div style="font-size:10px;color:var(--muted)">'+escCRM(c.service)+'</div>';
+        h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px">';
+        if(c.aira) h += '<span style="font-size:11px;font-weight:900;color:'+scoreCol+'">'+c.aira+'</span>';
+        else h += '<span></span>';
+        if(pending) h += '<span style="font-size:9px;color:var(--amber)">'+pending+' task'+(pending>1?'s':'')+'</span>';
+        h += '</div></div>';
+      });
+      /* Add button */
+      h += '<button onclick="caCRMShowAdd(\''+stage.id+'\')" style="width:100%;margin-top:6px;padding:7px;border:1px dashed rgba(255,255,255,.1);border-radius:8px;background:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:var(--font)">+ Add</button>';
+      h += '</div></div>';
+    });
+    h += '</div>';
 
-    h += '<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-left:3px solid '+stage.col+'">';
-    /* Info */
-    h += '<div style="flex:1;min-width:180px">';
-    h += '<div style="font-size:12px;font-weight:800;color:var(--text)">'+escCRM(c.company)+'</div>';
-    h += '<div style="font-size:10px;color:var(--muted);margin-top:2px">'+escCRM(c.contact)+' · '+escCRM(c.service)+'</div>';
-    if(c.notes) h += '<div style="font-size:10px;color:var(--dim);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">'+escCRM(c.notes.slice(0,60))+'</div>';
+  } else {
+    /* ── LIST VIEW ── */
+    h += '<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden">';
+    /* Header row */
+    h += '<div style="display:grid;grid-template-columns:2fr 1fr 100px 80px 80px;gap:0;padding:9px 16px;border-bottom:1px solid var(--border2)">';
+    ['Client','Service','Stage','AIRA','Tasks'].forEach(function(col){
+      h += '<div style="font-size:9px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px">'+col+'</div>';
+    });
     h += '</div>';
-    /* Stage */
-    h += '<span style="font-size:9px;font-weight:700;background:'+stage.col+'18;color:'+stage.col+';border-radius:99px;padding:3px 9px;white-space:nowrap">'+stage.icon+' '+stage.label+'</span>';
-    /* AIRA */
-    if(c.aira){ h += '<div style="text-align:center;min-width:40px"><div style="font-size:16px;font-weight:900;font-family:var(--serif);color:'+scoreCol+'">'+c.aira+'</div><div style="font-size:8px;color:var(--dim)">AIRA</div></div>'; }
-    /* Tasks */
-    if(pendingTasks){ h += '<div style="font-size:10px;color:var(--amber)">&#10003; '+pendingTasks+' task'+(pendingTasks>1?'s':'')+' pending</div>'; }
-    /* Actions */
-    h += '<div style="display:flex;gap:6px">';
-    h += '<button data-cid="'+c.id+'" onclick="caCRMOpenClient(this.dataset.cid)" class="btn btn-outline btn-sm">Open</button>';
+    clients.forEach(function(c, idx){
+      var stage = CRM_STAGES_CA.find(function(s){ return s.id===c.stage; })||CRM_STAGES_CA[0];
+      var scoreCol = c.aira>=78?'var(--green)':c.aira>=65?'var(--gold)':'var(--red)';
+      var pending  = (c.tasks||[]).filter(function(t){ return !t.done; }).length;
+      var done     = (c.tasks||[]).filter(function(t){ return t.done; }).length;
+      var bg = idx%2===1?';background:rgba(255,255,255,.015)':'';
+      h += '<div data-cid="'+c.id+'" onclick="caCRMOpenClient(this.dataset.cid)" style="display:grid;grid-template-columns:2fr 1fr 100px 80px 80px;gap:0;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer;align-items:center'+bg+'">';
+      h += '<div><div style="font-size:12px;font-weight:700;color:var(--text)">'+escCRM(c.company)+'</div>';
+      h += '<div style="font-size:10px;color:var(--dim)">'+escCRM(c.contact||'')+'</div></div>';
+      h += '<div style="font-size:11px;color:var(--muted)">'+escCRM(c.service)+'</div>';
+      h += '<div><span style="font-size:9px;font-weight:700;background:'+stage.col+'18;color:'+stage.col+';border-radius:99px;padding:3px 8px">'+stage.icon+' '+stage.label+'</span></div>';
+      h += '<div style="font-size:12px;font-weight:900;color:'+scoreCol+'">'+(c.aira||'—')+'</div>';
+      h += '<div style="font-size:10px;color:'+(pending?'var(--amber)':'var(--dim)')+'">'+done+'/'+(done+pending)+'</div>';
+      h += '</div>';
+    });
     h += '</div>';
-    h += '</div>';
-  });
-  h += '</div></div>';
+  }
+
+  h += '</div>';
   return h;
 }
 
 /* ── ADD CLIENT ── */
-window.caCRMShowAdd = function(){
+window.caCRMShowAdd = function(defaultStage){
   var ov = document.createElement('div');
   ov.id = 'crm-ca-modal';
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px';
@@ -5704,10 +5751,10 @@ window.caCRMShowAdd = function(){
   h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">';
   h += '<div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--text)">Add New Client</div>';
   h += '<button onclick="document.getElementById(\'crm-ca-modal\').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">&#x2715;</button></div>';
-  h += crmField2('Company Name *','new-co','text','');
-  h += crmField2('Contact Person','new-ct','text','');
-  h += crmField2('Email','new-em','email','');
-  h += crmField2('Phone','new-ph','tel','');
+  h += crmField2('Company Name *','','new-co','text');
+  h += crmField2('Contact Person','','new-ct','text');
+  h += crmField2('Email','','new-em','email');
+  h += crmField2('Phone','','new-ph','tel');
   h += '<div style="margin-bottom:10px"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Service</label>';
   h += '<select id="new-svc" class="inp">';
   CRM_SERVICES_CA.forEach(function(s){ h += '<option>'+s+'</option>'; });
@@ -5715,12 +5762,12 @@ window.caCRMShowAdd = function(){
   h += '<div style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">Stage</label>';
   h += '<div style="display:flex;gap:5px;flex-wrap:wrap">';
   CRM_STAGES_CA.forEach(function(s){
-    var active = s.id==='lead';
+    var active = s.id===(defaultStage||'lead');
     h += '<button type="button" data-stage="'+s.id+'" onclick="caStgPick(this)" style="padding:4px 10px;border-radius:99px;border:1px solid '+(active?s.col:'rgba(255,255,255,.08)')+';background:'+(active?s.col+'18':'none')+';color:'+(active?s.col:'var(--muted)')+';font-size:9px;font-weight:700;cursor:pointer;font-family:var(--font)">'+s.icon+' '+s.label+'</button>';
   });
   h += '</div><input type="hidden" id="new-stg" value="lead"/></div>';
-  h += crmField2('AIRA Score (if known)','new-aira','number','');
-  h += crmField2('Notes','new-notes','text','');
+  h += crmField2('AIRA Score (if known)','','new-aira','number');
+  h += crmField2('Notes','','new-notes','text');
   h += '<button onclick="caCRMCreate()" class="btn btn-gold" style="width:100%;justify-content:center;margin-top:4px">Add Client &#8594;</button>';
   h += '<div id="crm-ca-err" style="font-size:10px;color:var(--red);margin-top:6px"></div>';
   h += '</div>';
@@ -5892,6 +5939,7 @@ window.caCRMDelete = async function(id){
 function crmField2(label, val, id, type){
   return '<div style="margin-bottom:10px"><label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px">'+label+'</label><input id="'+id+'" type="'+type+'" class="inp" value="'+escCRM(String(val||''))+'" style="font-size:11px"/></div>';
 }
+function gv2(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
 function gv2(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
 function escCRM(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
