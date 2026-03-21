@@ -154,6 +154,11 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
   .hero{padding:88px 16px 50px}.section{padding:40px 16px}
   .portal-sidebar{display:flex;flex-direction:column}
 }
+.portal-switcher { display: flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border2); flex-wrap: wrap; position: fixed; top: 0; left: 0; right: 0; z-index: 200; }
+.ps-link { font-size: 11px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; border: 1px solid transparent; transition: .15s; font-weight: 600; }
+.ps-link:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.ps-link.active { background: rgba(200,151,74,.08); border-color: rgba(200,151,74,.2); color: var(--gold2); }
+.ps-label { font-size: 10px; color: var(--dim); }
 </style>
 </head>
 <body>
@@ -557,6 +562,16 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
   </div>
 </div>
 
+
+<!-- PORTAL SWITCHER -->
+<div class="portal-switcher">
+  <span class="ps-label">← <a href="index.html" class="ps-link ps-home">ipowork.com</a></span>
+  <a href="issuer.html" class="ps-link">📊 Issuer</a>
+  <a href="mb.html" class="ps-link">🏦 MB Portal</a>
+  <a href="institutions.html" class="ps-link">🏛️ Intelligence</a>
+  <a href="deep-research.html" class="ps-link">🧠 Deep Research</a>
+  <a href="ca-cs.html" class="ps-link active" style="color:var(--amber);border-color:rgba(212,168,83,.25);background:rgba(212,168,83,.08)">⚖️ CA/CS Hub</a>
+</div>
 <!-- PORTAL OVERLAY -->
 <div class="portal-overlay" id="portal-overlay">
   <div class="portal-topbar">
@@ -705,52 +720,59 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:28px
 </footer>
 
 <script>
+
+
+
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 var SESS   = {name:'', email:'', org:'', demo:false};
 var P      = {view:'dashboard', aiAsst:null, aiHistory:[], aiLoading:false};
 
 /* ── OPEN/CLOSE ── */
 function openPortal(){
-  /* Set SESS defaults if demo */
-  if(!SESS.name){ SESS.name='CA Professional'; SESS.email='demo@ipowork.com'; SESS.org='Demo Practice'; SESS.demo=true; }
-  /* Update topbar */
-  var pu = document.getElementById('portal-user');
-  if(pu) pu.textContent = SESS.name + (SESS.org ? ' · '+SESS.org : '');
-  var sb = document.getElementById('topbar-signin-btn');
-  if(sb) sb.style.display = 'none';
-  /* Load credits */
-  if(typeof creditLoad==='function' && SESS.email) creditLoad(SESS.email);
-  /* Reset state */
-  P.view='dashboard'; P.aiAsst=null; P.aiHistory=[];
-  if(typeof caClientLoad==='function') caClientLoad();
-  /* Show portal — set each style property individually (cssText overwrites position:fixed!) */
-  var ov = document.getElementById('portal-overlay');
-  if(ov){
-    ov.style.display    = 'flex';
-    ov.style.position   = 'fixed';
-    ov.style.top        = '0';
-    ov.style.left       = '0';
-    ov.style.right      = '0';
-    ov.style.bottom     = '0';
-    ov.style.zIndex     = '9999';
-    ov.style.flexDirection = 'column';
-    ov.style.background = '#0F1318';
-    ov.classList.add('open');
-  }
-  /* Update topbar sign-in button */
-  var btn = document.getElementById('topbar-signin-btn');
-  if(btn) btn.style.display = 'none';
-  /* Render content */
-  renderSidebar();
-  renderMain();
+  if(!SESS.name){SESS.name='CA Professional';SESS.email='demo@ipowork.com';SESS.org='Demo Practice';SESS.demo=true;}
+  var m=document.getElementById('modal-signin'); if(m) m.style.display='none';
+  var ov=document.getElementById('portal-overlay');
+  if(!ov){alert('Portal not found — please refresh');return;}
+  ov.setAttribute('style','display:flex!important;position:fixed!important;top:0!important;left:0!important;width:100%!important;height:100%!important;z-index:9000!important;flex-direction:column!important;background:#0D1117!important;');
+  var pu=document.getElementById('portal-user'); if(pu) pu.textContent=SESS.name+(SESS.org?' · '+SESS.org:'');
+  var sb=document.getElementById('topbar-signin-btn'); if(sb) sb.style.display='none';
+  if(typeof creditLoad==='function'&&SESS.email) creditLoad(SESS.email);
+  P.view='dashboard';P.aiAsst=null;P.aiHistory=[];
+  renderSidebar();renderMain();
 }
 function openPortalAI(id){
   openPortal();
   P.view='ai';
   setTimeout(function(){window.startAI(id);},60);
 }
-function closePortal(){document.getElementById('portal-overlay').classList.remove('open');}
+function closePortal(){var ov=document.getElementById('portal-overlay');if(ov)ov.setAttribute('style','display:none');}
 
+
+function openSignIn(){
+  var m=document.getElementById('modal-signin');
+  if(!m){openPortal();return;}
+  m.setAttribute('style','display:flex!important;position:fixed!important;inset:0!important;top:0!important;left:0!important;width:100%!important;height:100%!important;z-index:10000!important;background:rgba(0,0,0,.75)!important;align-items:center!important;justify-content:center!important;padding:16px!important;');
+}
+function submitSignIn(){
+  var n=document.getElementById('si-name')||{value:''};
+  var e=document.getElementById('si-email')||{value:''};
+  var mob=document.getElementById('si-mobile')||{value:''};
+  var org=document.getElementById('si-org')||{value:''};
+  var consent=document.getElementById('si-consent')||{checked:false};
+  var err=document.getElementById('si-err');
+  if(!n.value.trim()){if(err){err.textContent='Name required';err.style.display='block';}return;}
+  if(!e.value.trim()||e.value.indexOf('@')<0){if(err){err.textContent='Valid email required';err.style.display='block';}return;}
+  if(!mob.value.trim()||mob.value.replace(/[\s+\-()]/g,'').length<10){if(err){err.textContent='Valid mobile required';err.style.display='block';}return;}
+  if(!consent.checked){if(err){err.textContent='Please accept terms';err.style.display='block';}return;}
+  SESS.name=n.value.trim();SESS.email=e.value.trim();SESS.mobile=mob.value.trim();
+  SESS.org=org.value.trim()||'CA/CS Professional';SESS.consent=true;SESS.demo=false;
+  openPortal();
+}
+function quickReturnUser(){
+  var m=document.getElementById('modal-signin');if(m)m.style.display='none';
+  var email=prompt('Enter your email:');
+  if(email&&email.indexOf('@')>0){SESS.email=email;SESS.name=email.split('@')[0];openPortal();}
+}
 /* ── NAV ── */
 var NAV=[
   {id:'dashboard',        icon:'🏠', label:'Dashboard'},
@@ -4896,57 +4918,7 @@ function creditWalletHTML(){
 
 
 /* ── openSignIn — show the sign-in modal ── */
-function openSignIn(){
-  var m = document.getElementById('modal-signin');
-  if(m){ m.style.display='flex'; }
-  var err = document.getElementById('si-err');
-  if(err){ err.style.display='none'; err.textContent=''; }
-  /* Pre-focus name field */
-  setTimeout(function(){
-    var n = document.getElementById('si-name');
-    if(n) n.focus();
-  }, 100);
-}
-function submitSignIn(){
-  var name    = (document.getElementById('si-name')||{value:''}).value.trim();
-  var email   = (document.getElementById('si-email')||{value:''}).value.trim();
-  var mobile  = (document.getElementById('si-mobile')||{value:''}).value.trim();
-  var org     = (document.getElementById('si-org')||{value:''}).value.trim();
-  var consent = (document.getElementById('si-consent')||{checked:false}).checked;
-  var err     = document.getElementById('si-err');
 
-  if(!name){ err.textContent='Please enter your name.'; err.style.display='block'; return; }
-  if(!email||!email.includes('@')){ err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
-  if(!mobile||mobile.replace(/[\s+\-()]/g,'').length<10){ err.textContent='Please enter a valid mobile number.'; err.style.display='block'; return; }
-  if(!consent){ err.textContent='Please accept the terms to continue.'; err.style.display='block'; return; }
-
-  SESS.name    = name;
-  SESS.email   = email;
-  SESS.mobile  = mobile;
-  SESS.org     = org || 'CA/CS Professional';
-  SESS.consent = true;
-  SESS.demo    = false;
-
-  if(typeof creditLoad==='function') creditLoad(email);
-
-  var m = document.getElementById('modal-signin');
-  if(m) m.style.display='none';
-
-  openPortal();
-}
-
-function quickReturnUser(){
-  var m = document.getElementById('modal-signin');
-  if(m) m.style.display='none';
-  var email = prompt('Enter your email to continue:');
-  if(email && email.includes('@')){
-    SESS.email = email;
-    SESS.name  = email.split('@')[0];
-    SESS.org   = 'CA/CS Professional';
-    if(typeof creditLoad==='function') creditLoad(email);
-    openPortal();
-  }
-}
 
 
 /* Show sign-in button if not logged in (runs after portal loads) */
@@ -5049,6 +5021,9 @@ window.hideSearchResults = function(){
   if(res) res.style.display='none';
 };
 
+
+
+
 </script>
 
 <!-- SIGN IN MODAL -->
@@ -5090,6 +5065,9 @@ window.hideSearchResults = function(){
 </div>
 
 <script>
+
+
+
 var FMT_STATE = { search:'', auth:'', view:'list', detail:null };
 
 /* ── MASTER DATA ── */
@@ -5484,46 +5462,8 @@ window.fmtAskAI = function(formName){
 function escFmt(s){ return String(s||'').replace(/"/g,'&quot;'); }
 
 
-function submitSignIn(){
-  var name    = (document.getElementById('si-name')||{value:''}).value.trim();
-  var email   = (document.getElementById('si-email')||{value:''}).value.trim();
-  var mobile  = (document.getElementById('si-mobile')||{value:''}).value.trim();
-  var org     = (document.getElementById('si-org')||{value:''}).value.trim();
-  var consent = (document.getElementById('si-consent')||{checked:false}).checked;
-  var err     = document.getElementById('si-err');
 
-  if(!name){ err.textContent='Please enter your name.'; err.style.display='block'; return; }
-  if(!email||!email.includes('@')){ err.textContent='Please enter a valid email.'; err.style.display='block'; return; }
-  if(!mobile||mobile.replace(/[\s+\-()]/g,'').length<10){ err.textContent='Please enter a valid mobile number.'; err.style.display='block'; return; }
-  if(!consent){ err.textContent='Please accept the terms to continue.'; err.style.display='block'; return; }
 
-  SESS.name    = name;
-  SESS.email   = email;
-  SESS.mobile  = mobile;
-  SESS.org     = org || 'CA/CS Professional';
-  SESS.consent = true;
-  SESS.demo    = false;
-
-  if(typeof creditLoad==='function') creditLoad(email);
-
-  var m = document.getElementById('modal-signin');
-  if(m) m.style.display='none';
-
-  openPortal();
-}
-
-function quickReturnUser(){
-  var m = document.getElementById('modal-signin');
-  if(m) m.style.display='none';
-  var email = prompt('Enter your email to continue:');
-  if(email && email.includes('@')){
-    SESS.email = email;
-    SESS.name  = email.split('@')[0];
-    SESS.org   = 'CA/CS Professional';
-    if(typeof creditLoad==='function') creditLoad(email);
-    openPortal();
-  }
-}
 
 
 /* Show sign-in button if not logged in (runs after portal loads) */
@@ -5948,6 +5888,9 @@ function crmField2(label, val, id, type){
 }
 function gv2(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
 function escCRM(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+
+
 
 
 </script>
