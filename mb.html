@@ -853,6 +853,7 @@ var MB_DEALS = [
 var NAV_ITEMS = [
   {id:'dashboard', icon:'🏠', label:'Dashboard',         badge:''},
   {id:'crm',       icon:'🗂️', label:'IPO Deal CRM', badge:'NEW'},
+  {id:'drhp-repo', icon:'📤', label:'SEBI DRHP Repository', badge:'NEW'},
   {id:'checklist', icon:'✅', label:'IPO Checklist',     badge:'SHARED'},
   {id:'deals',     icon:'🔗', label:'Deal Sourcing',     badge:'LIVE'},
   {id:'hot-leads', icon:'⚡', label:'Hot Leads',         badge:'3'},
@@ -989,6 +990,7 @@ function renderMain(){
   var content;
   if(P.view==='dashboard')  content=renderDashboard();
   else if(P.view==='crm')   content=renderCRM();
+  else if(P.view==='drhp-repo') content=renderDRHPRepo();
   else if(P.view==='deals') content=renderDeals();
   else if(P.view==='hot-leads') content=renderHotLeads();
   else if(P.view==='pipeline')  content=renderPipeline();
@@ -2587,6 +2589,658 @@ function crmFiltered(){
     return true;
   });
 }
+
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   SEBI DRHP DATA REPOSITORY — MB PORTAL
+   Complete checklist of 23 sections per SEBI ICDR 2018
+   Source: Data Repository Checklist (SEBI Upload Requirements)
+   Track uploads, status, notes per deal
+══════════════════════════════════════════════════════════════════ */
+
+var DRHP_SECTIONS = [
+  { id:'s01', num:'1', title:'The Offer', icon:'📋', docs:[
+    {id:'1.1',  text:'Board Resolution authorising the IPO [Sec 62]'},
+    {id:'1.2',  text:'Shareholder Meeting Resolution authorising the IPO [Sec 62]'},
+    {id:'1.3',  text:'Form MGT-14 and Challan for authorising the issue (Fresh Issue)'},
+    {id:'1.4',  text:'Board/IPO Committee authorisation on Issue Size and Structure'},
+    {id:'1.5',  text:'Third party consents (publishers of industry reports, key customers) for disclosures in offer documents'},
+    {id:'1.6',  text:'Authorisation/Consent letter from selling shareholder for tendering shares in OFS'},
+    {id:'1.7',  text:'Any additional documents'},
+  ]},
+  { id:'s02', num:'2', title:'General Information', icon:'🏢', docs:[
+    {id:'2.1',  text:'Contractual agreements for corporate and registered office (lease/ownership)'},
+    {id:'2.2',  text:'Lease/ownership documents for material facilities (sample basis)'},
+    {id:'2.3',  text:'Consents of Directors, KMPs, Auditors and all intermediaries involved in the IPO'},
+    {id:'2.4',  text:'Any additional documents'},
+  ]},
+  { id:'s03', num:'3', title:'Capital Structure', icon:'📊', docs:[
+    {id:'3.1',  text:'Allotments/Transfer forms of the Company, as available'},
+    {id:'3.2',  text:'Latest BenPos (Beneficiary Position) of the Company'},
+    {id:'3.3',  text:'Valuation Reports for allotment of shares for consideration other than cash'},
+    {id:'3.4',  text:'Board and Shareholder resolutions supporting capital structure disclosures'},
+    {id:'3.5',  text:'Share purchase agreement (Promoter/Promoter Group and Investor Transactions)'},
+    {id:'3.6',  text:'Gift deed(s) for share transfers in relation to Promoter/Promoter Group inter-se transfers'},
+    {id:'3.7',  text:'Forms relating to authorised share capital'},
+    {id:'3.8',  text:'Forms relating to sub-division/consolidation of shares'},
+    {id:'3.9',  text:'Certificate from Company Secretary for RoC searches performed'},
+    {id:'3.10', text:'Copy of ESOP/ESPS Scheme, if any'},
+    {id:'3.11', text:'Any additional documents'},
+  ]},
+  { id:'s04', num:'4', title:'Objects of the Issue', icon:'🎯', docs:[
+    {id:'4.1',  text:'Project Appraisal Report, if any'},
+    {id:'4.2',  text:'Project Report with Cost of Project, Means of Finance, Schedule of Deployment (Greenfield/Brownfield/CapEx)'},
+    {id:'4.3',  text:'Quotations for assets to be purchased (not more than 6 months old from filing date)'},
+    {id:'4.4',  text:'Board approval + ICA certificate on working capital requirements'},
+    {id:'4.5',  text:'Back-up documents where quotations from independent third parties unavailable'},
+    {id:'4.6',  text:'Confirmation from Issuer: Firm Finance arrangements (75% of stated means excluding IPO proceeds)'},
+    {id:'4.7',  text:'Statutory Auditor certificate on deployment of funds already made in project'},
+    {id:'4.8',  text:'For loan repayment: SA certificate/confirmation on loan utilisation for granted purpose'},
+    {id:'4.9',  text:'For land acquisition objects: CA/SA certification on amount paid towards acquisition'},
+    {id:'4.10', text:'Any additional documents'},
+  ]},
+  { id:'s05', num:'5', title:'Basis of Issue Price', icon:'💰', docs:[
+    {id:'5.1',  text:'Audit Committee resolution for KPIs'},
+    {id:'5.2',  text:'ICA/Auditor certification for KPIs'},
+    {id:'5.3',  text:'Statutory Auditor/ICA certificate on ratios and non-GAAP items, as applicable'},
+  ]},
+  { id:'s06', num:'6', title:'Industry Report', icon:'📈', docs:[
+    {id:'6.1',  text:'Consent from publisher/copyright holder for reproducing information in offer documents'},
+    {id:'6.2',  text:'Consent from engaged organisation (CRISIL/ICRA/Frost & Sullivan etc.) for inclusion of name and report on website'},
+    {id:'6.3',  text:"Confirmation of organisation's independence (vis-à-vis Issuer, Promoters, Directors)"},
+    {id:'6.4',  text:'Copy of the industry report, if any'},
+    {id:'6.5',  text:'Any additional documents'},
+  ]},
+  { id:'s07', num:'7', title:'Our Business', icon:'🏭', docs:[
+    {id:'7.1',  text:'Information memoranda, private placement documents, debt placement documents used as basis for disclosure'},
+    {id:'7.2',  text:'Shareholders agreement'},
+    {id:'7.3',  text:'Job work agreements/customer agreements (sample basis)'},
+    {id:'7.4',  text:'Lease/leave and licence/rent agreements (sample basis)'},
+    {id:'7.5',  text:'Copy of scheme of amalgamation/mergers/collaborations'},
+    {id:'7.6',  text:'Joint ventures agreements, if any'},
+    {id:'7.7',  text:'Product/Services brochure/catalogue/website extracts'},
+    {id:'7.8',  text:'ISO certification or other quality certification'},
+    {id:'7.9',  text:'Insurance papers covering property, liabilities, operations and product liabilities (sample basis)'},
+    {id:'7.10', text:'Agreements with Strategic/Financial Partners'},
+    {id:'7.11', text:'Agreements on collaborations (technical or financial) or marketing assistance'},
+    {id:'7.12', text:'Performance guarantee(s), if any'},
+    {id:'7.13', text:'Capacity utilisation of factory/manufacturing unit certified by Chartered Engineer'},
+    {id:'7.14', text:'Certificate/Management representation on any arrangement for KMP selection (shareholders/customers/suppliers)'},
+    {id:'7.15', text:'Certificate/Management representation on arrangements with major shareholders/customers/suppliers'},
+    {id:'7.16', text:'Certificate/Board Resolution on business strategies adopted by the Company'},
+    {id:'7.17', text:'Consent from key customers (to extent disclosed in offer document)'},
+    {id:'7.18', text:'Details of Export Sales and Export Obligations, if any'},
+    {id:'7.19', text:'Copies of awards and business certificates disclosed'},
+    {id:'7.20', text:'Copies of registration of intellectual property/trademarks, as applicable'},
+    {id:'7.21', text:'Any additional documents'},
+  ]},
+  { id:'s08', num:'8', title:'Our History', icon:'📜', docs:[
+    {id:'8.1',  text:'Agreement by KMPs/Directors/Promoters with shareholders or third parties regarding compensation/profit sharing in securities'},
+    {id:'8.2',  text:'Credit ratings obtained in last three years including rationale'},
+    {id:'8.3',  text:'Certificate of Incorporation, Certificate of Commencement of Business (if applicable)'},
+    {id:'8.4',  text:'Memorandum of Association, Articles of Association'},
+    {id:'8.5',  text:'BenPos, registrations from regulatory authorities (SEBI/RBI/IRDAI/NHB/TRAI)'},
+    {id:'8.6',  text:'Statutory registers, minutes of Board and committee meetings, Shareholder resolutions (last 3 FY) for material Subsidiaries'},
+    {id:'8.7',  text:'Foreign counsel disclosure letter/opinion for foreign material Subsidiaries'},
+    {id:'8.8',  text:'Any additional documents'},
+  ]},
+  { id:'s09', num:'9', title:'Promoter & Promoter Group', icon:'👤', docs:[
+    {id:'9.1',  text:'List of Promoter and Promoter Group as per ICDR Regulations (certified by Company)'},
+    {id:'9.2',  text:'Back-ups for PAN details, qualifications and experience of all Promoters'},
+    {id:'9.3',  text:'CIBIL and Watchout Investor notings for Promoter and Promoter Group'},
+    {id:'9.4',  text:'Certificate of Incorporation, MoA, AoA, board of directors details, shareholding pattern, annual reports (last 3 FY) of corporate Promoters'},
+    {id:'9.5',  text:'Any additional documents'},
+  ]},
+  { id:'s10', num:'10', title:'Subsidiaries', icon:'🔗', docs:[
+    {id:'10.1', text:'Certificate of Incorporation, Certificate of Commencement of Business (if applicable)'},
+    {id:'10.2', text:'MoA, AoA of each subsidiary'},
+    {id:'10.3', text:'Registrations from regulatory authorities (SEBI/RBI/IRDAI/NHB/TRAI) for each subsidiary'},
+  ]},
+  { id:'s11', num:'11', title:'Management, Directors & KMPs', icon:'👥', docs:[
+    {id:'11.1', text:'Back-ups for PAN details, qualification and experience of current Directors'},
+    {id:'11.2', text:'ROC forms for appointment of Directors'},
+    {id:'11.3', text:'Copies of arrangements with shareholders/customers/suppliers for Director appointment'},
+    {id:'11.4', text:'Resolutions for formation and constitution of Corporate Governance Committees'},
+    {id:'11.5', text:'Company certification of management organisation chart'},
+    {id:'11.6', text:'CIBIL and Watchout Investor notings for Directors'},
+    {id:'11.7', text:'ICA certificate on remuneration of Directors'},
+    {id:'11.8', text:'Certificate from Directors'},
+    {id:'11.9', text:'Agreement/arrangement with SMPs, KMPs, Director(s), if any'},
+    {id:'11.10', text:'List of KMPs and SMPs as certified by the Company'},
+    {id:'11.11', text:'Documentation on appointment of KMPs/SMPs'},
+    {id:'11.12', text:'Back-ups for qualification and experience of KMPs/SMPs'},
+    {id:'11.13', text:'Documentation for bonus/profit sharing plan involving KMPs/SMPs'},
+    {id:'11.14', text:'Certificate from KMPs/SMPs certifying details of their disclosures'},
+    {id:'11.15', text:'Details of ESOP/ESOS Scheme for KMPs, if any'},
+    {id:'11.16', text:'Any additional documents'},
+  ]},
+  { id:'s12', num:'12', title:'Group Companies', icon:'🏛️', docs:[
+    {id:'12.1', text:'Certificates regarding Group Company disclosures'},
+    {id:'12.2', text:'CIBIL and Watchout Investor notings for relevant entities'},
+    {id:'12.3', text:'Board resolution regarding policy for identifying group companies'},
+    {id:'12.4', text:'Any additional documents'},
+  ]},
+  { id:'s13', num:'13', title:'Dividend Policy', icon:'💵', docs:[
+    {id:'13.1', text:'Board and Shareholder resolutions on dividends for last three FY and stub period'},
+    {id:'13.2', text:'Dividend policy approved by Board of Directors, if any'},
+    {id:'13.3', text:'Financial statements for last three years and stub period'},
+    {id:'13.4', text:'Any additional documents'},
+  ]},
+  { id:'s14', num:'14', title:'Financial Information', icon:'📑', docs:[
+    {id:'14.1', text:'Internal Audit Report, if any'},
+    {id:'14.2', text:'Form MGT-14 for Increase in Borrowing Powers of Board'},
+    {id:'14.3', text:'Latest Board Resolution for Increase/Decrease in Borrowing Powers'},
+    {id:'14.4', text:'Certifications from Peer Reviewed Independent CA/Statutory Auditor'},
+    {id:'14.5', text:'Special Tax Benefit Statement'},
+    {id:'14.6', text:'Restated Auditors Report as per SEBI (ICDR) Regulations, 2018'},
+    {id:'14.7', text:'Peer Review Certificate issued by ICAI to Auditors'},
+    {id:'14.8', text:'CA Certificate/workings for financial eligibility criteria'},
+    {id:'14.9', text:'ICA/CA certificate on average cost of acquisition of equity shares held by Promoters'},
+    {id:'14.10', text:'List of top ten creditors for last 3 years including stub period (if in Offer Document)'},
+    {id:'14.11', text:'List of top ten customers for last 3 years including stub period (if in Offer Document)'},
+    {id:'14.12', text:'Any additional documents'},
+  ]},
+  { id:'s15', num:'15', title:'Property Details', icon:'🏗️', docs:[
+    {id:'15.1', text:'MIS of real estate property (manufacturing facilities, plants — owned/leased/licensed) with acquisition date, parties, purpose, duration, nature, location'},
+    {id:'15.2', text:'List of material properties rented to third parties with copies of relevant agreements'},
+    {id:'15.3', text:'Any additional documents'},
+  ]},
+  { id:'s16', num:'16', title:'Government & Other Approvals', icon:'🔏', docs:[
+    {id:'16.1', text:'Local Sales Tax Registration'},
+    {id:'16.2', text:'Central Sales Tax Registration'},
+    {id:'16.3', text:'Tax Deduction Account (TAN) Number certificate'},
+    {id:'16.4', text:'Goods and Service Tax (GST) Registration'},
+    {id:'16.5', text:'Professional Tax Registration'},
+    {id:'16.6', text:'Employees Provident Fund (EPF) Registration'},
+    {id:'16.7', text:'Employee State Insurance Corporation (ESIC) Registration'},
+    {id:'16.8', text:'Shops and Establishment Registration, if applicable'},
+    {id:'16.9', text:'Factory License, if applicable'},
+    {id:'16.10', text:'Import Export Code (IEC), if any'},
+    {id:'16.11', text:'Central Excise Registration, if any'},
+    {id:'16.12', text:'Statutory/regulatory consents, permits, licenses, approvals, filings for current business (sample basis)'},
+    {id:'16.13', text:'Applications for obtaining/renewal of consents, permits, licenses (sample basis)'},
+    {id:'16.14', text:'Company certificate on compliance with industry specific statutes, regulations, licenses'},
+    {id:'16.15', text:'Any additional documents'},
+  ]},
+  { id:'s17', num:'17', title:'Litigation & Proceedings', icon:'⚖️', docs:[
+    {id:'17.1', text:'MIS of all Issuer litigations'},
+    {id:'17.2', text:'Board resolution on materiality policy for litigations'},
+    {id:'17.3', text:'Latest order/claim/notices/proceedings for outstanding litigations (material cases, sample basis)'},
+    {id:'17.4', text:'Documents on actions by regulatory/statutory authorities against Issuer (sample basis)'},
+    {id:'17.5', text:'ICA Certificate on material creditors'},
+    {id:'17.6', text:'Litigation certificates from Issuer/Subsidiaries/Directors/Promoters/Group Companies'},
+    {id:'17.7', text:'Any additional documents'},
+  ]},
+  { id:'s18', num:'18', title:'Foreign Exchange Transactions', icon:'🌐', docs:[
+    {id:'18.1', text:'Hedging Agreements, if any'},
+    {id:'18.2', text:'Any additional documents'},
+  ]},
+  { id:'s19', num:'19', title:'Intellectual Property Rights', icon:'💡', docs:[
+    {id:'19.1', text:'Certification on Patents registered/applied for'},
+    {id:'19.2', text:'Certification on Designs and Copyrights registered/applied for'},
+    {id:'19.3', text:'Certification on Trademarks and Service Marks (including logos) registered/applied for'},
+    {id:'19.4', text:'Certification on other industrial intellectual property'},
+    {id:'19.5', text:'Sample copies of IP registrations/applications'},
+    {id:'19.6', text:'Company certification and sample copies of Registered User or Licence Agreements'},
+    {id:'19.7', text:'Company certificate and sample copies of trademarks owned by Promoter used for Company business'},
+    {id:'19.8', text:'Any additional documents'},
+  ]},
+  { id:'s20', num:'20', title:'Indebtedness / Borrowings', icon:'🏦', docs:[
+    {id:'20.1', text:'Sanction letter for all outstanding credit facilities'},
+    {id:'20.2', text:'Certification of outstanding Secured and Unsecured loans (tabular: amount sanctioned, availed, outstanding, lender name, nature of facility)'},
+    {id:'20.3', text:'Material loan agreements, deeds of hypothecation, pledge of shares/mortgage, guarantee agreements, demand promissory notes'},
+    {id:'20.4', text:'Details and copies of material guarantees and indemnities (including personal guarantees of Directors)'},
+    {id:'20.5', text:'NoCs from lenders with consent requirements in loan agreements'},
+    {id:'20.6', text:'Any additional documents'},
+  ]},
+  { id:'s21', num:'21', title:'Material Contracts & Documents for Inspection', icon:'📝', docs:[
+    {id:'21.1', text:'Offer/Issue Agreement'},
+    {id:'21.2', text:'Registrar Agreement'},
+    {id:'21.3', text:'Cash Escrow and Sponsor Banks Agreement'},
+    {id:'21.4', text:'Share Escrow Agreement, if any'},
+    {id:'21.5', text:'Syndicate Agreement'},
+    {id:'21.6', text:'Underwriting Agreement'},
+    {id:'21.7', text:'Certified copies of updated MoA and AoA (amended from time to time)'},
+    {id:'21.8', text:'Certificate of Incorporation issued by RoC'},
+    {id:'21.9', text:'Board Resolution authorising the IPO [Sec 62]'},
+    {id:'21.10', text:'Shareholder Meeting Resolution authorising the IPO [Sec 62]'},
+    {id:'21.11', text:'Board/IPO Committee resolution approving DRHP/RHP/Prospectus'},
+    {id:'21.12', text:'Copies of Shareholder Agreement and SHA Amendment Agreement'},
+    {id:'21.13', text:'Consents: Statutory Auditor, ICA, Directors, CS, Compliance Officer, Legal Counsel, Bankers, BRLMs, Syndicate Members, Registrar, Industry Agency, Experts'},
+    {id:'21.14', text:'Examination report of Statutory Auditor on Restated Ind AS Summary Statements'},
+    {id:'21.15', text:'Report on statement of possible special tax benefits'},
+    {id:'21.16', text:'Audit Committee resolution approving KPIs for disclosure'},
+    {id:'21.17', text:'Industry Report prepared and issued by Industry agent'},
+    {id:'21.18', text:'Annual reports of the Company for preceding three Fiscals'},
+    {id:'21.19', text:'Due Diligence Certificate addressed to SEBI from BRLMs'},
+    {id:'21.20', text:'In-principle listing approvals from BSE and NSE'},
+    {id:'21.21', text:'Tripartite agreement among Company, NSDL and Registrar'},
+    {id:'21.22', text:'Tripartite agreement among Company, CDSL and Registrar'},
+    {id:'21.23', text:'Copy of SEBI final observation letter'},
+    {id:'21.24', text:'Any additional documents'},
+  ]},
+  { id:'s22', num:'22', title:'Others', icon:'📂', docs:[
+    {id:'22.1', text:'Industry specific reports included in offer document (reserve reports, actuarial reports, etc.)'},
+    {id:'22.2', text:'Any additional documents'},
+  ]},
+  { id:'s23', num:'23', title:'Upload Letter / SEBI Submission', icon:'📤', docs:[
+    {id:'23.1', text:'Upload Letter (dated)'},
+    {id:'23.2', text:'SEBI Observation Letter'},
+    {id:'23.3', text:'Any additional documents'},
+  ]},
+];
+
+/* Total document count */
+var DRHP_TOTAL = DRHP_SECTIONS.reduce(function(t,s){ return t+s.docs.length; }, 0);
+
+/* ── STATE ── */
+var DRHP_STATE  = {};  /* {docId: {status, note, by, ts, filename}} */
+var DRHP_LOADED = false;
+var DRHP_DEAL   = 'demo_deal';
+var DRHP_KEY    = 'drhp:'+DRHP_DEAL;
+var DRHP_FILTER = { section:'', status:'', search:'' };
+
+/* ── LOAD / SAVE ── */
+async function drhpLoad(){
+  if(DRHP_LOADED) return;
+  try {
+    var res = await window.storage.get(DRHP_KEY, false);
+    if(res && res.value) DRHP_STATE = JSON.parse(res.value);
+  } catch(e){ DRHP_STATE = {}; }
+  DRHP_LOADED = true;
+}
+async function drhpSave(){
+  try { await window.storage.set(DRHP_KEY, JSON.stringify(DRHP_STATE), false); }
+  catch(e){ console.warn('drhpSave error', e); }
+}
+
+/* ── STATUS CONFIG ── */
+var DRHP_STATUS = {
+  'pending':    { label:'Pending',     col:'#5A7A8A', bg:'rgba(90,122,138,.1)',  icon:'○' },
+  'collecting': { label:'Collecting',  col:'#D4A853', bg:'rgba(212,168,83,.1)',  icon:'◐' },
+  'received':   { label:'Received',    col:'#64B5C8', bg:'rgba(100,181,200,.1)', icon:'◑' },
+  'reviewed':   { label:'Reviewed',    col:'#9B8EC4', bg:'rgba(155,142,196,.1)', icon:'◕' },
+  'uploaded':   { label:'Uploaded ✓',  col:'#5DB896', bg:'rgba(93,184,150,.1)',  icon:'●' },
+  'na':         { label:'N/A',         col:'#3D4D60', bg:'rgba(61,77,96,.1)',    icon:'—' },
+};
+
+/* ── MAIN RENDER ── */
+function renderDRHPRepo(){
+  if(!DRHP_LOADED){
+    drhpLoad().then(function(){ renderMain(); });
+    return '<div class="portal-pad"><div class="page-title">Loading DRHP Repository...</div></div>';
+  }
+
+  /* Stats */
+  var stats = {total:DRHP_TOTAL, pending:0, collecting:0, received:0, reviewed:0, uploaded:0, na:0};
+  Object.values(DRHP_STATE).forEach(function(d){
+    var s = d.status||'pending';
+    if(stats[s]!==undefined) stats[s]++;
+    else stats.pending++;
+  });
+  stats.pending = DRHP_TOTAL - stats.collecting - stats.received - stats.reviewed - stats.uploaded - stats.na;
+  var pct = Math.round((stats.uploaded+stats.reviewed)*100/DRHP_TOTAL);
+
+  /* Filter the sections */
+  var q = (DRHP_FILTER.search||'').toLowerCase();
+  var filtSec = DRHP_FILTER.section;
+  var filtSt  = DRHP_FILTER.status;
+
+  var h = '<div class="portal-pad">';
+
+  /* ── Header ── */
+  h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px">';
+  h += '<div><div class="page-title">📤 SEBI DRHP Data Repository</div>';
+  h += '<div class="page-sub" style="margin:0">23 sections · '+DRHP_TOTAL+' documents · per SEBI ICDR 2018 checklist</div></div>';
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button onclick="drhpExport()" class="btn btn-outline btn-sm">⬇ Export Status</button>';
+  h += '<button onclick="drhpGenerateSEBILetter()" class="btn btn-gold btn-sm">📄 SEBI Upload Letter</button>';
+  h += '<button onclick="drhpReset()" class="btn btn-outline btn-sm" style="color:var(--red)">Reset</button>';
+  h += '</div></div>';
+
+  /* ── Progress bar ── */
+  h += '<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:14px 18px;margin-bottom:18px">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  h += '<span style="font-size:11px;font-weight:700;color:var(--text)">Overall SEBI Upload Readiness</span>';
+  h += '<span style="font-size:13px;font-weight:900;color:#5DB896;font-family:var(--serif)">'+pct+'%</span>';
+  h += '</div>';
+  h += '<div style="height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden;margin-bottom:12px">';
+  h += '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#5DB896,#64B5C8);border-radius:4px;transition:.4s"></div>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:14px;flex-wrap:wrap">';
+  Object.keys(DRHP_STATUS).forEach(function(k){
+    var st = DRHP_STATUS[k];
+    h += '<span style="font-size:10px;color:'+st.col+'"><strong>'+stats[k]+'</strong> '+st.label+'</span>';
+  });
+  h += '</div></div>';
+
+  /* ── Filter bar ── */
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">';
+  h += '<input class="inp" id="drhp-search" style="flex:1;min-width:200px;max-width:300px" placeholder="🔍 Search documents..." value="'+escDrhp(DRHP_FILTER.search)+'" oninput="DRHP_FILTER.search=this.value;renderMain()"/>';
+  h += '<select class="inp" style="width:auto" onchange="DRHP_FILTER.section=this.value;renderMain()">';
+  h += '<option value="">All Sections</option>';
+  DRHP_SECTIONS.forEach(function(s){ h += '<option value="'+s.id+'"'+(filtSec===s.id?' selected':'')+'>'+s.num+'. '+s.title+'</option>'; });
+  h += '</select>';
+  h += '<select class="inp" style="width:auto" onchange="DRHP_FILTER.status=this.value;renderMain()">';
+  h += '<option value="">All Status</option>';
+  Object.keys(DRHP_STATUS).forEach(function(k){ h += '<option value="'+k+'"'+(filtSt===k?' selected':'')+'>'+DRHP_STATUS[k].label+'</option>'; });
+  h += '</select>';
+  if(q||filtSec||filtSt) h += '<button onclick="DRHP_FILTER={section:\'\',status:\'\',search:\'\'};renderMain()" class="btn btn-outline btn-sm">Clear</button>';
+  h += '</div>';
+
+  /* ── Sections + Documents ── */
+  DRHP_SECTIONS.forEach(function(sec){
+    if(filtSec && filtSec !== sec.id) return;
+
+    /* Filter docs */
+    var docs = sec.docs.filter(function(d){
+      var st = (DRHP_STATE[d.id]||{}).status||'pending';
+      if(filtSt && filtSt !== st) return false;
+      if(q && !d.text.toLowerCase().includes(q) && !sec.title.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    if(!docs.length) return;
+
+    /* Section stats */
+    var secDone = sec.docs.filter(function(d){
+      var st=(DRHP_STATE[d.id]||{}).status||'pending';
+      return st==='uploaded'||st==='reviewed'||st==='na';
+    }).length;
+    var secPct = Math.round(secDone/sec.docs.length*100);
+
+    h += '<div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;overflow:hidden;margin-bottom:12px">';
+    /* Section header */
+    h += '<div style="padding:12px 16px;border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:10px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">';
+    h += '<span style="font-size:18px">'+sec.icon+'</span>';
+    h += '<div style="flex:1">';
+    h += '<div style="font-size:12px;font-weight:800;color:var(--text)">'+sec.num+'. '+sec.title+'</div>';
+    h += '<div style="font-size:10px;color:var(--muted)">'+sec.docs.length+' documents</div>';
+    h += '</div>';
+    h += '<div style="display:flex;align-items:center;gap:8px">';
+    h += '<div style="width:80px;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+secPct+'%;background:#5DB896;border-radius:2px"></div></div>';
+    h += '<span style="font-size:10px;font-weight:700;color:#5DB896;min-width:30px">'+secPct+'%</span>';
+    h += '</div>';
+    h += '<span style="font-size:12px;color:var(--dim)">▾</span>';
+    h += '</div>';
+    /* Quick section actions */
+    h += '<div style="padding:5px 16px;border-bottom:1px solid var(--border2);background:rgba(255,255,255,.01);display:flex;gap:6px">';
+    h += '<span style="font-size:9px;color:var(--dim);margin-right:4px">Quick mark:</span>';
+    ['uploaded','reviewed','collecting','na'].forEach(function(st){
+      var cfg = DRHP_STATUS[st];
+      h += '<button data-sid2="'+sec.id+'" data-sst2="'+st+'" onclick="drhpMarkSection(this.dataset.sid2,this.dataset.sst2)" style="font-size:9px;padding:2px 8px;border-radius:4px;border:1px solid '+cfg.col+'33;background:'+cfg.bg+';color:'+cfg.col+';cursor:pointer;font-family:var(--font)">'+cfg.icon+' '+cfg.label+'</button>';
+    });
+    h += '</div>';
+
+    /* Document rows */
+    h += '<div>';
+    docs.forEach(function(doc, idx){
+      var state  = DRHP_STATE[doc.id] || {status:'pending'};
+      var st     = state.status || 'pending';
+      var stCfg  = DRHP_STATUS[st] || DRHP_STATUS.pending;
+      var isEven = idx % 2 === 0;
+
+      h += '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.025)'+(isEven?';background:rgba(255,255,255,.01)':'')+';align-items:start" data-docid="'+doc.id+'">';
+      /* Left: doc number + text + note */
+      h += '<div>';
+      h += '<div style="display:flex;gap:6px;align-items:flex-start">';
+      h += '<span style="font-size:9px;font-weight:700;color:var(--dim);min-width:30px;padding-top:2px">'+doc.id+'</span>';
+      h += '<div style="font-size:11px;color:var(--text);line-height:1.55">'+doc.text+'</div>';
+      h += '</div>';
+      if(state.note){
+        h += '<div style="font-size:10px;color:var(--muted);margin-top:4px;padding-left:36px">📝 '+escDrhp(state.note);
+        if(state.by) h += ' <span style="color:var(--dim)">— '+escDrhp(state.by)+'</span>';
+        if(state.ts) h += ' <span style="color:var(--dim)">'+escDrhp(state.ts)+'</span>';
+        h += '</div>';
+      }
+      if(state.filename){
+        h += '<div style="font-size:10px;color:#5DB896;margin-top:3px;padding-left:36px;display:flex;align-items:center;gap:6px">';
+        h += '<span>📎 '+escDrhp(state.filename)+' <span style="color:var(--dim)">('+escDrhp(state.filesize||'')+')</span></span>';
+        h += '<button data-docid="'+doc.id+'" onclick="drhpViewDoc(this.dataset.docid)" style="font-size:8px;padding:1px 6px;border-radius:4px;border:1px solid rgba(93,184,150,.3);background:none;color:#5DB896;cursor:pointer">⬇ Save</button>';
+        h += '<button data-docid="'+doc.id+'" onclick="drhpDeleteDoc(this.dataset.docid)" style="font-size:8px;padding:1px 6px;border-radius:4px;border:1px solid rgba(196,112,128,.3);background:none;color:var(--red);cursor:pointer">✕</button>';
+        h += '</div>';
+      }
+      h += '</div>';
+      /* Right: status selector + action buttons */
+      h += '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">';
+      /* Status dropdown */
+      h += '<select onchange="drhpSetStatus(\''+doc.id+'\',this.value)" style="background:'+stCfg.bg+';border:1px solid '+stCfg.col+'40;color:'+stCfg.col+';font-size:9px;font-weight:700;border-radius:6px;padding:3px 6px;cursor:pointer;font-family:var(--font)">';
+      Object.keys(DRHP_STATUS).forEach(function(k){
+        h += '<option value="'+k+'"'+(st===k?' selected':'')+'>'+DRHP_STATUS[k].icon+' '+DRHP_STATUS[k].label+'</option>';
+      });
+      h += '</select>';
+      /* Add note button */
+      h += '<button data-docid="'+doc.id+'" onclick="drhpAddNote(this.dataset.docid)" style="font-size:9px;padding:2px 8px;border-radius:5px;border:1px solid var(--border2);background:none;color:var(--muted);cursor:pointer;white-space:nowrap">+ Note</button>';
+      h += '<button data-docid="'+doc.id+'" onclick="drhpUploadDoc(this.dataset.docid)" style="font-size:9px;padding:2px 8px;border-radius:5px;border:1px solid rgba(93,184,150,.3);background:rgba(93,184,150,.05);color:#5DB896;cursor:pointer;white-space:nowrap">📎 Attach</button>';
+      h += '</div>';
+      h += '</div>';
+    });
+    h += '</div></div>';
+  });
+
+  h += '<div style="height:40px"></div>';
+  h += '</div>';
+  return h;
+}
+
+/* ── ACTIONS ── */
+window.drhpSetStatus = async function(docId, status){
+  if(!DRHP_STATE[docId]) DRHP_STATE[docId] = {};
+  DRHP_STATE[docId].status = status;
+  DRHP_STATE[docId].by  = (typeof SESS!=='undefined' && SESS.name) ? SESS.name : 'MB';
+  DRHP_STATE[docId].ts  = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+  await drhpSave();
+  renderMain();
+};
+
+window.drhpAddNote = function(docId){
+  var existing = (DRHP_STATE[docId]||{}).note || '';
+  var note = prompt('Add/edit note for document '+docId+':', existing);
+  if(note === null) return;
+  if(!DRHP_STATE[docId]) DRHP_STATE[docId] = {};
+  DRHP_STATE[docId].note = note.trim();
+  DRHP_STATE[docId].by   = (typeof SESS!=='undefined' && SESS.name) ? SESS.name : 'MB';
+  DRHP_STATE[docId].ts   = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+  drhpSave().then(function(){ renderMain(); });
+};
+
+window.drhpReset = function(){
+  if(!confirm('Reset ALL document statuses for this deal? This cannot be undone.')) return;
+  DRHP_STATE = {};
+  DRHP_LOADED = false;
+  drhpSave().then(function(){ renderMain(); });
+};
+
+window.drhpUploadDoc = function(docId){
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt,.csv,.msg';
+  inp.onchange = async function(){
+    var file = inp.files[0];
+    if(!file) return;
+    if(file.size > 10*1024*1024){ alert('File exceeds 10MB limit'); return; }
+    var reader = new FileReader();
+    reader.onload = async function(e){
+      if(!DRHP_STATE[docId]) DRHP_STATE[docId] = {};
+      DRHP_STATE[docId].filename = file.name;
+      DRHP_STATE[docId].filesize = (file.size/1024).toFixed(0)+'KB';
+      DRHP_STATE[docId].fileb64  = e.target.result; /* base64 data URL */
+      DRHP_STATE[docId].by       = (typeof SESS!=='undefined'&&SESS.name)?SESS.name:'MB';
+      DRHP_STATE[docId].ts       = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+      /* Auto-mark as received if still pending */
+      if(!DRHP_STATE[docId].status || DRHP_STATE[docId].status==='pending' || DRHP_STATE[docId].status==='collecting'){
+        DRHP_STATE[docId].status = 'received';
+      }
+      await drhpSave();
+      renderMain();
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+};
+
+window.drhpViewDoc = function(docId){
+  var state = DRHP_STATE[docId];
+  if(!state || !state.fileb64){ alert('No file attached.'); return; }
+  var a = document.createElement('a');
+  a.href = state.fileb64;
+  a.download = state.filename || ('doc_'+docId);
+  a.click();
+};
+
+window.drhpDeleteDoc = function(docId){
+  if(!confirm('Remove attached file?')) return;
+  if(DRHP_STATE[docId]){
+    delete DRHP_STATE[docId].filename;
+    delete DRHP_STATE[docId].filesize;
+    delete DRHP_STATE[docId].fileb64;
+  }
+  drhpSave().then(function(){ renderMain(); });
+};
+
+window.drhpExport = function(){
+  var lines = ['SEBI DRHP DATA REPOSITORY CHECKLIST\n','Generated: '+new Date().toLocaleDateString('en-IN'),'\nDeal: '+DRHP_DEAL+'\n'];
+  lines.push('='+'='.repeat(60));
+  DRHP_SECTIONS.forEach(function(sec){
+    lines.push('\n'+sec.num+'. '+sec.title.toUpperCase());
+    sec.docs.forEach(function(doc){
+      var st = (DRHP_STATE[doc.id]||{}).status || 'pending';
+      var note = (DRHP_STATE[doc.id]||{}).note || '';
+      lines.push('  ['+DRHP_STATUS[st].label.padEnd(12)+'] '+doc.id+' '+doc.text+(note?' | Note: '+note:''));
+    });
+  });
+  var blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'DRHP_Repository_Checklist_'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click();
+};
+
+function escDrhp(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+
+
+/* ── SEBI UPLOAD LETTER GENERATOR ── */
+window.drhpGenerateSEBILetter = function(){
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('en-IN', {day:'2-digit', month:'long', year:'numeric'});
+
+  /* Count stats */
+  var stats = {total:DRHP_TOTAL, uploaded:0, pending:0, na:0};
+  DRHP_SECTIONS.forEach(function(sec){
+    sec.docs.forEach(function(doc){
+      var st = (DRHP_STATE[doc.id]||{}).status||'pending';
+      if(st==='uploaded'||st==='reviewed') stats.uploaded++;
+      else if(st==='na') stats.na++;
+      else stats.pending++;
+    });
+  });
+
+  var lines = [];
+  lines.push('UPLOAD LETTER — SEBI DRHP DATA REPOSITORY');
+  lines.push('');
+  lines.push('Date: ' + dateStr);
+  lines.push('To: Securities and Exchange Board of India');
+  lines.push('Sub: Submission of Data Repository Checklist for DRHP Review');
+  lines.push('');
+  lines.push('Dear Sir/Madam,');
+  lines.push('');
+  lines.push('We hereby submit the Data Repository Checklist as required under SEBI (ICDR)');
+  lines.push('Regulations, 2018 in connection with the proposed Initial Public Offering of:');
+  lines.push('');
+  lines.push('Company: ' + (DRHP_DEAL || '[COMPANY NAME]'));
+  lines.push('');
+  lines.push('SUMMARY:');
+  lines.push('  Total documents in checklist : ' + stats.total);
+  lines.push('  Documents uploaded/reviewed  : ' + stats.uploaded);
+  lines.push('  Documents marked N/A         : ' + stats.na);
+  lines.push('  Documents pending            : ' + stats.pending);
+  lines.push('');
+  lines.push('DOCUMENT-WISE STATUS:');
+  lines.push('=' .repeat(80));
+
+  DRHP_SECTIONS.forEach(function(sec){
+    var secUploaded = sec.docs.filter(function(d){
+      var st=(DRHP_STATE[d.id]||{}).status||'pending';
+      return st==='uploaded'||st==='reviewed';
+    }).length;
+    lines.push('');
+    lines.push(sec.num + '. ' + sec.title.toUpperCase() +
+      ' [' + secUploaded + '/' + sec.docs.length + ' complete]');
+    lines.push('-'.repeat(70));
+    sec.docs.forEach(function(doc){
+      var state = DRHP_STATE[doc.id] || {};
+      var st    = state.status || 'pending';
+      var label = DRHP_STATUS[st] ? DRHP_STATUS[st].label : 'Pending';
+      var note  = state.note ? ' | Remark: ' + state.note : '';
+      var file  = state.filename ? ' | File: ' + state.filename : '';
+      lines.push('  ' + doc.id.padEnd(8) + '[' + label.padEnd(12) + '] ' + doc.text + file + note);
+    });
+  });
+
+  lines.push('');
+  lines.push('=' .repeat(80));
+  lines.push('');
+  lines.push('This submission is made in compliance with SEBI (ICDR) Regulations 2018.');
+  lines.push('All documents uploaded are true copies of the originals.');
+  lines.push('');
+  lines.push('Yours faithfully,');
+  lines.push('');
+  lines.push('[Authorised Signatory]');
+  lines.push('[Name of BRLM]');
+  lines.push('[SEBI Registration Number]');
+  lines.push('Date: ' + dateStr);
+
+  var blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'SEBI_Upload_Letter_' + (DRHP_DEAL||'Company').replace(/\s+/g,'_') + '_' + now.toISOString().slice(0,10) + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
+/* ── MARK ALL IN SECTION ── */
+window.drhpMarkSection = async function(secId, status){
+  var sec = DRHP_SECTIONS.find(function(s){ return s.id===secId; });
+  if(!sec) return;
+  var ts = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+  sec.docs.forEach(function(doc){
+    if(!DRHP_STATE[doc.id]) DRHP_STATE[doc.id] = {};
+    DRHP_STATE[doc.id].status = status;
+    DRHP_STATE[doc.id].by = (typeof SESS!=='undefined'&&SESS.name)?SESS.name:'MB';
+    DRHP_STATE[doc.id].ts = ts;
+  });
+  await drhpSave();
+  renderMain();
+};
+
+/* ── DOWNLOAD UPLOADED FILE ── */
+window.drhpDownloadFile = function(docId){
+  var state = DRHP_STATE[docId];
+  if(!state||!state.fileb64) return;
+  var a = document.createElement('a');
+  a.href = state.fileb64;
+  a.download = state.filename || 'document';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
+/* ── SET DUE DATE ── */
+window.drhpSetDue = async function(docId, dueDate){
+  if(!DRHP_STATE[docId]) DRHP_STATE[docId]={};
+  DRHP_STATE[docId].due = dueDate;
+  await drhpSave();
+};
+
+/* ── SET RESPONSIBLE PARTY ── */
+window.drhpSetParty = async function(docId, party){
+  if(!DRHP_STATE[docId]) DRHP_STATE[docId]={};
+  DRHP_STATE[docId].party = party;
+  await drhpSave();
+};
 
 </script>
 </body>
