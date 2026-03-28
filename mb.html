@@ -264,6 +264,227 @@ select.inp option{background:var(--surface)}
   .portal-pad{padding:28px 32px}
 
 </style>
+<script>
+/* ═══════════════════════════════════════════════════
+   localStorage shim — replaces window.storage
+   Same async API: .get(key, shared) .set(key, val, shared) .delete(key, shared)
+   Works on GitHub Pages / any browser
+   Data persists across sessions in this browser
+═══════════════════════════════════════════════════ */
+window.storage = {
+  _k: function(key, shared){ return (shared ? 'shared_' : 'priv_') + key; },
+  get: function(key, shared){
+    return new Promise(function(resolve, reject){
+      try {
+        var k = window.storage._k(key, shared);
+        var val = localStorage.getItem(k);
+        if(val === null){ reject(new Error('Key not found: ' + key)); return; }
+        resolve({ key: key, value: val, shared: shared });
+      } catch(e){ reject(e); }
+    });
+  },
+  set: function(key, value, shared){
+    return new Promise(function(resolve, reject){
+      try {
+        var k = window.storage._k(key, shared);
+        localStorage.setItem(k, value);
+        resolve({ key: key, value: value, shared: shared });
+      } catch(e){ reject(e); }
+    });
+  },
+  delete: function(key, shared){
+    return new Promise(function(resolve, reject){
+      try {
+        var k = window.storage._k(key, shared);
+        localStorage.removeItem(k);
+        resolve({ key: key, deleted: true, shared: shared });
+      } catch(e){ reject(e); }
+    });
+  },
+  list: function(prefix, shared){
+    return new Promise(function(resolve, reject){
+      try {
+        var pfx = window.storage._k(prefix || '', shared);
+        var keys = [];
+        for(var i = 0; i < localStorage.length; i++){
+          var k = localStorage.key(i);
+          if(k && k.indexOf(pfx) === 0){
+            keys.push(k.replace(/^(shared_|priv_)/, ''));
+          }
+        }
+        resolve({ keys: keys, prefix: prefix, shared: shared });
+      } catch(e){ reject(e); }
+    });
+  }
+};
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SUPABASE CLOUD STORAGE — replaces window.storage
+   
+   Setup (5 min):
+   1. Go to supabase.com → New project (free)
+   2. Run the SQL below in SQL Editor
+   3. Get Project URL + anon key from Settings → API
+   4. Replace SUPABASE_URL and SUPABASE_ANON_KEY below
+   
+   SQL to run in Supabase SQL Editor:
+   ─────────────────────────────────
+   create table if not exists user_data (
+     id bigserial primary key,
+     email text not null,
+     portal text not null,
+     key text not null,
+     value text,
+     updated_at timestamptz default now(),
+     unique(email, portal, key)
+   );
+   
+   create table if not exists shared_data (
+     id bigserial primary key,
+     key text not null unique,
+     value text,
+     updated_at timestamptz default now()
+   );
+   
+   alter table user_data enable row level security;
+   alter table shared_data enable row level security;
+   
+   create policy "Anyone can read/write user_data"
+     on user_data for all using (true) with check (true);
+   
+   create policy "Anyone can read/write shared_data"
+     on shared_data for all using (true) with check (true);
+   ─────────────────────────────────
+═══════════════════════════════════════════════════════════════ */
+
+(function(){
+  var SUPABASE_URL  = 'https://esqlfsjhekdspycfgnoz.supabase.co';    /* e.g. https://abcxyz.supabase.co */
+  var SUPABASE_KEY  = 'sb_publishable_CFdw2j0-mD4VeF9kQdyhdg_ZDPxQW9a';
+  var PORTAL        = document.title.split('|')[1]?.trim() || window.location.pathname.replace(/\//g,'').replace('.html','') || 'unknown';
+
+  function sbHeaders(){
+    return {
+      'Content-Type':  'application/json',
+      'apikey':        SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Prefer':        'return=representation'
+    };
+  }
+
+  function getUserEmail(){
+    /* SESS is the session object defined in each portal */
+    return (typeof SESS !== 'undefined' && SESS.email) ? SESS.email : 'anon@ipowork.com';
+  }
+
+  /* ── GET ── */
+  async function sbGet(key, shared){
+    try {
+      if(shared){
+        var url = SUPABASE_URL + '/rest/v1/shared_data?key=eq.' + encodeURIComponent(key) + '&select=value&limit=1';
+        var r = await fetch(url, { headers: sbHeaders() });
+        var d = await r.json();
+        if(!d || !d.length || d[0].value === undefined) throw new Error('Key not found: ' + key);
+        return { key: key, value: d[0].value, shared: true };
+      } else {
+        var email = getUserEmail();
+        var url = SUPABASE_URL + '/rest/v1/user_data?email=eq.' + encodeURIComponent(email) +
+                  '&portal=eq.' + encodeURIComponent(PORTAL) +
+                  '&key=eq.' + encodeURIComponent(key) + '&select=value&limit=1';
+        var r = await fetch(url, { headers: sbHeaders() });
+        var d = await r.json();
+        if(!d || !d.length || d[0].value === undefined) throw new Error('Key not found: ' + key);
+        return { key: key, value: d[0].value, shared: false };
+      }
+    } catch(e){ throw e; }
+  }
+
+  /* ── SET ── */
+  async function sbSet(key, value, shared){
+    try {
+      if(shared){
+        var url = SUPABASE_URL + '/rest/v1/shared_data';
+        var body = JSON.stringify({ key: key, value: value, updated_at: new Date().toISOString() });
+        /* upsert */
+        var r = await fetch(url, {
+          method: 'POST',
+          headers: Object.assign({}, sbHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=representation' }),
+          body: body
+        });
+        if(!r.ok){ var t = await r.text(); throw new Error('Supabase set failed: ' + t.slice(0,100)); }
+        return { key: key, value: value, shared: true };
+      } else {
+        var email = getUserEmail();
+        var url = SUPABASE_URL + '/rest/v1/user_data';
+        var body = JSON.stringify({ email: email, portal: PORTAL, key: key, value: value, updated_at: new Date().toISOString() });
+        var r = await fetch(url, {
+          method: 'POST',
+          headers: Object.assign({}, sbHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=representation' }),
+          body: body
+        });
+        if(!r.ok){ var t = await r.text(); throw new Error('Supabase set failed: ' + t.slice(0,100)); }
+        return { key: key, value: value, shared: false };
+      }
+    } catch(e){ throw e; }
+  }
+
+  /* ── DELETE ── */
+  async function sbDelete(key, shared){
+    try {
+      if(shared){
+        var url = SUPABASE_URL + '/rest/v1/shared_data?key=eq.' + encodeURIComponent(key);
+        await fetch(url, { method: 'DELETE', headers: sbHeaders() });
+      } else {
+        var email = getUserEmail();
+        var url = SUPABASE_URL + '/rest/v1/user_data?email=eq.' + encodeURIComponent(email) +
+                  '&portal=eq.' + encodeURIComponent(PORTAL) +
+                  '&key=eq.' + encodeURIComponent(key);
+        await fetch(url, { method: 'DELETE', headers: sbHeaders() });
+      }
+      return { key: key, deleted: true, shared: shared };
+    } catch(e){ throw e; }
+  }
+
+  /* ── LIST ── */
+  async function sbList(prefix, shared){
+    try {
+      if(shared){
+        var url = SUPABASE_URL + '/rest/v1/shared_data?key=like.' + encodeURIComponent((prefix||'') + '*') + '&select=key';
+        var r = await fetch(url, { headers: sbHeaders() });
+        var d = await r.json();
+        return { keys: (d||[]).map(function(x){ return x.key; }), prefix: prefix, shared: true };
+      } else {
+        var email = getUserEmail();
+        var url = SUPABASE_URL + '/rest/v1/user_data?email=eq.' + encodeURIComponent(email) +
+                  '&portal=eq.' + encodeURIComponent(PORTAL) +
+                  '&key=like.' + encodeURIComponent((prefix||'') + '*') + '&select=key';
+        var r = await fetch(url, { headers: sbHeaders() });
+        var d = await r.json();
+        return { keys: (d||[]).map(function(x){ return x.key; }), prefix: prefix, shared: false };
+      }
+    } catch(e){ throw e; }
+  }
+
+  /* ── Fallback to localStorage if Supabase not configured ── */
+  var configured = SUPABASE_URL.indexOf('REPLACE') === -1 && SUPABASE_KEY.indexOf('REPLACE') === -1;
+
+  if(configured){
+    window.storage = { get: sbGet, set: sbSet, delete: sbDelete, list: sbList };
+    console.log('[ipowork] Cloud storage: Supabase ✅');
+  } else {
+    /* localStorage fallback — works but not cross-device */
+    window.storage = {
+      _k: function(k,s){ return (s?'sh_':'pr_') + k; },
+      get: function(k,s){ return new Promise(function(res,rej){ var v=localStorage.getItem(window.storage._k(k,s)); if(v===null) rej(new Error('Not found')); else res({key:k,value:v,shared:s}); }); },
+      set: function(k,v,s){ return new Promise(function(res,rej){ try{ localStorage.setItem(window.storage._k(k,s),v); res({key:k,value:v,shared:s}); }catch(e){ rej(e); } }); },
+      delete: function(k,s){ return new Promise(function(res){ localStorage.removeItem(window.storage._k(k,s)); res({key:k,deleted:true,shared:s}); }); },
+      list: function(p,s){ return new Promise(function(res){ var pfx=window.storage._k(p||'',s),keys=[]; for(var i=0;i<localStorage.length;i++){ var key=localStorage.key(i); if(key&&key.indexOf(pfx)===0) keys.push(key.replace(/^(sh_|pr_)/,'')); } res({keys:keys,prefix:p,shared:s}); }); }
+    };
+    console.warn('[ipowork] Supabase not configured — using localStorage (not cross-device). Add SUPABASE_URL and SUPABASE_KEY to enable cloud sync.');
+  }
+})();
+
+</script>
 </head>
 <body>
 <div class="portal-switcher"><span class="ps-label">← <a href="index.html" class="ps-link ps-home">ipowork.com</a></span><span class="ps-label" style="margin:0 2px">·</span><a href="issuer.html" class="ps-link" style="">📊 Issuer Portal</a><a href="mb.html" class="ps-link  active" style="color:#1A73C8;border-color:#1A73C825;background:#1A73C808">🏦 MB Portal</a><a href="institutions.html" class="ps-link" style="">🏛️ Intelligence</a><a href="deep-research.html" class="ps-link" style="">🧠 Deep Research</a><a href="ca-cs.html" class="ps-link" style="">⚖️ CA/CS Professionals Hub</a></div>
@@ -1015,11 +1236,42 @@ function verifyLoginOTP(){
 }
 
 /* ── PORTAL ── */
+
+/* ── Notify partners@ipowork.com on new signup ── */
+function notifyNewSignup(name, email, org, portal){
+  try {
+    var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+    fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'email',
+        to:   'partners@ipowork.com',
+        subject: '[ipowork] 🆕 New signup — ' + portal + ' — ' + name,
+        html: '<h2 style="color:#0D7377">New User Signed Up on ipowork</h2>' +
+              '<table style="border-collapse:collapse;width:100%;max-width:480px">' +
+              '<tr><td style="padding:8px;background:#f8fafc;font-weight:bold;width:30%">Portal</td><td style="padding:8px">' + portal + '</td></tr>' +
+              '<tr><td style="padding:8px;background:#f1f5f9;font-weight:bold">Name</td><td style="padding:8px">' + name + '</td></tr>' +
+              '<tr><td style="padding:8px;background:#f8fafc;font-weight:bold">Email</td><td style="padding:8px">' + email + '</td></tr>' +
+              '<tr><td style="padding:8px;background:#f1f5f9;font-weight:bold">Org</td><td style="padding:8px">' + (org||'—') + '</td></tr>' +
+              '<tr><td style="padding:8px;background:#f8fafc;font-weight:bold">Time</td><td style="padding:8px">' + new Date().toLocaleString('en-IN') + '</td></tr>' +
+              '</table>' +
+              '<p style="margin-top:16px;color:#64748b;font-size:13px">Reply to this email to reach the user directly.</p>'
+      })
+    });
+  } catch(e){ /* silent — never interrupt user flow */ }
+}
+
 function openPortal(){
   closeModal('register'); closeModal('login');
   document.getElementById('portal-overlay').classList.add('open');
   document.getElementById('portal-user-name').textContent=(SESS.firm||SESS.name||'MB Firm');
   P.view='dashboard';
+  
+  /* Notify on first open if real user */
+  if(SESS.email && !SESS.demo){
+    notifyNewSignup(SESS.name||'Unknown', SESS.email, SESS.org||'', 'MB Portal');
+  }
   renderSidebar(); renderMain();
 }
 function closePortal(){ document.getElementById('portal-overlay').classList.remove('open'); }
