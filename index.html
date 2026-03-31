@@ -1321,4 +1321,210 @@
   </div>
 </div>
 
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   IPOWORK — IPO COST ESTIMATOR
+   Inputs: issue size, track (sme/main), sector, split
+═══════════════════════════════════════════════════════ */
+
+var _costCaptured = {};
+
+function calcCost(){
+  var issue  = parseFloat(document.getElementById('cc-issue').value) || 0;
+  var track  = (document.getElementById('cc-track').value) || '';
+  var sector = (document.getElementById('cc-sector').value) || 'general';
+  var split  = (document.getElementById('cc-split').value) || '100-0';
+
+  if(!issue || issue < 1){
+    alert('Please enter your target issue size in ₹ Crore.');
+    return;
+  }
+  if(!track){
+    alert('Please select the IPO track — SME or Main Board.');
+    return;
+  }
+
+  var isSME  = track === 'sme';
+  var fresh  = parseInt(split.split('-')[0]) / 100;
+  var ofs    = parseInt(split.split('-')[1]) / 100;
+  var freshAmt = issue * fresh;
+
+  /* ── MB Fee ── */
+  var mbRate = isSME ? 0.038 : (issue < 200 ? 0.030 : issue < 500 ? 0.025 : 0.020);
+  /* Tech companies: +0.5% premium */
+  if(sector === 'tech' && !isSME) mbRate += 0.005;
+  var mbFee = issue * mbRate;
+
+  /* ── Legal (DRHP counsel) ── */
+  var legalFee = isSME
+    ? Math.min(Math.max(issue * 0.012, 15), 50)
+    : Math.min(Math.max(issue * 0.008, 40), 250);
+
+  /* ── Audit & Restated Financials ── */
+  var auditFee = isSME
+    ? Math.min(Math.max(issue * 0.008, 8), 30)
+    : Math.min(Math.max(issue * 0.006, 25), 150);
+
+  /* ── SEBI Filing Fee ── */
+  var sebiFee = isSME ? 0.5 : Math.min(issue * 0.0010, 30);
+
+  /* ── Exchange Listing Fee ── */
+  var exchFee = isSME ? (0.25 + issue * 0.001) : (1.0 + issue * 0.0008);
+  exchFee = Math.min(exchFee, isSME ? 5 : 25);
+
+  /* ── Market Maker (SME only) ── */
+  var mmFee = isSME ? Math.min(issue * 0.005, 8) : 0;
+
+  /* ── Registrar & Transfer Agent ── */
+  var rtaFee = isSME ? 3 : Math.min(issue * 0.003, 20);
+
+  /* ── Printing & Advertising ── */
+  var printFee = isSME ? 2 : Math.min(issue * 0.004, 30);
+
+  /* ── Demat / CDSL / NSDL ── */
+  var dematFee = isSME ? 1.5 : 4;
+
+  /* ── PR / Roadshow ── */
+  var prFee = isSME ? 3 : Math.min(issue * 0.006, 40);
+
+  /* ── Miscellaneous ── */
+  var miscFee = isSME ? 2 : 8;
+
+  var total = mbFee + legalFee + auditFee + sebiFee + exchFee + mmFee + rtaFee + printFee + dematFee + prFee + miscFee;
+  var pct   = (total / issue * 100).toFixed(1);
+
+  /* Show result */
+  var el = document.getElementById('cc-result');
+  el.classList.remove('hidden');
+
+  var rows = [
+    { label:'🏦 Merchant Banker Fee',         amt:mbFee,    note:'Lead manager, DRHP drafting, SEBI filing, book-building' },
+    { label:'⚖️ Legal (DRHP Counsel)',        amt:legalFee, note:'SEBI submission, legal due diligence, documentation' },
+    { label:'🔍 Audit & Restated Financials', amt:auditFee, note:'3-year restatement, Ind AS compliance, auditor report' },
+    { label:'📋 SEBI Filing Fees',            amt:sebiFee,  note:'SEBI ICDR regulatory filing charges' },
+    { label:'🏛️ Exchange Listing Fees',      amt:exchFee,  note:'NSE/BSE annual listing + processing fees' },
+  ];
+  if(isSME) rows.push({ label:'📊 Market Maker Fee', amt:mmFee, note:'Mandatory for SME — maintains liquidity post-listing' });
+  rows = rows.concat([
+    { label:'📁 Registrar & Transfer Agent', amt:rtaFee,   note:'KYC, allotment, refunds, demat processing' },
+    { label:'🖨️ Printing & Advertising',    amt:printFee, note:'DRHP printing, newspaper ads, SEBI public announcements' },
+    { label:'🔐 CDSL / NSDL (Demat)',       amt:dematFee, note:'Depository charges for share dematerialisation' },
+    { label:'📣 PR, Roadshow & Marketing',  amt:prFee,    note:'Investor meets, analyst briefings, media coverage' },
+    { label:'🔧 Miscellaneous',             amt:miscFee,  note:'Stamp duty, courier, notarisation, contingency' },
+  ]);
+
+  var html = '';
+
+  /* Header */
+  html += '<div style="background:linear-gradient(135deg,rgba(191,160,106,.12),rgba(8,15,12,.8));border:1px solid rgba(191,160,106,.3);border-radius:14px;padding:20px 24px;margin-bottom:18px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+  html += '<div>';
+  html += '<div style="font-size:17px;color:var(--muted);margin-bottom:4px">Estimated Total IPO Cost</div>';
+  html += '<div style="font-family:var(--serif);font-size:40px;font-weight:900;color:var(--gold)">₹' + total.toFixed(1) + ' Cr</div>';
+  html += '</div>';
+  html += '<div style="text-align:right">';
+  html += '<div style="font-size:17px;color:var(--muted);margin-bottom:4px">As % of Issue Size</div>';
+  html += '<div style="font-family:var(--serif);font-size:36px;font-weight:900;color:var(--cyan)">' + pct + '%</div>';
+  html += '</div>';
+  html += '</div>';
+  html += '<div style="font-size:16px;color:var(--dim);margin-top:12px">📊 ' + (isSME ? 'SME IPO' : 'Main Board IPO') + '  ·  ₹' + issue + ' Cr issue  ·  ' + split.replace('-', '% Fresh / ') + '% OFS  ·  ' + sector.charAt(0).toUpperCase() + sector.slice(1) + ' sector</div>';
+  html += '</div>';
+
+  /* Cost rows */
+  html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">';
+  rows.forEach(function(r){
+    var barPct = Math.min((r.amt / total) * 100, 100);
+    html += '<div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 16px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">';
+    html += '<div style="font-size:16px;font-weight:700;color:var(--text)">' + r.label + '</div>';
+    html += '<div style="font-size:17px;font-weight:800;color:var(--gold)">₹' + r.amt.toFixed(2) + ' Cr</div>';
+    html += '</div>';
+    html += '<div style="height:4px;background:var(--border2);border-radius:2px;margin-bottom:5px;overflow:hidden">';
+    html += '<div style="height:100%;width:' + barPct.toFixed(1) + '%;background:var(--gold);border-radius:2px"></div>';
+    html += '</div>';
+    html += '<div style="font-size:15px;color:var(--muted)">' + r.note + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  /* CTA */
+  html += '<div style="background:rgba(29,158,117,.06);border:1px solid rgba(29,158,117,.2);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">';
+  html += '<div style="flex:1;min-width:200px">';
+  html += '<div style="font-size:17px;font-weight:800;color:var(--green2);margin-bottom:3px">Get a more precise estimate?</div>';
+  html += '<div style="font-size:16px;color:var(--muted)">Talk to a SEBI-registered merchant banker — free first consultation.</div>';
+  html += '</div>';
+  html += '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20used%20the%20IPO%20Cost%20Estimator%20and%20want%20a%20precise%20quote%20for%20a%20%E2%82%B9' + issue + '%20Cr%20' + (isSME?'SME':'Main Board') + '%20IPO." target="_blank" style="padding:10px 20px;border-radius:8px;background:var(--green);color:#fff;font-size:16px;font-weight:800;text-decoration:none;white-space:nowrap">📱 WhatsApp Now →</a>';
+  html += '</div>';
+
+  /* Disclaimer */
+  html += '<div style="font-size:15px;color:var(--dim);margin-top:14px;line-height:1.6">⚠️ Indicative estimates only based on typical market rates. Actual costs vary by MB, complexity, market conditions and negotiations. SEBI fees as per ICDR Regulations 2018. Consult a SEBI-registered merchant banker for a binding quote.</div>';
+
+  el.innerHTML = html;
+  el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+
+  /* Show email capture */
+  if(!_costCaptured.done){
+    document.getElementById('cost-capture').style.display = 'block';
+    document.getElementById('cost-cap-actions').style.display = 'block';
+  }
+}
+
+function submitCostCapture(){
+  var email   = (document.getElementById('cost-email').value || '').trim();
+  var mobile  = (document.getElementById('cost-mobile').value || '').trim();
+  var consent = document.getElementById('cost-consent').checked;
+  var err     = document.getElementById('cost-cap-err');
+
+  if(!email || !email.includes('@')){
+    err.textContent = 'Please enter a valid email address.';
+    err.style.display = 'block';
+    return;
+  }
+  if(!consent){
+    err.textContent = 'Please accept the terms to continue.';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  _costCaptured.done  = true;
+  _costCaptured.email = email;
+
+  /* Notify partners */
+  try {
+    fetch('https://flat-bread-b021.jiweshkshrivastava.workers.dev/', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type:'email', to:'partners@ipowork.com',
+        subject:'[ipowork] 💰 IPO Cost Calculator Lead — ' + email,
+        html:'<h2>IPO Cost Estimator Lead</h2><p><b>Email:</b> ' + email + '</p><p><b>Mobile:</b> ' + (mobile||'—') + '</p><p><b>Time:</b> ' + new Date().toLocaleString('en-IN') + '</p>'
+      })
+    });
+  } catch(e){}
+
+  document.getElementById('cost-capture').style.display   = 'none';
+  document.getElementById('cost-cap-actions').style.display = 'none';
+
+  /* Show thank you */
+  var ty = document.createElement('div');
+  ty.style.cssText = 'margin-top:10px;padding:12px 16px;background:rgba(29,158,117,.08);border:1px solid rgba(29,158,117,.2);border-radius:8px;font-size:16px;color:var(--green2)';
+  ty.textContent   = '✅ Done! We will send your IPO cost breakdown shortly.';
+  document.getElementById('cc-result').parentNode.insertBefore(ty, document.getElementById('cc-result').nextSibling);
+  setTimeout(function(){ ty.remove(); }, 5000);
+}
+
+function resetCost(){
+  document.getElementById('cc-issue').value  = '';
+  document.getElementById('cc-track').value  = '';
+  document.getElementById('cc-sector').value = 'general';
+  document.getElementById('cc-split').value  = '100-0';
+  var r = document.getElementById('cc-result');
+  r.classList.add('hidden');
+  r.innerHTML = '';
+  document.getElementById('cost-capture').style.display    = 'none';
+  document.getElementById('cost-cap-actions').style.display = 'none';
+  _costCaptured = {};
+}
+</script>
+
 </body>
