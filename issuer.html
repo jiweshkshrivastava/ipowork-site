@@ -823,6 +823,8 @@ function notifyNewSignup(name, email, org, portal){
 }
 
 function openPortal(){
+  /* Clear stale progress stored against empty/demo key */
+  try { localStorage.removeItem('iss_progress_'); localStorage.removeItem('iss_progress_undefined'); } catch(e){}
   closeModal('quickaccess'); closeModal('quicklogin');
   if(SESS.email && typeof creditLoad==='function') creditLoad(SESS.email);
   document.getElementById('portal-overlay').classList.add('open');
@@ -941,7 +943,10 @@ var AIRA_PARAMS = [
 function renderDashboard(){
   /* ── Read progress from storage ── */
   var done = {};
-  try { done = JSON.parse(localStorage.getItem('iss_progress_'+SESS.email) || '{}'); } catch(e){}
+  /* Only track progress when signed in — not for anonymous visitors */
+  if(SESS.email && !SESS.demo){
+    try { done = JSON.parse(localStorage.getItem('iss_progress_'+SESS.email) || '{}'); } catch(e){}
+  }
 
   var steps = [
     { id:'aira',      n:1, nav:'aira',      icon:'📊', title:'Run IPO Readiness Score',
@@ -986,7 +991,7 @@ function renderDashboard(){
   h += '<div style="height:6px;background:var(--border2);border-radius:3px;margin-top:14px;overflow:hidden">';
   h += '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:3px;transition:width .5s"></div>';
   h += '</div>';
-  h += '<div style="font-size:17px;color:var(--muted);margin-top:5px">' + completedCount + ' of ' + steps.length + ' steps completed</div>';
+  h += '<div style="font-size:17px;color:var(--muted);margin-top:5px">' + (SESS.email && !SESS.demo ? completedCount + ' of ' + steps.length + ' steps completed' : '<span style="color:var(--gold)">&#128274; Sign in to save your progress</span>') + '</div>';
   h += '</div>';
 
   /* ── Step cards ── */
@@ -1055,11 +1060,13 @@ function renderDashboard(){
 
 /* ── Step click handler — marks step done and navigates ── */
 window.issStepClick = function(stepId, nav){
-  try {
-    var done = JSON.parse(localStorage.getItem('iss_progress_' + SESS.email) || '{}');
-    done[stepId] = true;
-    localStorage.setItem('iss_progress_' + SESS.email, JSON.stringify(done));
-  } catch(e){}
+  if(SESS.email && !SESS.demo){
+    try {
+      var done = JSON.parse(localStorage.getItem('iss_progress_' + SESS.email) || '{}');
+      done[stepId] = true;
+      localStorage.setItem('iss_progress_' + SESS.email, JSON.stringify(done));
+    } catch(e){}
+  }
   window.pNav(nav);
 };
 
