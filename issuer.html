@@ -92,36 +92,39 @@ body {
   height: calc(100vh - 52px);
 }
 .portal-sidebar {
-  width: 210px;
+  width: 240px;
   flex-shrink: 0;
   background: var(--surface);
   border-right: 1px solid var(--border2);
   padding: 8px 0 60px;
   overflow-y: auto;
+  overflow-x: visible;
   position: relative;
 }
 .portal-main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--bg);
+  min-width: 0;
 }
-.portal-pad { padding: 28px 32px; }
+.portal-pad { padding: 22px 24px; max-width: 100%; box-sizing: border-box; }
 
 /* ── Sidebar nav ── */
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
-  margin: 2px 8px;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 2px 6px;
   border-radius: 8px;
   cursor: pointer;
-  font-size:17px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--muted);
   transition: all .15s;
-  white-space: nowrap;
   overflow: hidden;
+  min-width: 0;
 }
 .nav-item:hover { background: #080F0C; color: var(--text); }
 .nav-item.active {
@@ -131,11 +134,12 @@ body {
 }
 .nav-badge {
   margin-left: auto;
-  font-size:17px;
+  font-size: 10px;
   font-weight: 700;
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 2px 5px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .nav-badge.new  { background: rgba(91,168,122,.15); color: var(--sage2); }
 .nav-badge.live { background: rgba(91,168,184,.15); color: var(--teal2); }
@@ -318,9 +322,9 @@ body {
   .portal-sidebar, #psidebar { background: #0E1A14 !important; border-right: 1px solid rgba(29,158,117,.12) !important; }
   .nav-item { color: #5A8A70 !important; }
   .nav-item:hover { background: rgba(29,158,117,.08) !important; color: #E8F5EE !important; }
-  .nav-item.active { background: rgba(29,158,117,.12) !important; color: #2DC48F !important; border-left: 3px solid #1D9E75 !important; }
+  .nav-item.active { background: rgba(29,158,117,.12) !important; color: #2DC48F !important; border-left: 3px solid #1D9E75 !important; padding-left: 9px !important; }
   .nav-badge { background: rgba(29,158,117,.15) !important; color: #fff !important; }
-  .nav-sec { color: rgba(255,255,255,.5) !important; font-size:17px; }
+  .nav-sec { color: rgba(255,255,255,.5) !important; font-size:11px; letter-spacing:.6px; }
   
   /* Portal topbar */
   .portal-topbar { background: #0E1A14 !important; border-bottom: 1px solid rgba(29,158,117,.15) !important; }
@@ -329,7 +333,7 @@ body {
   .portal-main, #pmain { background: #080F0C !important; }
   
   /* Cards */
-  .portal-pad { padding: 28px 32px; }
+  .portal-pad { padding: 22px 24px; max-width: 100%; box-sizing: border-box; }
   
   /* Inputs */
   .inp { background: #080F0C !important; border: 1px solid rgba(255,255,255,.07) !important; color: #E8F5EE !important; }
@@ -411,6 +415,8 @@ body {
     background: var(--surface, #0E1A14) !important;
     color: var(--text, #E8F5EE) !important;
   }
+
+.nav-item > span:first-child { font-size: 16px; flex-shrink: 0; }
 </style><script>
 /* ═══════════════════════════════════════════════════
    localStorage shim — replaces window.storage
@@ -896,14 +902,14 @@ function renderSidebar(){
   NAV_ITEMS.forEach(function(item){
     var active = P.view===item.id || P.view===item.id+'-chat';
     html += '<div class="nav-item'+(active?' active':'')+'" onclick="pNav(\''+item.id+'\')">';
-    html += '<span style="font-size:17px">'+item.icon+'</span><span>'+item.label+'</span>';
+    html += '<span style="font-size:17px;flex-shrink:0">'+item.icon+'</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">'+item.label+'</span>';
     if(item.badge){
       var cls = item.badge==='FREE'?'new': item.badge==='SHARED'?'live': item.badge==='PRO'?'ai':'ai';
       html += '<span class="nav-badge '+cls+'">'+item.badge+'</span>';
     }
     html += '</div>';
   });
-  html += '<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;border-top:1px solid var(--border)">';
+  html += '<div style="position:sticky;bottom:0;left:0;right:0;padding:10px 14px;border-top:1px solid var(--border);background:var(--surface);margin-top:8px">';
   html += '<div style="font-size:17px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:2px">'+(SESS.email?'FREE PLAN':'NOT SIGNED IN')+'</div>';
   html += '<div style="font-size:17px;color:var(--muted)">'+(SESS.email||'Sign up to save your progress')+'</div></div>';
   document.getElementById('portal-sidebar').innerHTML = html;
@@ -1030,14 +1036,14 @@ function renderDashboard(){
   h += '<div style="height:6px;background:var(--border2);border-radius:3px;margin-top:14px;overflow:hidden">';
   h += '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:3px;transition:width .5s"></div>';
   h += '</div>';
-  h += '<div style="font-size:17px;color:var(--muted);margin-top:5px">' + (SESS.email && !SESS.demo ? completedCount + ' of ' + steps.length + ' steps completed' : '<span style="color:var(--gold)">&#128274; Sign in to save your progress</span>') + '</div>';
+  h += '<div style="font-size:15px;color:var(--muted);margin-top:5px">' + (SESS.email && !SESS.demo ? completedCount + ' of ' + steps.length + ' steps completed' : '<span style="color:var(--gold)">&#128274; Sign in to save your progress</span>') + '</div>';
   h += '</div>';
 
   /* ── Step cards ── */
   /* Expert connect card at top of dashboard */
-  h += '<div style="background:rgba(37,211,102,.05);border:1.5px solid rgba(37,211,102,.25);border-radius:14px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;cursor:pointer" onclick="document.getElementById(\'expert-modal-global\').classList.add(\'open\')">';
+  h += '<div style="background:rgba(37,211,102,.05);border:1.5px solid rgba(37,211,102,.25);border-radius:14px;padding:18px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;cursor:pointer;flex-wrap:wrap" onclick="document.getElementById(\'expert-modal-global\').classList.add(\'open\')">';
   h += '<div style="font-size:36px">&#129308;</div>';
-  h += '<div style="flex:1"><div style="font-size:18px;font-weight:800;color:#25D366;margin-bottom:3px">Need help? Talk to an IPO Expert</div>';
+  h += '<div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:800;color:#25D366;margin-bottom:3px">Need help? Talk to an IPO Expert</div>';
   h += '<div style="font-size:17px;color:var(--muted)">SEBI-registered professionals guide you through every IPO step. WhatsApp reply in 5 min.</div></div>';
   h += '<div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">';
   h += '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20need%20IPO%20guidance." target="_blank" style="padding:9px 18px;border-radius:8px;background:#25D366;color:#fff;font-size:16px;font-weight:800;text-decoration:none;white-space:nowrap" onclick="event.stopPropagation()">&#128241; WhatsApp</a>';
@@ -1057,13 +1063,13 @@ function renderDashboard(){
     h += '</div>';
 
     /* Content */
-    h += '<div style="flex:1;min-width:0">';
+    h += '<div style="flex:1;min-width:0;overflow:hidden">';
     h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">';
     h += '<div style="font-size:17px;font-weight:800;color:' + (isDone ? 'var(--muted)' : 'var(--text)') + '">' + (isDone ? '<s>' : '') + step.title + (isDone ? '</s>' : '') + '</div>';
     if(!isDone) h += '<span style="font-size:17px;font-weight:700;background:' + step.col + '15;color:' + step.col + ';border-radius:99px;padding:2px 8px">' + step.badge + '</span>';
     if(isDone)  h += '<span style="font-size:17px;font-weight:700;background:rgba(16,185,129,.1);color:#10B981;border-radius:99px;padding:2px 8px">DONE ✓</span>';
     h += '</div>';
-    h += '<div style="font-size:17px;color:var(--muted);line-height:1.75">' + step.desc + '</div>';
+    h += '<div style="font-size:14px;color:var(--muted);line-height:1.65;word-break:break-word">' + step.desc + '</div>';
     h += '</div>';
 
     /* CTA */
