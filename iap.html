@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ipowork IPO Associate Program (IAP)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080F0C;--surface:#0E1A14;--card:#122018;--card2:#0A160F;
+  --green:#1D9E75;--green2:#2DC48F;--gold:#F5A623;--amber:#C8961E;
+  --cyan:#00D4F5;--purple:#8B6FEC;--red:#E84040;--blue:#3B82F6;
+  --text:#E8F5EE;--muted:#6A9A80;--dim:#2E5040;
+  --border:rgba(29,158,117,.15);--border2:rgba(255,255,255,.06);
+  --font:'Inter',-apple-system,sans-serif;--serif:'Fraunces',Georgia,serif;
+  /* House colours */
+  --house-sebi:#F5A623;--house-drhp:#8B6FEC;--house-ipo:#1D9E75;--house-icdr:#00D4F5;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.65}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.tlogo{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--text)}
+.tlogo span{color:var(--amber);font-size:13px;font-weight:700;margin-left:6px}
+
+/* ── TABS ── */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border2);display:flex;overflow-x:auto;scrollbar-width:none;padding:0 16px;gap:0}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-item{padding:13px 18px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.tab-item:hover{color:var(--text)}
+.tab-item.active{color:var(--amber);border-bottom-color:var(--amber)}
+.tab-pane{display:none;padding:24px 24px 60px;max-width:1100px;margin:0 auto}
+.tab-pane.active{display:block}
+
+/* ── CARDS & UTILS ── */
+.card{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px}
+.card-head{font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700}
+.tag-gold{background:rgba(245,166,35,.12);color:var(--gold);border:1px solid rgba(245,166,35,.2)}
+.tag-green{background:rgba(29,158,117,.12);color:var(--green2);border:1px solid rgba(29,158,117,.2)}
+.tag-purple{background:rgba(139,111,236,.12);color:var(--purple);border:1px solid rgba(139,111,236,.2)}
+.tag-cyan{background:rgba(0,212,245,.08);color:var(--cyan);border:1px solid rgba(0,212,245,.15)}
+.tag-red{background:rgba(232,64,64,.08);color:var(--red);border:1px solid rgba(232,64,64,.2)}
+.tag-amber{background:rgba(200,150,30,.1);color:var(--amber);border:1px solid rgba(200,150,30,.2)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:9px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);text-decoration:none;transition:.15s}
+.btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-amber{background:var(--amber);color:#080F0C}
+.btn-green{background:var(--green);color:#fff}
+.btn-purple{background:var(--purple);color:#fff}
+.btn-outline{background:none;border:1px solid var(--border2);color:var(--muted)}
+.btn-outline:hover{border-color:var(--amber);color:var(--amber)}
+.btn-wa{background:#25D366;color:#fff}
+.sec-label{font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+h2{font-family:var(--serif);font-size:26px;font-weight:900;margin-bottom:8px}
+h3{font-size:17px;font-weight:700;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+
+/* ── INPUT ── */
+.inp{width:100%;background:var(--surface);border:1px solid rgba(29,158,117,.2);border-radius:8px;padding:10px 12px;color:var(--text);font-size:15px;font-family:var(--font);outline:none}
+.inp:focus{border-color:var(--amber)}
+select.inp{appearance:none;cursor:pointer}
+select.inp option{background:var(--surface);color:var(--text)}
+label.lbl{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+
+/* ── MONTH CARD ── */
+.month-card{background:var(--card);border-radius:14px;border:1px solid var(--border2);margin-bottom:12px;overflow:hidden}
+.month-header{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;transition:.15s}
+.month-header:hover{background:rgba(255,255,255,.02)}
+.month-num{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:16px;font-weight:900;flex-shrink:0}
+.month-title{flex:1}
+.month-title .title{font-size:15px;font-weight:700;color:var(--text)}
+.month-title .sub{font-size:13px;color:var(--muted);margin-top:2px}
+.month-status{font-size:13px;font-weight:700;flex-shrink:0}
+.month-body{padding:0 20px 16px;display:none}
+.month-body.open{display:block}
+.topic-list{list-style:none;margin-bottom:14px}
+.topic-list li{font-size:14px;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--border2);display:flex;align-items:flex-start;gap:8px}
+.topic-list li::before{content:"▸";color:var(--amber);font-size:12px;margin-top:2px;flex-shrink:0}
+.topic-list li:last-child{border-bottom:none}
+.project-box{background:rgba(139,111,236,.06);border:1px solid rgba(139,111,236,.2);border-radius:10px;padding:12px 16px;margin-top:10px}
+.project-label{font-size:12px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+
+/* ── CLASS SCHEDULE ── */
+.class-row{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--card);border-radius:10px;border:1px solid var(--border2);margin-bottom:8px;flex-wrap:wrap}
+.class-day{width:72px;font-size:13px;font-weight:700;color:var(--text);flex-shrink:0}
+.class-time{font-size:15px;font-weight:800;color:var(--amber);flex-shrink:0}
+.class-topic{flex:1;min-width:140px}
+.class-topic .topic-title{font-size:14px;font-weight:600;color:var(--text)}
+.class-topic .topic-sub{font-size:12px;color:var(--muted)}
+.join-btn{padding:7px 14px;border-radius:7px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.3);color:var(--blue);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;flex-shrink:0}
+
+/* ── GRADE TABLE ── */
+.grade-table{width:100%;border-collapse:collapse}
+.grade-table th{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border2)}
+.grade-table td{padding:12px 14px;font-size:14px;border-bottom:1px solid var(--border2)}
+.grade-table tr:last-child td{border-bottom:none}
+.grade-pill{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;font-size:13px;font-weight:800}
+.grade-a{background:rgba(29,158,117,.2);color:var(--green2)}
+.grade-b{background:rgba(245,166,35,.15);color:var(--gold)}
+.grade-c{background:rgba(200,150,30,.12);color:var(--amber)}
+.grade-d{background:rgba(232,64,64,.12);color:var(--red)}
+.grade-pending{background:var(--surface);color:var(--dim)}
+
+/* ── HOUSE CARD ── */
+.house-card{border-radius:16px;padding:20px;border:1.5px solid;position:relative;overflow:hidden}
+.house-banner{position:absolute;top:0;left:0;right:0;height:4px}
+.house-rank{font-family:var(--serif);font-size:42px;font-weight:900;opacity:.08;position:absolute;top:8px;right:14px}
+
+/* ── PRICING ── */
+.price-card{background:var(--card);border-radius:16px;padding:24px;border:1px solid var(--border2);position:relative;overflow:hidden;text-align:center}
+.price-card.popular{border-color:var(--amber);background:rgba(200,150,30,.04)}
+.price-tag{font-family:var(--serif);font-size:38px;font-weight:900;margin:8px 0}
+.price-period{font-size:13px;color:var(--muted);margin-bottom:16px}
+.price-features{list-style:none;text-align:left;margin-bottom:20px}
+.price-features li{font-size:14px;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--border2);display:flex;gap:8px}
+.price-features li::before{content:"✓";color:var(--green2);font-weight:700;flex-shrink:0}
+.price-features li:last-child{border-bottom:none}
+
+/* ── PROGRESS BAR ── */
+.prog-bar-wrap{background:var(--dim);border-radius:99px;height:8px;margin-top:6px;overflow:hidden}
+.prog-bar{height:100%;border-radius:99px;transition:.4s}
+
+/* ── LEADERBOARD ── */
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:9px;margin-bottom:6px}
+.lb-row:nth-child(1){background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2)}
+.lb-row:nth-child(2){background:rgba(200,150,30,.05);border:1px solid rgba(200,150,30,.1)}
+.lb-row:nth-child(3){background:rgba(200,150,30,.03);border:1px solid var(--border2)}
+.lb-row:nth-child(n+4){background:var(--card);border:1px solid var(--border2)}
+.lb-rank{width:26px;font-size:15px;font-weight:800;color:var(--muted);text-align:center;flex-shrink:0}
+.lb-name{flex:1;font-size:14px;font-weight:600;color:var(--text)}
+.lb-house{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;flex-shrink:0}
+.lb-pts{font-size:15px;font-weight:800;color:var(--amber);flex-shrink:0}
+
+/* ── FLOATING BUTTON ── */
+.fab{position:fixed;bottom:22px;right:22px;z-index:999;padding:12px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,#128C7E,#25D366);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:var(--font);animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 4px 18px rgba(37,211,102,.35)}50%{box-shadow:0 4px 28px rgba(37,211,102,.65),0 0 0 8px rgba(37,211,102,.1)}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:8px">
+    <a href="ca-cs.html" style="font-family:var(--serif);font-size:17px;font-weight:900;color:var(--text);text-decoration:none">ipowork</a>
+    <span style="color:var(--border2)">·</span>
+    <span class="tlogo"><span>IPO Associate Program</span></span>
+    <span class="badge tag-amber" style="margin-left:4px">Cohort 2025</span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <span id="top-house-badge" style="display:none;padding:5px 14px;border-radius:99px;font-size:13px;font-weight:700"></span>
+    <a href="ca-cs.html" style="font-size:13px;color:var(--muted);text-decoration:none">← CA/CS Hub</a>
+    <button class="btn btn-amber" onclick="showApply()" style="padding:8px 16px;font-size:13px" id="apply-top-btn">Apply Now</button>
+    <button class="btn btn-outline" onclick="showDash()" style="padding:8px 16px;font-size:13px;display:none" id="dash-top-btn">My Dashboard</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar" id="main-tabs">
+  <div class="tab-item active" onclick="switchTab('overview')">🏠 Overview</div>
+  <div class="tab-item" onclick="switchTab('syllabus')">📚 Syllabus</div>
+  <div class="tab-item" onclick="switchTab('classes')">🎥 Live Classes</div>
+  <div class="tab-item" onclick="switchTab('grades')">📊 Grades</div>
+  <div class="tab-item" onclick="switchTab('house')">🏠 My House</div>
+  <div class="tab-item" onclick="switchTab('pricing')">💰 Pricing</div>
+  <div class="tab-item" onclick="switchTab('apply')">✍️ Apply</div>
+</div>
+
+<!-- ═══ TAB: OVERVIEW ═══ -->
+<div class="tab-pane active" id="tab-overview">
+  <div class="sec-label">ipowork IPO Associate Program</div>
+  <h2 style="margin-bottom:4px">Earn While You Learn — India's IPO Insider Track</h2>
+  <p style="color:var(--muted);margin-bottom:28px;max-width:680px">A structured 12-month program for CA Final, CS Final and MBA aspirants. Self-paced modules + live classes + project-based assessments + house competitions. Build real IPO skills. Source real deals. Earn real money.</p>
+
+  <!-- Key stats -->
+  <div class="grid4" style="margin-bottom:28px">
+    <div class="card" style="text-align:center;border-top:3px solid var(--amber)">
+      <div style="font-family:var(--serif);font-size:30px;font-weight:900;color:var(--amber)">12</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Months · Self-paced</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid var(--green2)">
+      <div style="font-family:var(--serif);font-size:30px;font-weight:900;color:var(--green2)">24</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Video Modules</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid var(--purple)">
+      <div style="font-family:var(--serif);font-size:30px;font-weight:900;color:var(--purple)">3</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Projects + Finals</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid var(--cyan)">
+      <div style="font-family:var(--serif);font-size:30px;font-weight:900;color:var(--cyan)">4</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px">Houses · Team compete</div>
+    </div>
+  </div>
+
+  <!-- Who is this for -->
+  <h3 style="margin-bottom:14px">Who Should Apply</h3>
+  <div class="grid3" style="margin-bottom:28px">
+    <div class="card" style="border-top:3px solid var(--amber)">
+      <div style="font-size:26px;margin-bottom:10px">📊</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px;color:var(--amber)">CA Final — Articleship</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Both groups cleared or appearing. Currently in articleship. Access to company financials. 6–8 hrs free per week.</div>
+      <div style="margin-top:12px;padding:8px 12px;background:rgba(200,150,30,.06);border-radius:8px;font-size:13px;color:var(--muted)">
+        <strong style="color:var(--amber)">Why valuable:</strong> You see 30–50 companies' books. Every client is a potential IPO candidate.
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--green2)">
+      <div style="font-size:26px;margin-bottom:10px">⚖️</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px;color:var(--green2)">CS Final — Training</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">CS Final cleared or in training. Handles MCA, ROC, board minutes. SEBI and LODR knowledge preferred.</div>
+      <div style="margin-top:12px;padding:8px 12px;background:rgba(29,158,117,.06);border-radius:8px;font-size:13px;color:var(--muted)">
+        <strong style="color:var(--green2)">Why valuable:</strong> You manage the exact compliance backbone every IPO company must fix before filing.
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--purple)">
+      <div style="font-size:26px;margin-bottom:10px">🎓</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px;color:var(--purple)">MBA Aspirant — CAT 80%ile</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">CAT ~80%ile or equivalent. Finance background. Wants IB/PE career. Needs real deal experience for SOP.</div>
+      <div style="margin-top:12px;padding:8px 12px;background:rgba(139,111,236,.06);border-radius:8px;font-size:13px;color:var(--muted)">
+        <strong style="color:var(--purple)">Why valuable:</strong> Live certification + deal exposure makes your MBA SOP stand out from 1,000 identical profiles.
+      </div>
+    </div>
+  </div>
+
+  <!-- Earning model (conservative) -->
+  <h3 style="margin-bottom:6px">Conservative Earning Potential</h3>
+  <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Honest numbers — not best-case. Earnings depend on your effort, client access and market timing.</p>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:28px">
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--card);border-radius:10px;border:1px solid var(--border2);flex-wrap:wrap">
+      <div style="font-size:18px;flex-shrink:0">📊</div>
+      <div style="flex:1;min-width:150px"><div style="font-size:14px;font-weight:600;color:var(--text)">AIRA Score (Phase 1)</div><div style="font-size:12px;color:var(--muted)">₹500 per score · You likely do 2–4 in Year 1</div></div>
+      <div style="text-align:right;flex-shrink:0"><div style="font-size:17px;font-weight:800;color:var(--green2)">₹1,000–2,000</div><div style="font-size:11px;color:var(--muted)">Year 1 conservative</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--card);border-radius:10px;border:1px solid var(--border2);flex-wrap:wrap">
+      <div style="font-size:18px;flex-shrink:0">🔍</div>
+      <div style="flex:1;min-width:150px"><div style="font-size:14px;font-weight:600;color:var(--text)">Compliance Report (Phase 2)</div><div style="font-size:12px;color:var(--muted)">₹3,000 per report · Likely 1–2 reports in Year 1</div></div>
+      <div style="text-align:right;flex-shrink:0"><div style="font-size:17px;font-weight:800;color:var(--amber)">₹3,000–6,000</div><div style="font-size:11px;color:var(--muted)">Year 1 conservative</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:var(--card);border-radius:10px;border:1px solid var(--border2);flex-wrap:wrap">
+      <div style="font-size:18px;flex-shrink:0">🤝</div>
+      <div style="flex:1;min-width:150px"><div style="font-size:14px;font-weight:600;color:var(--text)">Deal Introduction (Phase 3)</div><div style="font-size:12px;color:var(--muted)">₹10,000–25,000 per deal · 1 deal every 18 months typically</div></div>
+      <div style="text-align:right;flex-shrink:0"><div style="font-size:17px;font-weight:800;color:var(--purple)">₹0–15,000</div><div style="font-size:11px;color:var(--muted)">Year 1 · most earn ₹0</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(200,150,30,.05);border-radius:10px;border:1.5px solid rgba(200,150,30,.25);flex-wrap:wrap">
+      <div style="font-size:18px;flex-shrink:0">📅</div>
+      <div style="flex:1;min-width:150px"><div style="font-size:14px;font-weight:700;color:var(--amber)">Total Year 1 (honest)</div><div style="font-size:12px;color:var(--muted)">Most associates earn ₹5,000–15,000 in Year 1. Year 2–3 potential: ₹2–5 Lakh.</div></div>
+      <div style="text-align:right;flex-shrink:0"><div style="font-size:20px;font-weight:900;font-family:var(--serif);color:var(--amber)">₹5K–15K</div><div style="font-size:11px;color:var(--muted)">Year 1 likely</div></div>
+    </div>
+  </div>
+
+  <!-- Houses teaser -->
+  <h3 style="margin-bottom:14px">The Four Houses</h3>
+  <div class="grid4" style="margin-bottom:28px">
+    <div class="house-card" style="border-color:rgba(245,166,35,.3);background:rgba(245,166,35,.04)">
+      <div class="house-banner" style="background:var(--house-sebi)"></div>
+      <div class="house-rank" style="color:var(--house-sebi)">S</div>
+      <div style="font-size:22px;margin-bottom:8px">⚖️</div>
+      <div style="font-size:15px;font-weight:800;color:var(--house-sebi);margin-bottom:4px">House SEBI</div>
+      <div style="font-size:13px;color:var(--muted)">Compliance specialists. Masters of SEBI ICDR, regulation and filing precision.</div>
+    </div>
+    <div class="house-card" style="border-color:rgba(139,111,236,.3);background:rgba(139,111,236,.04)">
+      <div class="house-banner" style="background:var(--house-drhp)"></div>
+      <div class="house-rank" style="color:var(--house-drhp)">D</div>
+      <div style="font-size:22px;margin-bottom:8px">📄</div>
+      <div style="font-size:15px;font-weight:800;color:var(--house-drhp);margin-bottom:4px">House DRHP</div>
+      <div style="font-size:13px;color:var(--muted)">Documentation experts. DRHP drafters, disclosure specialists and writers.</div>
+    </div>
+    <div class="house-card" style="border-color:rgba(29,158,117,.3);background:rgba(29,158,117,.04)">
+      <div class="house-banner" style="background:var(--house-ipo)"></div>
+      <div class="house-rank" style="color:var(--house-ipo)">I</div>
+      <div style="font-size:22px;margin-bottom:8px">🚀</div>
+      <div style="font-size:15px;font-weight:800;color:var(--house-ipo);margin-bottom:4px">House IPO</div>
+      <div style="font-size:13px;color:var(--muted)">Deal sourcers and closers. Pitch experts and client relationship builders.</div>
+    </div>
+    <div class="house-card" style="border-color:rgba(0,212,245,.2);background:rgba(0,212,245,.03)">
+      <div class="house-banner" style="background:var(--house-icdr)"></div>
+      <div class="house-rank" style="color:var(--house-icdr)">I</div>
+      <div style="font-size:22px;margin-bottom:8px">📋</div>
+      <div style="font-size:15px;font-weight:800;color:var(--house-icdr);margin-bottom:4px">House ICDR</div>
+      <div style="font-size:13px;color:var(--muted)">Regulatory experts. Deep knowledge of SEBI ICDR, Companies Act and LODR.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <button class="btn btn-amber" onclick="switchTab('apply')">✍️ Apply Now — ₹2,999</button>
+    <button class="btn btn-outline" onclick="switchTab('syllabus')">📚 View Full Syllabus</button>
+    <button class="btn btn-outline" onclick="switchTab('pricing')">💰 Compare Plans</button>
+  </div>
+</div>
+
+<!-- ═══ TAB: SYLLABUS ═══ -->
+<div class="tab-pane" id="tab-syllabus">
+  <div class="sec-label">Month-by-Month Curriculum</div>
+  <h2 style="margin-bottom:4px">12 Months · 24 Modules · 4 Projects</h2>
+  <p style="color:var(--muted);margin-bottom:8px;max-width:680px">Each month has video modules (self-paced), a quiz, and optional live classes. Months 3, 6, 9 and 12 have graded project submissions.</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+    <span class="badge tag-green">📗 Foundation Phase · M1–3</span>
+    <span class="badge tag-amber">📙 Practitioner Phase · M4–6</span>
+    <span class="badge tag-purple">📘 Deal Phase · M7–9</span>
+    <span class="badge tag-cyan">📕 Specialist Phase · M10–12</span>
+  </div>
+
+  <div id="months-container"></div>
+</div>
+
+<!-- ═══ TAB: LIVE CLASSES ═══ -->
+<div class="tab-pane" id="tab-classes">
+  <div class="sec-label">Live Class Schedule</div>
+  <h2 style="margin-bottom:4px">Online Classes — Paid Add-on (₹999/month)</h2>
+  <p style="color:var(--muted);margin-bottom:6px;max-width:680px">All live classes happen after working hours on weekdays and during daytime on weekends — designed around your articleship/job schedule.</p>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+    <div style="padding:10px 16px;background:var(--card);border-radius:10px;border:1px solid var(--border2);font-size:14px">
+      🗓️ <strong style="color:var(--text)">Weekdays</strong> <span style="color:var(--amber)">7:00 PM – 8:30 PM IST</span> <span style="color:var(--muted)">(Mon / Wed / Thu)</span>
+    </div>
+    <div style="padding:10px 16px;background:var(--card);border-radius:10px;border:1px solid var(--border2);font-size:14px">
+      🗓️ <strong style="color:var(--text)">Saturday</strong> <span style="color:var(--amber)">10:00 AM – 1:00 PM IST</span> <span style="color:var(--muted)">(Deep dive · 3 hrs)</span>
+    </div>
+    <div style="padding:10px 16px;background:var(--card);border-radius:10px;border:1px solid var(--border2);font-size:14px">
+      🗓️ <strong style="color:var(--text)">Sunday</strong> <span style="color:var(--amber)">10:00 AM – 12:00 PM IST</span> <span style="color:var(--muted)">(Case study / Q&A)</span>
+    </div>
+  </div>
+
+  <h3 style="margin-bottom:14px">Month 1 — Upcoming Classes</h3>
+  <div id="class-schedule"></div>
+
+  <div style="margin-top:24px;padding:18px 20px;background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.2);border-radius:12px">
+    <div style="font-size:14px;font-weight:700;color:var(--blue);margin-bottom:6px">ℹ️ About Live Classes</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.65">Live classes are <strong style="color:var(--text)">optional and paid separately</strong> at ₹999/month. They are conducted on Google Meet / Zoom. All sessions are recorded and available to live class subscribers for 30 days. Taught by ipowork team + SEBI-registered guest faculty (merchant bankers, ICAI/ICSI members).</div>
+  </div>
+</div>
+
+<!-- ═══ TAB: GRADES ═══ -->
+<div class="tab-pane" id="tab-grades">
+  <div class="sec-label">Performance Tracker</div>
+  <h2 style="margin-bottom:4px">Your Grades & Progress</h2>
+  <p style="color:var(--muted);margin-bottom:24px">Each month is graded on quiz (40%), project (40%) and class participation (20%). Overall ipowork GPA is calculated at end of each phase.</p>
+
+  <!-- GPA card -->
+  <div class="grid2" style="margin-bottom:24px">
+    <div class="card" style="border-top:3px solid var(--amber);text-align:center">
+      <div style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Current ipowork GPA</div>
+      <div style="font-family:var(--serif);font-size:52px;font-weight:900;color:var(--amber)" id="gpa-display">–</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px" id="gpa-label">Enroll to begin tracking</div>
+    </div>
+    <div class="card">
+      <div class="card-head">Phase Progress</div>
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:var(--text)">Phase 1 — Foundation</span><span style="color:var(--green2)">0%</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar" style="width:0%;background:var(--green2)"></div></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:var(--text)">Phase 2 — Practitioner</span><span style="color:var(--amber)">0%</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar" style="width:0%;background:var(--amber)"></div></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:var(--text)">Phase 3 — Deal Sourcing</span><span style="color:var(--purple)">0%</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar" style="width:0%;background:var(--purple)"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:var(--text)">Phase 4 — Specialist</span><span style="color:var(--cyan)">0%</span></div>
+        <div class="prog-bar-wrap"><div class="prog-bar" style="width:0%;background:var(--cyan)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade table -->
+  <div class="card">
+    <div class="card-head">Monthly Scorecard</div>
+    <div style="overflow-x:auto">
+      <table class="grade-table">
+        <thead>
+          <tr>
+            <th>Month</th><th>Topic</th><th>Quiz (40%)</th><th>Project (40%)</th><th>Class (20%)</th><th>Grade</th><th>Points</th>
+          </tr>
+        </thead>
+        <tbody id="grade-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;padding:16px 20px;background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.15);border-radius:12px">
+    <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:8px">🏅 Grading Scale</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <span style="font-size:13px;color:var(--muted)"><span class="grade-pill grade-a">A</span> 90–100% · Excellent · 10 house pts</span>
+      <span style="font-size:13px;color:var(--muted)"><span class="grade-pill grade-b">B</span> 75–89% · Good · 7 house pts</span>
+      <span style="font-size:13px;color:var(--muted)"><span class="grade-pill grade-c">C</span> 60–74% · Pass · 4 house pts</span>
+      <span style="font-size:13px;color:var(--muted)"><span class="grade-pill grade-d">D</span> Below 60% · Needs improvement · 1 pt</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB: MY HOUSE ═══ -->
+<div class="tab-pane" id="tab-house">
+  <div class="sec-label">House Competition</div>
+  <h2 style="margin-bottom:4px">The Four Houses of ipowork IAP</h2>
+  <p style="color:var(--muted);margin-bottom:24px;max-width:640px">You are assigned a house on enrollment. Houses compete on points earned through grades, projects, deal introductions and class participation. Top house each month wins prizes.</p>
+
+  <!-- House standings -->
+  <div class="grid4" style="margin-bottom:28px" id="house-standings"></div>
+
+  <!-- House leaderboard -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-head">🏆 Overall Leaderboard — Top Associates</div>
+      <div id="leaderboard"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">🎯 Points You Can Earn</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border-radius:8px">
+          <span style="font-size:13px;color:var(--muted)">Module Quiz — Grade A</span><span style="font-size:14px;font-weight:700;color:var(--amber)">+10 pts</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border-radius:8px">
+          <span style="font-size:13px;color:var(--muted)">Project submission — Grade A</span><span style="font-size:14px;font-weight:700;color:var(--amber)">+10 pts</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border-radius:8px">
+          <span style="font-size:13px;color:var(--muted)">Live class attendance</span><span style="font-size:14px;font-weight:700;color:var(--amber)">+3 pts</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border-radius:8px">
+          <span style="font-size:13px;color:var(--muted)">AIRA Score conducted</span><span style="font-size:14px;font-weight:700;color:var(--amber)">+15 pts</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface);border-radius:8px">
+          <span style="font-size:13px;color:var(--muted)">Compliance report delivered</span><span style="font-size:14px;font-weight:700;color:var(--amber)">+25 pts</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(200,150,30,.06);border-radius:8px;border:1px solid rgba(200,150,30,.15)">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🔥 Deal introduced to ipowork</span><span style="font-size:14px;font-weight:700;color:var(--gold)">+100 pts</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:rgba(245,166,35,.06);border-radius:8px;border:1px solid rgba(245,166,35,.2)">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🏆 Deal leads to listing</span><span style="font-size:14px;font-weight:700;color:var(--gold)">+500 pts</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly prizes -->
+  <div style="margin-top:20px;padding:18px 20px;background:rgba(245,166,35,.05);border:1px solid rgba(245,166,35,.2);border-radius:12px">
+    <div style="font-size:14px;font-weight:700;color:var(--gold);margin-bottom:12px">🎁 Monthly House Prizes</div>
+    <div class="grid3">
+      <div style="font-size:13px;color:var(--muted)">🥇 <strong style="color:var(--text)">1st House</strong> — ₹2,000 credit + ipowork branded swag + priority deal allocation</div>
+      <div style="font-size:13px;color:var(--muted)">🥈 <strong style="color:var(--text)">2nd House</strong> — ₹1,000 credit + featured in ipowork newsletter</div>
+      <div style="font-size:13px;color:var(--muted)">🏅 <strong style="color:var(--text)">Top Associate</strong> — Free live class for the following month + LinkedIn certificate</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB: PRICING ═══ -->
+<div class="tab-pane" id="tab-pricing">
+  <div class="sec-label">Plans & Pricing</div>
+  <h2 style="margin-bottom:4px">Choose Your Track</h2>
+  <p style="color:var(--muted);margin-bottom:28px;max-width:680px">All plans include the full 12-month self-paced curriculum. Live classes are a separate paid add-on. Enrolment fee is fully refunded when you source your first deal.</p>
+
+  <div class="grid3" style="margin-bottom:32px">
+
+    <!-- Self-Paced -->
+    <div class="price-card">
+      <div class="badge tag-green" style="margin-bottom:12px">Self-Paced</div>
+      <div class="price-tag" style="color:var(--green2)">₹2,999</div>
+      <div class="price-period">One-time · Refunded on 1st deal</div>
+      <ul class="price-features">
+        <li>Full 12-month curriculum (24 modules)</li>
+        <li>3 graded projects + final assessment</li>
+        <li>House assignment + leaderboard</li>
+        <li>ipowork AI assistant (module Q&A)</li>
+        <li>ipowork Certified Associate credential</li>
+        <li>Deal sourcing access (earn from M3)</li>
+        <li>WhatsApp study group access</li>
+      </ul>
+      <button class="btn btn-green" style="width:100%;justify-content:center" onclick="switchTab('apply');document.getElementById('ap-plan').value='self-paced'">Select Plan →</button>
+      <div style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">Live classes NOT included</div>
+    </div>
+
+    <!-- Full Bundle (POPULAR) -->
+    <div class="price-card popular" style="position:relative">
+      <div style="position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:var(--amber);color:#080F0C;font-size:11px;font-weight:800;padding:4px 14px;border-radius:0 0 8px 8px;white-space:nowrap">BEST VALUE</div>
+      <div class="badge tag-amber" style="margin-bottom:12px;margin-top:12px">Full Bundle</div>
+      <div class="price-tag" style="color:var(--amber)">₹9,999</div>
+      <div class="price-period">One-time · Includes 12 months live classes · Save ₹4,989</div>
+      <ul class="price-features">
+        <li>Everything in Self-Paced</li>
+        <li><strong style="color:var(--amber)">12 months live classes included</strong></li>
+        <li>Mon/Wed/Thu 7PM + Sat/Sun daytime</li>
+        <li>Session recordings (30 days access)</li>
+        <li>Direct MB guest faculty sessions</li>
+        <li>Priority deal allocation from ipowork</li>
+        <li>Private 1:1 mentorship session (1 per quarter)</li>
+      </ul>
+      <button class="btn btn-amber" style="width:100%;justify-content:center" onclick="switchTab('apply');document.getElementById('ap-plan').value='full-bundle'">Select Plan →</button>
+      <div style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">₹2,999 refunded on 1st deal</div>
+    </div>
+
+    <!-- Live Add-On Monthly -->
+    <div class="price-card">
+      <div class="badge tag-cyan" style="margin-bottom:12px">Live Classes Add-On</div>
+      <div class="price-tag" style="color:var(--cyan)">₹999<span style="font-size:20px;font-weight:400">/month</span></div>
+      <div class="price-period">Month-by-month · Cancel anytime</div>
+      <ul class="price-features">
+        <li>Add live classes to any existing plan</li>
+        <li>Same schedule as Full Bundle</li>
+        <li>Mon/Wed/Thu 7:00–8:30 PM IST</li>
+        <li>Saturday 10 AM–1 PM (deep dive)</li>
+        <li>Sunday 10 AM–12 PM (case study)</li>
+        <li>Session recordings for 30 days</li>
+        <li>Cancel anytime — no lock-in</li>
+      </ul>
+      <button class="btn" style="width:100%;justify-content:center;background:rgba(0,212,245,.1);color:var(--cyan);border:1px solid rgba(0,212,245,.2)" onclick="switchTab('apply');document.getElementById('ap-plan').value='live-addon'">Add to Existing Plan →</button>
+      <div style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">Requires active self-paced enrollment</div>
+    </div>
+
+  </div>
+
+  <!-- Comparison table -->
+  <div class="card" style="overflow-x:auto">
+    <div class="card-head">Full Comparison</div>
+    <table style="width:100%;border-collapse:collapse;min-width:560px">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:10px 14px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2)">Feature</th>
+          <th style="text-align:center;padding:10px 14px;font-size:13px;font-weight:700;color:var(--green2);border-bottom:1px solid var(--border2)">Self-Paced ₹2,999</th>
+          <th style="text-align:center;padding:10px 14px;font-size:13px;font-weight:700;color:var(--amber);border-bottom:1px solid var(--border2)">Full Bundle ₹9,999</th>
+          <th style="text-align:center;padding:10px 14px;font-size:13px;font-weight:700;color:var(--cyan);border-bottom:1px solid var(--border2)">Live Add-On ₹999/mo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">24 video modules</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--muted)">—</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">3 projects + final assessment</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--muted)">—</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">House + leaderboard</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--muted)">—</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">ipowork Certified credential</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--muted)">—</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">Deal sourcing access</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--muted)">—</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">Live classes (7PM weekdays)</td><td style="text-align:center;color:var(--red)">✗</td><td style="text-align:center;color:var(--green2)">✓ 12 months</td><td style="text-align:center;color:var(--green2)">✓</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">Sat/Sun daytime sessions</td><td style="text-align:center;color:var(--red)">✗</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--green2)">✓</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">Session recordings (30 days)</td><td style="text-align:center;color:var(--red)">✗</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--green2)">✓</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border2)">1:1 mentorship (quarterly)</td><td style="text-align:center;color:var(--red)">✗</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--red)">✗</td></tr>
+        <tr><td style="padding:10px 14px;font-size:13px;color:var(--muted)">Priority deal allocation</td><td style="text-align:center;color:var(--red)">✗</td><td style="text-align:center;color:var(--green2)">✓</td><td style="text-align:center;color:var(--red)">✗</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top:20px;padding:16px 20px;background:rgba(29,158,117,.05);border:1px solid rgba(29,158,117,.2);border-radius:12px;font-size:13px;color:var(--muted)">
+    💡 <strong style="color:var(--green2)">Refund policy:</strong> The ₹2,999 enrollment fee (or ₹2,999 portion of the Full Bundle) is fully refunded when you successfully introduce your first deal to ipowork. There are no other refunds. Live class fees (₹999/month) are non-refundable but you can cancel anytime before the next month.
+  </div>
+</div>
+
+<!-- ═══ TAB: APPLY ═══ -->
+<div class="tab-pane" id="tab-apply">
+  <div class="sec-label" style="text-align:center">Apply for Cohort 2025</div>
+  <h2 style="text-align:center;margin-bottom:6px">Join the Program</h2>
+  <p style="text-align:center;color:var(--muted);margin-bottom:28px">50 seats per cohort · Rolling selection · Response within 48 hours</p>
+
+  <div style="max-width:600px;margin:0 auto">
+    <div class="card">
+      <div id="apply-form-inner">
+        <div class="grid2" style="margin-bottom:14px">
+          <div><label class="lbl">Full Name *</label><input class="inp" id="ap-name" type="text" placeholder="CA Ramesh Sharma"/></div>
+          <div><label class="lbl">Email *</label><input class="inp" id="ap-email" type="email" placeholder="you@firm.com"/></div>
+        </div>
+        <div class="grid2" style="margin-bottom:14px">
+          <div><label class="lbl">Mobile *</label><input class="inp" id="ap-mobile" type="tel" placeholder="+91 98765 43210"/></div>
+          <div><label class="lbl">I am a *</label>
+            <select class="inp" id="ap-type">
+              <option value="">— Select —</option>
+              <option value="ca-final">CA Final (Articleship)</option>
+              <option value="cs-final">CS Final (Training)</option>
+              <option value="mba-aspirant">MBA Aspirant</option>
+              <option value="ca-qualified">CA Qualified</option>
+              <option value="cs-qualified">CS Qualified</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2" style="margin-bottom:14px">
+          <div><label class="lbl">Firm / College</label><input class="inp" id="ap-firm" type="text" placeholder="KPMG / IMS Indore"/></div>
+          <div><label class="lbl">City</label><input class="inp" id="ap-city" type="text" placeholder="Mumbai, Delhi..."/></div>
+        </div>
+        <div style="margin-bottom:14px">
+          <label class="lbl">Select Plan *</label>
+          <select class="inp" id="ap-plan">
+            <option value="">— Choose plan —</option>
+            <option value="self-paced">Self-Paced Only — ₹2,999</option>
+            <option value="full-bundle">Full Bundle (Self-paced + 12 months live) — ₹9,999</option>
+            <option value="live-addon">Live Classes Add-On — ₹999/month</option>
+          </select>
+        </div>
+        <div style="margin-bottom:16px">
+          <label class="lbl">Why do you want to join? (Optional)</label>
+          <textarea class="inp" id="ap-why" style="height:80px;resize:vertical" placeholder="What draws you to IPO advisory? Client companies you work with?"></textarea>
+        </div>
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-bottom:16px">
+          <input type="checkbox" id="ap-consent" style="margin-top:3px;accent-color:var(--amber);flex-shrink:0"/>
+          <span style="font-size:13px;color:var(--muted);line-height:1.55">I agree to ipowork's terms and understand enrollment fees are refunded on first deal sourced. Live class fees are non-refundable. I can cancel add-ons anytime.</span>
+        </label>
+        <div id="ap-err" style="display:none;font-size:13px;color:var(--red);padding:8px 12px;background:rgba(232,64,64,.08);border-radius:7px;margin-bottom:12px;border:1px solid rgba(232,64,64,.2)"></div>
+        <button style="width:100%;padding:14px;border-radius:10px;background:var(--amber);color:#080F0C;font-size:16px;font-weight:800;border:none;cursor:pointer;font-family:var(--font)" onclick="submitIAPApply()">🎓 Submit Application →</button>
+      </div>
+      <div id="apply-success-inner" style="display:none;text-align:center;padding:20px 0">
+        <div style="font-size:40px;margin-bottom:14px">🎉</div>
+        <div style="font-family:var(--serif);font-size:22px;font-weight:900;color:var(--text);margin-bottom:8px">Application Submitted!</div>
+        <div style="font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.65">Our team will review and contact you on WhatsApp within 48 hours with payment details and cohort assignment.</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20just%20applied%20for%20the%20IPO%20Associate%20Program." target="_blank" class="btn btn-wa">📱 WhatsApp Us</a>
+          <button class="btn btn-outline" onclick="switchTab('overview')">← Back to Overview</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="window.open('https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20want%20to%20know%20more%20about%20the%20IPO%20Associate%20Program.','_blank')">🩺 WhatsApp Us</button>
+
+<script>
+var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+/* ── MONTHS DATA ── */
+var MONTHS = [
+  { n:1,  phase:'Foundation', col:'#1D9E75', bg:'rgba(29,158,117,.12)', title:'India\'s IPO Ecosystem',
+    topics:['India\'s capital markets structure — SEBI, NSE, BSE, CDSL, NSDL','Difference between SME IPO and Main Board — eligibility, size, exchange','Full IPO process — DRHP, Red Herring Prospectus, RHP, listing day','Who does what — Merchant Banker, CA, CS, Legal Advisor, Registrar','SEBI ICDR Regulations 2018 — overview of key sections','Key timelines — from mandate to listing (9–24 months)'],
+    deliverable:'Module Quiz — 30 questions (MCQ + short answer)',
+    live:'Mon 3 Jan 7PM · Wed 5 Jan 7PM · Sat 8 Jan 10AM' },
+
+  { n:2,  phase:'Foundation', col:'#1D9E75', bg:'rgba(29,158,117,.12)', title:'Financial Statement Reading for IPO',
+    topics:['Reading P&L, Balance Sheet and Cash Flow for IPO readiness','Revenue quality — recurring vs one-time, concentration risk','EBITDA vs PAT — which matters for SEBI, which for investors','Working capital analysis — DSO, DPO, inventory cycles','Ind AS vs IGAAP — what changes for SEBI filings','Red flags checklist — what SEBI looks for in financials'],
+    deliverable:'Module Quiz — 30 questions',
+    live:'Mon 10 Jan 7PM · Wed 12 Jan 7PM · Sat 15 Jan 10AM' },
+
+  { n:3,  phase:'Foundation', col:'#1D9E75', bg:'rgba(29,158,117,.12)', title:'IPO Eligibility Assessment + AIRA Score',
+    topics:['NSE Emerge eligibility — 10 official criteria in detail','BSE SME eligibility — 11 criteria, key differences from NSE','Main Board §26(1) profitability route vs §26(2) alternate route','Running the ipowork AIRA Score — 16 parameters explained','Interpreting and presenting the score to a client','Common eligibility myths — what promoters believe vs reality'],
+    deliverable:'🏆 PROJECT 1 — Run a live AIRA Score for a real or hypothetical company. Submit 5-page assessment report. (40% of month grade)',
+    project:true, live:'Mon 17 Jan 7PM · Wed 19 Jan 7PM · Sat 22 Jan 10AM · Sun 23 Jan 10AM (P1 review)' },
+
+  { n:4,  phase:'Practitioner', col:'#C8961E', bg:'rgba(200,150,30,.12)', title:'Pre-IPO Tax Due Diligence',
+    topics:['GST compliance check — GSTR-1, 3B, 9, 2B reconciliation','TDS/TCS defaults — 26AS analysis, pending demands','Income tax exposure — reassessment risk, pending orders','Transfer pricing — applicability, documentation, OECD guidelines','Contingent liabilities — what must go in DRHP','Minimum Alternate Tax (MAT) — credit position and disclosure'],
+    deliverable:'Module Quiz — 30 questions',
+    live:'Mon 7 Feb 7PM · Thu 10 Feb 7PM · Sat 12 Feb 10AM' },
+
+  { n:5,  phase:'Practitioner', col:'#C8961E', bg:'rgba(200,150,30,.12)', title:'Compliance Gap Analysis + ROC Audit',
+    topics:['Running ipowork Compliance Gap Analyzer — how to use and interpret','ROC compliance — AOC-4, MGT-7, DIR-12, CHG-1 filing audit','POSH compliance — Internal Complaints Committee, annual report','ESG basics — BRSR reporting for listed companies','SEBI LODR preview — what companies must do post-listing','Writing a compliance gap report — format, priority matrix, remediation plan'],
+    deliverable:'Module Quiz — 30 questions',
+    live:'Mon 14 Feb 7PM · Wed 16 Feb 7PM · Sat 19 Feb 10AM' },
+
+  { n:6,  phase:'Practitioner', col:'#C8961E', bg:'rgba(200,150,30,.12)', title:'RPT Identification & Corporate Cleanup',
+    topics:['Related Party Transactions — identification framework per Companies Act','Promoter loans — how common, how to restructure, SEBI view','Holding structure simplification — layered companies and SEBI stance','Inter-company transactions — arm\'s length pricing, disclosure','Writing DRHP RPT disclosure — what format SEBI expects','Case study: RPT cleanup completed in 8 months before filing'],
+    deliverable:'🏆 PROJECT 2 (MID-TERM) — Full compliance gap report + RPT analysis for a given case company. 8-page report. Counts 50% toward Phase 2 grade.',
+    project:true, live:'Mon 21 Feb 7PM · Wed 23 Feb 7PM · Sat 26 Feb 10AM · Sun 27 Feb 10AM (P2 review)' },
+
+  { n:7,  phase:'Deal', col:'#8B6FEC', bg:'rgba(139,111,236,.12)', title:'DRHP Structure + Drafting Basics',
+    topics:['All 20 sections of DRHP — what goes where and why','Risk factors writing — SEBI expects specificity, not boilerplate','Business overview — tone, structure, financial highlights','MD&A — Management Discussion & Analysis drafting principles','Use of proceeds — how to disclose and justify capital allocation','Promoter background section — common disclosure pitfalls'],
+    deliverable:'Module Quiz — 30 questions',
+    live:'Mon 3 Mar 7PM · Thu 6 Mar 7PM · Sat 8 Mar 10AM' },
+
+  { n:8,  phase:'Deal', col:'#8B6FEC', bg:'rgba(139,111,236,.12)', title:'SEBI Filing Process + Observation Letter',
+    topics:['Filing with SEBI — DRHP submission process and portal','SEBI observation letter — what SEBI checks in 30 days','Common SEBI queries — financials, RPT, litigation, governance','How to draft responses — tone, evidence, timelines','Stock exchange filing — NSE Emerge vs BSE SME process','From observation letter to IPO open — final steps'],
+    deliverable:'Module Quiz — 30 questions',
+    live:'Mon 10 Mar 7PM · Wed 12 Mar 7PM · Sat 15 Mar 10AM' },
+
+  { n:9,  phase:'Deal', col:'#8B6FEC', bg:'rgba(139,111,236,.12)', title:'Deal Sourcing + Pitch Skills',
+    topics:['Identifying IPO-ready companies in your client base','How to approach a promoter — opening line, framing the conversation','Handling objections — "too expensive", "not ready", "market is bad"','Presenting the AIRA Score to a promoter — step-by-step walkthrough','Logging a deal in ipowork CRM — deal stages, activity notes','What happens after you refer — ipowork process, your role, commission claim'],
+    deliverable:'🏆 PROJECT 3 — Pitch deck for a company you\'ve identified as IPO-ready. Present company profile, AIRA Score, gap analysis, recommended next steps. 10 slides.',
+    project:true, live:'Mon 17 Mar 7PM · Wed 19 Mar 7PM · Sat 22 Mar 10AM · Sun 23 Mar 10AM (P3 review)' },
+
+  { n:10, phase:'Specialist', col:'#00D4F5', bg:'rgba(0,212,245,.08)', title:'IPO Valuation + Price Band Determination',
+    topics:['EV/EBITDA, P/E, P/S multiples — which applies to which sector','Peer comparison methodology — listed and pre-IPO comps','Price band determination — floor price vs cap price logic','Book-building process — QIB, HNI, retail allocation mechanics','Anchor investor strategy — who gets approached and why','Valuation pitfalls — why over-pricing destroys listing performance'],
+    deliverable:'Module Quiz — 30 questions',
+    live:'Mon 7 Apr 7PM · Thu 10 Apr 7PM · Sat 12 Apr 10AM' },
+
+  { n:11, phase:'Specialist', col:'#00D4F5', bg:'rgba(0,212,245,.08)', title:'MB Negotiation + Mandate Structure',
+    topics:['Merchant banker fee structures — retainer vs success fee vs hybrid','Typical MB fees for SME vs Main Board IPOs','How to advise a client on MB selection — what to look for','Negotiating with MB on behalf of client — your role and limits','Mandate agreement key clauses — lock-in, exclusivity, renegotiation','Case study: MB negotiation gone wrong and how it was fixed'],
+    deliverable:'Module Quiz — 30 questions',
+    live:'Mon 14 Apr 7PM · Wed 16 Apr 7PM · Sat 19 Apr 10AM' },
+
+  { n:12, phase:'Specialist', col:'#00D4F5', bg:'rgba(0,212,245,.08)', title:'Live Deal Support + Certification Project',
+    topics:['Post-listing SEBI LODR obligations — quarterly, annual, continuous','Insider trading policy — what a newly listed company must implement','Your ongoing advisory role post-certification','ipowork Certified Partner — how deal allocation works at scale','How to build a capital markets advisory practice as a CA/CS','Certification ceremony and LinkedIn credential issuance'],
+    deliverable:'🏆 FINAL PROJECT — Full IPO Readiness Assessment for a real or hypothetical company. Minimum 15 pages. Reviewed by ipowork + external MB. Grade determines final ipowork GPA.',
+    project:true, live:'Mon 21 Apr 7PM · Wed 23 Apr 7PM · Sat 26 Apr 10AM · Sun 27 Apr 10AM (Final review)' },
+];
+
+/* ── RENDER SYLLABUS ── */
+function renderSyllabus() {
+  var c = document.getElementById('months-container');
+  var html = '';
+  var phases = [{label:'Phase 1 — Foundation', months:[0,1,2], col:'var(--green2)'},{label:'Phase 2 — Practitioner', months:[3,4,5], col:'var(--amber)'},{label:'Phase 3 — Deal Sourcing', months:[6,7,8], col:'var(--purple)'},{label:'Phase 4 — Specialist', months:[9,10,11], col:'var(--cyan)'}];
+  phases.forEach(function(ph) {
+    html += '<div style="font-size:13px;font-weight:700;color:'+ph.col+';text-transform:uppercase;letter-spacing:.6px;margin:20px 0 10px">'+ph.label+'</div>';
+    ph.months.forEach(function(mi) {
+      var m = MONTHS[mi];
+      html += '<div class="month-card"><div class="month-header" onclick="toggleMonth('+mi+')">';
+      html += '<div class="month-num" style="background:'+m.bg+';color:'+m.col+'">M'+m.n+'</div>';
+      html += '<div class="month-title"><div class="title">'+m.title+'</div><div class="sub">'+m.topics.length+' topics · '+m.live.split('·')[0].trim()+'</div></div>';
+      if(m.project) html += '<span class="badge tag-purple" style="margin-right:8px">PROJECT</span>';
+      html += '<span style="color:var(--dim);font-size:18px" id="arrow-'+mi+'">›</span>';
+      html += '</div>';
+      html += '<div class="month-body" id="body-'+mi+'">';
+      html += '<ul class="topic-list">';
+      m.topics.forEach(function(t){ html += '<li>'+t+'</li>'; });
+      html += '</ul>';
+      if(m.project) {
+        html += '<div class="project-box"><div class="project-label">📋 Assessment / Project</div><div style="font-size:13px;color:var(--muted)">'+m.deliverable+'</div></div>';
+      } else {
+        html += '<div style="font-size:13px;color:var(--muted);padding:8px 12px;background:var(--surface);border-radius:8px;margin-top:10px">📝 '+m.deliverable+'</div>';
+      }
+      html += '<div style="margin-top:10px;font-size:12px;color:var(--dim)">🎥 Live class schedule: '+m.live+'</div>';
+      html += '</div></div>';
+    });
+  });
+  c.innerHTML = html;
+}
+
+window.toggleMonth = function(i) {
+  var b = document.getElementById('body-'+i);
+  var a = document.getElementById('arrow-'+i);
+  var open = b.classList.contains('open');
+  b.classList.toggle('open', !open);
+  a.style.transform = open ? '' : 'rotate(90deg)';
+  a.style.transition = '.2s';
+};
+
+/* ── RENDER CLASS SCHEDULE ── */
+function renderSchedule() {
+  var c = document.getElementById('class-schedule');
+  var classes = [
+    { day:'Mon 3 Jan', time:'7:00 – 8:30 PM', topic:'India\'s IPO Ecosystem — Overview', sub:'Introduction + SEBI structure', type:'weekday' },
+    { day:'Wed 5 Jan', time:'7:00 – 8:30 PM', topic:'SME IPO vs Main Board — Deep Dive', sub:'Eligibility, exchange choice, process', type:'weekday' },
+    { day:'Thu 9 Jan', time:'7:00 – 8:30 PM', topic:'SEBI ICDR 2018 — Key Sections', sub:'Regulations that every associate must know', type:'weekday' },
+    { day:'Sat 11 Jan', time:'10:00 AM – 1:00 PM', topic:'Full IPO Process — End-to-End Walk', sub:'3-hour deep dive with case study · Paid session', type:'saturday' },
+    { day:'Sun 12 Jan', time:'10:00 AM – 12:00 PM', topic:'Case Study: Real SME IPO (anonymised)', sub:'Q&A + live discussion · Paid session', type:'sunday' },
+    { day:'Mon 13 Jan', time:'7:00 – 8:30 PM', topic:'Financial Statements for IPO — Part 1', sub:'P&L and Balance Sheet reading', type:'weekday' },
+    { day:'Wed 15 Jan', time:'7:00 – 8:30 PM', topic:'Financial Statements for IPO — Part 2', sub:'Cash flows, working capital, red flags', type:'weekday' },
+    { day:'Sat 18 Jan', time:'10:00 AM – 1:00 PM', topic:'Valuation Workshop — SME IPO Comps', sub:'Hands-on EV/EBITDA and P/E exercise · Paid', type:'saturday' },
+  ];
+  var html = '';
+  classes.forEach(function(cl) {
+    var typeCol = cl.type==='saturday'||cl.type==='sunday' ? 'var(--amber)' : 'var(--green2)';
+    var typeBg  = cl.type==='saturday'||cl.type==='sunday' ? 'rgba(200,150,30,.08)' : 'rgba(29,158,117,.05)';
+    html += '<div class="class-row" style="border-color:'+(cl.type!=='weekday'?'rgba(200,150,30,.2)':'var(--border2)')+';">';
+    html += '<div class="class-day">'+cl.day+'</div>';
+    html += '<div class="class-time" style="color:'+typeCol+'">'+cl.time+'</div>';
+    html += '<div class="class-topic"><div class="topic-title">'+cl.topic+'</div><div class="topic-sub">'+cl.sub+'</div></div>';
+    html += '<button class="join-btn" onclick="alert(\'Google Meet link will be emailed before each class. Ensure you are enrolled and have an active live classes subscription.\')">🎥 Join</button>';
+    html += '</div>';
+  });
+  c.innerHTML = html;
+}
+
+/* ── RENDER GRADES ── */
+function renderGrades() {
+  var tbody = document.getElementById('grade-tbody');
+  var html = '';
+  MONTHS.forEach(function(m) {
+    html += '<tr>';
+    html += '<td style="color:var(--muted)">M'+m.n+'</td>';
+    html += '<td style="color:var(--text)">'+m.title+'</td>';
+    html += '<td style="text-align:center"><span style="font-size:13px;color:var(--dim)">—</span></td>';
+    html += '<td style="text-align:center">'+(m.project ? '<span style="font-size:13px;color:var(--purple)">Project</span>' : '<span style="font-size:13px;color:var(--dim)">—</span>')+'</td>';
+    html += '<td style="text-align:center"><span style="font-size:13px;color:var(--dim)">—</span></td>';
+    html += '<td style="text-align:center"><span class="grade-pill grade-pending">?</span></td>';
+    html += '<td style="text-align:center;color:var(--dim)">0</td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+/* ── RENDER HOUSES ── */
+var HOUSES = [
+  { name:'House SEBI',  icon:'⚖️', col:'var(--house-sebi)', bg:'rgba(245,166,35,.05)', border:'rgba(245,166,35,.25)', pts:0, rank:1 },
+  { name:'House DRHP',  icon:'📄', col:'var(--house-drhp)', bg:'rgba(139,111,236,.05)', border:'rgba(139,111,236,.25)', pts:0, rank:2 },
+  { name:'House IPO',   icon:'🚀', col:'var(--house-ipo)',  bg:'rgba(29,158,117,.05)', border:'rgba(29,158,117,.25)', pts:0, rank:3 },
+  { name:'House ICDR',  icon:'📋', col:'var(--house-icdr)', bg:'rgba(0,212,245,.04)', border:'rgba(0,212,245,.15)', pts:0, rank:4 },
+];
+function renderHouses() {
+  var c = document.getElementById('house-standings');
+  var html = '';
+  HOUSES.forEach(function(h, i) {
+    html += '<div class="house-card" style="border-color:'+h.border+';background:'+h.bg+'">';
+    html += '<div class="house-banner" style="background:'+h.col+'"></div>';
+    html += '<div class="house-rank" style="color:'+h.col+'">'+(i+1)+'</div>';
+    html += '<div style="font-size:24px;margin-bottom:10px">'+h.icon+'</div>';
+    html += '<div style="font-size:15px;font-weight:800;color:'+h.col+';margin-bottom:4px">'+h.name+'</div>';
+    html += '<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+h.col+'">'+h.pts+'</div>';
+    html += '<div style="font-size:12px;color:var(--muted)">points · Rank #'+(i+1)+'</div>';
+    html += '</div>';
+  });
+  c.innerHTML = html;
+}
+function renderLeaderboard() {
+  var lb = document.getElementById('leaderboard');
+  var sample = [
+    {name:'Priya Sharma', type:'CA Final', house:'SEBI', houseCol:'var(--house-sebi)', pts:0},
+    {name:'Rahul Gupta',  type:'CS Final', house:'IPO',  houseCol:'var(--house-ipo)',  pts:0},
+    {name:'Anita Joshi',  type:'MBA Asp.', house:'DRHP', houseCol:'var(--house-drhp)', pts:0},
+    {name:'Dev Mehta',    type:'CA Final', house:'ICDR', houseCol:'var(--house-icdr)', pts:0},
+    {name:'Swati Rao',    type:'CS Final', house:'SEBI', houseCol:'var(--house-sebi)', pts:0},
+  ];
+  var html = '';
+  sample.forEach(function(s, i) {
+    var medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    html += '<div class="lb-row">';
+    html += '<div class="lb-rank">'+(medal||'#'+(i+1))+'</div>';
+    html += '<div><div class="lb-name">'+s.name+'</div><div style="font-size:12px;color:var(--muted)">'+s.type+'</div></div>';
+    html += '<span class="lb-house" style="background:'+s.houseCol+'18;color:'+s.houseCol+';border:1px solid '+s.houseCol+'33">'+s.house+'</span>';
+    html += '<div class="lb-pts">'+s.pts+'</div>';
+    html += '</div>';
+  });
+  lb.innerHTML = html;
+}
+
+/* ── TAB SWITCH ── */
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab-item').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('tab-'+name).classList.add('active');
+  var tabs = {overview:0,syllabus:1,classes:2,grades:3,house:4,pricing:5,apply:6};
+  var items = document.querySelectorAll('.tab-item');
+  if(tabs[name]!==undefined) items[tabs[name]].classList.add('active');
+}
+window.showApply = function(){ switchTab('apply'); };
+window.showDash = function(){ switchTab('overview'); };
+
+/* ── APPLY SUBMIT ── */
+window.submitIAPApply = function() {
+  var n=document.getElementById('ap-name').value.trim();
+  var e=document.getElementById('ap-email').value.trim();
+  var m=document.getElementById('ap-mobile').value.trim();
+  var t=document.getElementById('ap-type').value;
+  var pl=document.getElementById('ap-plan').value;
+  var c=document.getElementById('ap-consent').checked;
+  var err=document.getElementById('ap-err');
+  err.style.display='none';
+  if(!n){err.textContent='Name required';err.style.display='block';return;}
+  if(!e||!e.includes('@')){err.textContent='Valid email required';err.style.display='block';return;}
+  if(!m||m.replace(/[\s+\-()]/g,'').length<10){err.textContent='Valid mobile required';err.style.display='block';return;}
+  if(!t){err.textContent='Please select your category';err.style.display='block';return;}
+  if(!pl){err.textContent='Please select a plan';err.style.display='block';return;}
+  if(!c){err.textContent='Please accept the terms';err.style.display='block';return;}
+  var w=document.getElementById('ap-why')||{value:''};
+  var firm=document.getElementById('ap-firm')||{value:''};
+  fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    type:'email',to:'partners@ipowork.com',
+    subject:'[ipowork IAP] 🎓 New Application — '+n,
+    html:'<h2 style="color:#C8961E">IAP Application — '+pl+'</h2><table style="border-collapse:collapse;width:100%">'
+      +'<tr><td style="padding:8px;background:#f8fafc;font-weight:bold">Name</td><td style="padding:8px">'+n+'</td></tr>'
+      +'<tr><td style="padding:8px;background:#f1f5f9;font-weight:bold">Email</td><td style="padding:8px">'+e+'</td></tr>'
+      +'<tr><td style="padding:8px;background:#f8fafc;font-weight:bold">Mobile</td><td style="padding:8px">'+m+'</td></tr>'
+      +'<tr><td style="padding:8px;background:#f1f5f9;font-weight:bold">Category</td><td style="padding:8px">'+t+'</td></tr>'
+      +'<tr><td style="padding:8px;background:#f8fafc;font-weight:bold">Plan</td><td style="padding:8px">'+pl+'</td></tr>'
+      +'<tr><td style="padding:8px;background:#f1f5f9;font-weight:bold">Firm</td><td style="padding:8px">'+(firm.value||'—')+'</td></tr>'
+      +'<tr><td style="padding:8px;background:#f8fafc;font-weight:bold">Why</td><td style="padding:8px">'+(w.value||'—')+'</td></tr>'
+      +'<tr><td style="padding:8px;background:#f1f5f9;font-weight:bold">Time</td><td style="padding:8px">'+new Date().toLocaleString('en-IN')+'</td></tr>'
+      +'</table>'
+  })}).catch(function(){});
+  document.getElementById('apply-form-inner').style.display='none';
+  document.getElementById('apply-success-inner').style.display='block';
+};
+
+/* ── INIT ── */
+renderSyllabus();
+renderSchedule();
+renderGrades();
+renderHouses();
+renderLeaderboard();
+</script>
+</body>
+</html>
