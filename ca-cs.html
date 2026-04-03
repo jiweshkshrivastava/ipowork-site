@@ -2679,12 +2679,15 @@ window.sendChat=function(){
   P.aiHistory.push({role:'user',content:msg});
   P.aiLoading=true;if(sb) sb.disabled=true;
   fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,
       system:P.aiAsst.system,messages:P.aiHistory})})
   .then(function(r){return r.json();})
   .then(function(d){
     var text=(d.content||[]).map(function(c){return c.text||'';}).join('');
-    if(!text) text='Could not get a response. Please try again.';
+    if(!text){
+      var errMsg = d.error ? ('API Error: '+JSON.stringify(d.error)) : 'Could not get a response. Please try again.';
+      text = errMsg;
+    }
     P.aiHistory.push({role:'assistant',content:text});
     var t=document.getElementById('ai-typing');
     if(t){t.classList.remove('loading');t.style.whiteSpace='pre-wrap';t.textContent=text;}
