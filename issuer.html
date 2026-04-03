@@ -1203,7 +1203,7 @@ window.runAIRA = function(){
   fetch(WORKER, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      model:'claude-sonnet-4-20250514', max_tokens:2000,
+      model:'claude-sonnet-4-5', max_tokens:2000,
       system:'You are the ipowork IPO Readiness Engine. Based on 16-parameter inputs, generate a comprehensive IPO Readiness Report: 1) IPO READINESS SCORE (0-100) with explanation 2) ELIGIBILITY VERDICT — SME IPO or Main Board or Not Ready 3) STRENGTHS — top 3 positives 4) CRITICAL GAPS — top 5 issues with SEBI regulation reference and fix priority 5) GAP RESOLUTION TIMELINE 6) RECOMMENDED NEXT STEPS — immediate, 3-month, 6-month 7) MERCHANT BANKER READINESS. Reference SEBI ICDR 2018.',
       messages:[{role:'user', content:'IPO Readiness Parameters:\n\n'+summary}]
     })
@@ -1266,7 +1266,7 @@ window.runGap = function(){
   P.loading=true; renderMain();
   var details = 'Sector:'+sector+' | Revenue:'+((document.getElementById('g-revenue')||{value:''}).value||'N/A')+' | Exchange:'+((document.getElementById('g-exchange')||{value:''}).value||'SME')+' | Years:'+((document.getElementById('g-years')||{value:''}).value||'N/A')+' | Known issues:'+((document.getElementById('g-gaps')||{value:''}).value||'None');
   fetch(WORKER, {method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:2000,
       system:'You are the ipowork Compliance Gap Analyzer. Identify ALL compliance gaps that would block or delay an IPO. Structure: 1) CRITICAL GAPS (will block IPO) with SEBI regulation and fix timeline 2) HIGH PRIORITY GAPS 3) MEDIUM PRIORITY 4) LOW PRIORITY 5) COMPLIANCE SCORE (0-100) 6) ESTIMATED RESOLUTION TIMELINE 7) TOP 3 IMMEDIATE ACTIONS. Reference: SEBI ICDR 2018, Companies Act 2013, Income Tax Act, GST Act.',
       messages:[{role:'user',content:details}]})
   }).then(function(r){return r.json();})
@@ -1615,7 +1615,7 @@ function _aidaCallWorker(messages){
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',
+      model:'claude-sonnet-4-5',
       max_tokens:2500,
       system:'You are AIDA, the ipowork AI Document Analyser. Expert in SEBI ICDR 2018, Companies Act 2013, Ind AS, SEBI LODR 2015. For images and photos of documents: read all visible text meticulously including handwritten notes, stamps, and figures. Extract every number you can see.',
       messages:messages
@@ -1669,7 +1669,7 @@ window.runMBMatch = function(){
   P.loading=true; renderMain();
   var details='Sector:'+sector+' | Revenue:'+((document.getElementById('mb-revenue')||{value:''}).value||'N/A')+' | Issue Size:'+((document.getElementById('mb-issue')||{value:''}).value||'N/A')+' | Exchange:'+((document.getElementById('mb-exchange')||{value:''}).value||'SME')+' | Score:'+((document.getElementById('mb-score')||{value:''}).value||'Not done');
   fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,
       system:'You are the ipowork Merchant Banker Matching AI. Recommend 5 SEBI-registered Merchant Bankers. For each: 1) Name 2) Why they match 3) SEBI Category 4) Key recent IPOs 5) Contact approach. Also: when to approach, what documentation to have ready, common MB selection mistakes.',
       messages:[{role:'user',content:details}]})
   }).then(function(r){return r.json();})
@@ -1887,7 +1887,7 @@ window.sendChat=function(){
   P.aiLoading=true; renderMain();
   fetch(WORKER,{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,
       system:P.aiAssistant.system,
       messages:P.aiHistory.map(function(m){ return {role:m.role,content:m.content}; })
     })
