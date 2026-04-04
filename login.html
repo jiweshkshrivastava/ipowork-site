@@ -39,25 +39,28 @@
     .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
     .err{font-size:13px;color:var(--red);padding:10px 13px;background:rgba(232,64,64,.08);border-radius:7px;border:1px solid rgba(232,64,64,.2);display:none;margin-top:10px;line-height:1.5}
     .success-box{font-size:13px;color:var(--green2);padding:10px 13px;background:rgba(29,158,117,.08);border-radius:7px;border:1px solid rgba(29,158,117,.2);display:none;margin-top:10px;line-height:1.5}
-    .otp-inputs{display:flex;gap:8px;justify-content:center;margin:16px 0}
-    .otp-inputs{gap:6px}
-.otp-digit{width:56px;height:60px;border-radius:12px;background:var(--surface);border:1.5px solid rgba(29,158,117,.2);color:var(--text);font-size:24px;font-weight:800;text-align:center;font-family:var(--font);outline:none;transition:.15s}
-@media(max-width:400px){.otp-digit{width:48px;height:54px;font-size:22px}}
+
+    /* ── 4-digit OTP boxes ── */
+    .otp-inputs{display:flex;gap:10px;justify-content:center;margin:20px 0}
+    .otp-digit{width:68px;height:68px;border-radius:12px;background:var(--surface);border:1.5px solid rgba(29,158,117,.2);color:var(--text);font-size:28px;font-weight:800;text-align:center;font-family:var(--font);outline:none;transition:.15s}
+    @media(max-width:400px){.otp-digit{width:56px;height:60px;font-size:24px}}
     .otp-digit:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(29,158,117,.12)}
+    .otp-digit.filled{border-color:var(--green2)}
+
     .timer{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
     .resend-link{color:var(--amber);cursor:pointer;text-decoration:underline;font-weight:700}
     .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--dim);font-size:13px}
     .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
     .social-btn{width:100%;padding:12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
     .social-btn:hover{border-color:var(--green);color:var(--text)}
+
+    /* ── Progress dots (2 steps only: phone → otp) ── */
     .progress-dots{display:flex;gap:6px;justify-content:center;margin-bottom:20px}
     .dot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:.2s}
-    .dot.active{background:var(--green)}
+    .dot.active{background:var(--green);width:20px;border-radius:4px}
     .dot.done{background:var(--green2)}
-    .back-link{font-size:13px;color:var(--muted);text-align:center;margin-top:16px;cursor:pointer}
-    .back-link:hover{color:var(--text)}
+
     .masked-phone{font-weight:800;color:var(--text)}
-    footer-link{display:block;font-size:13px;color:var(--dim);text-align:center;margin-top:20px;text-decoration:none}
     a{color:var(--amber);text-decoration:none}
     a:hover{text-decoration:underline}
   </style>
@@ -69,61 +72,73 @@
 
   <div class="box">
 
-    <!-- Progress dots -->
+    <!-- Progress dots (2 steps: phone → verify) -->
     <div class="progress-dots">
       <div class="dot active" id="dot1"></div>
       <div class="dot" id="dot2"></div>
-      <div class="dot" id="dot3"></div>
     </div>
 
     <!-- STEP 1: Phone number -->
     <div class="step active" id="step1">
       <div class="box-title">Sign In</div>
-      <div class="box-sub">Enter your mobile number. We'll send a 6-digit OTP.</div>
+      <div class="box-sub">Enter your mobile number. We'll send a 4-digit OTP.</div>
       <div style="margin-bottom:14px">
         <label class="lbl">Mobile Number</label>
         <div class="phone-wrap">
           <div class="phone-prefix">🇮🇳 +91</div>
-          <input class="inp" id="phone-input" type="tel" maxlength="10" placeholder="98765 43210" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)" onkeydown="if(event.key==='Enter')sendOtp()"/>
+          <input class="inp" id="phone-input" type="tel" maxlength="10" placeholder="98765 43210"
+            inputmode="numeric"
+            oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)"
+            onkeydown="if(event.key==='Enter')sendOtp()"/>
         </div>
       </div>
       <div class="success-box" id="s1-success"></div>
       <div class="err" id="s1-err"></div>
       <button class="btn btn-green" id="send-btn" onclick="sendOtp()">Send OTP →</button>
-      <div class="divider">or continue with</div>
+
+      <div class="divider">or</div>
       <button class="social-btn" onclick="emailLogin()">✉️ Continue with Email</button>
+
       <div style="margin-top:16px;font-size:13px;color:var(--dim);text-align:center;line-height:1.65">
         By continuing you agree to ipowork's <a href="iap.html" target="_blank">Terms of Service</a>
       </div>
     </div>
 
-    <!-- STEP 2: OTP verify -->
+    <!-- STEP 2: OTP verify (4 digits) -->
     <div class="step" id="step2">
       <div class="box-title">Enter OTP</div>
-      <div class="box-sub">We sent a 6-digit code to <span class="masked-phone" id="masked-num"></span></div>
+      <div class="box-sub">We sent a 4-digit code to <span class="masked-phone" id="masked-num"></span></div>
+
       <div class="otp-inputs">
-        <input class="otp-digit" id="o1" maxlength="1" inputmode="numeric" oninput="otpNext(this,'o2')" onkeydown="otpBack(event,this,'')"/>
-        <input class="otp-digit" id="o2" maxlength="1" inputmode="numeric" oninput="otpNext(this,'o3')" onkeydown="otpBack(event,this,'o1')"/>
-        <input class="otp-digit" id="o3" maxlength="1" inputmode="numeric" oninput="otpNext(this,'o4')" onkeydown="otpBack(event,this,'o2')"/>
-        <input class="otp-digit" id="o4" maxlength="1" inputmode="numeric" oninput="otpNext(this,'')"   onkeydown="otpBack(event,this,'o3')"/>
+        <input class="otp-digit" id="o1" maxlength="1" inputmode="numeric"
+          oninput="otpInput(this,'o2')" onkeydown="otpBack(event,this,'')"/>
+        <input class="otp-digit" id="o2" maxlength="1" inputmode="numeric"
+          oninput="otpInput(this,'o3')" onkeydown="otpBack(event,this,'o1')"/>
+        <input class="otp-digit" id="o3" maxlength="1" inputmode="numeric"
+          oninput="otpInput(this,'o4')" onkeydown="otpBack(event,this,'o2')"/>
+        <input class="otp-digit" id="o4" maxlength="1" inputmode="numeric"
+          oninput="otpInput(this,'')"   onkeydown="otpBack(event,this,'o3')"/>
       </div>
+
       <div class="timer" id="timer-txt">Resend OTP in <span id="timer-sec">30</span>s</div>
       <div class="err" id="s2-err"></div>
       <button class="btn btn-amber" id="verify-btn" onclick="verifyOtp()">Verify & Sign In →</button>
       <button class="btn btn-ghost" onclick="goBack()">← Change Number</button>
     </div>
 
-    <!-- STEP 3: Email login (alternative) -->
+    <!-- STEP 3: Email login -->
     <div class="step" id="step3">
       <div class="box-title">Continue with Email</div>
-      <div class="box-sub">Enter your work email. We'll send a magic link to sign you in.</div>
+      <div class="box-sub">Enter your email. We'll send a magic link to sign you in.</div>
       <div style="margin-bottom:14px">
         <label class="lbl">Email Address</label>
-        <input class="inp" id="email-input" type="email" placeholder="you@yourfirm.com" onkeydown="if(event.key==='Enter')sendMagicLink()"/>
+        <input class="inp" id="email-input" type="email" placeholder="you@yourfirm.com"
+          onkeydown="if(event.key==='Enter')sendMagicLink()"/>
       </div>
       <div style="margin-bottom:14px">
         <label class="lbl">Your Name</label>
-        <input class="inp" id="name-input" type="text" placeholder="CA Ramesh Sharma" onkeydown="if(event.key==='Enter')sendMagicLink()"/>
+        <input class="inp" id="name-input" type="text" placeholder="CA Ramesh Sharma"
+          onkeydown="if(event.key==='Enter')sendMagicLink()"/>
       </div>
       <div class="err" id="s3-err"></div>
       <div class="success-box" id="s3-success"></div>
@@ -138,65 +153,107 @@
   </div>
 
 <script>
-var WORKER   = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
-var SB_URL   = 'https://esqlfsjhekdspycfgnoz.supabase.co';
-var SB_KEY   = 'sb_publishable_CFdw2j0-mD4VeF9kQdyhdg_ZDPxQW9a';
-var _otp     = '';
-var _phone   = '';
-var _timer   = null;
+var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+var SB_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
+var SB_KEY = 'sb_publishable_CFdw2j0-mD4VeF9kQdyhdg_ZDPxQW9a';
+var _otp   = '';
+var _phone = '';
+var _timer = null;
 
 /* ── Step navigation ── */
-function goStep(n){
-  [1,2,3].forEach(function(i){
-    document.getElementById('step'+i).classList.remove('active');
-    var dot = document.getElementById('dot'+i);
-    dot.className = 'dot' + (i < n ? ' done' : i === n ? ' active' : '');
+function goStep(n) {
+  [1, 2, 3].forEach(function(i) {
+    document.getElementById('step' + i).classList.remove('active');
   });
-  document.getElementById('step'+n).classList.add('active');
-}
-function goBack(){ goStep(1); clearInterval(_timer); }
-function emailLogin(){ goStep(3); }
+  document.getElementById('step' + n).classList.add('active');
 
-/* ── OTP input UX ── */
-function otpNext(el, nextId){
-  el.value = el.value.replace(/\D/,'');
-  if(el.value && nextId) document.getElementById(nextId).focus();
-  if(getOtpValue().length === 4) verifyOtp();
+  // Only update dots 1 & 2 (step3 is a side branch, not a linear step)
+  var d1 = document.getElementById('dot1');
+  var d2 = document.getElementById('dot2');
+  if (n === 1) {
+    d1.className = 'dot active'; d2.className = 'dot';
+  } else if (n === 2) {
+    d1.className = 'dot done'; d2.className = 'dot active';
+  } else {
+    d1.className = 'dot'; d2.className = 'dot'; // email branch
+  }
 }
-function otpBack(e, el, prevId){
-  if(e.key === 'Backspace' && !el.value && prevId) document.getElementById(prevId).focus();
+
+function goBack() { goStep(1); clearInterval(_timer); }
+function emailLogin() { goStep(3); }
+
+/* ── OTP input UX (4 digits) ── */
+function otpInput(el, nextId) {
+  el.value = el.value.replace(/\D/, '');
+  if (el.value) {
+    el.classList.add('filled');
+    if (nextId) document.getElementById(nextId).focus();
+  } else {
+    el.classList.remove('filled');
+  }
+  // Auto-verify when all 4 filled
+  if (getOtpValue().length === 4) {
+    setTimeout(verifyOtp, 100);
+  }
 }
-function getOtpValue(){
-  return ['o1','o2','o3','o4'].map(function(id){ return document.getElementById(id).value; }).join('');
+
+function otpBack(e, el, prevId) {
+  if (e.key === 'Backspace' && !el.value && prevId) {
+    var prev = document.getElementById(prevId);
+    prev.value = '';
+    prev.classList.remove('filled');
+    prev.focus();
+  }
 }
-function clearOtp(){
-  ['o1','o2','o3','o4','o5','o6'].forEach(function(id){ document.getElementById(id).value=''; });
+
+function getOtpValue() {
+  return ['o1','o2','o3','o4'].map(function(id) {
+    return document.getElementById(id).value;
+  }).join('');
+}
+
+function clearOtp() {
+  ['o1','o2','o3','o4'].forEach(function(id) {  // ✅ Fixed: was trying o5,o6 which don't exist
+    var el = document.getElementById(id);
+    el.value = '';
+    el.classList.remove('filled');
+  });
 }
 
 /* ── Timer ── */
-function startTimer(){
+function startTimer() {
   var sec = 30;
-  document.getElementById('timer-txt').style.display = 'block';
+  var timerTxt = document.getElementById('timer-txt');
+  timerTxt.style.display = 'block';
+  timerTxt.innerHTML = 'Resend OTP in <span id="timer-sec">30</span>s';
   clearInterval(_timer);
-  _timer = setInterval(function(){
+  _timer = setInterval(function() {
     sec--;
-    document.getElementById('timer-sec').textContent = sec;
-    if(sec <= 0){
+    var el = document.getElementById('timer-sec');
+    if (el) el.textContent = sec;
+    if (sec <= 0) {
       clearInterval(_timer);
-      document.getElementById('timer-txt').innerHTML = '<span class="resend-link" onclick="sendOtp()">Resend OTP</span>';
+      timerTxt.innerHTML = '<span class="resend-link" onclick="resendOtp()">Resend OTP</span>';
     }
   }, 1000);
 }
 
+function resendOtp() {
+  clearOtp();
+  document.getElementById('s2-err').style.display = 'none';
+  goStep(1);
+  setTimeout(function() { sendOtp(); }, 100);
+}
+
 /* ── SEND OTP ── */
-function sendOtp(){
+function sendOtp() {
   var raw = document.getElementById('phone-input').value.trim();
   var err = document.getElementById('s1-err');
   var suc = document.getElementById('s1-success');
   err.style.display = 'none';
   suc.style.display = 'none';
 
-  if(!raw || raw.length !== 10){
+  if (!raw || raw.length !== 10) {
     err.textContent = 'Please enter a valid 10-digit mobile number.';
     err.style.display = 'block';
     return;
@@ -206,22 +263,18 @@ function sendOtp(){
   btn.disabled = true;
   btn.textContent = '⏳ Sending OTP...';
 
-  /* Generate 6-digit OTP locally, send via Cloudflare Worker → WhatsApp notification */
+  // Generate 4-digit OTP ✅ (was 4-digit before but messages said 6-digit — now consistent)
   _otp   = Math.floor(1000 + Math.random() * 9000).toString();
-  _phone = '+91' + raw;
+  _phone = '91' + raw; // no + prefix for MSG91
 
-  /* Send OTP via Cloudflare Worker → MSG91 SMS */
+  // Send OTP via Cloudflare Worker → MSG91
   fetch(WORKER, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      type: 'sms_otp',
-      phone: _phone,
-      otp: _otp
-    })
-  }).catch(function(){});
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'sms_otp', phone: _phone, otp: _otp })
+  }).catch(function() {});
 
-  /* Also store in Supabase for verification */
+  // Store in Supabase for verification
   var expiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
   fetch(SB_URL + '/rest/v1/otp_sessions', {
     method: 'POST',
@@ -231,44 +284,32 @@ function sendOtp(){
       'Authorization': 'Bearer ' + SB_KEY,
       'Prefer': 'return=minimal'
     },
-    body: JSON.stringify({ phone: _phone, otp: _otp, expires_at: expiry, verified: false })
-  }).then(function(r){
-    btn.disabled = false;
-    btn.textContent = 'Send OTP →';
-    if(r.ok || r.status === 201 || r.status === 409){
-      document.getElementById('masked-num').textContent = '+91 ' + raw.slice(0,3) + '•••••' + raw.slice(-2);
-      goStep(2);
-      startTimer();
-      clearOtp();
-      document.getElementById('o1').focus();
-    } else {
-      /* Supabase table may not exist yet — proceed anyway using local OTP */
-      document.getElementById('masked-num').textContent = '+91 ' + raw.slice(0,3) + '•••••' + raw.slice(-2);
-      goStep(2);
-      startTimer();
-      clearOtp();
-      document.getElementById('o1').focus();
-    }
-  }).catch(function(){
-    btn.disabled = false;
-    btn.textContent = 'Send OTP →';
-    /* Even if Supabase fails, proceed — we verify locally */
-    document.getElementById('masked-num').textContent = '+91 ' + raw.slice(0,3) + '•••••' + raw.slice(-2);
-    goStep(2);
-    startTimer();
-    clearOtp();
-    document.getElementById('o1').focus();
+    body: JSON.stringify({ phone: '+91' + raw, otp: _otp, expires_at: expiry, verified: false })
+  }).then(function() {
+    afterOtpSent(raw, btn);
+  }).catch(function() {
+    afterOtpSent(raw, btn); // Proceed even if Supabase fails
   });
 }
 
+function afterOtpSent(raw, btn) {
+  btn.disabled = false;
+  btn.textContent = 'Send OTP →';
+  document.getElementById('masked-num').textContent = '+91 ' + raw.slice(0,3) + '•••••' + raw.slice(-2);
+  goStep(2);
+  startTimer();
+  clearOtp();
+  document.getElementById('o1').focus();
+}
+
 /* ── VERIFY OTP ── */
-function verifyOtp(){
+function verifyOtp() {
   var entered = getOtpValue();
-  var err     = document.getElementById('s2-err');
+  var err = document.getElementById('s2-err');
   err.style.display = 'none';
 
-  if(entered.length !== 4){
-    err.textContent = 'Please enter the complete 6-digit OTP.';
+  if (entered.length !== 4) {  // ✅ Fixed: was checking for 4 but saying 6-digit in error
+    err.textContent = 'Please enter the complete 4-digit OTP.';
     err.style.display = 'block';
     return;
   }
@@ -277,52 +318,57 @@ function verifyOtp(){
   btn.disabled = true;
   btn.textContent = '⏳ Verifying...';
 
-  /* Verify against Supabase */
-  fetch(SB_URL + '/rest/v1/otp_sessions?phone=eq.' + encodeURIComponent(_phone) + '&order=created_at.desc&limit=1', {
-    headers: {
-      'apikey': SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY
-    }
-  }).then(function(r){ return r.json(); }).then(function(rows){
+  var phoneForLookup = '+91' + document.getElementById('phone-input').value.trim();
+
+  fetch(SB_URL + '/rest/v1/otp_sessions?phone=eq.' + encodeURIComponent(phoneForLookup) + '&order=created_at.desc&limit=1', {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(rows) {
     btn.disabled = false;
     btn.textContent = 'Verify & Sign In →';
 
     var valid = false;
 
-    if(rows && rows.length > 0){
+    if (rows && rows.length > 0) {
       var row = rows[0];
       var now = new Date();
       var exp = new Date(row.expires_at);
-      if(row.otp === entered && now < exp && !row.verified){
+      if (row.otp === entered && now < exp && !row.verified) {
         valid = true;
-        /* Mark as verified */
+        // Mark as verified
         fetch(SB_URL + '/rest/v1/otp_sessions?id=eq.' + row.id, {
-          method:'PATCH',
-          headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-          body: JSON.stringify({verified:true})
-        }).catch(function(){});
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SB_KEY,
+            'Authorization': 'Bearer ' + SB_KEY
+          },
+          body: JSON.stringify({ verified: true })
+        }).catch(function() {});
       }
     } else {
-      /* Supabase table not set up yet — verify locally */
-      if(entered === _otp) valid = true;
+      // Supabase table not set up yet — verify locally
+      if (entered === _otp) valid = true;
     }
 
-    if(valid){
+    if (valid) {
       clearInterval(_timer);
-      loginSuccess(_phone, '');
+      loginSuccess(phoneForLookup);
     } else {
       err.textContent = 'Incorrect or expired OTP. Please try again.';
       err.style.display = 'block';
       clearOtp();
       document.getElementById('o1').focus();
     }
-  }).catch(function(){
+  })
+  .catch(function() {
     btn.disabled = false;
     btn.textContent = 'Verify & Sign In →';
-    /* Fallback: local verification if Supabase unreachable */
-    if(entered === _otp){
+    // Fallback: local verification if Supabase unreachable
+    if (entered === _otp) {
       clearInterval(_timer);
-      loginSuccess(_phone, '');
+      loginSuccess('+91' + document.getElementById('phone-input').value.trim());
     } else {
       err.textContent = 'Incorrect OTP. Please check and try again.';
       err.style.display = 'block';
@@ -330,8 +376,8 @@ function verifyOtp(){
   });
 }
 
-/* ── SEND MAGIC LINK (email) ── */
-function sendMagicLink(){
+/* ── SEND MAGIC LINK ── */
+function sendMagicLink() {
   var email = document.getElementById('email-input').value.trim();
   var name  = document.getElementById('name-input').value.trim();
   var err   = document.getElementById('s3-err');
@@ -339,7 +385,7 @@ function sendMagicLink(){
   err.style.display = 'none';
   suc.style.display = 'none';
 
-  if(!email || !email.includes('@')){
+  if (!email || !email.includes('@')) {
     err.textContent = 'Please enter a valid email address.';
     err.style.display = 'block';
     return;
@@ -349,27 +395,27 @@ function sendMagicLink(){
   btn.disabled = true;
   btn.textContent = '⏳ Sending link...';
 
-  /* Use Supabase magic link */
   fetch(SB_URL + '/auth/v1/otp', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','apikey':SB_KEY},
-    body: JSON.stringify({email: email, create_user: true})
-  }).then(function(r){
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SB_KEY },
+    body: JSON.stringify({ email: email, create_user: true })
+  })
+  .then(function(r) {
     btn.disabled = false;
     btn.textContent = 'Send Magic Link →';
-    if(r.ok || r.status === 200){
+    if (r.ok || r.status === 200) {
       suc.textContent = '✅ Magic link sent to ' + email + '. Click the link in your inbox to sign in.';
       suc.style.display = 'block';
-      /* Store name for when they return */
       localStorage.setItem('ipowork_pending_name', name);
       localStorage.setItem('ipowork_pending_email', email);
     } else {
-      return r.json().then(function(d){
+      return r.json().then(function(d) {
         err.textContent = d.msg || d.error_description || 'Could not send link. Please try again.';
         err.style.display = 'block';
       });
     }
-  }).catch(function(){
+  })
+  .catch(function() {
     btn.disabled = false;
     btn.textContent = 'Send Magic Link →';
     err.textContent = 'Network error. Please check your connection and try again.';
@@ -378,49 +424,48 @@ function sendMagicLink(){
 }
 
 /* ── LOGIN SUCCESS ── */
-function loginSuccess(phone, name){
+function loginSuccess(phone) {  // ✅ Fixed: was called with wrong arg count before
   var user = {
     phone: phone,
-    name:  name || localStorage.getItem('ipowork_pending_name') || '',
+    name:  localStorage.getItem('ipowork_pending_name') || '',
     email: localStorage.getItem('ipowork_pending_email') || '',
     loggedIn: true,
     loginTime: new Date().toISOString()
   };
   localStorage.setItem('ipowork_user', JSON.stringify(user));
-  /* Legacy key used by existing portals */
-  localStorage.setItem('user', JSON.stringify({phone:phone,loggedIn:true}));
+  localStorage.setItem('user', JSON.stringify({ phone: phone, loggedIn: true }));
 
-  /* Notify team */
+  // Notify team via email
   fetch(WORKER, {
-    method:'POST', headers:{'Content-Type':'application/json'},
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      type:'email', to:'partners@ipowork.com',
-      subject:'[ipowork] 🔑 New Login — ' + phone,
-      html:'<h2>New User Login</h2><p><b>Phone:</b> '+phone+'</p><p><b>Name:</b> '+(user.name||'—')+'</p><p><b>Time:</b> '+new Date().toLocaleString('en-IN')+'</p>'
+      type: 'email',
+      to: 'partners@ipowork.com',
+      subject: '[ipowork] 🔑 New Login — ' + phone,
+      html: '<h2>New User Login</h2><p><b>Phone:</b> ' + phone + '</p><p><b>Time:</b> ' + new Date().toLocaleString('en-IN') + '</p>'
     })
-  }).catch(function(){});
+  }).catch(function() {});
 
-  /* Redirect to the portal they came from, or default to issuer */
   var redirect = sessionStorage.getItem('ipowork_login_redirect') || 'issuer.html';
   sessionStorage.removeItem('ipowork_login_redirect');
   window.location.href = redirect;
 }
 
-/* ── Handle magic link callback (Supabase adds hash params) ── */
-(function(){
+/* ── Handle Supabase magic link callback ── */
+(function() {
   var hash = window.location.hash;
-  if(hash && hash.includes('access_token')){
+  if (hash && hash.includes('access_token')) {
     var params = new URLSearchParams(hash.substring(1));
     var token = params.get('access_token');
-    if(token){
-      /* Decode JWT to get email */
-      try{
+    if (token) {
+      try {
         var payload = JSON.parse(atob(token.split('.')[1]));
-        var email   = payload.email || '';
-        var name    = localStorage.getItem('ipowork_pending_name') || '';
-        loginSuccess('', email, name);
-      } catch(e){
-        loginSuccess('', '', '');
+        var email = payload.email || '';
+        localStorage.setItem('ipowork_pending_email', email);
+        loginSuccess(''); // ✅ Fixed: was passing wrong number of args
+      } catch(e) {
+        loginSuccess('');
       }
     }
   }
