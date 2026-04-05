@@ -751,7 +751,19 @@ window.storage = {
 <script>
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
-var SESS   = { name:'', email:'', mobile:'', plan:'free', consent:false, ts:'' };
+var SESS = (function(){
+    var s = { name:'', email:'', mobile:'', plan:'free', consent:false, ts:'', loggedIn:false, demo:false };
+    try {
+      var _u = localStorage.getItem('ipowork_user') || localStorage.getItem('user');
+      if(_u){ var _p = JSON.parse(_u);
+        if(_p && _p.loggedIn){
+          s.name=_p.name||_p.phone||''; s.email=_p.email||_p.phone||'';
+          s.mobile=_p.phone||''; s.loggedIn=true; s.demo=false;
+        }
+      }
+    } catch(e){}
+    return s;
+  })();
 var P      = {
   view:'dashboard', aiAssistant:null, aiHistory:[], aiLoading:false,
   airaResult:null, airaAnswers:{}, airaRuns:0, aidaRuns:0, gapResult:null,
@@ -868,6 +880,12 @@ function notifyNewSignup(name, email, org, portal){
 }
 
 function openPortal(){
+  /* If not logged in, go to login.html first */
+  if(!SESS.loggedIn && !SESS.email){
+    sessionStorage.setItem('ipowork_login_redirect', window.location.href + '#portal');
+    window.location.href = 'login.html';
+    return;
+  }
   /* Clear stale progress stored against empty/demo key */
   try { localStorage.removeItem('iss_progress_'); localStorage.removeItem('iss_progress_undefined'); } catch(e){}
   closeModal('quickaccess'); closeModal('quicklogin');
@@ -1036,7 +1054,7 @@ function renderDashboard(){
   h += '<div style="height:6px;background:var(--border2);border-radius:3px;margin-top:14px;overflow:hidden">';
   h += '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:3px;transition:width .5s"></div>';
   h += '</div>';
-  h += '<div style="font-size:15px;color:var(--muted);margin-top:5px">' + (SESS.email && !SESS.demo ? completedCount + ' of ' + steps.length + ' steps completed' : '<span style="color:var(--gold)">&#128274; Sign in to save your progress</span>') + '</div>';
+  h += '<div style="font-size:15px;color:var(--muted);margin-top:5px">' + ((SESS.email || SESS.loggedIn) && !SESS.demo ? completedCount + ' of ' + steps.length + ' steps completed' : '<a href="login.html" style="color:var(--gold);text-decoration:none">&#128274; Sign in to save your progress</a>') + '</div>';
   h += '</div>';
 
   /* ── Step cards ── */
@@ -3645,6 +3663,94 @@ window.expertSend = function(name){
     </div>
   </div>
 </div>
+
+
+<!-- ══ ipowork Standard Auth ══ -->
+<script>
+/* ═══════════════════════════════════════════════════════
+   ipowork STANDARD AUTH MODULE v1
+   Drop this <script> block into every portal
+   Reads ipowork_user from localStorage (set by login.html)
+   Replaces all custom sign-in modals/flows
+═══════════════════════════════════════════════════════ */
+
+(function(){
+  /* ── Read session ── */
+  function getUser(){
+    try {
+      var u = localStorage.getItem('ipowork_user');
+      if(u) return JSON.parse(u);
+    } catch(e){}
+    /* legacy keys */
+    try {
+      var u2 = localStorage.getItem('user');
+      if(u2){ var p = JSON.parse(u2); if(p.loggedIn) return p; }
+    } catch(e){}
+    return null;
+  }
+
+  /* ── Set global SESS from stored user ── */
+  function hydrateSESS(user){
+    if(typeof SESS === 'undefined') return;
+    SESS.name    = user.name    || user.phone || 'User';
+    SESS.email   = user.email   || user.phone || '';
+    SESS.mobile  = user.phone   || '';
+    SESS.demo    = false;
+    SESS.loggedIn = true;
+  }
+
+  /* ── Redirect to login, remember where to return ── */
+  window.goToLogin = function(returnUrl){
+    sessionStorage.setItem('ipowork_login_redirect', returnUrl || window.location.href);
+    window.location.href = 'login.html';
+  };
+
+  /* ── Sign out ── */
+  window.signOut = function(){
+    localStorage.removeItem('ipowork_user');
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
+  };
+
+  /* ── Show the top bar user info ── */
+  function renderUserBar(user){
+    var name = user.name || user.phone || 'User';
+    var phone = user.phone ? user.phone.slice(-4) : '';
+    /* Update any element with id portal-user-name */
+    var el = document.getElementById('portal-user-name');
+    if(el) el.textContent = name;
+    /* Update sign-in buttons to show user + logout */
+    document.querySelectorAll('.iw-signin-btn').forEach(function(btn){
+      btn.textContent = '👤 ' + name;
+      btn.onclick = function(){
+        if(confirm('Sign out of ipowork?')) window.signOut();
+      };
+    });
+  }
+
+  /* ── Main init ── */
+  window.addEventListener('DOMContentLoaded', function(){
+  /* Auto-open portal if returning from login redirect */
+  if(window.location.hash === '#portal' && SESS.loggedIn){
+    history.replaceState(null,'', window.location.pathname);
+    setTimeout(function(){ openPortal(); }, 300);
+  }
+    var user = getUser();
+    if(user && user.loggedIn){
+      hydrateSESS(user);
+      renderUserBar(user);
+    }
+    /* Replace openSignIn / submitSignIn / submitQuickLogin everywhere */
+    window.openSignIn      = function(){ window.goToLogin(); };
+    window.submitSignIn    = function(){ window.goToLogin(); };
+    window.submitQuickLogin = function(){ window.goToLogin(); };
+  });
+
+  /* Expose for portals that check inline */
+  window.ipoworkAuth = { getUser: getUser };
+})();
+
+</script>
 
 </body>
 </html>
