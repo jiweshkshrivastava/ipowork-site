@@ -9,12 +9,12 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --bg:#080F0C;--surface:#0E1A14;--card:#122018;
-      --green:#1D9E75;--green2:#2DC48F;--amber:#F5A623;
-      --text:#E8F5EE;--muted:#6A9A80;--dim:#2E5040;
-      --red:#E84040;--border:rgba(29,158,117,.2);
-      --font:'Inter',sans-serif;--serif:'Fraunces',Georgia,serif;
-    }
+  --bg:#FAFAF8;--surface:#FFFFFF;--card:#FFFFFF;--card2:#F7F3EE;
+  --green:#0D5C6B;--green2:#1A7D90;--amber:#E88A2E;--gold:#C9932A;
+  --red:#C0392B;--text:#2C3E47;--muted:#6B7E85;--dim:#6B7E85;
+  --border:rgba(13,92,107,.2);--border2:rgba(13,92,107,.1);
+  --font:'Inter',-apple-system,sans-serif;--serif:'Fraunces',Georgia,serif;
+}
     body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
     .logo{font-family:var(--serif);font-size:24px;font-weight:900;color:var(--text);text-align:center;margin-bottom:6px}
     .logo sup{font-size:13px;color:var(--amber);margin-left:2px}
@@ -350,10 +350,11 @@ function sendMagicLink(){
   btn.textContent = '⏳ Sending link...';
 
   /* Use Supabase magic link */
+  var redirectTo = window.location.origin + '/login.html';
   fetch(SB_URL + '/auth/v1/otp', {
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':SB_KEY},
-    body: JSON.stringify({email: email, create_user: true})
+    body: JSON.stringify({email: email, create_user: true, options:{emailRedirectTo: redirectTo}})
   }).then(function(r){
     btn.disabled = false;
     btn.textContent = 'Send Magic Link →';
@@ -378,11 +379,13 @@ function sendMagicLink(){
 }
 
 /* ── LOGIN SUCCESS ── */
-function loginSuccess(phone, name){
+function loginSuccess(phone, email){
+  var pendingName  = localStorage.getItem('ipowork_pending_name') || '';
+  var pendingEmail = localStorage.getItem('ipowork_pending_email') || '';
   var user = {
-    phone: phone,
-    name:  name || localStorage.getItem('ipowork_pending_name') || '',
-    email: localStorage.getItem('ipowork_pending_email') || '',
+    phone: phone || '',
+    name:  pendingName || (email ? email.split('@')[0] : '') || (phone ? phone.slice(-4) : 'User'),
+    email: email || pendingEmail || phone || '',
     loggedIn: true,
     loginTime: new Date().toISOString()
   };
@@ -408,21 +411,84 @@ function loginSuccess(phone, name){
 
 /* ── Handle magic link callback (Supabase adds hash params) ── */
 (function(){
+  /* ── Handle Supabase magic link callback ──
+     Supabase v2 sends tokens as URL hash: #access_token=...
+     Supabase v2.x+ may also use query params: ?token_hash=...&type=email
+     We handle BOTH formats */
+
+  var SB_URL2 = 'https://esqlfsjhekdspycfgnoz.supabase.co';
+  var SB_KEY2 = 'sb_publishable_CFdw2j0-mD4VeF9kQdyhdg_ZDPxQW9a';
+
+  function handleToken(token){
+    try{
+      var parts   = token.split('.');
+      var payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+      var email   = payload.email || '';
+      if(email){
+        loginSuccess('', email);
+      } else {
+        showErr('Could not read email from token. Please try again.');
+      }
+    } catch(e){
+      showErr('Link may have expired. Please request a new one.');
+    }
+  }
+
+  function showErr(msg){
+    /* Show error on step 3 (email) */
+    goStep(3);
+    var err = document.getElementById('s3-err');
+    if(err){ err.textContent = msg; err.style.display = 'block'; }
+  }
+
+  /* FORMAT 1: Hash fragment — #access_token=xxx&type=magiclink */
   var hash = window.location.hash;
   if(hash && hash.includes('access_token')){
-    var params = new URLSearchParams(hash.substring(1));
-    var token = params.get('access_token');
-    if(token){
-      /* Decode JWT to get email */
-      try{
-        var payload = JSON.parse(atob(token.split('.')[1]));
-        var email   = payload.email || '';
-        var name    = localStorage.getItem('ipowork_pending_name') || '';
-        loginSuccess('', email, name);
-      } catch(e){
-        loginSuccess('', '', '');
+    var params = new URLSearchParams(hash.replace(/^#/,''));
+    var token  = params.get('access_token');
+    if(token){ handleToken(token); return; }
+  }
+
+  /* FORMAT 2: Query params — ?token_hash=xxx&type=email (newer Supabase) */
+  var qp = new URLSearchParams(window.location.search);
+  var tokenHash = qp.get('token_hash');
+  var type      = qp.get('type');
+
+  if(tokenHash && (type === 'email' || type === 'magiclink' || type === 'signup')){
+    /* Exchange token hash for session via Supabase API */
+    fetch(SB_URL2 + '/auth/v1/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SB_KEY2
+      },
+      body: JSON.stringify({ token_hash: tokenHash, type: type })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.access_token){
+        handleToken(data.access_token);
+      } else if(data.user && data.user.email){
+        loginSuccess('', data.user.email);
+      } else {
+        showErr((data.error_description || data.msg || 'Link expired. Please request a new magic link.'));
       }
-    }
+    })
+    .catch(function(){
+      showErr('Network error. Please try again.');
+    });
+    return;
+  }
+
+  /* FORMAT 3: Error in query params */
+  var errMsg = qp.get('error_description') || qp.get('error');
+  if(errMsg){
+    /* Wait for DOM then show error */
+    window.addEventListener('DOMContentLoaded', function(){
+      goStep(3);
+      var err = document.getElementById('s3-err');
+      if(err){ err.textContent = decodeURIComponent(errMsg); err.style.display = 'block'; }
+    });
   }
 })();
 </script>
