@@ -551,7 +551,7 @@ window.storage = {
     <a href="ipo-academy.html" class="tb-link">📚 Academy</a>
   </div>
   <div style="margin-left:auto">
-    <button class="btn btn-amber btn-sm" onclick="openSignIn()">Sign In →</button>
+    <button class="btn btn-amber btn-sm" onclick="openSignIn()">🔑 Sign In</button>
     <a href="iap.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:rgba(139,111,236,.12);border:1px solid rgba(139,111,236,.3);color:#8B6FEC;font-size:13px;font-weight:700;text-decoration:none;margin-left:8px;white-space:nowrap">🎓 Elite Finance Careers</a>
   </div>
 </div>
@@ -974,32 +974,7 @@ window.storage = {
   <a href="iap.html" class="ps-link" style="color:#8B6FEC;border-color:rgba(139,111,236,.25);background:rgba(139,111,236,.06)">🎓 Elite Finance Careers</a>
 </div>
 
-<!-- SIGN-IN MODAL -->
-<div id="modal-signin" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:16px">
-  <div style="background:var(--surface);border:1px solid rgba(200,150,26,.2);border-radius:18px;padding:28px 28px 24px;width:100%;max-width:420px;position:relative">
-    <div style="text-align:center;margin-bottom:22px">
-      <div style="font-family:var(--serif);font-size:22px;font-weight:900;color:var(--text)">ipowork</div>
-      <div style="font-size:17px;color:var(--amber);font-weight:700;margin-top:2px">CA/CS Professionals Hub</div>
-      <div style="font-size:17px;color:var(--muted);margin-top:8px">Sign in to access your professional portal</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <div>
-        <label style="font-size:17px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px">Full Name *</label>
-        <input class="inp" id="si-name" type="text" placeholder="e.g. CA Ramesh Sharma" style="width:100%;font-size:17px"/>
-      </div>
-      <div>
-        <label style="font-size:17px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px">Email Address *</label>
-        <input class="inp" id="si-email" type="email" placeholder="you@yourfirm.com" style="width:100%;font-size:17px"/>
-      </div>
-      <div>
-        <label style="font-size:17px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px">Mobile Number *</label>
-        <input class="inp" id="si-mobile" type="tel" placeholder="+91 98765 43210" style="width:100%;font-size:17px"/>
-      </div>
-      <div>
-        <label style="font-size:17px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px">Firm / Organisation</label>
-        <input class="inp" id="si-org" type="text" placeholder="Your firm name" style="width:100%;font-size:17px"/>
-      </div>
-      <!-- Agreement box -->
+<!-- Agreement box -->
       <div style="background:rgba(200,150,26,.04);border:1px solid rgba(200,150,26,.2);border-radius:10px;padding:12px 14px">
         <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px">📄 User Agreement — Key Terms</div>
         <div style="font-size:12px;color:var(--muted);line-height:1.65;margin-bottom:8px">
@@ -1175,7 +1150,16 @@ window.storage = {
 
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
-var SESS   = {name:'', email:'', org:'', demo:false};
+var SESS = (function(){
+    var s = {name:'', email:'', org:'', demo:false, loggedIn:false};
+    try {
+      var _u = localStorage.getItem('ipowork_user') || localStorage.getItem('user');
+      if(_u){ var _p = JSON.parse(_u);
+        if(_p && _p.loggedIn){ s.name=_p.name||_p.phone||''; s.email=_p.email||_p.phone||''; s.demo=false; s.loggedIn=true; }
+      }
+    } catch(e){}
+    return s;
+  })();
 var P      = {view:'dashboard', aiAsst:null, aiHistory:[], aiLoading:false};
 
 /* ── OPEN/CLOSE ── */
@@ -1204,9 +1188,9 @@ function closePortal(){var ov=document.getElementById('portal-overlay');if(ov)ov
 
 
 function openSignIn(){
-  var m=document.getElementById('modal-signin');
-  if(!m){openPortal();return;}
-  m.style.cssText='display:flex;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:16px';
+  /* Standard auth — redirect to login.html */
+  sessionStorage.setItem('ipowork_login_redirect', window.location.href);
+  window.location.href = 'login.html';
 }
 
 /* ── Notify partners@ipowork.com on new signup ── */
@@ -1322,7 +1306,7 @@ function renderSidebar(){
     html+='<div style="font-size:17px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+SESS.name+'</div>';
     html+='<div style="font-size:17px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+SESS.email+'</div>';
   } else {
-    html+='<button onclick="openSignIn()" style="width:100%;padding:7px;border-radius:8px;border:1px solid rgba(200,169,110,.3);background:rgba(200,169,110,.06);color:var(--amber);font-size:17px;font-weight:700;cursor:pointer;font-family:var(--font)">&#128274; Sign In / Register</button>';
+    html+='<a href="login.html" style="width:100%;padding:7px;border-radius:8px;border:1px solid rgba(200,150,30,.25);background:rgba(200,150,30,.06);color:var(--amber);font-size:14px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;display:block">&#128274; Sign In / Register</a>';
   }
   html+='</div>';
   var sb=document.getElementById('psidebar');
@@ -4741,6 +4725,89 @@ function downloadAgreement() {
     </div>
   </div>
 </div>
+
+
+<!-- ══ ipowork Standard Auth ══ -->
+<script>
+/* ═══════════════════════════════════════════════════════
+   ipowork STANDARD AUTH MODULE v1
+   Drop this <script> block into every portal
+   Reads ipowork_user from localStorage (set by login.html)
+   Replaces all custom sign-in modals/flows
+═══════════════════════════════════════════════════════ */
+
+(function(){
+  /* ── Read session ── */
+  function getUser(){
+    try {
+      var u = localStorage.getItem('ipowork_user');
+      if(u) return JSON.parse(u);
+    } catch(e){}
+    /* legacy keys */
+    try {
+      var u2 = localStorage.getItem('user');
+      if(u2){ var p = JSON.parse(u2); if(p.loggedIn) return p; }
+    } catch(e){}
+    return null;
+  }
+
+  /* ── Set global SESS from stored user ── */
+  function hydrateSESS(user){
+    if(typeof SESS === 'undefined') return;
+    SESS.name    = user.name    || user.phone || 'User';
+    SESS.email   = user.email   || user.phone || '';
+    SESS.mobile  = user.phone   || '';
+    SESS.demo    = false;
+    SESS.loggedIn = true;
+  }
+
+  /* ── Redirect to login, remember where to return ── */
+  window.goToLogin = function(returnUrl){
+    sessionStorage.setItem('ipowork_login_redirect', returnUrl || window.location.href);
+    window.location.href = 'login.html';
+  };
+
+  /* ── Sign out ── */
+  window.signOut = function(){
+    localStorage.removeItem('ipowork_user');
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
+  };
+
+  /* ── Show the top bar user info ── */
+  function renderUserBar(user){
+    var name = user.name || user.phone || 'User';
+    var phone = user.phone ? user.phone.slice(-4) : '';
+    /* Update any element with id portal-user-name */
+    var el = document.getElementById('portal-user-name');
+    if(el) el.textContent = name;
+    /* Update sign-in buttons to show user + logout */
+    document.querySelectorAll('.iw-signin-btn').forEach(function(btn){
+      btn.textContent = '👤 ' + name;
+      btn.onclick = function(){
+        if(confirm('Sign out of ipowork?')) window.signOut();
+      };
+    });
+  }
+
+  /* ── Main init ── */
+  window.addEventListener('DOMContentLoaded', function(){
+    var user = getUser();
+    if(user && user.loggedIn){
+      hydrateSESS(user);
+      renderUserBar(user);
+    }
+    /* Replace openSignIn / submitSignIn / submitQuickLogin everywhere */
+    window.openSignIn      = function(){ window.goToLogin(); };
+    window.submitSignIn    = function(){ window.goToLogin(); };
+    window.submitQuickLogin = function(){ window.goToLogin(); };
+  });
+
+  /* Expose for portals that check inline */
+  window.ipoworkAuth = { getUser: getUser };
+})();
+
+</script>
 
 </body>
 </html>
