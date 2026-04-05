@@ -1089,7 +1089,16 @@ window.storage = {
 <script>
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 var REG = {};
-var SESS = { name:'', email:'', firm:'' };
+var SESS = (function(){
+    var s = {name:'', email:'', firm:'', loggedIn:false};
+    try {
+      var _u = localStorage.getItem('ipowork_user') || localStorage.getItem('user');
+      if(_u){ var _p = JSON.parse(_u);
+        if(_p && _p.loggedIn){ s.name=_p.name||_p.phone||''; s.email=_p.email||_p.phone||''; s.loggedIn=true; }
+      }
+    } catch(e){}
+    return s;
+  })();
 window.P = { view:'dashboard', dealFilter:'all', aiAssistant:null, aiHistory:[], aiLoading:false, loading:false };
 
 var MB_DEALS = [
@@ -3574,5 +3583,88 @@ window.drhpSetParty = async function(docId, party){
 };
 
 </script>
+
+<!-- ══ ipowork Standard Auth ══ -->
+<script>
+/* ═══════════════════════════════════════════════════════
+   ipowork STANDARD AUTH MODULE v1
+   Drop this <script> block into every portal
+   Reads ipowork_user from localStorage (set by login.html)
+   Replaces all custom sign-in modals/flows
+═══════════════════════════════════════════════════════ */
+
+(function(){
+  /* ── Read session ── */
+  function getUser(){
+    try {
+      var u = localStorage.getItem('ipowork_user');
+      if(u) return JSON.parse(u);
+    } catch(e){}
+    /* legacy keys */
+    try {
+      var u2 = localStorage.getItem('user');
+      if(u2){ var p = JSON.parse(u2); if(p.loggedIn) return p; }
+    } catch(e){}
+    return null;
+  }
+
+  /* ── Set global SESS from stored user ── */
+  function hydrateSESS(user){
+    if(typeof SESS === 'undefined') return;
+    SESS.name    = user.name    || user.phone || 'User';
+    SESS.email   = user.email   || user.phone || '';
+    SESS.mobile  = user.phone   || '';
+    SESS.demo    = false;
+    SESS.loggedIn = true;
+  }
+
+  /* ── Redirect to login, remember where to return ── */
+  window.goToLogin = function(returnUrl){
+    sessionStorage.setItem('ipowork_login_redirect', returnUrl || window.location.href);
+    window.location.href = 'login.html';
+  };
+
+  /* ── Sign out ── */
+  window.signOut = function(){
+    localStorage.removeItem('ipowork_user');
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
+  };
+
+  /* ── Show the top bar user info ── */
+  function renderUserBar(user){
+    var name = user.name || user.phone || 'User';
+    var phone = user.phone ? user.phone.slice(-4) : '';
+    /* Update any element with id portal-user-name */
+    var el = document.getElementById('portal-user-name');
+    if(el) el.textContent = name;
+    /* Update sign-in buttons to show user + logout */
+    document.querySelectorAll('.iw-signin-btn').forEach(function(btn){
+      btn.textContent = '👤 ' + name;
+      btn.onclick = function(){
+        if(confirm('Sign out of ipowork?')) window.signOut();
+      };
+    });
+  }
+
+  /* ── Main init ── */
+  window.addEventListener('DOMContentLoaded', function(){
+    var user = getUser();
+    if(user && user.loggedIn){
+      hydrateSESS(user);
+      renderUserBar(user);
+    }
+    /* Replace openSignIn / submitSignIn / submitQuickLogin everywhere */
+    window.openSignIn      = function(){ window.goToLogin(); };
+    window.submitSignIn    = function(){ window.goToLogin(); };
+    window.submitQuickLogin = function(){ window.goToLogin(); };
+  });
+
+  /* Expose for portals that check inline */
+  window.ipoworkAuth = { getUser: getUser };
+})();
+
+</script>
+
 </body>
 </html>
