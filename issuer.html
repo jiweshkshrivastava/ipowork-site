@@ -2,17 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>ipowork — Issuer Portal</title>
-  <meta name="description" content="ipowork Issuer Portal — AIRA Score, Compliance Gap Analyzer, AIDA Document Review, Merchant Banker Match"/>
-  <link rel="canonical" href="https://www.ipowork.com/issuer.html"/>
-  <link rel="manifest" href="manifest.json"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <meta name="theme-color" content="#08404D"/>
+  <title>Issuer Portal — ipowork</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
 
 :root{
   --bg:#FAFAF8; --surface:#FFFFFF; --card:#FFFFFF; --card2:#F7F3EE;
@@ -138,7 +133,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--sl);font-size:14px
 .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
 
 /* ── Portal switcher ── */
-.portal-switcher { display: flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border2); flex-wrap: wrap; position: fixed; top: 0; left: 0; right: 0; z-index: 200; }
 .ps-link { font-size:17px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; border: 1px solid transparent; transition: .15s; font-weight: 600; }
 .ps-link:hover { background: var(--bg); color: var(--text); }
 .ps-link.active { background: rgba(200,151,74,.08); border-color: rgba(200,151,74,.2); color: var(--gold2); }
@@ -303,11 +297,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--sl);font-size:14px
 .sec-label::after{content:'';flex:1;height:1px;background:rgba(13,92,107,.08)}
 
 .portal-tag{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-top:2px}
-/* Portal always fills screen — hide landing page elements */
-.portal-switcher { display: none !important; }
-#hero-section { display: none !important; }
-.modal-overlay:not(.open) { display: none !important; }
-</style><script>
+
+</style>
+</head>
+<body>
+
+<!-- PORTAL -->
+<div id="portal-overlay">
+  <div class="portal-topbar">
+    <a href="index.html" style="font-family:'Fraunces',serif;font-weight:900;font-size:18px;color:var(--tld);text-decoration:none;letter-spacing:-.3px">ipo<span style="color:var(--sf)">work</span></a>
+    <div style="font-size:12px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.8px;margin-left:8px;padding-left:8px;border-left:1px solid var(--bd)">Issuer Portal</div>
+    <div style="flex:1"></div>
+    <div style="font-size:13px;font-weight:600;color:var(--sl)" id="portal-user-name"></div>
+    <a href="login.html" id="portal-signin-btn" class="iw-signin-btn" style="font-size:13px;font-weight:700;color:var(--tl);padding:6px 14px;border:1px solid var(--bd);border-radius:7px;text-decoration:none;margin-left:10px">🔑 Sign In</a>
+  </div>
+  <div class="portal-body">
+    <div class="portal-sidebar" id="portal-sidebar"></div>
+    <div class="portal-main" id="portal-main"></div>
+  </div>
+</div>
+
+<script>
 /* ═══════════════════════════════════════════════════
    localStorage shim — replaces window.storage
    Same async API: .get(key, shared) .set(key, val, shared) .delete(key, shared)
@@ -361,6 +371,7 @@ window.storage = {
   }
 };
 </script>
+
 <script>
 /* ═══════════════════════════════════════════════════════════════
    SUPABASE CLOUD STORAGE — replaces window.storage
@@ -528,115 +539,6 @@ window.storage = {
 })();
 
 </script>
-</head>
-<body>
-
-<!-- PORTAL SWITCHER -->
-<div class="portal-switcher">
-  <span class="ps-label">← <a href="index.html" class="ps-link ps-home">ipowork.com</a></span>
-  <span class="ps-label" style="margin:0 2px">·</span>
-  <a href="issuer.html" class="ps-link  active" style="color:#BFA06A;border-color:#BFA06A25;background:#BFA06A08">📊 Issuer Portal</a>
-  <a href="mb.html" class="ps-link">🏦 MB Portal</a>
-  <a href="institutions.html" class="ps-link">🏛️ Intelligence</a>
-  <a href="deep-research.html" class="ps-link">🧠 Deep Research</a>
-  <a href="ca-cs.html" class="ps-link">⚖️ CA/CS Professionals Hub</a>
-</div>
-
-<!-- QUICK ACCESS MODAL (email + phone + consent) -->
-<div class="modal-overlay" id="modal-quickaccess" style="display:none">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-head">
-      <div style="font-family:'Fraunces',serif;font-weight:900;font-size:17px" id="qa-title">Get Started — Free</div>
-      <button class="modal-close" onclick="closeModal('quickaccess')">✕</button>
-    </div>
-    <div class="modal-body" style="padding:24px">
-      <p id="qa-desc" style="font-size:17px;color:var(--muted);margin-bottom:18px;line-height:1.75"></p>
-      <div class="field" style="margin-bottom:12px">
-        <label class="lbl">Work Email</label>
-        <input class="inp" id="qa-email" type="email" placeholder="you@company.com" autocomplete="email"/>
-      </div>
-      <div class="field" style="margin-bottom:16px">
-        <label class="lbl">Mobile Number</label>
-        <input class="inp" id="qa-mobile" type="tel" placeholder="+91 98765 43210" autocomplete="tel"/>
-      </div>
-      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-bottom:16px">
-        <input type="checkbox" id="qa-consent" style="margin-top:2px;accent-color:#BFA06A;flex-shrink:0"/>
-        <span style="font-size:17px;color:var(--dim);line-height:1.75">I agree to be contacted by ipowork via email and WhatsApp/call regarding IPO readiness and related services. I can opt out anytime. By proceeding I accept the <a href="#" style="color:#BFA06A">Terms</a> and <a href="#" style="color:#BFA06A">Privacy Policy</a>.</span>
-      </label>
-      <div id="qa-err" class="err"></div>
-      <button class="btn btn-gold" style="width:100%;margin-top:4px" onclick="submitQuickAccess()">Continue →</button>
-      <div style="text-align:center;margin-top:12px;font-size:17px;color:var(--muted)">Already registered? <span style="color:#BFA06A;cursor:pointer" onclick="closeModal('quickaccess');openModal('quicklogin')">Log in</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- QUICK LOGIN -->
-<div class="modal-overlay" id="modal-quicklogin" style="display:none">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-head">
-      <div style="font-family:'Fraunces',serif;font-weight:900;font-size:17px">Welcome back</div>
-      <button class="modal-close" onclick="closeModal('quicklogin')">✕</button>
-    </div>
-    <div class="modal-body" style="padding:24px">
-      <div class="field" style="margin-bottom:12px">
-        <label class="lbl">Email or Mobile</label>
-        <input class="inp" id="ql-email" type="email" placeholder="you@company.com" autocomplete="email"/>
-      </div>
-      <div id="ql-err" class="err"></div>
-      <button class="btn btn-gold" style="width:100%;margin-top:4px" onclick="submitQuickLogin()">Log In →</button>
-      <div style="text-align:center;margin-top:12px;font-size:17px;color:var(--muted)">New user? <span style="color:#BFA06A;cursor:pointer" onclick="closeModal('quicklogin');openModal('quickaccess')">Sign up free</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- HERO -->
-<div class="hero" id="hero-section">
-  <div class="hero-inner">
-    <div class="hero-text">
-      <div class="hero-badge">📊 Your IPO Readiness Dashboard</div>
-      <h1 class="hero-title">Prepare Your Company<br/><span style="color:#BFA06A">for IPO — Free</span></h1>
-      <p class="hero-sub">AIRA Score, Compliance Gap Analyzer, AIDA Document Review, Merchant Banker Match — all free. No login required.</p>
-      <div class="hero-ctas">
-        <button class="btn btn-gold btn-lg" onclick="openPortal()">📊 Open My Portal →</button>
-        <a href="index.html#eligibility" class="btn btn-ghost btn-sm" style="align-self:center">✅ Check Eligibility</a>
-      </div>      <!-- Expert CTA strip -->
-      <div style="display:flex;align-items:center;gap:12px;margin-top:16px;padding:14px 18px;background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:12px;cursor:pointer" onclick="document.getElementById('expert-modal-global').classList.add('open')">
-        <div style="font-size:28px">&#129308;</div>
-        <div style="flex:1">
-          <div style="font-size:17px;font-weight:800;color:#25D366">Talk to an IPO Expert — Free</div>
-          <div style="font-size:16px;color:var(--muted,#5A8A70);margin-top:2px">WhatsApp or schedule a Google Meet · Replies in 5 min</div>
-        </div>
-        <div style="font-size:22px;color:#25D366">&#8594;</div>
-      </div>
-
-    </div>
-    <div class="hero-preview">
-      <div class="preview-label">What's inside — free to use</div>
-      <div style="display:flex;flex-direction:column;gap:8px;padding:20px;background:var(--card);border:1px solid rgba(191,160,106,.2);border-radius:16px">
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(74,158,122,.04);border:1px solid rgba(74,158,122,.1);border-radius:9px"><span style="font-size:17px">📊</span><div><div style="font-size:17px;font-weight:700;color:var(--text)">AIRA Score</div><div style="font-size:17px;color:var(--muted)">16-parameter AI assessment · SME &amp; Main Board</div></div><span style="margin-left:auto;font-size:17px;font-weight:700;color:#7BBFA0;background:rgba(74,158,122,.1);border-radius:4px;padding:2px 6px">FREE</span></div>
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(184,96,112,.03);border:1px solid rgba(184,96,112,.1);border-radius:9px"><span style="font-size:17px">🔍</span><div><div style="font-size:17px;font-weight:700;color:var(--text)">Compliance Gap Analyzer</div><div style="font-size:17px;color:var(--muted)">ROC, SEBI ICDR, Tax, Governance gaps</div></div><span style="margin-left:auto;font-size:17px;font-weight:700;color:#7BBFA0;background:rgba(74,158,122,.1);border-radius:4px;padding:2px 6px">FREE</span></div>
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(0,212,245,.03);border:1px solid rgba(0,212,245,.1);border-radius:9px"><span style="font-size:17px">📄</span><div><div style="font-size:17px;font-weight:700;color:var(--text)">AIDA Document Review</div><div style="font-size:17px;color:var(--muted)">Upload PDF/DOCX/XLSX · AI reviews for SEBI compliance</div></div><span style="margin-left:auto;font-size:17px;font-weight:700;color:#7BBFA0;background:rgba(74,158,122,.1);border-radius:4px;padding:2px 6px">FREE</span></div>
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(167,139,250,.03);border:1px solid rgba(167,139,250,.1);border-radius:9px"><span style="font-size:17px">🏦</span><div><div style="font-size:17px;font-weight:700;color:var(--text)">Merchant Banker Match</div><div style="font-size:17px;color:var(--muted)">AI-matched SEBI-registered MBs</div></div><span style="margin-left:auto;font-size:17px;font-weight:700;color:#7BBFA0;background:rgba(74,158,122,.1);border-radius:4px;padding:2px 6px">FREE</span></div>
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(191,160,106,.03);border:1px solid rgba(191,160,106,.1);border-radius:9px"><span style="font-size:17px">🤖</span><div><div style="font-size:17px;font-weight:700;color:var(--text)">19 AI Assistants</div><div style="font-size:17px;color:var(--muted)">Financial, legal, governance, valuation and IPO advisory</div></div><span style="margin-left:auto;font-size:17px;font-weight:700;color:#7BBFA0;background:rgba(74,158,122,.1);border-radius:4px;padding:2px 6px">FREE</span></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PORTAL -->
-<div id="portal-overlay">
-  <div class="portal-topbar">
-    <a href="index.html" style="font-family:'Fraunces',serif;font-weight:900;font-size:18px;color:var(--tld);text-decoration:none;letter-spacing:-.3px">ipo<span style="color:var(--sf)">work</span></a>
-    <div style="font-size:12px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.8px;margin-left:8px;padding-left:8px;border-left:1px solid var(--bd)">Issuer Portal</div>
-    <div style="flex:1"></div>
-    <div style="font-size:13px;font-weight:600;color:var(--sl)" id="portal-user-name"></div>
-    <a href="login.html" id="portal-signin-btn" class="iw-signin-btn" style="font-size:13px;font-weight:700;color:var(--tl);padding:6px 14px;border:1px solid var(--bd);border-radius:7px;text-decoration:none;margin-left:10px">🔑 Sign In</a>
-  </div>
-  <div class="portal-body">
-    <div class="portal-sidebar" id="portal-sidebar"></div>
-    <div class="portal-main" id="portal-main"></div>
-  </div>
-</div>
 
 <script>
 
@@ -1219,7 +1121,6 @@ window.startAI = function(id){
 };
 
 </script>
-
 
 <script>
 var AI_ASSISTANTS=[
@@ -1935,7 +1836,6 @@ window.clDownloadFile = async function(fileId, name){
 
 </script>
 
-
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   /* Read session BEFORE opening portal so SESS is hydrated */
@@ -2641,82 +2541,6 @@ window.expertSend = function(name){
 
 </script>
 
-
-<!-- ═══════════════ EXPERT CONNECT WIDGET ═══════════════ -->
-<style>
-.expert-fab{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
-.expert-fab-btn{display:flex;align-items:center;gap:10px;padding:13px 22px;border-radius:99px;border:none;cursor:pointer;font-family:var(--font,"Inter",sans-serif);font-weight:800;font-size:16px;box-shadow:0 4px 24px rgba(0,0,0,.4);transition:.2s;white-space:nowrap}
-.expert-fab-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.expert-fab-main{background:linear-gradient(135deg,#128C7E,#25D366);color:#fff}
-.expert-fab-pulse{animation:fabpulse 2.5s ease-in-out infinite}
-@keyframes fabpulse{0%,100%{box-shadow:0 4px 24px rgba(37,211,102,.35)}50%{box-shadow:0 4px 32px rgba(37,211,102,.7),0 0 0 10px rgba(37,211,102,.12)}}
-.expert-modal-bg{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:16px}
-.expert-modal-bg.open{display:flex}
-.expert-modal{background:var(--surface,#0E1A14);border:1px solid rgba(29,158,117,.25);border-radius:20px;padding:30px;width:100%;max-width:460px;position:relative}
-.exp-opt{display:flex;align-items:center;gap:16px;padding:18px 20px;border-radius:14px;border:1.5px solid;cursor:pointer;transition:.2s;text-decoration:none;width:100%;box-sizing:border-box;margin-bottom:12px}
-.exp-opt:hover{transform:translateY(-2px)}
-.exp-wa{border-color:rgba(37,211,102,.4);background:rgba(37,211,102,.06)}
-.exp-wa:hover{border-color:#25D366;background:rgba(37,211,102,.12)}
-.exp-sch{border-color:rgba(66,133,244,.4);background:rgba(66,133,244,.06)}
-.exp-sch:hover{border-color:#4285F4;background:rgba(66,133,244,.12)}
-.exp-icon{width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
-.exp-wa .exp-icon{background:rgba(37,211,102,.15)}
-.exp-sch .exp-icon{background:rgba(66,133,244,.15)}
-
-/* ── Dashboard / Portal Aesthetic Upgrades ── */
-.portal-pad { padding: 24px 28px; max-width: 100%; box-sizing: border-box; }
-@media(max-width:640px){ .portal-pad { padding: 16px 14px; } }
-.page-title { font-family: var(--serif); font-size: 24px; font-weight: 900; color: var(--tld); margin-bottom: 6px; }
-.page-sub { font-size: 14px; color: var(--mu); margin-bottom: 20px; line-height: 1.75; max-width: 560px; }
-/* Sora font for all body text */
-body, input, select, textarea, button { font-family: var(--font); }
-/* Step cards */
-.step-card { background:#fff; border:1px solid var(--bd); border-radius:14px; padding:18px 20px; box-shadow:var(--sh); transition:.18s; }
-.step-card:hover { transform:translateY(-2px); box-shadow:var(--sh2); }
-/* Portal buttons unified */
-.btn-teal-solid { background:var(--tl); color:#fff; border:none; border-radius:9px; padding:10px 22px; font-family:var(--font); font-size:14px; font-weight:700; cursor:pointer; transition:.15s; }
-.btn-teal-solid:hover { background:var(--tld); transform:translateY(-1px); }
-.btn-sf-solid { background:var(--sf); color:#fff; border:none; border-radius:9px; padding:10px 22px; font-family:var(--font); font-size:14px; font-weight:700; cursor:pointer; transition:.15s; }
-</style>
-
-<div class="expert-fab">
-  <button class="expert-fab-btn expert-fab-main expert-fab-pulse" onclick="document.getElementById('expert-modal-global').classList.add('open')">
-    🩺 Talk to an IPO Expert
-  </button>
-</div>
-
-<div class="expert-modal-bg" id="expert-modal-global" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="expert-modal">
-    <button onclick="document.getElementById('expert-modal-global').classList.remove('open')" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted,#5A8A70);font-size:22px;cursor:pointer;line-height:1">&#x2715;</button>
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:36px;margin-bottom:10px">&#129308;</div>
-      <div style="font-family:var(--serif,serif);font-size:22px;font-weight:900;color:var(--text,#E8F5EE);margin-bottom:6px">Talk to an IPO Expert</div>
-      <div style="font-size:17px;color:var(--muted,#5A8A70);line-height:1.65">Personalised guidance from SEBI-registered professionals. Free first consultation.</div>
-    </div>
-    <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20need%20guidance%20on%20IPO%20preparation.%20Please%20connect%20me%20with%20an%20expert." target="_blank" class="exp-opt exp-wa" onclick="document.getElementById('expert-modal-global').classList.remove('open')">
-      <div class="exp-icon">&#128241;</div>
-      <div>
-        <div style="font-size:18px;font-weight:800;color:#25D366;margin-bottom:3px">WhatsApp Now &#8212; Instant</div>
-        <div style="font-size:16px;color:var(--muted,#5A8A70);line-height:1.5">Chat directly with our team. Usually replies within 5 minutes.</div>
-        <div style="font-size:17px;color:#25D366;font-weight:800;margin-top:5px">+91 88510 59588</div>
-      </div>
-    </a>
-    <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20would%20like%20to%20schedule%20a%20free%20IPO%20consultation.%20Please%20share%20available%20time%20slots." target="_blank" class="exp-opt exp-sch" onclick="document.getElementById('expert-modal-global').classList.remove('open')">
-      <div class="exp-icon">&#128197;</div>
-      <div>
-        <div style="font-size:18px;font-weight:800;color:#4285F4;margin-bottom:3px">Schedule a Meeting</div>
-        <div style="font-size:16px;color:var(--muted,#5A8A70);line-height:1.5">Book a 30-min Google Meet. Pick your preferred time slot.</div>
-        <div style="font-size:17px;color:#4285F4;font-weight:700;margin-top:5px">Google Meet &#8226; Free Consultation</div>
-      </div>
-    </a>
-    <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid rgba(29,158,117,.1)">
-      <div style="font-size:16px;color:var(--dim,#2A4030)">&#128274; ICAI/ICSI registered professionals &#8226; No commitment &#8226; Free first call</div>
-    </div>
-  </div>
-</div>
-
-
-<!-- ══ ipowork Standard Auth ══ -->
 <script>
 /* ═══════════════════════════════════════════════════════
    ipowork STANDARD AUTH MODULE v1
