@@ -657,9 +657,10 @@ function bindChat(){
   function renderUserBar(user){
     var name = user.name || user.phone || 'User';
     var phone = user.phone ? user.phone.slice(-4) : '';
-    /* Update any element with id portal-user-name */
-    var el = document.getElementById('portal-user-name');
-    if(el) el.textContent = name;
+    /* Update portal user display elements */
+    ['portal-user-name','tb-user-name','sb-user-name'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.textContent = name;
+    });
     /* Update sign-in buttons to show user + logout */
     document.querySelectorAll('.iw-signin-btn').forEach(function(btn){
       btn.textContent = '👤 ' + name;
@@ -671,11 +672,7 @@ function bindChat(){
 
   /* ── Main init ── */
   window.addEventListener('DOMContentLoaded', function(){
-  /* Auto-open portal if returning from login redirect */
-  if(window.location.hash === '#portal' && SESS.loggedIn){
-    history.replaceState(null,'', window.location.pathname);
-    setTimeout(function(){ openPortal(); }, 300);
-  }
+  /* Hash-based navigation removed — new portal is always visible */
     var user = getUser();
     if(user && user.loggedIn){
       hydrateSESS(user);
