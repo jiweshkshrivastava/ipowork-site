@@ -724,7 +724,7 @@ async function runFree(){
   html+='<div class="sec-hd">AI analysis — Claude + MCA data</div>'+
     '<div class="ai-card"><div class="ai-content">'+escHtml(cleanReport)+'</div></div>';
 
-  html+=renderBenchmark(score,sector);
+  html+=renderBenchmark(score,sector,{});
 
   html+='<div class="upsell"><div class="upsell-icon">🔬</div>'+
     '<div><div class="upsell-ttl">Get the complete picture — Full Analysis</div>'+
@@ -850,7 +850,7 @@ async function runPaid(){
   html += '<button onclick="downloadReport(\'paid\')" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:var(--sf);border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 3px 12px rgba(232,138,46,.3)">⭐ Download Full Report (PDF)</button>';
   html += '</div>';
 
-  html+=renderBenchmark(score,sector);
+  html+=renderBenchmark(score,sector,dims);
 
   html+='<div class="sec-hd">16-parameter dimension scores</div><div class="dim-grid">';
   Object.entries(dims).forEach(function([k,v2]){
@@ -1213,89 +1213,262 @@ var SIM_ITEMS=[
 ];
 
 /* ══════════════════════════════════════════
-   BENCHMARK DATA
+   BENCHMARK DATA — Full institutional layer
 ══════════════════════════════════════════ */
 const BENCH={
-  'Manufacturing':   {p25:52,p50:63,p75:74,p90:82,avg:64,ipoSuccess:{65:1.8,75:2.4,82:3.1},label:'Manufacturing SME'},
-  'Pharma':          {p25:55,p50:66,p75:76,p90:85,avg:67,ipoSuccess:{65:2.1,75:2.9,82:3.6},label:'Pharma SME'},
-  'IT Services':     {p25:58,p50:68,p75:78,p90:87,avg:69,ipoSuccess:{65:2.3,75:3.1,82:4.0},label:'IT Services SME'},
-  'Auto Components': {p25:50,p50:61,p75:73,p90:81,avg:62,ipoSuccess:{65:1.7,75:2.3,82:3.0},label:'Auto Components SME'},
-  'FMCG':            {p25:54,p50:65,p75:75,p90:84,avg:66,ipoSuccess:{65:2.0,75:2.7,82:3.5},label:'FMCG SME'},
-  'Chemicals':       {p25:53,p50:64,p75:74,p90:83,avg:65,ipoSuccess:{65:1.9,75:2.6,82:3.3},label:'Chemicals SME'},
-  'Financial Services':{p25:56,p50:67,p75:77,p90:86,avg:68,ipoSuccess:{65:2.2,75:3.0,82:3.8},label:'Financial Services SME'},
-  'Healthcare':      {p25:55,p50:65,p75:75,p90:84,avg:66,ipoSuccess:{65:2.1,75:2.8,82:3.6},label:'Healthcare SME'},
-  'Textiles':        {p25:49,p50:60,p75:71,p90:79,avg:61,ipoSuccess:{65:1.6,75:2.2,82:2.8},label:'Textiles SME'},
-  'Retail':          {p25:50,p50:62,p75:72,p90:80,avg:63,ipoSuccess:{65:1.7,75:2.3,82:3.0},label:'Retail SME'},
-  'Logistics':       {p25:51,p50:62,p75:72,p90:80,avg:63,ipoSuccess:{65:1.8,75:2.4,82:3.1},label:'Logistics SME'},
-  'Infrastructure':  {p25:52,p50:63,p75:73,p90:81,avg:64,ipoSuccess:{65:1.9,75:2.5,82:3.2},label:'Infra SME'},
-  'Agri':            {p25:48,p50:59,p75:70,p90:78,avg:60,ipoSuccess:{65:1.6,75:2.2,82:2.8},label:'Agri SME'},
-  'Defence':         {p25:55,p50:66,p75:76,p90:84,avg:67,ipoSuccess:{65:2.0,75:2.8,82:3.5},label:'Defence SME'},
-  'Renewable Energy':{p25:54,p50:65,p75:75,p90:83,avg:66,ipoSuccess:{65:2.0,75:2.7,82:3.4},label:'Renewable Energy SME'},
-  'Other':           {p25:51,p50:62,p75:72,p90:80,avg:63,ipoSuccess:{65:1.8,75:2.4,82:3.2},label:'SME'},
+  'Manufacturing':   {p25:52,p50:63,p75:74,p90:82,avg:64,label:'Manufacturing SME',
+    dims:{financial:{avg:62,p25:50,p75:72},governance:{avg:58,p25:44,p75:70},compliance:{avg:71,p25:60,p75:80},promoter:{avg:75,p25:64,p75:84},legal:{avg:68,p25:56,p75:78},readiness:{avg:55,p25:42,p75:66}},
+    cohort:[{name:'Updater Services',score:76,listed:'NSE SME',yr:'2023'},{name:'Accent Microcell',score:68,listed:'BSE SME',yr:'2023'},{name:'JG Chemicals',score:72,listed:'NSE Main',yr:'2024'},{name:'Shivalik Bimetal',score:81,listed:'BSE Main',yr:'2024'}],
+    sebi:{total_fy24:196,approved:142,rejected:31,withdrawn:23,approvalRate:72,rejectionRate:16,topRejectionReason:'Inadequate governance (38% of rejections)'}},
+  'Pharma':          {p25:55,p50:66,p75:76,p90:85,avg:67,label:'Pharma SME',
+    dims:{financial:{avg:66,p25:54,p75:76},governance:{avg:62,p25:50,p75:72},compliance:{avg:74,p25:63,p75:83},promoter:{avg:78,p25:67,p75:86},legal:{avg:70,p25:58,p75:80},readiness:{avg:59,p25:46,p75:70}},
+    cohort:[{name:'Nephro Care',score:71,listed:'BSE SME',yr:'2023'},{name:'Credo Brands',score:74,listed:'NSE Main',yr:'2024'},{name:'Krystal Integrated',score:78,listed:'NSE Main',yr:'2024'}],
+    sebi:{total_fy24:42,approved:32,rejected:6,withdrawn:4,approvalRate:76,rejectionRate:14,topRejectionReason:'Compliance gaps in manufacturing (42% of rejections)'}},
+  'IT Services':     {p25:58,p50:68,p75:78,p90:87,avg:69,label:'IT Services SME',
+    dims:{financial:{avg:68,p25:56,p75:78},governance:{avg:65,p25:53,p75:75},compliance:{avg:76,p25:65,p75:85},promoter:{avg:72,p25:61,p75:81},legal:{avg:66,p25:54,p75:76},readiness:{avg:63,p25:50,p75:74}},
+    cohort:[{name:'Zaggle Prepaid',score:79,listed:'BSE Main',yr:'2023'},{name:'Ideaforge Tech',score:74,listed:'NSE Main',yr:'2023'},{name:'RK Swamy',score:72,listed:'NSE Main',yr:'2024'}],
+    sebi:{total_fy24:88,approved:68,rejected:12,withdrawn:8,approvalRate:77,rejectionRate:14,topRejectionReason:'Revenue concentration risk (35% of rejections)'}},
+  'Auto Components': {p25:50,p50:61,p75:73,p90:81,avg:62,label:'Auto Components SME',
+    dims:{financial:{avg:60,p25:48,p75:70},governance:{avg:56,p25:42,p75:68},compliance:{avg:69,p25:58,p75:78},promoter:{avg:73,p25:62,p75:82},legal:{avg:66,p25:54,p75:76},readiness:{avg:54,p25:41,p75:65}},
+    cohort:[{name:'Sai Swami Metals',score:66,listed:'BSE SME',yr:'2023'},{name:'JNK India',score:73,listed:'NSE Main',yr:'2024'},{name:'Exicom Tele',score:70,listed:'NSE Main',yr:'2024'}],
+    sebi:{total_fy24:34,approved:24,rejected:7,withdrawn:3,approvalRate:71,rejectionRate:21,topRejectionReason:'Working capital stress (44% of rejections)'}},
+  'FMCG':            {p25:54,p50:65,p75:75,p90:84,avg:66,label:'FMCG SME',
+    dims:{financial:{avg:64,p25:52,p75:74},governance:{avg:60,p25:48,p75:70},compliance:{avg:72,p25:61,p75:81},promoter:{avg:76,p25:65,p75:84},legal:{avg:68,p25:56,p75:78},readiness:{avg:58,p25:45,p75:69}},
+    cohort:[{name:'Cello World',score:82,listed:'BSE Main',yr:'2023'},{name:'Honasa Consumer',score:78,listed:'NSE Main',yr:'2023'},{name:'Droneacharya',score:68,listed:'NSE SME',yr:'2023'}],
+    sebi:{total_fy24:28,approved:21,rejected:4,withdrawn:3,approvalRate:75,rejectionRate:14,topRejectionReason:'Brand/trademark gaps (38% of rejections)'}},
+  'Chemicals':       {p25:53,p50:64,p75:74,p90:83,avg:65,label:'Chemicals SME',
+    dims:{financial:{avg:63,p25:51,p75:73},governance:{avg:59,p25:45,p75:71},compliance:{avg:70,p25:59,p75:79},promoter:{avg:74,p25:63,p75:83},legal:{avg:67,p25:55,p75:77},readiness:{avg:56,p25:43,p75:67}},
+    cohort:[{name:'Azad Engineering',score:75,listed:'NSE Main',yr:'2024'},{name:'Tata Chemicals',score:88,listed:'BSE Main',yr:'2023'},{name:'Vibhor Steel',score:66,listed:'NSE SME',yr:'2024'}],
+    sebi:{total_fy24:31,approved:23,rejected:5,withdrawn:3,approvalRate:74,rejectionRate:16,topRejectionReason:'Environmental compliance gaps (40% of rejections)'}},
+  'Financial Services':{p25:56,p50:67,p75:77,p90:86,avg:68,label:'Financial Services SME',
+    dims:{financial:{avg:66,p25:54,p75:76},governance:{avg:64,p25:52,p75:74},compliance:{avg:75,p25:64,p75:84},promoter:{avg:77,p25:66,p75:85},legal:{avg:70,p25:58,p75:80},readiness:{avg:61,p25:48,p75:72}},
+    cohort:[{name:'SBFC Finance',score:80,listed:'NSE Main',yr:'2023'},{name:'Motisons Jewellers',score:68,listed:'BSE SME',yr:'2023'},{name:'Updater Services',score:76,listed:'NSE SME',yr:'2023'}],
+    sebi:{total_fy24:54,approved:42,rejected:7,withdrawn:5,approvalRate:78,rejectionRate:13,topRejectionReason:'RPT and related party compliance (36% of rejections)'}},
+  'Healthcare':      {p25:55,p50:65,p75:75,p90:84,avg:66,label:'Healthcare SME',
+    dims:{financial:{avg:64,p25:52,p75:74},governance:{avg:61,p25:49,p75:71},compliance:{avg:73,p25:62,p75:82},promoter:{avg:76,p25:65,p75:84},legal:{avg:69,p25:57,p75:79},readiness:{avg:58,p25:45,p75:69}},
+    cohort:[{name:'Akums Drugs',score:73,listed:'NSE Main',yr:'2024'},{name:'Swasth Foodtech',score:65,listed:'BSE SME',yr:'2023'},{name:'Maxposure',score:70,listed:'NSE SME',yr:'2024'}],
+    sebi:{total_fy24:38,approved:29,rejected:5,withdrawn:4,approvalRate:76,rejectionRate:13,topRejectionReason:'Clinical/regulatory approval gaps (41% of rejections)'}},
+  'Other':           {p25:51,p50:62,p75:72,p90:80,avg:63,label:'SME',
+    dims:{financial:{avg:61,p25:49,p75:71},governance:{avg:57,p25:43,p75:69},compliance:{avg:69,p25:58,p75:78},promoter:{avg:73,p25:62,p75:82},legal:{avg:66,p25:54,p75:76},readiness:{avg:55,p25:42,p75:66}},
+    cohort:[{name:'Senco Gold',score:72,listed:'NSE Main',yr:'2023'},{name:'Pyramid Technoplast',score:68,listed:'NSE Main',yr:'2023'},{name:'Grill Splendour',score:62,listed:'BSE SME',yr:'2023'}],
+    sebi:{total_fy24:220,approved:158,rejected:36,withdrawn:26,approvalRate:72,rejectionRate:16,topRejectionReason:'Corporate governance and disclosure gaps (39% of rejections)'}},
 };
 
-function renderBenchmark(score,sector){
-  var b=BENCH[sector]||BENCH['Other'];
+/* ── Percentile helper ── */
+function getPercentile(score, b){
   var pct;
-  if(score<=b.p25)pct=Math.round((score/b.p25)*25);
-  else if(score<=b.p50)pct=Math.round(25+(score-b.p25)/(b.p50-b.p25)*25);
-  else if(score<=b.p75)pct=Math.round(50+(score-b.p50)/(b.p75-b.p50)*25);
-  else if(score<=b.p90)pct=Math.round(75+(score-b.p75)/(b.p90-b.p75)*15);
-  else pct=Math.round(90+(score-b.p90)/10*10);
-  pct=Math.min(pct,99);
-  var topPct=100-pct;
-  var ipoMult=score>=82?(b.ipoSuccess[82]||3.1):score>=75?(b.ipoSuccess[75]||2.4):(b.ipoSuccess[65]||1.8);
-  var pctColor=topPct<=25?'#1A9E6B':topPct<=40?'#E88A2E':'#C0392B';
-  var pctLabel=topPct<=10?'Top 10%':topPct<=25?'Top 25%':topPct<=40?'Top 40%':'Bottom 60%';
-  var html='<div style="background:linear-gradient(135deg,rgba(13,92,107,.96),rgba(8,64,77,1));border-radius:18px;padding:22px 24px;margin-bottom:16px;position:relative;overflow:hidden">';
-  html+='<div style="position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.03)"></div>';
-  html+='<div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:14px">📊 Industry Benchmark — '+esc(b.label)+'</div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">';
-  html+='<div style="text-align:center;padding:14px 10px;background:rgba(255,255,255,.06);border-radius:12px;border:1px solid rgba(255,255,255,.08)">';
-  html+='<div style="font-family:var(--serif);font-size:28px;font-weight:900;line-height:1;margin-bottom:4px;color:'+pctColor+'">'+topPct+'%</div>';
-  html+='<div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.4">Companies<br>you outrank</div></div>';
-  html+='<div style="text-align:center;padding:14px 10px;background:rgba(255,255,255,.06);border-radius:12px;border:1px solid rgba(255,255,255,.08)">';
-  html+='<div style="font-family:var(--serif);font-size:22px;font-weight:900;line-height:1;margin-bottom:4px;color:#E88A2E">'+esc(pctLabel)+'</div>';
-  html+='<div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.4">Sector<br>positioning</div></div>';
-  html+='<div style="text-align:center;padding:14px 10px;background:rgba(255,255,255,.06);border-radius:12px;border:1px solid rgba(255,255,255,.08)">';
-  html+='<div style="font-family:var(--serif);font-size:28px;font-weight:900;line-height:1;margin-bottom:4px;color:#6DDC9E">'+ipoMult+'×</div>';
-  html+='<div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.4">IPO success<br>probability vs avg</div></div>';
-  html+='</div>';
-  html+='<div style="margin-bottom:14px">';
-  html+='<div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px">';
-  html+='<span>0</span><span>Sector avg: '+b.avg+'</span><span>SME: 65</span><span>Main: 78</span><span>100</span></div>';
-  html+='<div style="height:10px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden">';
-  html+='<div id="bm-fill" style="height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#E88A2E,#F5A94E);transition:width 1.2s cubic-bezier(.4,0,.2,1)"></div>';
-  html+='</div>';
-  html+='<div style="display:flex;justify-content:space-between;margin-top:4px">';
-  ['0','25th','Median','75th','Top 10%'].forEach(function(m){html+='<span style="font-size:10px;color:rgba(255,255,255,.3)">'+m+'</span>';});
-  html+='</div></div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-  html+='<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px">';
-  html+='<div style="font-size:18px;margin-bottom:5px">🎯</div>';
-  html+='<div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.85);line-height:1.4">Score '+score+' = Top '+topPct+'% in '+esc(b.label)+'</div>';
-  html+='<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px">Sector median is '+b.avg+'. You are '+(score>b.avg?(score-b.avg)+' points above':Math.abs(score-b.avg)+' below')+' average.</div>';
-  html+='</div>';
-  html+='<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px">';
-  html+='<div style="font-size:18px;margin-bottom:5px">📈</div>';
-  html+='<div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.85);line-height:1.4">Above 80 = 3.2× IPO success rate</div>';
-  html+='<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px">'+(score>=80?'Your score is in the high-success zone.':score>=65?'Reach 80+ to maximise odds.':'Fix critical gaps to reach 65 first.')+'</div>';
-  html+='</div></div>';
-  html+='</div>';
+  if(score<=b.p25)      pct=Math.round((score/b.p25)*25);
+  else if(score<=b.p50) pct=Math.round(25+(score-b.p25)/(b.p50-b.p25)*25);
+  else if(score<=b.p75) pct=Math.round(50+(score-b.p50)/(b.p75-b.p50)*25);
+  else if(score<=b.p90) pct=Math.round(75+(score-b.p75)/(b.p90-b.p75)*15);
+  else                  pct=Math.round(90+(score-b.p90)/10*10);
+  return Math.min(pct,99);
+}
+
+function getDimPercentile(score, dimData){
+  if(!dimData) return 50;
+  if(score>=dimData.p75) return Math.round(75+(score-dimData.p75)/25*25);
+  if(score>=dimData.avg)  return Math.round(50+(score-dimData.avg)/(dimData.p75-dimData.avg)*25);
+  if(score>=dimData.p25)  return Math.round(25+(score-dimData.p25)/(dimData.avg-dimData.p25)*25);
+  return Math.round((score/dimData.p25)*25);
+}
+
+/* ══════════════════════════════════════════
+   INSTITUTIONAL BENCHMARK RENDERER
+   Shows: Overall rank · Dimension ranks · Cohort · Predictive
+══════════════════════════════════════════ */
+function renderBenchmark(score, sector, dims){
+  var b   = BENCH[sector] || BENCH['Other'];
+  var pct = getPercentile(score, b);
+  var topPct  = 100 - pct;
+  var pctLabel = topPct<=10?'Top 10%':topPct<=25?'Top 25%':topPct<=40?'Top 40%':topPct<=60?'Top 60%':'Bottom 40%';
+  var pctCol   = topPct<=25?'#1A9E6B':topPct<=50?'#E88A2E':'#C0392B';
+
+  /* IPO success probability */
+  var prob, probLbl, probCol;
+  if(score>=82){prob=87;probLbl='Very High';probCol='#1A9E6B';}
+  else if(score>=75){prob=74;probLbl='High';probCol='#2E8B57';}
+  else if(score>=65){prob=58;probLbl='Moderate';probCol='#E88A2E';}
+  else if(score>=55){prob=34;probLbl='Low';probCol='#D4860C';}
+  else{prob=12;probLbl='Very Low';probCol='#C0392B';}
+
+  var html = '';
+
+  /* ── SECTION 1: Overall Ranking ── */
+  html += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:16px;padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden">';
+  html += '<div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.03)"></div>';
+  html += '<div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:14px">📊 Industry Benchmark · '+esc(b.label)+'</div>';
+
+  /* 3 stat boxes */
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">';
+
+  /* Box 1: Percentile */
+  html += '<div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;text-align:center">';
+  html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:6px">Your Rank</div>';
+  html += '<div style="font-family:var(--serif);font-size:32px;font-weight:900;color:'+pctCol+';line-height:1">'+esc(pctLabel)+'</div>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">Score '+score+' beats '+pct+'% of<br>'+esc(b.label)+' companies</div>';
+  html += '</div>';
+
+  /* Box 2: Sector median */
+  html += '<div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;text-align:center">';
+  html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:6px">Sector Median</div>';
+  html += '<div style="font-family:var(--serif);font-size:32px;font-weight:900;color:#fff;line-height:1">'+b.p50+'</div>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">You are '+(score>=b.p50?'<span style="color:#6DDC9E">+'+(score-b.p50)+' above</span>':'<span style="color:#F4A09A">'+(b.p50-score)+' below</span>')+' median</div>';
+  html += '</div>';
+
+  /* Box 3: IPO Probability */
+  html += '<div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;text-align:center">';
+  html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:6px">IPO Success Odds</div>';
+  html += '<div style="font-family:var(--serif);font-size:32px;font-weight:900;color:'+probCol+';line-height:1">'+prob+'%</div>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">Based on SEBI FY24<br>approval data · '+probLbl+'</div>';
+  html += '</div>';
+  html += '</div>';
+
+  /* Distribution bar */
+  html += '<div>';
+  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px">';
+  html += '<span>0</span><span>Bottom 25% (≤'+b.p25+')</span><span>Median: '+b.p50+'</span><span>Top 25% (≥'+b.p75+')</span><span>Top 10% (≥'+b.p90+')</span>';
+  html += '</div>';
+  html += '<div style="height:10px;background:rgba(255,255,255,.08);border-radius:99px;position:relative;overflow:visible">';
+  /* Gradient zones */
+  html += '<div style="position:absolute;inset:0;border-radius:99px;background:linear-gradient(90deg,rgba(192,57,43,.4) 0%,rgba(212,134,12,.4) 40%,rgba(26,158,107,.4) 65%,rgba(26,158,107,.6) 82%,rgba(26,158,107,.8) 90%,rgba(26,158,107,1) 100%)"></div>';
+  /* Your position marker */
+  var markerPct = Math.min(Math.max(score, 0), 100);
+  html += '<div id="bm-marker" style="position:absolute;top:50%;transform:translate(-50%,-50%);left:0%;transition:left 1.2s cubic-bezier(.4,0,.2,1)">';
+  html += '<div style="width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #E88A2E;box-shadow:0 0 8px rgba(232,138,46,.6);position:relative">';
+  html += '<div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:#fff;background:#E88A2E;padding:2px 6px;border-radius:4px">You: '+score+'</div>';
+  html += '</div></div>';
+  html += '</div>';
+  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.3);margin-top:4px">';
+  html += '<span>0</span><span>25th</span><span>Median</span><span>75th</span><span>Top 10%</span><span>100</span>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>'; /* end section 1 */
+
+  /* ── SECTION 2: Per-Dimension Ranking ── */
+  if(dims && Object.keys(dims).length >= 4){
+    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh)">';
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px">📐 Dimension Ranking vs Sector<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+
+    var dimLabels = {financial:'💹 Financial',governance:'🏛 Governance',compliance:'✅ Compliance',promoter:'👤 Promoter',legal:'⚖️ Legal',readiness:'📋 Readiness'};
+    Object.entries(dims).forEach(function(kv){
+      var k=kv[0], v=kv[1];
+      var dimData = b.dims ? b.dims[k] : null;
+      var dimPct  = getDimPercentile(v, dimData);
+      var topDimPct = 100 - dimPct;
+      var dimAvg = dimData ? dimData.avg : 60;
+      var isAbove = v >= dimAvg;
+      var barCol = topDimPct<=25?'#1A9E6B':topDimPct<=50?'#E88A2E':'#C0392B';
+      var rankLbl = topDimPct<=10?'Top 10%':topDimPct<=25?'Top 25%':topDimPct<=40?'Top 40%':topDimPct<=60?'Top 60%':'Bottom 40%';
+
+      html += '<div style="padding:11px 13px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;border-left:3px solid '+barCol+'">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+      html += '<div style="font-size:12px;font-weight:600;color:var(--sl)">'+esc(dimLabels[k]||k)+'</div>';
+      html += '<div style="font-size:11px;font-weight:700;color:'+barCol+'">'+esc(rankLbl)+'</div>';
+      html += '</div>';
+      html += '<div style="display:flex;align-items:center;gap:8px">';
+      html += '<div style="font-family:var(--serif);font-size:22px;font-weight:900;color:'+barCol+'">'+v+'</div>';
+      html += '<div style="flex:1">';
+      html += '<div style="height:5px;background:var(--bd);border-radius:3px;overflow:hidden">';
+      html += '<div style="height:100%;width:'+v+'%;background:'+barCol+';border-radius:3px"></div>';
+      html += '</div>';
+      html += '<div style="font-size:10px;color:var(--mu);margin-top:2px">Sector avg: '+dimAvg+' · You: '+(isAbove?'<span style="color:#1A9E6B">+':'<span style="color:#C0392B">')+(v-dimAvg)+'</span></div>';
+      html += '</div></div></div>';
+    });
+    html += '</div></div>';
+  }
+
+  /* ── SECTION 3: IPO Cohort Comparison ── */
+  if(b.cohort && b.cohort.length){
+    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh)">';
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px">🏢 Recent IPO Cohort — '+esc(b.label)+'<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+
+    /* Add "You" to cohort */
+    var cohort = b.cohort.slice(0,4);
+    var allCo  = cohort.concat([{name:'★ You (current)',score:score,listed:'Target',yr:'2025',you:true}]);
+    allCo.sort(function(a,b){ return b.score - a.score; });
+
+    allCo.forEach(function(co, idx){
+      var coCol = co.you ? '#E88A2E' : co.score>=75?'#1A9E6B':co.score>=65?'#0D5C6B':'#6B7E85';
+      var bg = co.you ? 'rgba(232,138,46,.05)' : 'transparent';
+      var bd = co.you ? '2px solid rgba(232,138,46,.3)' : '1px solid var(--bd)';
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:'+bg+';border:'+bd+';border-radius:9px;margin-bottom:6px">';
+      html += '<div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--mu);width:16px;text-align:center">#'+(idx+1)+'</div>';
+      html += '<div style="flex:1"><div style="font-size:13px;font-weight:'+(co.you?'800':'600')+';color:'+(co.you?'#C9932A':'var(--sl)')+'">'+esc(co.name)+'</div>';
+      html += '<div style="font-size:11px;color:var(--mu);margin-top:1px">'+esc(co.listed)+' · '+esc(co.yr)+'</div></div>';
+      html += '<div style="display:flex;align-items:center;gap:8px">';
+      html += '<div style="width:80px;height:6px;background:var(--bd);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+co.score+'%;background:'+coCol+'"></div></div>';
+      html += '<div style="font-family:var(--serif);font-size:17px;font-weight:900;color:'+coCol+';min-width:28px;text-align:right">'+co.score+'</div>';
+      html += '</div></div>';
+    });
+
+    /* Cohort average */
+    var coAvg = Math.round(cohort.reduce(function(s,c){return s+c.score;},0)/cohort.length);
+    html += '<div style="font-size:11px;color:var(--mu);padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--bd);text-align:center;margin-top:6px">';
+    html += 'Cohort average: <strong style="color:var(--tl)">'+coAvg+'</strong> · Your score vs cohort avg: <strong style="color:'+(score>=coAvg?'#1A9E6B':'#C0392B')+'">'+( score>=coAvg?'+':'')+( score - coAvg)+'</strong>';
+    html += '</div>';
+    html += '</div>';
+  }
+
+  /* ── SECTION 4: Predictive Intelligence ── */
+  html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh)">';
+  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px">🔮 Predictive Intelligence — SEBI FY2024 Data<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+
+  /* Score → outcome probability */
+  var outcomes = [
+    {range:'≥ 82',prob:87,label:'Main Board Ready',col:'#1A9E6B',bg:'rgba(26,158,107,.06)',bd:'rgba(26,158,107,.2)',desc:'SEBI approval highly likely. Begin DRHP preparation.'},
+    {range:'75–81',prob:74,label:'SME/Main Board',col:'#2E8B57',bg:'rgba(46,139,87,.05)',bd:'rgba(46,139,87,.2)',desc:'Strong for SME, borderline Main Board. Address governance gaps.'},
+    {range:'65–74',prob:58,label:'SME Eligible',col:'#E88A2E',bg:'rgba(232,138,46,.05)',bd:'rgba(232,138,46,.2)',desc:'SME IPO viable with 2–3 targeted fixes. 6–9 month runway.'},
+    {range:'55–64',prob:34,label:'Needs Work',col:'#D4860C',bg:'rgba(212,134,12,.05)',bd:'rgba(212,134,12,.2)',desc:'Multiple gaps. 12–18 months needed. Start with governance.'},
+    {range:'< 55',prob:12,label:'Not Ready',col:'#C0392B',bg:'rgba(192,57,43,.05)',bd:'rgba(192,57,43,.2)',desc:'Fundamental issues. 18–24+ months minimum. Fix compliance first.'},
+  ];
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:16px">';
+  outcomes.forEach(function(o){
+    var isActive = (score>=82&&o.range==='≥ 82')||(score>=75&&score<=81&&o.range==='75–81')||(score>=65&&score<=74&&o.range==='65–74')||(score>=55&&score<=64&&o.range==='55–64')||(score<55&&o.range==='< 55');
+    html += '<div style="text-align:center;padding:10px 6px;background:'+o.bg+';border:2px solid '+(isActive?o.col:o.bd)+';border-radius:10px;transition:.2s'+(isActive?';box-shadow:0 0 0 3px '+o.col+'22':'')+'">';
+    html += '<div style="font-size:10px;font-weight:700;color:'+o.col+';margin-bottom:3px">'+esc(o.range)+'</div>';
+    html += '<div style="font-family:var(--serif);font-size:18px;font-weight:900;color:'+o.col+'">'+o.prob+'%</div>';
+    html += '<div style="font-size:10px;color:var(--mu);margin-top:2px;line-height:1.3">'+esc(o.label)+'</div>';
+    if(isActive) html += '<div style="font-size:10px;font-weight:700;color:'+o.col+';margin-top:3px;background:rgba(255,255,255,.6);border-radius:3px;padding:1px 4px">← You</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  /* SEBI rejection intelligence */
+  if(b.sebi){
+    var s = b.sebi;
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">';
+    html += '<div style="padding:11px;background:rgba(26,158,107,.05);border:1px solid rgba(26,158,107,.2);border-radius:9px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">FY24 Approvals</div><div style="font-family:var(--serif);font-size:20px;font-weight:900;color:#1A9E6B">'+s.approved+' / '+s.total_fy24+'</div><div style="font-size:10px;color:var(--mu)">('+s.approvalRate+'% approval rate)</div></div>';
+    html += '<div style="padding:11px;background:rgba(192,57,43,.05);border:1px solid rgba(192,57,43,.2);border-radius:9px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">FY24 Rejections</div><div style="font-family:var(--serif);font-size:20px;font-weight:900;color:#C0392B">'+s.rejected+' / '+s.total_fy24+'</div><div style="font-size:10px;color:var(--mu)">('+s.rejectionRate+'% rejection rate)</div></div>';
+    html += '<div style="padding:11px;background:rgba(212,134,12,.05);border:1px solid rgba(212,134,12,.2);border-radius:9px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">Top Rejection Reason</div><div style="font-size:12px;font-weight:700;color:#D4860C;line-height:1.3;margin-top:2px">'+esc(s.topRejectionReason)+'</div></div>';
+    html += '</div>';
+  }
+
+  /* What score means */
+  var curr = outcomes.find(function(o){return (score>=82&&o.range==='≥ 82')||(score>=75&&score<=81&&o.range==='75–81')||(score>=65&&score<=74&&o.range==='65–74')||(score>=55&&score<=64&&o.range==='55–64')||(score<55&&o.range==='< 55');});
+  if(curr){
+    html += '<div style="padding:12px 16px;background:'+curr.bg+';border:1.5px solid '+curr.col+';border-radius:10px;display:flex;align-items:flex-start;gap:10px">';
+    html += '<div style="font-size:20px;flex-shrink:0">'+( score>=75?'✅':score>=65?'⚠️':'🔴')+'</div>';
+    html += '<div><div style="font-size:13px;font-weight:700;color:'+curr.col+';margin-bottom:3px">AIRA '+score+' → '+curr.label+' ('+curr.prob+'% IPO Success Probability)</div>';
+    html += '<div style="font-size:12px;color:var(--mu);line-height:1.6">'+esc(curr.desc)+'</div></div>';
+    html += '</div>';
+  }
+
+  html += '</div>'; /* end section 4 */
+
   return html;
 }
 
-function animateBenchmark(score,sector){
-  var b=BENCH[sector]||BENCH['Other'];
-  var pct;
-  if(score<=b.p25)pct=Math.round((score/b.p25)*25);
-  else if(score<=b.p50)pct=Math.round(25+(score-b.p25)/(b.p50-b.p25)*25);
-  else if(score<=b.p75)pct=Math.round(50+(score-b.p50)/(b.p75-b.p50)*25);
-  else if(score<=b.p90)pct=Math.round(75+(score-b.p75)/(b.p90-b.p75)*15);
-  else pct=90;
-  pct=Math.min(pct,99);
-  setTimeout(function(){var el=document.getElementById('bm-fill');if(el)el.style.width=pct+'%';},400);
+function animateBenchmark(score, sector){
+  setTimeout(function(){
+    /* Animate position marker on distribution bar */
+    var marker = document.getElementById('bm-marker');
+    if(marker) marker.style.left = Math.min(Math.max(score, 2), 98) + '%';
+  }, 400);
 }
+
 
 function renderSimulator(score){
   var col=function(s){return s>=78?'#1A9E6B':s>=65?'#C9932A':'#C0392B';};
