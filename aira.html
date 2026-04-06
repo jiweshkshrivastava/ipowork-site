@@ -722,6 +722,13 @@ async function runFree(){
     '<div class="score-right"><div class="sc-lbl">Score</div><div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div></div>'+
   '</div>';
 
+
+  /* ── PDF Download (Free) ── */
+  html += '<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">';
+  html += '<button onclick="downloadReport(\'free\')" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:#fff;border:1.5px solid var(--tl);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--tl);cursor:pointer;transition:.15s" onmouseover="this.style.background=\'rgba(13,92,107,.06)\'" onmouseout="this.style.background=\'#fff\'">📄 Download Free Report (PDF)</button>';
+  html += '<button onclick="downloadReport(\'paid\')" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:var(--sf);border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:.15s">⭐ Download Full Report</button>';
+  html += '</div>';
+
   html+='<div class="sec-hd">Data fetched</div><div class="ds-grid">'+
     '<div class="ds-card"><div class="ds-head"><div class="ds-name">MCA Master</div><span class="ds-badge '+(isMock?'ds-mock':'ds-live')+'">'+(isMock?'DEMO':'LIVE')+'</span></div>'+
     '<div class="ds-rows">'+
@@ -861,6 +868,13 @@ async function runPaid(){
     '<div class="score-right"><div class="sc-lbl">Full Score</div><div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div></div>'+
   '</div>';
 
+
+  /* ── PDF Download (Paid) ── */
+  html += '<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">';
+  html += '<button onclick="downloadReport(\'free\')" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:#fff;border:1.5px solid var(--tl);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--tl);cursor:pointer" onmouseover="this.style.background=\'rgba(13,92,107,.06)\'" onmouseout="this.style.background=\'#fff\'">📄 Download Basic Report</button>';
+  html += '<button onclick="downloadReport(\'paid\')" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:var(--sf);border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 3px 12px rgba(232,138,46,.3)">⭐ Download Full Report (PDF)</button>';
+  html += '</div>';
+
   html+='<div class="sec-hd">16-parameter dimension scores</div><div class="dim-grid">';
   Object.entries(dims).forEach(function([k,v2]){
     var c2=sc(v2);
@@ -961,6 +975,179 @@ async function runPaid(){
   initSimulator(score);
 
   out.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+
+/* ══════════════════════════════════
+   PDF / PRINT DOWNLOAD
+══════════════════════════════════ */
+function downloadReport(tier){
+  // Collect company info
+  var company = document.getElementById('f-cname')?.value || document.getElementById('p-cname')?.value || 'Your Company';
+  var cin     = document.getElementById('f-cin')?.value  || document.getElementById('p-cin')?.value  || '—';
+  var sector  = document.getElementById('f-sector')?.value || document.getElementById('p-sector')?.value || '—';
+  var exchange= document.getElementById('f-exchange')?.value || document.getElementById('p-exchange')?.value || '—';
+
+  // Get score from dial
+  var scoreEl = document.querySelector('.sdn-big');
+  var score   = scoreEl ? scoreEl.textContent : '—';
+
+  // Get verdict
+  var verdictEl = document.querySelector('.score-verdict');
+  var verdict   = verdictEl ? verdictEl.textContent : '—';
+
+  // Get AI report text (if free tier)
+  var aiText = '';
+  var aiEl = document.querySelector('.ai-content');
+  if(aiEl) aiText = aiEl.innerText;
+
+  // Get dimension scores
+  var dims = [];
+  document.querySelectorAll('.dim-card').forEach(function(d){
+    var lbl = d.querySelector('.dim-lbl');
+    var val = d.querySelector('.dim-val');
+    if(lbl && val) dims.push({ lbl: lbl.textContent.replace(/[📊💹🏛✅👤⚖️📋]/g,'').trim(), val: val.textContent });
+  });
+
+  // Get gaps
+  var gaps = [];
+  document.querySelectorAll('.gap-item').forEach(function(g){
+    var t = g.querySelector('.gap-ttl');
+    var s = g.querySelector('.sev-pill');
+    var r = g.querySelector('.gap-sebi');
+    var f = g.querySelector('.gap-time');
+    if(t) gaps.push({ title:t.textContent, sev:(s?s.textContent:''), reg:(r?r.textContent:''), fix:(f?f.textContent:'') });
+  });
+
+  // Valuation range
+  var valEls = document.querySelectorAll('.ft-total-val, [style*="val_base"], [style*="val_low"]');
+
+  // Build print HTML
+  var now = new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+  var user = {}; try { user = JSON.parse(localStorage.getItem('ipowork_user')||'{}'); } catch(e){}
+  var contactName  = user.name  || '';
+  var contactPhone = user.phone || '';
+  var contactEmail = user.email || '';
+
+  var dimsHTML = '';
+  dims.forEach(function(d){
+    var col = parseInt(d.val)>=78?'#1A9E6B':parseInt(d.val)>=65?'#C9932A':'#C0392B';
+    dimsHTML += '<tr><td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;color:#6B7E85;font-size:13px">' + d.lbl + '</td>' +
+      '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;font-family:monospace;font-weight:700;color:'+col+';font-size:13px">' + d.val + ' / 100</td>' +
+      '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA"><div style="width:' + d.val + '%;height:6px;background:'+col+';border-radius:3px;min-width:4px"></div></td></tr>';
+  });
+
+  var gapsHTML = '';
+  gaps.slice(0,tier==='paid'?gaps.length:3).forEach(function(g){
+    var col = g.sev.includes('CRIT')||g.sev.includes('HIGH') ? '#C0392B' : '#D4860C';
+    gapsHTML += '<tr><td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;font-size:12px;font-weight:700;color:'+col+'">' + g.sev + '</td>' +
+      '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;font-size:13px;font-weight:600;color:#2C3E47">' + g.title + '</td>' +
+      '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;font-size:11px;color:#6B7E85;font-family:monospace">' + g.reg + '</td>' +
+      '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;font-size:12px;color:#6B7E85">' + g.fix + '</td></tr>';
+  });
+
+  var aiSection = tier === 'paid' ? '' : '';
+  if(aiText && tier !== 'paid'){
+    aiSection = '<div style="margin-top:24px"><div class="sec-hdr">AI Analysis</div><div style="font-size:13px;color:#3D5460;line-height:1.8;white-space:pre-wrap;background:#FAFAF8;padding:16px;border-radius:8px;border:1px solid #E2E8EA">' + aiText.substring(0,2000) + (aiText.length>2000?'\n\n[Full report available in Pro version]':'') + '</div></div>';
+  }
+
+  var proDisclaimer = tier === 'free'
+    ? '<div style="background:rgba(232,138,46,.08);border:1px solid rgba(232,138,46,.25);border-radius:8px;padding:12px 16px;margin-top:20px;font-size:12px;color:#7A5B1A">📊 <strong>Free Report</strong> — Shows top 3 gaps. Run Full AIRA Score at ipowork.com/aira.html for complete 16-parameter analysis, 7-year financials and valuation matrix.</div>'
+    : '<div style="background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.2);border-radius:8px;padding:12px 16px;margin-top:20px;font-size:12px;color:#0F6E4A">✅ <strong>Full AIRA Report</strong> — Complete 16-parameter analysis with verified financial data.</div>';
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>AIRA Score — ' + company + '</title>' +
+    '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Sora,system-ui,sans-serif;background:#fff;color:#2C3E47;font-size:14px;line-height:1.6}' +
+    '@page{margin:18mm 16mm}' +
+    '@media print{.no-print{display:none!important}}' +
+    '.sec-hdr{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#6B7E85;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #E2E8EA}' +
+    'table{width:100%;border-collapse:collapse}' +
+    '</style></head><body style="padding:20px">';
+
+  // Header
+  html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #08404D">';
+  html += '<div>';
+  html += '<div style="font-family:Georgia,serif;font-size:26px;font-weight:900;color:#08404D;letter-spacing:-.3px">ipowork <span style="font-size:12px;color:#E88A2E;vertical-align:super;font-family:system-ui">AI</span></div>';
+  html += '<div style="font-size:11px;color:#6B7E85;margin-top:2px">AI IPO Readiness Assessment · ipowork.com</div>';
+  html += '</div>';
+  html += '<div style="text-align:right">';
+  html += '<div style="font-size:11px;color:#6B7E85">Generated: ' + now + '</div>';
+  html += '<div style="font-size:11px;color:#6B7E85;margin-top:2px">Report: ' + (tier==='paid'?'Full AIRA':'AIRA Free') + '</div>';
+  html += '<div style="font-size:11px;font-weight:700;color:#E88A2E;margin-top:2px">CONFIDENTIAL</div>';
+  html += '</div></div>';
+
+  // Company + Contact Info
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">';
+  html += '<div style="background:#F7F3EE;border-radius:10px;padding:14px 16px">';
+  html += '<div class="sec-hdr">Company Details</div>';
+  html += '<div style="font-family:Georgia,serif;font-size:18px;font-weight:900;color:#08404D;margin-bottom:6px">' + (company||'—') + '</div>';
+  html += '<div style="font-size:12px;color:#6B7E85">CIN: <strong style="font-family:monospace">' + cin + '</strong></div>';
+  html += '<div style="font-size:12px;color:#6B7E85;margin-top:3px">Sector: ' + sector + ' · Exchange: ' + exchange + '</div>';
+  html += '</div>';
+
+  html += '<div style="background:#F7F3EE;border-radius:10px;padding:14px 16px">';
+  html += '<div class="sec-hdr">Contact Details</div>';
+  if(contactName)  html += '<div style="font-size:13px;font-weight:700;color:#2C3E47">' + contactName + '</div>';
+  if(contactPhone) html += '<div style="font-size:12px;color:#6B7E85;margin-top:3px">📱 ' + contactPhone + '</div>';
+  if(contactEmail) html += '<div style="font-size:12px;color:#6B7E85;margin-top:3px">📧 ' + contactEmail + '</div>';
+  if(!contactName && !contactPhone && !contactEmail){
+    html += '<div style="font-size:12px;color:#6B7E85"><a href="https://ipowork.com/login.html" style="color:#0D5C6B">Sign in</a> to add contact details</div>';
+  }
+  html += '</div></div>';
+
+  // Score hero
+  var scoreNum = parseInt(score) || 0;
+  var scoreCol = scoreNum>=78?'#1A9E6B':scoreNum>=65?'#C9932A':'#C0392B';
+  html += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px">';
+  html += '<div style="text-align:center;min-width:80px">';
+  html += '<div style="font-family:Georgia,serif;font-size:52px;font-weight:900;color:' + scoreCol + ';line-height:1">' + score + '</div>';
+  html += '<div style="font-size:11px;color:rgba(255,255,255,.5)">/100</div>';
+  html += '</div>';
+  html += '<div>';
+  html += '<div style="font-family:Georgia,serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:4px">' + verdict + '</div>';
+  html += '<div style="font-size:13px;color:rgba(255,255,255,.6)">AIRA Score · SEBI ICDR 2018 Aligned · 16 Parameters</div>';
+  html += '<div style="display:flex;gap:8px;margin-top:8px">';
+  html += '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)">SME ≥ 65</span>';
+  html += '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7)">Main Board ≥ 78</span>';
+  html += '</div>';
+  html += '</div></div>';
+
+  // Dimension scores
+  if(dims.length){
+    html += '<div style="margin-bottom:20px"><div class="sec-hdr">6 Dimension Scores</div>';
+    html += '<table><tbody>' + dimsHTML + '</tbody></table></div>';
+  }
+
+  // Gaps
+  if(gaps.length){
+    html += '<div style="margin-bottom:20px"><div class="sec-hdr">Critical IPO Gaps' + (tier==='free'?' (Top 3)':'') + '</div>';
+    html += '<table><thead><tr style="background:#F7F3EE">';
+    html += '<th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7E85">Severity</th>';
+    html += '<th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7E85">Gap</th>';
+    html += '<th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7E85">SEBI Reg</th>';
+    html += '<th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7E85">Fix By</th>';
+    html += '</tr></thead><tbody>' + gapsHTML + '</tbody></table></div>';
+  }
+
+  // AI Analysis (free tier)
+  html += aiSection;
+
+  // Disclaimer + Pro CTA
+  html += proDisclaimer;
+
+  // Footer
+  html += '<div style="margin-top:28px;padding-top:14px;border-top:1px solid #E2E8EA;display:flex;justify-content:space-between;font-size:11px;color:#9EB5C0">';
+  html += '<div>ipowork.com · partners@ipowork.com · +91 88510 59588</div>';
+  html += '<div>Not SEBI registered. Indicative only. © 2025 ipowork.</div>';
+  html += '</div>';
+
+  html += '</body></html>';
+
+  // Open in new window and print
+  var w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){ w.print(); }, 600);
 }
 
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
