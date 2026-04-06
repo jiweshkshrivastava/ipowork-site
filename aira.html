@@ -620,6 +620,173 @@ async function callClaude(system,userMsg){
 }
 
 /* ═══ FREE TIER RUN ═══ */
+/* ══════════════════════════════════════════
+   SCORE SIMULATOR
+══════════════════════════════════════════ */
+var SIM_ITEMS=[
+  {id:'ind_dir',label:'Appoint Independent Directors',impact:6,effort:'Medium',timeline:'2–3 months',cost:'₹2–5L',sebi:'ICDR Reg 26(6)'},
+  {id:'woman_dir',label:'Appoint Woman Director',impact:4,effort:'Easy',timeline:'1 month',cost:'₹1–2L',sebi:'CA2013 §149(1)'},
+  {id:'ebitda',label:'Improve EBITDA margin to 15%+',impact:5,effort:'Hard',timeline:'6–9 months',cost:'Internal',sebi:'ICDR General'},
+  {id:'gst',label:'Resolve GST / TDS notices',impact:4,effort:'Easy',timeline:'1–2 months',cost:'₹1–3L',sebi:'ICDR Reg 26(1)'},
+  {id:'debt',label:'Reduce Debt-to-Equity below 1x',impact:3,effort:'Medium',timeline:'4–6 months',cost:'Varies',sebi:'ICDR General'},
+  {id:'roc',label:'File all pending ROC documents',impact:3,effort:'Easy',timeline:'2–4 weeks',cost:'₹50K–₹2L',sebi:'CA2013 §137'},
+  {id:'audit_com',label:'Constitute Audit Committee',impact:3,effort:'Easy',timeline:'1–2 months',cost:'₹50K',sebi:'LODR Reg 18'},
+  {id:'trademark',label:'Register Trademark / IP',impact:2,effort:'Easy',timeline:'Apply now',cost:'₹20K–₹50K',sebi:'ICDR Reg 32'},
+];
+
+function renderSimulator(score){
+  var col=function(s){return s>=78?'#1A9E6B':s>=65?'#C9932A':'#C0392B';};
+  var verd=function(s){return s>=78?'Main Board Eligible 🎯':s>=65?'SME IPO Eligible ✅':s>=50?'SME with gaps ⚠️':'Not IPO-ready ❌';};
+  var tl=function(s){return s>=78?'6–12 months':s>=65?'9–15 months':s>=50?'12–18 months':'18–24 months';};
+  var html='<div class="form-card" id="score-simulator" style="margin-top:4px">';
+  html+='<div class="fsec-lbl">Score Simulator — What if I fix this?</div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">';
+  html+='<div style="text-align:center;padding:14px;background:var(--card);border-radius:10px;border:1px solid var(--bd)">';
+  html+='<div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Current Score</div>';
+  html+='<div style="font-size:36px;font-weight:900;font-family:var(--serif);color:'+col(score)+'">'+score+'</div>';
+  html+='<div style="font-size:12px;color:var(--mu);margin-top:2px">'+verd(score)+'</div></div>';
+  html+='<div style="text-align:center;padding:14px;background:#fff;border-radius:10px;border:2px solid var(--tl)">';
+  html+='<div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Potential Score</div>';
+  html+='<div id="sim-new-score" style="font-size:36px;font-weight:900;font-family:var(--serif);color:var(--tl)">'+score+'</div>';
+  html+='<div id="sim-new-verdict" style="font-size:12px;color:var(--mu);margin-top:2px">'+verd(score)+'</div></div></div>';
+  html+='<div id="sim-items" style="display:flex;flex-direction:column;gap:7px"></div>';
+  html+='<div style="margin-top:12px;padding:11px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.12);border-radius:9px">';
+  html+='<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Estimated IPO Timeline</div>';
+  html+='<div id="sim-timeline" style="font-size:14px;font-weight:700;color:var(--tl)">'+tl(score)+'</div></div>';
+  html+='<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20simulated%20my%20IPO%20score%20and%20want%20help%20improving%20it." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:12px;background:#25D366;color:#fff;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none">📱 Help me achieve this score →</a>';
+  html+='</div>';
+  return html;
+}
+
+function initSimulator(score){
+  var itemsEl=document.getElementById('sim-items');if(!itemsEl)return;
+  var col=function(s){return s>=78?'#1A9E6B':s>=65?'#C9932A':'#C0392B';};
+  var verd=function(s){return s>=78?'Main Board Eligible 🎯':s>=65?'SME IPO Eligible ✅':s>=50?'SME with gaps ⚠️':'Not IPO-ready ❌';};
+  var tl=function(s){return s>=78?'6–12 months':s>=65?'9–15 months':s>=50?'12–18 months':'18–24 months';};
+  itemsEl.innerHTML='';
+  SIM_ITEMS.forEach(function(item){
+    var row=document.createElement('div');
+    row.className='sim-item-row';
+    row.innerHTML='<input type="checkbox" data-impact="'+item.impact+'" style="width:16px;height:16px;accent-color:var(--tl);cursor:pointer;flex-shrink:0" onchange="updateSim('+score+',this.closest(\'.sim-item-row\'))">'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--sl)">'+item.label+'</div>'
+      +'<div style="font-size:11px;color:var(--mu);margin-top:1px">'+item.sebi+' · '+item.timeline+' · '+item.cost+'</div></div>'
+      +'<div style="font-size:14px;font-weight:800;color:var(--tl);flex-shrink:0">+'+item.impact+'</div>';
+    itemsEl.appendChild(row);
+  });
+}
+
+function updateSim(baseScore,row){
+  if(row)row.classList.toggle('checked',row.querySelector('input').checked);
+  var total=baseScore;
+  document.querySelectorAll('#sim-items input:checked').forEach(function(c){total+=parseInt(c.dataset.impact||0);});
+  total=Math.min(total,98);
+  var col=function(s){return s>=78?'#1A9E6B':s>=65?'#C9932A':'#C0392B';};
+  var verd=function(s){return s>=78?'Main Board Eligible 🎯':s>=65?'SME IPO Eligible ✅':s>=50?'SME with gaps ⚠️':'Not IPO-ready ❌';};
+  var tl=function(s){return s>=78?'6–12 months':s>=65?'9–15 months':s>=50?'12–18 months':'18–24 months';};
+  var ns=document.getElementById('sim-new-score');
+  var nv=document.getElementById('sim-new-verdict');
+  var tlEl=document.getElementById('sim-timeline');
+  if(ns){ns.textContent=total;ns.style.color=col(total);}
+  if(nv)nv.textContent=verd(total);
+  if(tlEl)tlEl.textContent=tl(total);
+}
+
+/* ══════════════════════════════════════════
+   FIX ENGINE
+══════════════════════════════════════════ */
+var FIX_DATA=[
+  {issue:'No Independent Directors',fix:'Appoint minimum 2 IDs including 1 woman — SEBI ICDR 2018 Reg 26(6)',impact:6,expert:'Company Secretary',cost:'₹2–5L',timeline:'2–3 months',priority:'high'},
+  {issue:'Pending ROC Filings',fix:'File AOC-4 and MGT-7 with penalty — CA2013 §137–138',impact:3,expert:'Company Secretary',cost:'₹50K–₹2L',timeline:'2–4 weeks',priority:'high'},
+  {issue:'GST / TDS Mismatch',fix:'Reconcile GSTR-2B with books, clear outstanding notices',impact:4,expert:'CA / Tax Consultant',cost:'₹1–3L',timeline:'1–2 months',priority:'medium'},
+  {issue:'High Debt-to-Equity',fix:'Pre-pay high-cost debt or convert to equity before DRHP',impact:3,expert:'CFO / Financial Advisor',cost:'Varies',timeline:'3–6 months',priority:'medium'},
+  {issue:'Audit Committee Not Formed',fix:'Constitute AC with majority independent directors — SEBI LODR Reg 18',impact:3,expert:'Company Secretary',cost:'₹50K',timeline:'1 month',priority:'medium'},
+  {issue:'Trademark / IP Unregistered',fix:'File trademark application — protects brand post-listing',impact:2,expert:'IP Lawyer',cost:'₹20K–₹50K',timeline:'Apply now',priority:'low'},
+];
+
+function renderFixEngine(){
+  var html='<div class="form-card" style="margin-top:4px"><div class="fsec-lbl">Fix Engine — How to close each gap</div><div>';
+  FIX_DATA.forEach(function(f){
+    var priCol=f.priority==='high'?'#C0392B':f.priority==='medium'?'#C9932A':'#6B8593';
+    html+='<div class="fix-item" style="border-left-color:'+priCol+';margin-bottom:10px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">'
+      +'<div style="font-size:14px;font-weight:700;color:var(--sl)">'+f.issue+'</div>'
+      +'<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;color:'+priCol+';border:1px solid '+priCol+';white-space:nowrap;text-transform:uppercase;flex-shrink:0">'+f.priority+'</span>'
+      +'</div>'
+      +'<div style="font-size:13px;color:var(--mu);margin-bottom:8px;line-height:1.6">'+f.fix+'</div>'
+      +'<div style="display:flex;gap:14px;font-size:12px;margin-bottom:10px;flex-wrap:wrap;color:var(--mu)">'
+      +'<span>👤 <strong style="color:var(--sl)">'+f.expert+'</strong></span>'
+      +'<span>💰 '+f.cost+'</span>'
+      +'<span>⏱ '+f.timeline+'</span>'
+      +'<span style="color:var(--ok)">📈 +'+f.impact+' score</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px">'
+      +'<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20need%20help%20with%3A%20'+encodeURIComponent(f.issue)+'" target="_blank" style="padding:8px 14px;background:var(--tl);color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">Find Expert →</a>'
+      +'<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20want%20to%20start%20fixing%3A%20'+encodeURIComponent(f.issue)+'" target="_blank" style="padding:8px 14px;background:var(--sf);color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">Start Now →</a>'
+      +'</div></div>';
+  });
+  html+='</div></div>';
+  return html;
+}
+
+/* ══════════════════════════════════════════
+   VALUATION MATRIX
+══════════════════════════════════════════ */
+var PEERS={
+  'Manufacturing':[{name:'Praj Industries',rev:'1,240',em:'14.2',pe:'28',ev:'16',mc:'3,200'},{name:'Hind Rectifiers',rev:'380',em:'12.8',pe:'22',ev:'13',mc:'620'},{name:'Menon Pistons',rev:'290',em:'11.5',pe:'18',ev:'11',mc:'380'}],
+  'Pharma':[{name:'Windlas Biotech',rev:'520',em:'16.2',pe:'24',ev:'14',mc:'980'},{name:'Marksans Pharma',rev:'1,100',em:'18.1',pe:'26',ev:'15',mc:'2,800'},{name:'Gland Pharma',rev:'4,100',em:'28.4',pe:'32',ev:'20',mc:'12,400'}],
+  'IT Services':[{name:'Mastech Digital',rev:'680',em:'12.4',pe:'22',ev:'13',mc:'1,200'},{name:'Kellton Tech',rev:'540',em:'11.8',pe:'18',ev:'11',mc:'800'},{name:'Tata Elxsi',rev:'3,100',em:'29.2',pe:'48',ev:'32',mc:'38,000'}],
+  'Auto Components':[{name:'Sansera Engineering',rev:'2,400',em:'17.2',pe:'28',ev:'16',mc:'5,200'},{name:'JBM Auto',rev:'3,800',em:'13.4',pe:'22',ev:'13',mc:'6,400'},{name:'Lumax Industries',rev:'2,100',em:'11.8',pe:'20',ev:'12',mc:'3,200'}],
+  'FMCG':[{name:'DFM Foods',rev:'790',em:'16.0',pe:'26',ev:'15',mc:'1,800'},{name:'Prataap Snacks',rev:'1,400',em:'12.5',pe:'22',ev:'13',mc:'2,400'},{name:'Bikaji Foods',rev:'2,200',em:'14.8',pe:'38',ev:'22',mc:'8,900'}],
+  'Chemicals':[{name:'Neogen Chemicals',rev:'620',em:'18.4',pe:'30',ev:'18',mc:'2,100'},{name:'Tatva Chintan',rev:'510',em:'21.2',pe:'34',ev:'20',mc:'2,900'},{name:'Clean Science',rev:'460',em:'45.1',pe:'55',ev:'35',mc:'8,400'}],
+  'Financial Services':[{name:'SBFC Finance',rev:'1,200',em:'42.0',pe:'30',ev:'22',mc:'8,200'},{name:'Anand Rathi',rev:'890',em:'28.4',pe:'26',ev:'18',mc:'4,100'}],
+  'Healthcare':[{name:'Akums Drugs',rev:'3,200',em:'14.2',pe:'24',ev:'14',mc:'5,800'},{name:'Swasth Foodtech',rev:'180',em:'12.0',pe:'18',ev:'11',mc:'420'}],
+  'Other':[{name:'Senco Gold',rev:'4,100',em:'8.2',pe:'22',ev:'13',mc:'3,200'},{name:'Pyramid Technoplast',rev:'580',em:'10.4',pe:'18',ev:'11',mc:'820'}],
+};
+
+function renderValuationMatrix(sector,revenue,pat,ebitda,ebitdaMargin){
+  var peers=PEERS[sector]||PEERS['Manufacturing'];
+  var avgPE=peers.reduce(function(s,p){return s+parseFloat(p.pe||0);},0)/peers.length;
+  var avgEV=peers.reduce(function(s,p){return s+parseFloat(p.ev||0);},0)/peers.length;
+  var pat_n=parseFloat(pat)||5;
+  var ebitda_n=parseFloat(ebitda)||(parseFloat(revenue||50)*parseFloat(ebitdaMargin||15)/100)||8;
+  var val_low=Math.round(pat_n*(avgPE*0.6));
+  var val_base=Math.round(pat_n*(avgPE*0.8));
+  var val_high=Math.round(pat_n*avgPE);
+  var val_ev=Math.round(ebitda_n*avgEV);
+  var val_final=Math.round((val_base+val_ev)/2);
+
+  var html='<div class="fin-card" style="margin-top:16px"><div class="card-hd"><div class="card-ttl">Valuation Matrix · Peer Benchmarking — '+escHtml(sector)+'</div><div class="card-sub">Listed comparables · FY2024 multiples</div></div>';
+  html+='<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:500px"><thead><tr><th>Company</th><th>Revenue ₹Cr</th><th>EBITDA%</th><th>P/E</th><th>EV/EBITDA</th><th>Mkt Cap ₹Cr</th></tr></thead><tbody>';
+  peers.forEach(function(p){
+    html+='<tr><td style="font-weight:600;color:var(--sl)">'+p.name+'</td><td>'+p.rev+'</td>'
+      +'<td style="color:var(--ok)">'+p.em+'%</td><td>'+p.pe+'x</td><td>'+p.ev+'x</td><td>'+p.mc+'</td></tr>';
+  });
+  html+='<tr style="background:rgba(13,92,107,.04);border-top:2px solid var(--tl)">'
+    +'<td style="font-weight:800;color:var(--tl)">★ Your Company</td>'
+    +'<td style="font-weight:700">'+(revenue||'—')+'</td>'
+    +'<td style="font-weight:700;color:'+(parseFloat(ebitdaMargin)>=(avgPE/3)?'var(--ok)':'var(--wn)')+'\">'+(ebitdaMargin||'—')+'%</td>'
+    +'<td style="color:var(--mu)">?</td><td style="color:var(--mu)">?</td>'
+    +'<td style="font-weight:800;color:var(--tl)">₹'+val_final+' Cr est.</td></tr>'
+    +'</tbody></table></div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px;border-top:1px solid rgba(13,92,107,.06)">'
+    +'<div style="text-align:center;padding:12px;background:rgba(201,147,42,.06);border:1px solid rgba(201,147,42,.2);border-radius:9px">'
+    +'<div style="font-size:11px;color:var(--mu);margin-bottom:3px">Conservative</div>'
+    +'<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:var(--go)">₹'+val_low+' Cr</div>'
+    +'<div style="font-size:11px;color:var(--mu)">P/E '+Math.round(avgPE*0.6)+'x</div></div>'
+    +'<div style="text-align:center;padding:12px;background:rgba(13,92,107,.06);border:2px solid var(--tl);border-radius:9px">'
+    +'<div style="font-size:11px;color:var(--mu);margin-bottom:3px">Base Case</div>'
+    +'<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:var(--tl)">₹'+val_base+' Cr</div>'
+    +'<div style="font-size:11px;color:var(--mu)">Blended P/E + EV/EBITDA</div></div>'
+    +'<div style="text-align:center;padding:12px;background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.2);border-radius:9px">'
+    +'<div style="font-size:11px;color:var(--mu);margin-bottom:3px">Optimistic</div>'
+    +'<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:var(--ok)">₹'+val_high+' Cr</div>'
+    +'<div style="font-size:11px;color:var(--mu)">Peer P/E '+Math.round(avgPE)+'x</div></div>'
+    +'</div>'
+    +'<div style="padding:10px 16px;font-size:12px;color:var(--mu);border-top:1px solid rgba(13,92,107,.04);line-height:1.6">⚠️ Indicative only. Final IPO valuation determined by merchant banker at time of DRHP filing.</div></div>';
+  return html;
+}
+
+
 async function runFree(){
   var cin=document.getElementById('f-cin').value.trim();
   if(!cin){alert('Please enter your company CIN.');return;}
@@ -1383,7 +1550,7 @@ function renderBenchmark(score, sector, dims){
   setTimeout(function(){
     var badge = document.getElementById('score-pct-badge');
     if(badge){
-      badge.textContent = pctLabel+' in '+esc(b.label);
+      badge.textContent = pctLabel+' in '+escHtml(b.label);
       badge.style.background = topPct<=25?'rgba(26,158,107,.25)':topPct<=50?'rgba(232,138,46,.25)':'rgba(192,57,43,.25)';
       badge.style.borderColor = topPct<=25?'rgba(26,158,107,.5)':topPct<=50?'rgba(232,138,46,.5)':'rgba(192,57,43,.5)';
       badge.style.color = topPct<=25?'#6DDC9E':topPct<=50?'#F5C072':'#F4A09A';
@@ -1401,20 +1568,20 @@ function renderBenchmark(score, sector, dims){
   html += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">';
   html += '<div>';
   html += '<div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:4px">CIBIL for IPOs · Industry Benchmark</div>';
-  html += '<div style="font-family:var(--serif);font-size:17px;font-weight:900;color:#fff">AIRA Score <span style="color:#E88A2E">'+score+'</span> = <span style="color:'+(topPct<=25?'#6DDC9E':topPct<=50?'#F5C072':'#F4A09A')+'">'+pctLabel+'</span> in '+esc(b.label)+'</div>';
+  html += '<div style="font-family:var(--serif);font-size:17px;font-weight:900;color:#fff">AIRA Score <span style="color:#E88A2E">'+score+'</span> = <span style="color:'+(topPct<=25?'#6DDC9E':topPct<=50?'#F5C072':'#F4A09A')+'">'+pctLabel+'</span> in '+escHtml(b.label)+'</div>';
   html += '</div>';
   html += '<div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px 16px;text-align:center;flex-shrink:0">';
   html += '<div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px">Beats</div>';
   html += '<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+pctCol+'">'+pct+'%</div>';
-  html += '<div style="font-size:10px;color:rgba(255,255,255,.45)">of '+esc(b.label)+' companies</div>';
+  html += '<div style="font-size:10px;color:rgba(255,255,255,.45)">of '+escHtml(b.label)+' companies</div>';
   html += '</div>';
   html += '</div>';
 
   /* Distribution bar */
   html += '<div style="padding:16px 22px 0;background:#fff">';
   html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mu);margin-bottom:6px">';
-  html += '<span style="font-weight:600">Distribution of AIRA Scores — '+esc(b.label)+'</span>';
-  html += '<span>Based on '+esc(b.label)+' IPO applications</span>';
+  html += '<span style="font-weight:600">Distribution of AIRA Scores — '+escHtml(b.label)+'</span>';
+  html += '<span>Based on '+escHtml(b.label)+' IPO applications</span>';
   html += '</div>';
 
   /* Score band bar */
@@ -1471,10 +1638,10 @@ function renderBenchmark(score, sector, dims){
     var yCol = (!isNaN(yNum) && !isNaN(aNum)) ? (yNum>=aNum?'#0D5C6B':'#C0392B') : '#2C3E47';
     var bg = idx%2===0?'#fff':'#FAFAF8';
     html += '<tr style="background:'+bg+'">';
-    html += '<td style="padding:9px 10px;font-weight:600;color:var(--sl);border-bottom:1px solid rgba(13,92,107,.04)">'+esc(row.metric)+'</td>';
-    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);font-weight:800;color:'+yCol+';border-bottom:1px solid rgba(13,92,107,.04);background:rgba(13,92,107,.03)">'+esc(String(y))+'</td>';
-    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);color:var(--mu);border-bottom:1px solid rgba(13,92,107,.04)">'+esc(String(a))+'</td>';
-    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);font-weight:700;color:var(--ok);border-bottom:1px solid rgba(13,92,107,.04);background:rgba(26,158,107,.02)">'+esc(String(t))+'</td>';
+    html += '<td style="padding:9px 10px;font-weight:600;color:var(--sl);border-bottom:1px solid rgba(13,92,107,.04)">'+escHtml(row.metric)+'</td>';
+    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);font-weight:800;color:'+yCol+';border-bottom:1px solid rgba(13,92,107,.04);background:rgba(13,92,107,.03)">'+escHtml(String(y))+'</td>';
+    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);color:var(--mu);border-bottom:1px solid rgba(13,92,107,.04)">'+escHtml(String(a))+'</td>';
+    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);font-weight:700;color:var(--ok);border-bottom:1px solid rgba(13,92,107,.04);background:rgba(26,158,107,.02)">'+escHtml(String(t))+'</td>';
     html += '</tr>';
   });
   html += '</tbody></table></div>';
@@ -1491,7 +1658,7 @@ function renderBenchmark(score, sector, dims){
   var insights = [];
 
   /* Overall insight */
-  if(topPct<=25) insights.push({icon:'🏆',text:'Your overall AIRA score beats <strong style="color:#1A9E6B">'+pct+'% of '+esc(b.label)+' companies</strong>. You are in the top quartile.',col:'#1A9E6B',bg:'rgba(26,158,107,.05)',bd:'rgba(26,158,107,.2)'});
+  if(topPct<=25) insights.push({icon:'🏆',text:'Your overall AIRA score beats <strong style="color:#1A9E6B">'+pct+'% of '+escHtml(b.label)+' companies</strong>. You are in the top quartile.',col:'#1A9E6B',bg:'rgba(26,158,107,.05)',bd:'rgba(26,158,107,.2)'});
   else if(topPct<=50) insights.push({icon:'📊',text:'Your AIRA score of '+score+' is <strong style="color:#E88A2E">above the sector median ('+b.p50+')</strong>. You beat '+pct+'% of peers.',col:'#E88A2E',bg:'rgba(232,138,46,.05)',bd:'rgba(232,138,46,.2)'});
   else insights.push({icon:'⚠️',text:'Your AIRA score of '+score+' is <strong style="color:#C0392B">below the sector median ('+b.p50+')</strong>. '+( 100-pct)+'% of comparable companies score higher.',col:'#C0392B',bg:'rgba(192,57,43,.05)',bd:'rgba(192,57,43,.2)'});
 
@@ -1507,7 +1674,7 @@ function renderBenchmark(score, sector, dims){
       if(v < d25){
         insights.push({icon:meta.icon,text:'<strong style="color:#C0392B">Your '+meta.name+' score ('+v+') is below '+( 100-dimPct)+'% of sector peers</strong> (sector avg: '+dAvg+'). This is a critical gap.',col:'#C0392B',bg:'rgba(192,57,43,.04)',bd:'rgba(192,57,43,.18)'});
       } else if(v >= d75){
-        insights.push({icon:meta.icon,text:'Your '+meta.name+' score ('+v+') is in the <strong style="color:#1A9E6B">top 25% of '+esc(b.label)+' peers</strong> — a competitive advantage.',col:'#1A9E6B',bg:'rgba(26,158,107,.04)',bd:'rgba(26,158,107,.18)'});
+        insights.push({icon:meta.icon,text:'Your '+meta.name+' score ('+v+') is in the <strong style="color:#1A9E6B">top 25% of '+escHtml(b.label)+' peers</strong> — a competitive advantage.',col:'#1A9E6B',bg:'rgba(26,158,107,.04)',bd:'rgba(26,158,107,.18)'});
       } else if(v < dAvg){
         insights.push({icon:meta.icon,text:'Your '+meta.name+' score ('+v+') is <strong style="color:#E88A2E">below sector average ('+dAvg+')</strong>. Improving this by '+( dAvg-v+5)+' points would push you above most peers.',col:'#E88A2E',bg:'rgba(232,138,46,.04)',bd:'rgba(232,138,46,.18)'});
       }
@@ -1515,7 +1682,7 @@ function renderBenchmark(score, sector, dims){
   } else {
     /* Free tier - generic insights based on overall score */
     if(score < b.p75){
-      insights.push({icon:'🏛',text:'<strong style="color:#E88A2E">Governance gaps are the top rejection reason</strong> in '+esc(b.label)+' sector ('+( b.sebi?b.sebi.topRejectionReason:'see SEBI data')+'). Run Full AIRA to get your dimension scores.',col:'#E88A2E',bg:'rgba(232,138,46,.04)',bd:'rgba(232,138,46,.18)'});
+      insights.push({icon:'🏛',text:'<strong style="color:#E88A2E">Governance gaps are the top rejection reason</strong> in '+escHtml(b.label)+' sector ('+( b.sebi?b.sebi.topRejectionReason:'see SEBI data')+'). Run Full AIRA to get your dimension scores.',col:'#E88A2E',bg:'rgba(232,138,46,.04)',bd:'rgba(232,138,46,.18)'});
     }
     var gapToTop = b.p75 - score;
     if(gapToTop > 0){
@@ -1554,9 +1721,9 @@ function renderBenchmark(score, sector, dims){
     var isYou = (score<55&&band.range==='< 55')||(score>=55&&score<=64&&band.range==='55–64')||(score>=65&&score<=74&&band.range==='65–74')||(score>=75&&score<=81&&band.range==='75–81')||(score>=82&&band.range==='≥ 82');
     html += '<div style="border-radius:10px;overflow:hidden;border:2px solid '+(isYou?band.col:'transparent')+';box-shadow:'+(isYou?'0 0 0 3px '+band.col+'33':'none')+'">';
     html += '<div style="background:'+band.bg+';padding:10px 8px;text-align:center">';
-    html += '<div style="font-size:10px;font-weight:700;color:'+band.col+';margin-bottom:4px">'+esc(band.range)+'</div>';
+    html += '<div style="font-size:10px;font-weight:700;color:'+band.col+';margin-bottom:4px">'+escHtml(band.range)+'</div>';
     html += '<div style="font-family:var(--serif);font-size:24px;font-weight:900;color:'+band.col+';line-height:1">'+band.prob+'%</div>';
-    html += '<div style="font-size:9px;color:var(--mu);margin-top:3px;font-weight:600">'+esc(band.label)+'</div>';
+    html += '<div style="font-size:9px;color:var(--mu);margin-top:3px;font-weight:600">'+escHtml(band.label)+'</div>';
     if(isYou) html += '<div style="font-size:9px;font-weight:800;color:'+band.col+';margin-top:4px;background:rgba(255,255,255,.7);border-radius:3px;padding:1px 4px">◀ YOUR SCORE</div>';
     html += '</div></div>';
   });
@@ -1584,7 +1751,7 @@ function renderBenchmark(score, sector, dims){
     html += '<div style="font-size:10px;color:var(--mu)">'+s.rejectionRate+'% rejection rate</div></div>';
     html += '<div style="padding:10px 12px;background:rgba(212,134,12,.04);border:1px solid rgba(212,134,12,.15);border-radius:9px">';
     html += '<div style="font-size:10px;color:var(--mu);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px">Top Rejection Reason</div>';
-    html += '<div style="font-size:12px;font-weight:700;color:#D4860C;line-height:1.4;margin-top:2px">'+esc(s.topRejectionReason)+'</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:#D4860C;line-height:1.4;margin-top:2px">'+escHtml(s.topRejectionReason)+'</div>';
     html += '</div></div>';
   }
 
@@ -1596,7 +1763,7 @@ function renderBenchmark(score, sector, dims){
   if(b.cohort && b.cohort.length){
     html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:16px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--sh)">';
     html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
-    html += '<div style="display:flex;align-items:center;gap:8px">🏢 Recent IPO Cohort · '+esc(b.label)+'<div style="width:40px;height:1px;background:var(--bd)"></div></div>';
+    html += '<div style="display:flex;align-items:center;gap:8px">🏢 Recent IPO Cohort · '+escHtml(b.label)+'<div style="width:40px;height:1px;background:var(--bd)"></div></div>';
     html += '<div style="font-size:11px;font-weight:500;color:var(--mu);font-style:italic">Companies that listed in same sector</div>';
     html += '</div>';
 
@@ -1611,8 +1778,8 @@ function renderBenchmark(score, sector, dims){
       html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:'+coBg+';border:1.5px solid '+coBd+';border-radius:10px;margin-bottom:6px;transition:.15s">';
       html += '<div style="font-size:11px;font-weight:700;color:var(--mu);width:18px;text-align:center;flex-shrink:0">#'+(idx+1)+'</div>';
       html += '<div style="flex:1;min-width:0">';
-      html += '<div style="font-size:13px;font-weight:'+(co.you?'800':'600')+';color:'+(co.you?'#C9932A':'var(--sl)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(co.name)+'</div>';
-      html += '<div style="font-size:11px;color:var(--mu);margin-top:1px">'+esc(co.listed)+' · '+esc(co.yr)+'</div></div>';
+      html += '<div style="font-size:13px;font-weight:'+(co.you?'800':'600')+';color:'+(co.you?'#C9932A':'var(--sl)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escHtml(co.name)+'</div>';
+      html += '<div style="font-size:11px;color:var(--mu);margin-top:1px">'+escHtml(co.listed)+' · '+escHtml(co.yr)+'</div></div>';
       /* Bar + score */
       html += '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">';
       html += '<div style="width:100px;height:7px;background:var(--bd);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+co.score+'%;background:'+coCol+';border-radius:4px"></div></div>';
@@ -1627,4 +1794,30 @@ function renderBenchmark(score, sector, dims){
   }
 
   return html;
+}
+
+function animateBenchmark(score, sector){
+  setTimeout(function(){
+    var marker = document.getElementById('bm-marker');
+    if(marker){
+      var left = Math.min(Math.max(score, 2), 98);
+      marker.style.left = left + '%';
+    }
+    /* Also update the score-pct-badge in the score hero */
+    var b = (typeof BENCH !== 'undefined') ? (BENCH[sector]||BENCH['Other']) : null;
+    if(!b) return;
+    var pct = (typeof getPercentile === 'function') ? getPercentile(score, b) : 50;
+    var topPct = 100 - pct;
+    var pctLabel = topPct<=10?'Top 10%':topPct<=25?'Top 25%':topPct<=40?'Top 40%':topPct<=60?'Top 60%':'Bottom 40%';
+    var badge = document.getElementById('score-pct-badge');
+    if(badge){
+      badge.textContent = pctLabel + ' in ' + b.label;
+      var bc = topPct<=25?'rgba(26,158,107,.25)':topPct<=50?'rgba(232,138,46,.25)':'rgba(192,57,43,.25)';
+      var bbc = topPct<=25?'rgba(26,158,107,.5)':topPct<=50?'rgba(232,138,46,.5)':'rgba(192,57,43,.5)';
+      var btc = topPct<=25?'#6DDC9E':topPct<=50?'#F5C072':'#F4A09A';
+      badge.style.background = bc;
+      badge.style.borderColor = bbc;
+      badge.style.color = btc;
+    }
+  }, 500);
 }
