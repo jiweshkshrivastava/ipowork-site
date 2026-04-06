@@ -4,1062 +4,158 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Issuer Portal — ipowork</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-:root{
-  --bg:#FAFAF8;--surface:#fff;--card2:#F7F3EE;
-  --tl:#0D5C6B;--tld:#08404D;--tll:#1A7D90;
-  --sf:#E88A2E;--go:#C9932A;
-  --sl:#2C3E47;--mu:#6B7E85;--bd:#E2E8EA;
-  --ok:#1A9E6B;--er:#C0392B;--wn:#D4860C;
-  --sh:0 1px 4px rgba(13,92,107,.06),0 4px 16px rgba(13,92,107,.04);
-  --sh2:0 4px 20px rgba(13,92,107,.1),0 12px 40px rgba(13,92,107,.07);
-  --r:12px;--r2:16px;
-  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
-  /* aliases for legacy scripts */
-  --text:var(--sl);--muted:var(--mu);--border:var(--bd);--border2:rgba(13,92,107,.06);
-  --surface2:var(--card2);--amber:var(--sf);--amber2:var(--go);--green:var(--ok);
-  --dim:rgba(13,92,107,.35);--red:var(--er);
-}
-body{font-family:var(--font);background:var(--bg);color:var(--sl);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
-
-/* ── APP SHELL ── */
-.app{display:flex;flex-direction:column;height:100vh}
-
-/* ── TOPBAR ── */
-.topbar{height:54px;background:#fff;border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0;box-shadow:var(--sh);z-index:50}
-.tb-logo{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--tld);text-decoration:none;letter-spacing:-.3px;flex-shrink:0}
-.tb-logo span{color:var(--sf)}
-.tb-portal{font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.8px;padding-left:10px;margin-left:2px;border-left:1px solid var(--bd)}
-.tb-spacer{flex:1}
-.tb-user{font-size:13px;font-weight:600;color:var(--sl);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tb-btn{font-size:13px;font-weight:700;color:var(--tl);padding:6px 14px;border:1px solid var(--bd);border-radius:7px;text-decoration:none;white-space:nowrap;transition:.15s;cursor:pointer;background:#fff;font-family:var(--font)}
-.tb-btn:hover{border-color:var(--tl);background:rgba(13,92,107,.04)}
-
-/* ── BODY ── */
-.body{display:flex;flex:1;overflow:hidden}
-
-/* ── SIDEBAR ── */
-.sidebar{width:240px;flex-shrink:0;background:var(--tld);display:flex;flex-direction:column;overflow:hidden}
-.sb-brand{padding:16px 18px 13px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
-.sb-brand-name{font-family:var(--serif);font-size:17px;font-weight:900;color:#fff;letter-spacing:-.3px}
-.sb-brand-name span{color:var(--sf)}
-.sb-brand-tag{font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1px;margin-top:1px}
-.sb-nav{flex:1;overflow-y:auto;padding:8px 0 12px}
-.sb-sec{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1.2px;padding:10px 16px 4px}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;margin:1px 8px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);transition:.15s;text-decoration:none;border:none;background:none;width:calc(100% - 16px);text-align:left;font-family:var(--font)}
-.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.9)}
-.nav-item.active{background:rgba(232,138,46,.18);color:#E88A2E;font-weight:700}
-.nav-item .ni{font-size:15px;flex-shrink:0}
-.nav-item .nl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nb{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;flex-shrink:0}
-.nb-free{background:rgba(26,158,107,.2);color:#6DDC9E}
-.nb-shared{background:rgba(255,255,255,.12);color:rgba(255,255,255,.7)}
-.nb-pro{background:rgba(232,138,46,.25);color:#E88A2E}
-.nb-num{background:rgba(255,255,255,.12);color:rgba(255,255,255,.7)}
-.sb-foot{padding:12px 16px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0}
-.sb-user-name{font-size:13px;font-weight:600;color:rgba(255,255,255,.8)}
-.sb-user-plan{font-size:11px;color:rgba(255,255,255,.35);margin-top:1px}
-
-/* ── MAIN ── */
-.main{flex:1;overflow-y:auto;background:var(--bg)}
-.portal-pad{padding:24px 28px;max-width:860px}
-@media(max-width:640px){.portal-pad{padding:16px 14px}}
-
-/* ── PAGE TITLES ── */
-.page-ey{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tll);margin-bottom:5px}
-.page-title{font-family:var(--serif);font-size:24px;font-weight:900;color:var(--tld);margin-bottom:6px}
-.page-sub{font-size:14px;color:var(--mu);line-height:1.75;margin-bottom:20px;max-width:560px}
-
-/* ── CARDS ── */
-.card{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh)}
-.card2{background:#fff;border:1px solid var(--bd);border-radius:var(--r2);padding:20px 22px;box-shadow:var(--sh)}
-.sec-hd{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.sec-hd::after{content:'';flex:1;height:1px;background:rgba(13,92,107,.06)}
-
-/* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 20px;border-radius:9px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;border:none;transition:.15s;text-decoration:none;white-space:nowrap}
-.btn:hover{transform:translateY(-1px)}
-.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
-.btn-teal{background:var(--tl);color:#fff;box-shadow:0 2px 8px rgba(13,92,107,.22)}
-.btn-teal:hover{background:var(--tld)}
-.btn-sf{background:var(--sf);color:#fff;box-shadow:0 2px 8px rgba(232,138,46,.25)}
-.btn-sf:hover{background:var(--go)}
-.btn-ghost{background:#fff;border:1px solid var(--bd);color:var(--mu);padding:9px 16px;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
-.btn-ghost:hover{border-color:var(--tl);color:var(--tl)}
-.btn-sm{padding:7px 14px;font-size:13px}
-
-/* ── INPUTS ── */
-.inp{background:var(--card2);border:1px solid var(--bd);border-radius:9px;padding:9px 13px;font-family:var(--font);font-size:14px;color:var(--sl);outline:none;transition:.15s;width:100%;-webkit-appearance:none}
-.inp:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(13,92,107,.1);background:#fff}
-.inp::placeholder{color:rgba(13,92,107,.3)}
-label.lbl{display:block;font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-
-/* ── FORM GRID ── */
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.fg.fg1{grid-template-columns:1fr}
-.fg.fg3{grid-template-columns:1fr 1fr 1fr}
-@media(max-width:600px){.fg,.fg3{grid-template-columns:1fr}}
-.field{display:flex;flex-direction:column;gap:5px}
-.field.full{grid-column:1/-1}
-
-/* ── SPINNER ── */
-.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ── STEP CARDS ── */
-.step-card{background:#fff;border:1px solid var(--bd);border-radius:var(--r2);padding:18px 20px;text-decoration:none;display:block;transition:.18s;border-left:3px solid}
-.step-card:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-@media(max-width:600px){.grid2,.grid4{grid-template-columns:1fr 1fr}}
-
-/* ── AI CHAT ── */
-.ai-msgs{display:flex;flex-direction:column;gap:10px;padding:0 0 16px}
-.msg-wrap{display:flex;gap:10px;align-items:flex-start}
-.msg-wrap.user{flex-direction:row-reverse}
-.msg-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-top:2px}
-.msg-av.ai{background:var(--tld);color:#fff}
-.msg-av.user{background:var(--sf);color:#fff}
-.msg-body{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:10px 14px;max-width:85%;font-size:14px;line-height:1.65;color:var(--sl);box-shadow:var(--sh);white-space:pre-wrap}
-.msg-wrap.user .msg-body{background:var(--tld);color:#fff;border-color:var(--tld)}
-.ai-input-row{display:flex;gap:8px;padding:12px 0 0;border-top:1px solid var(--bd);position:sticky;bottom:0;background:var(--bg)}
-.ai-input-row textarea{flex:1;background:#fff;border:1px solid var(--bd);border-radius:9px;padding:10px 13px;font-family:var(--font);font-size:14px;color:var(--sl);resize:none;outline:none;min-height:42px;max-height:120px;transition:.15s}
-.ai-input-row textarea:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(13,92,107,.1)}
-.ai-cats{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-.ai-cat-btn{padding:6px 14px;background:#fff;border:1px solid var(--bd);border-radius:99px;font-size:12px;font-weight:600;color:var(--mu);cursor:pointer;transition:.15s}
-.ai-cat-btn.active,.ai-cat-btn:hover{background:var(--tl);color:#fff;border-color:var(--tl)}
-.ai-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-@media(max-width:600px){.ai-grid{grid-template-columns:1fr}}
-.ai-card{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:.15s;display:flex;align-items:flex-start;gap:12px}
-.ai-card:hover{border-color:var(--tl);box-shadow:var(--sh2);transform:translateY(-1px)}
-.ai-card-icon{font-size:22px;flex-shrink:0}
-.ai-card-name{font-size:14px;font-weight:700;color:var(--tld);margin-bottom:3px}
-.ai-card-tag{font-size:12px;color:var(--mu);line-height:1.5}
-.ai-free-badge{font-size:10px;font-weight:700;color:var(--ok);background:rgba(26,158,107,.08);border-radius:4px;padding:2px 6px;border:1px solid rgba(26,158,107,.18);margin-top:5px;display:inline-block}
-
-/* ── RESULT CARD ── */
-.result-card{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);margin-bottom:12px}
-.result-card pre{font-size:13px;color:var(--sl);line-height:1.8;white-space:pre-wrap;font-family:var(--font)}
-
-/* ── ERR / SUCCESS ── */
-.err{color:var(--er);font-size:13px;padding:9px 13px;background:rgba(192,57,43,.06);border:1px solid rgba(192,57,43,.18);border-radius:8px;margin-top:8px;display:none}
-.err.show{display:block}
-.succ{color:var(--ok);font-size:13px;padding:9px 13px;background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.2);border-radius:8px;margin-top:8px}
-
-/* ── KV STATS ── */
-.kv-card{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:14px;box-shadow:var(--sh);text-align:center}
-.kv-val{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--tl)}
-.kv-lbl{font-size:11px;color:var(--mu);margin-top:3px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
-
-/* ── CHECKLIST & CRM shims (for legacy renderIssuerChecklist / renderCRMIssuer) ── */
-.tbl{width:100%;border-collapse:collapse}
-.tbl th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--mu);padding:9px 14px;border-bottom:2px solid var(--bd);text-align:left;background:var(--card2)}
-.tbl td{padding:9px 14px;border-bottom:1px solid rgba(13,92,107,.04);font-size:13px;color:var(--sl);vertical-align:top}
-.tbl tr:hover td{background:var(--card2)}
-.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px}
-.badge-ok{background:rgba(26,158,107,.1);color:var(--ok)}
-.badge-wn{background:rgba(212,134,12,.1);color:var(--wn)}
-.badge-er{background:rgba(192,57,43,.1);color:var(--er)}
-.badge-mu{background:rgba(107,126,133,.1);color:var(--mu)}
-/* legacy classes used in old render fns */
-.page-title{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--tld);margin-bottom:6px}
-.page-sub{font-size:14px;color:var(--mu);line-height:1.75;margin-bottom:20px;max-width:560px}
-.btn-gold{background:var(--sf);color:#fff;box-shadow:0 2px 8px rgba(232,138,46,.25)}
-.btn-gold:hover{background:var(--go)}
-.btn-outline{background:#fff;border:1.5px solid var(--bd);color:var(--tl)}
-.btn-outline:hover{border-color:var(--tl);background:rgba(13,92,107,.04)}
-.btn-sm{padding:7px 14px;font-size:13px}
-.kanban-col{background:var(--card2);border-radius:var(--r);padding:12px;min-width:200px}
-.kanban-card{background:#fff;border:1px solid var(--bd);border-radius:9px;padding:12px;margin-bottom:8px;cursor:pointer;font-size:13px;box-shadow:var(--sh)}
-.inp{background:var(--card2);border:1px solid var(--bd);border-radius:9px;padding:9px 13px;font-family:var(--font);font-size:14px;color:var(--sl);outline:none;transition:.15s;-webkit-appearance:none}
-.inp:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(13,92,107,.1);background:#fff}
+:root{--bg:#FAFAF8;--tl:#0D5C6B;--tld:#08404D;--sf:#E88A2E;--go:#C9932A;--sl:#2C3E47;--mu:#6B7E85;--bd:#E2E8EA;--ok:#1A9E6B;--sh:0 1px 4px rgba(13,92,107,.06),0 4px 16px rgba(13,92,107,.04);--sh2:0 4px 20px rgba(13,92,107,.1),0 12px 40px rgba(13,92,107,.07);--font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif}
+body{font-family:var(--font);background:var(--bg);color:var(--sl);-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+.topbar{background:#fff;border-bottom:1px solid var(--bd);height:56px;display:flex;align-items:center;padding:0 24px;gap:10px;position:sticky;top:0;z-index:50;box-shadow:var(--sh)}
+.logo{font-family:var(--serif);font-size:19px;font-weight:900;color:var(--tld)}.logo span{color:var(--sf)}
+.portal-lbl{font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.8px;padding-left:10px;border-left:1px solid var(--bd)}
+.spacer{flex:1}
+.tb-link{font-size:13px;font-weight:700;color:var(--tl);padding:7px 14px;border:1px solid var(--bd);border-radius:8px;transition:.15s;cursor:pointer}
+.tb-link:hover{background:rgba(13,92,107,.06);border-color:var(--tl)}
+.hero{background:linear-gradient(135deg,var(--tld),var(--tl));padding:36px 24px}
+.hero-inner{max-width:860px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.hero-tag{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:6px}
+.hero-title{font-family:var(--serif);font-size:26px;font-weight:900;color:#fff;margin-bottom:5px}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.65)}
+.hero-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;background:var(--sf);color:#fff;border-radius:10px;font-family:var(--font);font-size:15px;font-weight:800;box-shadow:0 4px 16px rgba(232,138,46,.4);flex-shrink:0;transition:.15s}
+.hero-btn:hover{background:var(--go);transform:translateY(-1px)}
+.page{max-width:860px;margin:0 auto;padding:32px 24px 60px}
+@media(max-width:600px){.page{padding:20px 14px 40px}}
+.sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--bd)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+@media(max-width:600px){.g2{grid-template-columns:1fr}}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:28px}
+@media(max-width:500px){.g4{grid-template-columns:1fr 1fr}}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+@media(max-width:600px){.g3{grid-template-columns:1fr 1fr}}
+.step{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px 20px;display:block;transition:.18s;border-left:4px solid}
+.step:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.step-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.snum{font-size:10px;font-weight:700;font-family:monospace;letter-spacing:.5px}
+.stag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(13,92,107,.06);color:var(--mu)}
+.stag.f{background:rgba(26,158,107,.08);color:var(--ok);border:1px solid rgba(26,158,107,.2)}
+.sname{font-family:var(--serif);font-size:16px;font-weight:900;color:var(--tld);margin-bottom:3px}
+.sdesc{font-size:12px;color:var(--mu);line-height:1.55}
+.kv{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:14px;text-align:center;box-shadow:var(--sh)}
+.kv-v{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--tl)}
+.kv-l{font-size:11px;color:var(--mu);margin-top:3px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.ai{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:14px 16px;display:flex;align-items:flex-start;gap:10px;box-shadow:var(--sh);transition:.15s}
+.ai:hover{border-color:var(--tl);box-shadow:var(--sh2)}
+.ai-icon{font-size:20px;flex-shrink:0}
+.ai-name{font-size:13px;font-weight:700;color:var(--tld);margin-bottom:2px}
+.ai-desc{font-size:11px;color:var(--mu);line-height:1.5}
+.banner{background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.12);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:28px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;background:var(--tl);color:#fff;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;transition:.15s}
+.btn:hover{background:var(--tld)}
 </style>
 </head>
 <body>
-<div class="app">
 
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <a href="index.html" class="tb-logo">ipo<span>work</span></a>
-    <div class="tb-portal">Issuer Portal</div>
-    <div class="tb-spacer"></div>
-    <div class="tb-user" id="tb-user-name"></div>
-    <button class="tb-btn" id="tb-auth-btn" onclick="handleAuthBtn()">🔑 Sign In</button>
+<div class="topbar">
+  <a href="index.html" class="logo">ipo<span>work</span></a>
+  <div class="portal-lbl">Issuer Portal</div>
+  <div class="spacer"></div>
+  <span id="uname" style="font-size:13px;color:var(--sl);font-weight:600;margin-right:8px"></span>
+  <a href="login.html" id="auth" class="tb-link">🔑 Sign In</a>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-tag">IPO Readiness Platform</div>
+      <div class="hero-title">Your IPO Journey Starts Here</div>
+      <div class="hero-sub">AIRA Score, Compliance Analysis, Document Review, MB Match — all free.</div>
+    </div>
+    <a href="aira.html" class="hero-btn">📊 Get AIRA Score →</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="g4">
+    <div class="kv"><div class="kv-v">16</div><div class="kv-l">AIRA Parameters</div></div>
+    <div class="kv"><div class="kv-v">500</div><div class="kv-l">DRHP Items</div></div>
+    <div class="kv"><div class="kv-v">14</div><div class="kv-l">AI Assistants</div></div>
+    <div class="kv"><div class="kv-v">Free</div><div class="kv-l">No Login</div></div>
   </div>
 
-  <div class="body">
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-      <div class="sb-brand">
-        <div class="sb-brand-name">ipo<span>work</span></div>
-        <div class="sb-brand-tag">Issuer Portal</div>
-      </div>
-      <div class="sb-nav" id="sb-nav">
-        <!-- rendered by renderNav() -->
-      </div>
-      <div class="sb-foot" id="sb-foot">
-        <div class="sb-user-name" id="sb-user-name">Not signed in</div>
-        <div class="sb-user-plan">Free Plan</div>
-      </div>
-    </div>
+  <div class="sec">Your 6-Step IPO Journey</div>
+  <div class="g2">
 
-    <!-- MAIN -->
-    <div class="main" id="main-content">
-      <!-- rendered by renderView() -->
-    </div>
+    <a href="aira.html" class="step" style="border-left-color:var(--tl)">
+      <div class="step-top"><span class="snum" style="color:var(--tl)">01</span><span style="font-size:20px">📊</span><span class="stag f">FREE · 3 min</span></div>
+      <div class="sname">AIRA Score</div>
+      <div class="sdesc">16-parameter AI analysis. Score + Simulator + Fix Engine + Valuation Matrix.</div>
+    </a>
+
+    <a href="gap.html" class="step" style="border-left-color:#1A7D90">
+      <div class="step-top"><span class="snum" style="color:#1A7D90">02</span><span style="font-size:20px">🔍</span><span class="stag f">FREE</span></div>
+      <div class="sname">Compliance Gap Analyzer</div>
+      <div class="sdesc">AI scans SEBI ICDR, ROC, GST, TDS gaps with prioritised fix list.</div>
+    </a>
+
+    <a href="mb-match.html" class="step" style="border-left-color:var(--sf)">
+      <div class="step-top"><span class="snum" style="color:var(--sf)">03</span><span style="font-size:20px">🏦</span><span class="stag f">FREE</span></div>
+      <div class="sname">Merchant Banker Match</div>
+      <div class="sdesc">AI matches SEBI-registered MBs by sector, size and track record.</div>
+    </a>
+
+    <a href="aida.html" class="step" style="border-left-color:var(--go)">
+      <div class="step-top"><span class="snum" style="color:var(--go)">04</span><span style="font-size:20px">📄</span><span class="stag f">FREE</span></div>
+      <div class="sname">AIDA Document Review</div>
+      <div class="sdesc">Paste text — AI flags SEBI ICDR gaps, missing disclosures and risks.</div>
+    </a>
+
+    <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20need%20the%20DRHP%20checklist" target="_blank" class="step" style="border-left-color:var(--ok)">
+      <div class="step-top"><span class="snum" style="color:var(--ok)">05</span><span style="font-size:20px">📋</span><span class="stag f">500 items</span></div>
+      <div class="sname">DRHP Checklist</div>
+      <div class="sdesc">500-item checklist aligned to SEBI ICDR 2018. Shared with MB.</div>
+    </a>
+
+    <a href="roadmap.html" class="step" style="border-left-color:var(--tld)">
+      <div class="step-top"><span class="snum" style="color:var(--tld)">06</span><span style="font-size:20px">📅</span><span class="stag">Free</span></div>
+      <div class="sname">IPO Roadmap Builder</div>
+      <div class="sdesc">AI builds a custom month-by-month IPO timeline.</div>
+    </a>
+
   </div>
+
+  <div class="banner" id="sign-banner">
+    <div><div style="font-size:14px;font-weight:800;color:var(--tld);margin-bottom:3px">💾 Sign in to save your progress</div><div style="font-size:13px;color:var(--mu)">Free · 30 seconds · No OTP required yet</div></div>
+    <a href="login.html" class="btn">Sign In / Register →</a>
+  </div>
+
+  <div class="sec">AI Assistants — 14 Specialists</div>
+  <div class="g3">
+    <div class="ai"><div class="ai-icon">✅</div><div><div class="ai-name">IPO Eligibility</div><div class="ai-desc">SME vs Main Board</div></div></div>
+    <div class="ai"><div class="ai-icon">💹</div><div><div class="ai-name">Financial Readiness</div><div class="ai-desc">Statement review</div></div></div>
+    <div class="ai"><div class="ai-icon">📋</div><div><div class="ai-name">DRHP Drafting</div><div class="ai-desc">Document guidance</div></div></div>
+    <div class="ai"><div class="ai-icon">⚖️</div><div><div class="ai-name">Litigation Review</div><div class="ai-desc">Legal risk scan</div></div></div>
+    <div class="ai"><div class="ai-icon">🏛️</div><div><div class="ai-name">Governance Advisor</div><div class="ai-desc">Board & committee</div></div></div>
+    <div class="ai"><div class="ai-icon">💰</div><div><div class="ai-name">Valuation Expert</div><div class="ai-desc">IPO pricing</div></div></div>
+  </div>
+  <a href="ca-cs.html" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:#fff;border:1px solid var(--bd);border-radius:9px;font-size:13px;font-weight:700;color:var(--tl)">See all 14 AI Assistants →</a>
 
 </div>
 
 <script>
-
-/* ═══════════════════════════════════════════════════════════════
-   SUPABASE CLOUD STORAGE — replaces window.storage
-   
-   Setup (5 min):
-   1. Go to supabase.com → New project (free)
-   2. Run the SQL below in SQL Editor
-   3. Get Project URL + anon key from Settings → API
-   4. Replace SUPABASE_URL and SUPABASE_ANON_KEY below
-   
-   SQL to run in Supabase SQL Editor:
-   ─────────────────────────────────
-   create table if not exists user_data (
-     id bigserial primary key,
-     email text not null,
-     portal text not null,
-     key text not null,
-     value text,
-     updated_at timestamptz default now(),
-     unique(email, portal, key)
-   );
-   
-   create table if not exists shared_data (
-     id bigserial primary key,
-     key text not null unique,
-     value text,
-     updated_at timestamptz default now()
-   );
-   
-   alter table user_data enable row level security;
-   alter table shared_data enable row level security;
-   
-   create policy "Anyone can read/write user_data"
-     on user_data for all using (true) with check (true);
-   
-   create policy "Anyone can read/write shared_data"
-     on shared_data for all using (true) with check (true);
-   ─────────────────────────────────
-═══════════════════════════════════════════════════════════════ */
-
-(function(){
-  var SUPABASE_URL  = 'https://esqlfsjhekdspycfgnoz.supabase.co';    /* e.g. https://abcxyz.supabase.co */
-  var SUPABASE_KEY  = 'sb_publishable_CFdw2j0-mD4VeF9kQdyhdg_ZDPxQW9a';
-  var PORTAL        = document.title.split('|')[1]?.trim() || window.location.pathname.replace(/\//g,'').replace('.html','') || 'unknown';
-
-  function sbHeaders(){
-    return {
-      'Content-Type':  'application/json',
-      'apikey':        SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Prefer':        'return=representation'
-    };
+try{
+  var u=JSON.parse(localStorage.getItem('ipowork_user')||'{}');
+  if(u.loggedIn){
+    var n=document.getElementById('uname');
+    var b=document.getElementById('auth');
+    var s=document.getElementById('sign-banner');
+    if(n)n.textContent='👤 '+(u.name||u.phone||'');
+    if(b){b.textContent='Sign Out';b.onclick=function(){if(confirm('Sign out?')){localStorage.removeItem('ipowork_user');location.reload();}return false;};}
+    if(s)s.style.display='none';
   }
-
-  function getUserEmail(){
-    /* SESS is the session object defined in each portal */
-    return (typeof SESS !== 'undefined' && SESS.email) ? SESS.email : 'anon@ipowork.com';
-  }
-
-  /* ── GET ── */
-  async function sbGet(key, shared){
-    try {
-      if(shared){
-        var url = SUPABASE_URL + '/rest/v1/shared_data?key=eq.' + encodeURIComponent(key) + '&select=value&limit=1';
-        var r = await fetch(url, { headers: sbHeaders() });
-        var d = await r.json();
-        if(!d || !d.length || d[0].value === undefined) throw new Error('Key not found: ' + key);
-        return { key: key, value: d[0].value, shared: true };
-      } else {
-        var email = getUserEmail();
-        var url = SUPABASE_URL + '/rest/v1/user_data?email=eq.' + encodeURIComponent(email) +
-                  '&portal=eq.' + encodeURIComponent(PORTAL) +
-                  '&key=eq.' + encodeURIComponent(key) + '&select=value&limit=1';
-        var r = await fetch(url, { headers: sbHeaders() });
-        var d = await r.json();
-        if(!d || !d.length || d[0].value === undefined) throw new Error('Key not found: ' + key);
-        return { key: key, value: d[0].value, shared: false };
-      }
-    } catch(e){ throw e; }
-  }
-
-  /* ── SET ── */
-  async function sbSet(key, value, shared){
-    try {
-      if(shared){
-        var url = SUPABASE_URL + '/rest/v1/shared_data';
-        var body = JSON.stringify({ key: key, value: value, updated_at: new Date().toISOString() });
-        /* upsert */
-        var r = await fetch(url, {
-          method: 'POST',
-          headers: Object.assign({}, sbHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=representation' }),
-          body: body
-        });
-        if(!r.ok){ var t = await r.text(); throw new Error('Supabase set failed: ' + t.slice(0,100)); }
-        return { key: key, value: value, shared: true };
-      } else {
-        var email = getUserEmail();
-        var url = SUPABASE_URL + '/rest/v1/user_data';
-        var body = JSON.stringify({ email: email, portal: PORTAL, key: key, value: value, updated_at: new Date().toISOString() });
-        var r = await fetch(url, {
-          method: 'POST',
-          headers: Object.assign({}, sbHeaders(), { 'Prefer': 'resolution=merge-duplicates,return=representation' }),
-          body: body
-        });
-        if(!r.ok){ var t = await r.text(); throw new Error('Supabase set failed: ' + t.slice(0,100)); }
-        return { key: key, value: value, shared: false };
-      }
-    } catch(e){ throw e; }
-  }
-
-  /* ── DELETE ── */
-  async function sbDelete(key, shared){
-    try {
-      if(shared){
-        var url = SUPABASE_URL + '/rest/v1/shared_data?key=eq.' + encodeURIComponent(key);
-        await fetch(url, { method: 'DELETE', headers: sbHeaders() });
-      } else {
-        var email = getUserEmail();
-        var url = SUPABASE_URL + '/rest/v1/user_data?email=eq.' + encodeURIComponent(email) +
-                  '&portal=eq.' + encodeURIComponent(PORTAL) +
-                  '&key=eq.' + encodeURIComponent(key);
-        await fetch(url, { method: 'DELETE', headers: sbHeaders() });
-      }
-      return { key: key, deleted: true, shared: shared };
-    } catch(e){ throw e; }
-  }
-
-  /* ── LIST ── */
-  async function sbList(prefix, shared){
-    try {
-      if(shared){
-        var url = SUPABASE_URL + '/rest/v1/shared_data?key=like.' + encodeURIComponent((prefix||'') + '*') + '&select=key';
-        var r = await fetch(url, { headers: sbHeaders() });
-        var d = await r.json();
-        return { keys: (d||[]).map(function(x){ return x.key; }), prefix: prefix, shared: true };
-      } else {
-        var email = getUserEmail();
-        var url = SUPABASE_URL + '/rest/v1/user_data?email=eq.' + encodeURIComponent(email) +
-                  '&portal=eq.' + encodeURIComponent(PORTAL) +
-                  '&key=like.' + encodeURIComponent((prefix||'') + '*') + '&select=key';
-        var r = await fetch(url, { headers: sbHeaders() });
-        var d = await r.json();
-        return { keys: (d||[]).map(function(x){ return x.key; }), prefix: prefix, shared: false };
-      }
-    } catch(e){ throw e; }
-  }
-
-  /* ── Fallback to localStorage if Supabase not configured ── */
-  var configured = SUPABASE_URL.indexOf('REPLACE') === -1 && SUPABASE_KEY.indexOf('REPLACE') === -1;
-
-  if(configured){
-    window.storage = { get: sbGet, set: sbSet, delete: sbDelete, list: sbList };
-    console.log('[ipowork] Cloud storage: Supabase ✅');
-  } else {
-    /* localStorage fallback — works but not cross-device */
-    window.storage = {
-      _k: function(k,s){ return (s?'sh_':'pr_') + k; },
-      get: function(k,s){ return new Promise(function(res,rej){ var v=localStorage.getItem(window.storage._k(k,s)); if(v===null) rej(new Error('Not found')); else res({key:k,value:v,shared:s}); }); },
-      set: function(k,v,s){ return new Promise(function(res,rej){ try{ localStorage.setItem(window.storage._k(k,s),v); res({key:k,value:v,shared:s}); }catch(e){ rej(e); } }); },
-      delete: function(k,s){ return new Promise(function(res){ localStorage.removeItem(window.storage._k(k,s)); res({key:k,deleted:true,shared:s}); }); },
-      list: function(p,s){ return new Promise(function(res){ var pfx=window.storage._k(p||'',s),keys=[]; for(var i=0;i<localStorage.length;i++){ var key=localStorage.key(i); if(key&&key.indexOf(pfx)===0) keys.push(key.replace(/^(sh_|pr_)/,'')); } res({keys:keys,prefix:p,shared:s}); }); }
-    };
-    console.warn('[ipowork] Supabase not configured — using localStorage (not cross-device). Add SUPABASE_URL and SUPABASE_KEY to enable cloud sync.');
-  }
-})();
-
-
-</script>
-
-<script>
-
-var AI_ASSISTANTS=[
-  {id:'ipo-eligibility',cat:'Foundation',icon:'✅',name:'IPO Eligibility Checker',tag:'Assess issuer SME vs Main Board eligibility',free:true,
-   system:'You are an IPO Eligibility Checker for Indian companies. Assess eligibility for SME IPO (BSE/NSE) and Main Board based on SEBI ICDR 2018 criteria. Help MBs quickly assess whether a potential client meets the requirements.',
-   starters:['What are SME IPO eligibility criteria?','My issuer has 2 profitable years — Main Board possible?','Check eligibility: ₹45 Cr revenue, 8 years old, manufacturing']},
-  {id:'financial-readiness',cat:'Foundation',icon:'💹',name:'Financial Readiness Advisor',tag:'Assess issuer financial statement readiness',free:true,
-   system:'You are a Financial Readiness Advisor for Indian IPO MBs. Help merchant bankers assess whether an issuers financial statements are IPO-ready per SEBI ICDR 2018 and ICAI standards.',
-   starters:['What financial red flags should I check first?','How to handle a restatement request from SEBI?','My issuer has Ind AS transition issues — how to address?']},
-  {id:'due-diligence',cat:'Legal & Compliance',icon:'🔍',name:'Due Diligence Coach',tag:'Comprehensive DD checklist for issuers',free:false,
-   system:'You are a due diligence expert for Indian IPO MBs. Help merchant bankers conduct thorough issuer due diligence covering financials, legal, compliance, governance, and business operations as required for DRHP preparation.',
-   starters:['Give me an MB due diligence checklist','What legal DD is required before DRHP filing?','How do I handle undisclosed litigation found during DD?']},
-  {id:'sebi-compliance',cat:'Legal & Compliance',icon:'⚖️',name:'SEBI Compliance Coach',tag:'Navigate ICDR 2018 for your MB mandate',free:false,
-   system:'You are a SEBI Compliance Coach for merchant bankers specialising in ICDR 2018. Guide MBs through all regulatory requirements for SME and Main Board IPOs.',
-   starters:['What SEBI approvals are needed pre-DRHP filing?','Explain SEBI observation letter process and timeline','What disclosures are mandatory for promoter group?']},
-  {id:'rpt-cleanup',cat:'Legal & Compliance',icon:'📋',name:'RPT Advisor for MBs',tag:'Handle issuer RPT cleanup as lead MB',free:false,
-   system:'You are an RPT specialist advising Indian MB firms on how to handle issuer RPTs during IPO preparation. Cover identification, documentation, cleanup strategies and DRHP disclosure requirements.',
-   starters:['How do I document historical RPTs in DRHP?','Promoter has ₹5 Cr loans outstanding — how to handle?','What RPT disclosures are mandatory in DRHP?']},
-  {id:'valuation',cat:'Strategy',icon:'💰',name:'Valuation & Pricing Expert',tag:'Price the issue right for the market',free:false,
-   system:'You are a valuation and IPO pricing expert for Indian MBs. Help price IPOs based on market comparables, sector multiples, and investor appetite. Cover price band determination, anchor investor strategy, and bookbuilding.',
-   starters:['How to determine the right price band for my issuer?','What P/E multiples are working in manufacturing IPOs?','Explain the bookbuilding process and HNI strategy']},
-  {id:'drhp-prep',cat:'Documentation',icon:'📝',name:'DRHP Preparation Guide',tag:'DRHP structure, content and SEBI alignment',free:false,
-   system:'You are a DRHP preparation expert for Indian MB firms. Guide MBs through every section of the DRHP including risk factors, business overview, financial statements, use of proceeds, and regulatory disclosures per SEBI ICDR 2018 Schedule requirements.',
-   starters:['What are the most common SEBI objections on DRHP?','How do I structure risk factors to satisfy SEBI?','What financial statements are required in DRHP?']},
-  {id:'roadshow',cat:'Strategy',icon:'🎤',name:'Roadshow & Marketing Coach',tag:'Plan and execute a successful IPO roadshow',free:false,
-   system:'You are an IPO roadshow expert for Indian MBs. Help plan and execute IPO marketing including pre-IPO investor meetings, roadshow strategy, analyst presentations, and managing investor demand.',
-   starters:['How to plan a 2-week IPO roadshow schedule?','What do institutional investors ask in IPO meetings?','How to handle weak demand signals during bookbuilding?']},
-  {id:'promoter-lockin',cat:'Strategy',icon:'🔒',name:'Promoter Lock-In Calculator',tag:'Explain lock-in requirements to issuers',free:true,
-   system:'You are a promoter lock-in expert helping MBs explain SEBI lock-in requirements to their issuer clients. Cover minimum promoter contribution, 3-year lock-in, 1-year lock-in for excess, and post-listing liquidity planning.',
-   starters:['Calculate promoter lock-in for ₹100 Cr IPO','What is minimum promoter contribution post-IPO?','How to explain lock-in impact to a nervous promoter?']},
-  {id:'investor-qa',cat:'Investor Readiness',icon:'🎯',name:'Investor Q&A Prep Coach',tag:'Prepare issuer management for roadshow',free:false,
-   system:'You are an Investor Q&A Coach helping MBs prepare their issuer clients for investor meetings and roadshows. Generate tough questions, coach on answers, and help develop compelling investment narrative.',
-   starters:['Prepare my issuer for a 30-minute institutional meeting','What are the toughest questions investors ask promoters?','Help craft the key investment highlights for a manufacturing IPO']},
-  {id:'timeline-planner',cat:'Planning',icon:'📅',name:'IPO Timeline Planner',tag:'Build realistic timelines for your mandate',free:true,
-   system:'You are an IPO Timeline Planner for Indian MBs. Help merchant bankers build realistic IPO timelines from mandate signing to listing. Cover all phases including issuer preparation, DRHP filing, SEBI review (45-120 days), and listing preparation.',
-   starters:['Build a 9-month timeline from mandate to listing','What is the minimum timeline for Main Board IPO?','My issuer wants to list in 6 months — is it possible?']},
-  {id:'fee-negotiation',cat:'Strategy',icon:'💼',name:'MB Fee Advisor',tag:'Structure and negotiate your mandate fees',free:false,
-   system:'You are an MB fee and mandate structure advisor. Help merchant bankers understand typical fee structures, negotiate fair compensation, and structure mandates properly for Indian IPOs.',
-   starters:['What are standard MB fees for SME vs Main Board?','How to structure a retainer plus success fee deal?','My issuer is asking for a discount — how to handle?']},
-  {id:'post-listing',cat:'Planning',icon:'📈',name:'Post-Listing Compliance Guide',tag:'Support your issuer after listing',free:false,
-   system:'You are a post-listing compliance expert helping MBs support newly listed company clients. Cover SEBI LODR obligations, quarterly disclosures, insider trading policies, and the MBs ongoing responsibilities after listing.',
-   starters:['What are my MB obligations after the company lists?','What quarterly disclosures must my issuer client make?','How do I handle an insider trading complaint post-listing?']},
-];
-function renderAIHome(){
-  var html = '<div class="portal-pad">';
-  html += '<div class="page-title">&#129504; IPO AI Assistants</div>';
-  html += '<div class="page-sub" style="margin-bottom:20px">19 AI advisors — tuned for every stage of your IPO journey. Click any to start chatting.</div>';
-
-  /* Search + filter pills */
-  html += '<div style="margin-bottom:18px">';
-  html += '<input class="inp" id="ai-search" style="margin-bottom:12px;max-width:400px" placeholder="&#128269; Search assistants..." oninput="filterAI(this.value)"/>';
-  html += '<div style="display:flex;gap:6px;flex-wrap:wrap" id="ai-pills">';
-  html += '<button class="ai-filter-pill active" onclick="filterCat(\'\',this)">All</button>';
-
-  var catColors = {"Foundation":"#7BBFA0","Legal & Compliance":"#2DC48F","Strategy":"#BFA06A","Documentation":"#7C3AED","Investor Readiness":"#C4876B","Planning":"#B87B83"};
-  var catIcons  = {"Foundation":"&#127959;","Legal & Compliance":"&#9878;","Strategy":"&#127919;","Documentation":"&#128221;","Investor Readiness":"&#129309;","Planning":"&#128197;"};
-
-  var cats = [];
-  AI_ASSISTANTS.forEach(function(a){ if(cats.indexOf(a.cat)===-1) cats.push(a.cat); });
-  cats.forEach(function(c){
-    var col = catColors[c] || 'var(--muted)';
-    html += '<button class="ai-filter-pill" onclick="filterCat(\''+c+'\',this)" style="border-color:'+col+'22;color:'+col+'">'+catIcons[c]+' '+c+'</button>';
-  });
-  html += '</div></div>';
-
-  /* Group cards by category */
-  var catMap = {};
-  AI_ASSISTANTS.forEach(function(a){ if(!catMap[a.cat]) catMap[a.cat]=[]; catMap[a.cat].push(a); });
-
-  var catOrder = ["Foundation","Legal & Compliance","Strategy","Documentation","Investor Readiness","Planning"];
-  var cardColors = ["#7BBFA0","#2DC48F","#BFA06A","#7C3AED","#C4876B","#B87B83"];
-
-  html += '<div id="ai-content">';
-  catOrder.forEach(function(cat, ci){
-    var assistants = catMap[cat] || [];
-    if(!assistants.length) return;
-    var col = catColors[cat] || cardColors[ci % cardColors.length];
-    var ico = catIcons[cat] || '&#129504;';
-
-    html += '<div class="ai-cat-section" data-cat="'+cat+'">';
-    html += '<div class="ai-cat-header">';
-    html += '<span style="font-size:17px">'+ico+'</span>';
-    html += '<span class="ai-cat-title">'+cat+'</span>';
-    html += '<span class="ai-cat-count">'+assistants.length+' assistants</span>';
-    html += '</div>';
-    html += '<div class="ai-grid">';
-
-    assistants.forEach(function(a){
-      html += '<div class="ai-card" data-aid="'+a.id+'" onclick="startAI(this.dataset.aid)">';
-      html += '<div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+col+'"></div>';
-      html += '<span class="ai-badge '+(a.free?'free':'premium')+'">'+(a.free?'FREE':'PRO')+'</span>';
-      html += '<span class="ai-card-icon">'+a.icon+'</span>';
-      html += '<div class="ai-card-name">'+a.name+'</div>';
-      html += '<div class="ai-card-tag">'+a.tag+'</div>';
-      html += '</div>';
-    });
-
-    html += '</div></div>';
-  });
-
-  html += '</div>';
-  html += '</div>';
-  return html;
-}
-
-window.filterAI = function(q){
-  q = q.toLowerCase();
-  document.querySelectorAll('.ai-card').forEach(function(card, i){
-    var a = AI_ASSISTANTS[i];
-    var show = !q || (a && (a.name.toLowerCase().includes(q) || a.cat.toLowerCase().includes(q) || (a.tag||'').toLowerCase().includes(q)));
-    card.style.display = show ? '' : 'none';
-  });
-  /* Show/hide category sections based on visible cards */
-  document.querySelectorAll('.ai-cat-section').forEach(function(sec){
-    var visibleCards = sec.querySelectorAll('.ai-card:not([style*="none"])');
-    sec.style.display = visibleCards.length ? '' : 'none';
-  });
-};
-
-window.filterCat = function(cat, btn){
-  /* Update active pill */
-  document.querySelectorAll('.ai-filter-pill').forEach(function(b){ b.classList.remove('active'); });
-  if(btn) btn.classList.add('active');
-
-  if(!cat){
-    /* Show all */
-    document.querySelectorAll('.ai-cat-section').forEach(function(s){ s.style.display=''; });
-    document.querySelectorAll('.ai-card').forEach(function(c){ c.style.display=''; });
-    return;
-  }
-  document.querySelectorAll('.ai-cat-section').forEach(function(sec){
-    sec.style.display = sec.dataset.cat===cat ? '' : 'none';
-  });
-};
-
-
-
-window.openAI=function(id){
-  var a=AI_ASSISTANTS.find(function(x){ return x.id===id; });
-  if(!a) return;
-  P.aiAssistant=a; P.aiHistory=[]; P.view='ai-chat';
-  renderSidebar(); renderMain();
-};
-
-function renderAIChat(){
-  var a=P.aiAssistant;
-  var html='<div class="chat-wrap">';
-  html+='<div class="chat-head">';
-  html+='<button onclick="P.aiAssistant=null;pNav(\'ai\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">←</button>';
-  html+='<div style="font-size:18px">'+a.icon+'</div>';
-  html+='<div><div style="font-size:17px;font-weight:700">'+a.name+'</div><div style="font-size:17px;color:var(--muted)">'+a.tag+'</div></div>';
-  html+='<span class="ai-badge '+(a.free?'free':'premium')+'" style="margin-left:auto">'+(a.free?'FREE':'PRO')+'</span>';
-  html+='<button onclick="P.aiHistory=[];renderMain()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px;margin-left:8px">Clear</button>';
-  html+='</div>';
-  html+='<div class="chat-msgs" id="chat-msgs">';
-  html+='<div class="msg ai">👋 Hi! I am your <strong>'+a.name+'</strong>. '+a.tag+'. Ask me anything.</div>';
-  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">';
-  a.starters.forEach(function(s){
-    html+='<button style="padding:10px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--muted);font-size:17px;cursor:pointer;text-align:left" onclick="document.getElementById(\'chat-inp\').value=this.textContent;document.getElementById(\'chat-inp\').focus()">'+s+'</button>';
-  });
-  html+='</div>';
-  P.aiHistory.forEach(function(m){
-    html+='<div class="msg '+(m.role==='user'?'user':'ai')+'">'+m.content+'</div>';
-  });
-  if(P.aiLoading) html+='<div class="msg ai"><div class="typing"><span></span><span></span><span></span></div></div>';
-  html+='</div>';
-  html+='<div class="chat-input-area"><div class="chat-toolbar">';
-  html+='<textarea class="chat-textarea" id="chat-inp" rows="2" placeholder="Ask anything..."></textarea>';
-  html+='<button class="send-btn" onclick="sendChat()">↑</button>';
-  html+='</div></div></div>';
-  return html;
-}
-
-function bindChat(){
-  var inp=document.getElementById('chat-inp');
-  if(!inp) return;
-  inp.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); } });
-  var msgs=document.getElementById('chat-msgs');
-  if(msgs) msgs.scrollTop=msgs.scrollHeight;
-}
-
-
-window.sendChat=function(){
-  var inp=document.getElementById('chat-inp');
-  if(!inp||!inp.value.trim()||P.aiLoading) return;
-  if(typeof creditCheck==='function'){
-    var _c=creditCheck('ai-chat-iss');
-    if(!_c.ok){ creditShowInsufficient(_c.cost||1,_c.balance||0,'AI Chat'); return; }
-    creditDeduct('ai-chat-iss');
-  }
-  var msg=inp.value.trim(); inp.value='';
-  P.aiHistory.push({role:'user',content:msg});
-  P.aiLoading=true; renderMain();
-  fetch(WORKER,{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,
-      system:P.aiAssistant.system,
-      messages:P.aiHistory.map(function(m){ return {role:m.role,content:m.content}; })
-    })
-  }).then(function(r){ return r.json(); })
-  .then(function(d){
-    var text=(d.content||[]).map(function(c){ return c.text||''; }).join('');
-    P.aiLoading=false;
-    P.aiHistory.push({role:'assistant',content:text||'Could not get response. Try again.'});
-    renderMain();
-  }).catch(function(){
-    P.aiLoading=false;
-    P.aiHistory.push({role:'assistant',content:'Network error. Please try again.'});
-    renderMain();
-  });
-};
-function bindChat(){
-  var inp=document.getElementById('chat-inp');
-  if(!inp) return;
-  inp.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); } });
-  var msgs=document.getElementById('chat-msgs');
-  if(msgs) msgs.scrollTop=msgs.scrollHeight;
-}
-
-
-</script>
-
-<script>
-
-/* ═══════════════════════════════════════════════════════
-   ipowork STANDARD AUTH MODULE v1
-   Drop this <script> block into every portal
-   Reads ipowork_user from localStorage (set by login.html)
-   Replaces all custom sign-in modals/flows
-═══════════════════════════════════════════════════════ */
-
-(function(){
-  /* ── Read session ── */
-  function getUser(){
-    try {
-      var u = localStorage.getItem('ipowork_user');
-      if(u) return JSON.parse(u);
-    } catch(e){}
-    /* legacy keys */
-    try {
-      var u2 = localStorage.getItem('user');
-      if(u2){ var p = JSON.parse(u2); if(p.loggedIn) return p; }
-    } catch(e){}
-    return null;
-  }
-
-  /* ── Set global SESS from stored user ── */
-  function hydrateSESS(user){
-    if(typeof SESS === 'undefined') return;
-    SESS.name    = user.name    || user.phone || 'User';
-    SESS.email   = user.email   || user.phone || '';
-    SESS.mobile  = user.phone   || '';
-    SESS.demo    = false;
-    SESS.loggedIn = true;
-  }
-
-  /* ── Redirect to login, remember where to return ── */
-  window.goToLogin = function(returnUrl){
-    sessionStorage.setItem('ipowork_login_redirect', returnUrl || window.location.href);
-    window.location.href = 'login.html';
-  };
-
-  /* ── Sign out ── */
-  window.signOut = function(){
-    localStorage.removeItem('ipowork_user');
-    localStorage.removeItem('user');
-    window.location.href = 'login.html';
-  };
-
-  /* ── Show the top bar user info ── */
-  function renderUserBar(user){
-    var name = user.name || user.phone || 'User';
-    var phone = user.phone ? user.phone.slice(-4) : '';
-    /* Update portal user display elements */
-    ['portal-user-name','tb-user-name','sb-user-name'].forEach(function(id){
-      var el = document.getElementById(id); if(el) el.textContent = name;
-    });
-    /* Update sign-in buttons to show user + logout */
-    document.querySelectorAll('.iw-signin-btn').forEach(function(btn){
-      btn.textContent = '👤 ' + name;
-      btn.onclick = function(){
-        if(confirm('Sign out of ipowork?')) window.signOut();
-      };
-    });
-  }
-
-  /* ── Main init ── */
-  window.addEventListener('DOMContentLoaded', function(){
-  /* Hash-based navigation removed — new portal is always visible */
-    var user = getUser();
-    if(user && user.loggedIn){
-      hydrateSESS(user);
-      renderUserBar(user);
-    }
-    /* Replace openSignIn / submitSignIn / submitQuickLogin everywhere */
-    window.openSignIn      = function(){ window.goToLogin(); };
-    window.submitSignIn    = function(){ window.goToLogin(); };
-    window.submitQuickLogin = function(){ window.goToLogin(); };
-  });
-
-  /* Expose for portals that check inline */
-  window.ipoworkAuth = { getUser: getUser };
-})();
-
-
+}catch(e){}
 </script>
 
 </body>
 </html>
-
-<script>
-/* ── CONFIG ── */
-var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
-var SUPABASE_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
-var SUPABASE_KEY = 'sb_publishable_CFdw2j0-mD4VeF9kQdyhdg_ZDPxQW9a';
-var PORTAL = 'issuer';
-var SESS = { name:'', email:'', mobile:'', loggedIn:false };
-(function(){
-  try {
-    var u = JSON.parse(localStorage.getItem('ipowork_user')||'{}');
-    if(u.loggedIn){ SESS.name=u.name||u.phone||''; SESS.email=u.email||u.phone||''; SESS.mobile=u.phone||''; SESS.loggedIn=true; }
-  } catch(e){}
-})();
-
-/* ── STATE ── */
-var VIEW = 'dashboard';
-var AI_STATE = { assistant:null, history:[], loading:false };
-var AI_CAT_FILTER = 'All';
-
-/* ── NAV ── */
-var NAV = [
-  {id:'dashboard', icon:'🏠', label:'Dashboard',              badge:'',       cls:''},
-  {id:'aira',      icon:'📊', label:'AIRA Score',             badge:'FREE',   cls:'nb-free'},
-  {id:'gap',       icon:'🔍', label:'Compliance Gaps',        badge:'FREE',   cls:'nb-free'},
-  {id:'aida',      icon:'📄', label:'AIDA Document Review',   badge:'FREE',   cls:'nb-free'},
-  {id:'mb',        icon:'🏦', label:'Merchant Banker Match',  badge:'FREE',   cls:'nb-free'},
-  {id:'checklist', icon:'📋', label:'IPO Checklist',          badge:'500',    cls:'nb-num'},
-  {id:'roadmap',   icon:'📅', label:'IPO Roadmap',            badge:'',       cls:''},
-  {id:'experts',   icon:'🤝', label:'Consult Expert',         badge:'',       cls:''},
-  {id:'ai',        icon:'🤖', label:'AI Assistants',          badge:'19',     cls:'nb-num'},
-];
-
-function renderNav(){
-  var html = '<div class="sb-sec">Tools</div>';
-  NAV.forEach(function(n){
-    html += '<button class="nav-item'+(VIEW===n.id?' active':'')+'" onclick="go(\''+n.id+'\')">'+
-      '<span class="ni">'+n.icon+'</span>'+
-      '<span class="nl">'+n.label+'</span>'+
-      (n.badge ? '<span class="nb '+n.cls+'">'+n.badge+'</span>' : '')+
-    '</button>';
-  });
-  document.getElementById('sb-nav').innerHTML = html;
-}
-
-function go(view){
-  if(view === 'aira'){ window.location.href='aira.html'; return; }
-  if(view === 'experts'){ window.open('https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20need%20expert%20guidance.','_blank'); return; }
-  VIEW = view;
-  renderNav();
-  renderView();
-  document.getElementById('main-content').scrollTop = 0;
-}
-
-/* ── AUTH BUTTON ── */
-function handleAuthBtn(){
-  if(SESS.loggedIn){
-    if(confirm('Sign out of ipowork?')){ localStorage.removeItem('ipowork_user'); window.location.reload(); }
-  } else {
-    sessionStorage.setItem('ipowork_login_redirect', window.location.href);
-    window.location.href = 'login.html';
-  }
-}
-
-function updateAuthUI(){
-  var nb = document.getElementById('sb-user-name');
-  var tu = document.getElementById('tb-user-name');
-  var tb = document.getElementById('tb-auth-btn');
-  if(SESS.loggedIn){
-    if(nb) nb.textContent = SESS.name;
-    if(tu) tu.textContent = SESS.name;
-    if(tb){ tb.textContent = '👤 '+SESS.name.split(' ')[0]; }
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   VIEWS
-══════════════════════════════════════════════════════ */
-function renderView(){
-  var el = document.getElementById('main-content');
-  if(!el) return;
-  var html = '';
-  if(VIEW==='dashboard')  html = renderDashboard();
-  else if(VIEW==='gap')   html = renderGap();
-  else if(VIEW==='aida')  html = renderAIDA();
-  else if(VIEW==='mb')    html = renderMB();
-  else if(VIEW==='roadmap') html = renderRoadmap();
-  else if(VIEW==='checklist') html = renderIssuerChecklist ? renderIssuerChecklist() : comingSoon('IPO Checklist');
-  else if(VIEW==='ai')    html = renderAIHome ? renderAIHome() : comingSoon('AI Assistants');
-  else html = comingSoon(VIEW);
-  el.innerHTML = html;
-  if(VIEW==='ai' && typeof bindChat==='function') bindChat();
-}
-
-function comingSoon(title){
-  return '<div class="portal-pad"><h1 class="page-title">'+title+'</h1><p class="page-sub">Coming soon.</p></div>';
-}
-
-/* ── DASHBOARD ── */
-function renderDashboard(){
-  var fname = SESS.loggedIn ? SESS.name.split(' ')[0] : 'there';
-  var html = '<div class="portal-pad">';
-  html += '<div style="margin-bottom:22px">';
-  html += '<div class="page-ey">ISSUER PORTAL</div>';
-  html += '<div class="page-title">Welcome back, '+fname+' 👋</div>';
-  html += '<div class="page-sub">Your IPO readiness journey. Follow these steps to listing day.</div>';
-  html += '</div>';
-
-  // AIRA hero CTA
-  html += '<div style="background:linear-gradient(135deg,var(--tld),var(--tl));border-radius:16px;padding:22px 26px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;position:relative;overflow:hidden">';
-  html += '<div style="position:absolute;top:-30px;right:-30px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.04)"></div>';
-  html += '<div><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:5px">AIRA SCORE · AI IPO READINESS ASSESSMENT</div>';
-  html += '<div style="font-family:var(--serif);font-size:20px;font-weight:900;color:#fff;margin-bottom:4px">Know your IPO readiness in 3 minutes</div>';
-  html += '<div style="font-size:13px;color:rgba(255,255,255,.6)">16 parameters · Score Simulator · Fix Engine · Valuation Matrix</div></div>';
-  html += '<a href="aira.html" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--sf);color:#fff;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:800;text-decoration:none;flex-shrink:0;box-shadow:0 4px 14px rgba(232,138,46,.4)">📊 Get AIRA Score →</a>';
-  html += '</div>';
-
-  // 6 steps
-  html += '<div class="sec-hd">Your 6-Step IPO Journey</div>';
-  html += '<div class="grid2" style="margin-bottom:22px">';
-  var steps = [
-    {n:'01',icon:'📊',title:'AIRA Score',sub:'AI analysis across 16 parameters',link:'aira.html',tag:'FREE · 3 min',col:'var(--tl)'},
-    {n:'02',icon:'🔍',title:'Fix Compliance Gaps',sub:'Close every gap before DRHP',nav:'gap',tag:'FREE',col:'var(--tll)'},
-    {n:'03',icon:'🏦',title:'Merchant Banker Match',sub:'AI-matched to your sector & size',nav:'mb',tag:'FREE',col:'var(--sf)'},
-    {n:'04',icon:'📄',title:'AIDA Document Review',sub:'AI reviews your key documents',nav:'aida',tag:'FREE',col:'var(--go)'},
-    {n:'05',icon:'📋',title:'DRHP Checklist',sub:'500-item shared checklist',nav:'checklist',tag:'500 items',col:'var(--ok)'},
-    {n:'06',icon:'📅',title:'IPO Roadmap',sub:'Custom month-by-month timeline',nav:'roadmap',tag:'Free',col:'var(--tld)'},
-  ];
-  steps.forEach(function(s){
-    var href = s.link ? 'href="'+s.link+'"' : 'href="#" onclick="go(\''+s.nav+'\');return false"';
-    html += '<a '+href+' class="step-card" style="border-left-color:'+s.col+'">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
-    html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:10px;font-weight:700;color:'+s.col+'">'+s.n+'</span><span style="font-size:18px">'+s.icon+'</span></div>';
-    html += '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(13,92,107,.06);color:var(--mu)">'+s.tag+'</span>';
-    html += '</div>';
-    html += '<div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--tld);margin-bottom:3px">'+s.title+'</div>';
-    html += '<div style="font-size:12px;color:var(--mu);line-height:1.55">'+s.sub+'</div>';
-    html += '</a>';
-  });
-  html += '</div>';
-
-  // Stats
-  html += '<div class="sec-hd">Platform</div>';
-  html += '<div class="grid4" style="margin-bottom:22px">';
-  [{v:'16',l:'AIRA Parameters'},{v:'500',l:'DRHP Items'},{v:'14',l:'AI Assistants'},{v:'Free',l:'No login needed'}].forEach(function(s){
-    html += '<div class="kv-card"><div class="kv-val">'+s.v+'</div><div class="kv-lbl">'+s.l+'</div></div>';
-  });
-  html += '</div>';
-
-  if(!SESS.loggedIn){
-    html += '<div style="background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:12px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">';
-    html += '<div><div style="font-size:14px;font-weight:800;color:var(--tld);margin-bottom:2px">💾 Sign in to save your progress</div>';
-    html += '<div style="font-size:13px;color:var(--mu)">Free · 30 seconds · No OTP required yet</div></div>';
-    html += '<a href="login.html" class="btn btn-teal btn-sm">Sign In →</a>';
-    html += '</div>';
-  }
-  html += '</div>';
-  return html;
-}
-
-/* ── COMPLIANCE GAP ANALYZER ── */
-var gapResult = null;
-function renderGap(){
-  if(gapResult) return renderGapResult();
-  return '<div class="portal-pad">'+
-    '<div class="page-ey">COMPLIANCE TOOLS</div>'+
-    '<h1 class="page-title">🔍 Compliance Gap Analyzer</h1>'+
-    '<p class="page-sub">AI scans against SEBI ICDR 2018, Companies Act 2013, GST, TDS and ROC requirements. Get a prioritised fix list.</p>'+
-    '<div class="card2">'+
-      '<div class="sec-hd">Company Details</div>'+
-      '<div class="fg" style="margin-bottom:14px">'+
-        '<div class="field"><label class="lbl">CIN or Company Name *</label><input class="inp" id="g-cin" placeholder="L17110MH1973... or Company Name"/></div>'+
-        '<div class="field"><label class="lbl">Sector</label><select class="inp" id="g-sec"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Chemicals</option><option>Financial Services</option><option>Healthcare</option><option>Auto Components</option><option>Other</option></select></div>'+
-      '</div>'+
-      '<div class="sec-hd">Known Issues (optional)</div>'+
-      '<div class="fg" style="margin-bottom:16px">'+
-        '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="g-roc" style="accent-color:var(--tl)"/> ROC filing delays</label>'+
-        '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="g-gst" style="accent-color:var(--tl)"/> GST notices / mismatch</label>'+
-        '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="g-ind" style="accent-color:var(--tl)"/> No independent directors</label>'+
-        '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="g-aud" style="accent-color:var(--tl)"/> Audit qualifications</label>'+
-        '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="g-lit" style="accent-color:var(--tl)"/> Ongoing litigation</label>'+
-        '<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;font-size:13px"><input type="checkbox" id="g-tds" style="accent-color:var(--tl)"/> TDS demands pending</label>'+
-      '</div>'+
-      '<button class="btn btn-teal" id="gap-btn" onclick="runGapAnalysis()" style="width:100%;justify-content:center;padding:12px">🔍 Analyze Compliance Gaps →</button>'+
-    '</div>'+
-  '</div>';
-}
-
-function renderGapResult(){
-  return '<div class="portal-pad">'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">'+
-      '<div><h1 class="page-title">🔍 Compliance Gap Report</h1><p class="page-sub" style="margin-bottom:0">'+gapResult.company+' · '+gapResult.sector+'</p></div>'+
-      '<button class="btn-ghost" onclick="gapResult=null;renderView()">↺ Re-analyze</button>'+
-    '</div>'+
-    '<div class="result-card"><pre>'+gapResult.report+'</pre></div>'+
-    '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20need%20help%20fixing%20compliance%20gaps%20for%20'+encodeURIComponent(gapResult.company)+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:#25D366;color:#fff;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none">📱 Get Expert Help to Fix These Gaps →</a>'+
-  '</div>';
-}
-
-async function runGapAnalysis(){
-  var cin = document.getElementById('g-cin')?.value?.trim();
-  if(!cin){ alert('Please enter CIN or company name.'); return; }
-  var sector = document.getElementById('g-sec')?.value || 'Manufacturing';
-  var issues = [];
-  [['g-roc','ROC filing delays'],['g-gst','GST notices'],['g-ind','No independent directors'],['g-aud','Audit qualifications'],['g-lit','Ongoing litigation'],['g-tds','TDS demands']].forEach(function(c){ if(document.getElementById(c[0])?.checked) issues.push(c[1]); });
-  var btn = document.getElementById('gap-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Analyzing…'; }
-  try {
-    var r = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,
-        system:'You are an IPO compliance expert for India. Analyze compliance gaps for a company preparing for IPO. Be specific with SEBI ICDR 2018, Companies Act 2013 regulation numbers. Format: CRITICAL GAPS (numbered), HIGH PRIORITY GAPS (numbered), RECOMMENDED FIXES (numbered), ESTIMATED TIMELINE.',
-        messages:[{role:'user',content:'Company: '+cin+' | Sector: '+sector+(issues.length?' | Known issues: '+issues.join(', '):'')+'. Provide detailed compliance gap analysis for SME or Main Board IPO.'}]})});
-    var d = await r.json();
-    gapResult = { company:cin, sector:sector, report:(d.content||[]).map(function(c){return c.text||'';}).join('') };
-  } catch(e){ gapResult = { company:cin, sector:sector, report:'Analysis unavailable. Please check Worker configuration.' }; }
-  renderView();
-}
-
-/* ── AIDA DOCUMENT REVIEW ── */
-var aidaResult = null;
-function renderAIDA(){
-  if(aidaResult) return renderAIDAResult();
-  return '<div class="portal-pad">'+
-    '<div class="page-ey">AI DOCUMENT TOOLS</div>'+
-    '<h1 class="page-title">📄 AIDA Document Review</h1>'+
-    '<p class="page-sub">Paste document text. AI flags SEBI ICDR gaps, missing disclosures and compliance risks.</p>'+
-    '<div class="card2">'+
-      '<div class="field" style="margin-bottom:14px"><label class="lbl">Document Type</label>'+
-        '<select class="inp" id="a-type"><option>Annual Report / Financial Statements</option><option>Board Resolution</option><option>MOA / AOA</option><option>Shareholder Agreement</option><option>Auditor Report</option><option>GST / Tax Filing</option><option>ROC Filing (AOC-4 / MGT-7)</option><option>Any IPO Document</option></select></div>'+
-      '<div class="field" style="margin-bottom:16px"><label class="lbl">Paste Document Text *</label>'+
-        '<textarea class="inp" id="a-text" rows="8" placeholder="Paste text here. AIDA flags SEBI ICDR gaps, missing disclosures and compliance risks..." style="resize:vertical;line-height:1.6"></textarea></div>'+
-      '<button class="btn btn-teal" id="aida-btn" onclick="runAIDAReview()" style="width:100%;justify-content:center;padding:12px">📄 Review Document →</button>'+
-    '</div></div>';
-}
-
-function renderAIDAResult(){
-  return '<div class="portal-pad">'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">'+
-      '<div><h1 class="page-title">📄 AIDA Review — '+aidaResult.doctype+'</h1><p class="page-sub" style="margin-bottom:0">Document analysis complete</p></div>'+
-      '<button class="btn-ghost" onclick="aidaResult=null;renderView()">↺ Review Another</button>'+
-    '</div>'+
-    '<div class="result-card"><pre>'+aidaResult.report+'</pre></div>'+
-  '</div>';
-}
-
-async function runAIDAReview(){
-  var text = document.getElementById('a-text')?.value?.trim();
-  var dtype = document.getElementById('a-type')?.value || 'IPO Document';
-  if(!text){ alert('Please paste document text.'); return; }
-  var btn = document.getElementById('aida-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Reviewing…'; }
-  try {
-    var r = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,
-        system:'You are AIDA — AI IPO Document Analyzer for India. Review documents and flag: RED FLAGS (critical issues), MISSING DISCLOSURES (mandatory items absent), COMPLIANCE ISSUES (SEBI ICDR 2018 / Companies Act refs), RECOMMENDATIONS (specific fixes). Be precise with regulation numbers.',
-        messages:[{role:'user',content:'Document Type: '+dtype+'\n\nDocument:\n'+text.substring(0,4000)}]})});
-    var d = await r.json();
-    aidaResult = { doctype:dtype, report:(d.content||[]).map(function(c){return c.text||'';}).join('') };
-  } catch(e){ aidaResult = { doctype:dtype, report:'Review unavailable. Please check Worker configuration.' }; }
-  renderView();
-}
-
-/* ── MERCHANT BANKER MATCH ── */
-var mbResult = null;
-function renderMB(){
-  if(mbResult) return renderMBResult();
-  return '<div class="portal-pad">'+
-    '<div class="page-ey">MATCHMAKING</div>'+
-    '<h1 class="page-title">🏦 Merchant Banker Match</h1>'+
-    '<p class="page-sub">AI matches you with SEBI-registered merchant bankers based on sector, size and track record.</p>'+
-    '<div class="card2">'+
-      '<div class="fg" style="margin-bottom:14px">'+
-        '<div class="field"><label class="lbl">Company Name</label><input class="inp" id="mb-name" placeholder="Your Company Pvt Ltd"/></div>'+
-        '<div class="field"><label class="lbl">Sector</label><select class="inp" id="mb-sec"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Chemicals</option><option>Financial Services</option><option>Healthcare</option><option>Auto Components</option><option>Textiles</option><option>Logistics</option><option>Renewable Energy</option><option>Other</option></select></div>'+
-        '<div class="field"><label class="lbl">Revenue FY24 (₹ Crore)</label><input class="inp" id="mb-rev" type="number" placeholder="e.g. 48"/></div>'+
-        '<div class="field"><label class="lbl">Target IPO Size (₹ Crore)</label><input class="inp" id="mb-size" type="number" placeholder="e.g. 25"/></div>'+
-        '<div class="field"><label class="lbl">Target Exchange</label><select class="inp" id="mb-ex"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Main Board</option><option>BSE Main Board</option></select></div>'+
-        '<div class="field"><label class="lbl">AIRA Score (if known)</label><input class="inp" id="mb-score" type="number" placeholder="e.g. 74" min="0" max="100"/></div>'+
-      '</div>'+
-      '<button class="btn btn-teal" id="mb-btn" onclick="runMBMatch()" style="width:100%;justify-content:center;padding:12px">🏦 Find Matching MBs →</button>'+
-    '</div></div>';
-}
-
-function renderMBResult(){
-  return '<div class="portal-pad">'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">'+
-      '<div><h1 class="page-title">🏦 MB Matches — '+mbResult.company+'</h1><p class="page-sub" style="margin-bottom:0">'+mbResult.exchange+'</p></div>'+
-      '<button class="btn-ghost" onclick="mbResult=null;renderView()">↺ Search Again</button>'+
-    '</div>'+
-    '<div class="result-card"><pre>'+mbResult.report+'</pre></div>'+
-    '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20connect%20me%20with%20matched%20MBs%20for%20'+encodeURIComponent(mbResult.company)+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:#25D366;color:#fff;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;margin-top:10px">📱 Connect via WhatsApp →</a>'+
-  '</div>';
-}
-
-async function runMBMatch(){
-  var name = document.getElementById('mb-name')?.value?.trim() || 'Your Company';
-  var sector = document.getElementById('mb-sec')?.value; var rev = document.getElementById('mb-rev')?.value||'—';
-  var size = document.getElementById('mb-size')?.value||'—'; var ex = document.getElementById('mb-ex')?.value;
-  var score = document.getElementById('mb-score')?.value||'Not run';
-  var btn = document.getElementById('mb-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Matching…'; }
-  try {
-    var r = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1800,
-        system:'You are an IPO merchant banker matchmaking expert for India. Recommend 3 SEBI-registered merchant bankers. For each: Name, SEBI Reg No, Sector expertise, 2-3 recent IPOs, fee range, fit reason. Then: questions to ask each MB, timeline, red flags.',
-        messages:[{role:'user',content:'Company: '+name+' | Sector: '+sector+' | Revenue: ₹'+rev+' Cr | IPO Size: ₹'+size+' Cr | Exchange: '+ex+' | AIRA Score: '+score}]})});
-    var d = await r.json();
-    mbResult = { company:name, exchange:ex, report:(d.content||[]).map(function(c){return c.text||'';}).join('') };
-  } catch(e){ mbResult = { company:name, exchange:'—', report:'Matching unavailable. Contact us on WhatsApp.' }; }
-  renderView();
-}
-
-/* ── IPO ROADMAP ── */
-var roadmapResult = null;
-function renderRoadmap(){
-  if(roadmapResult) return renderRoadmapResult();
-  return '<div class="portal-pad">'+
-    '<div class="page-ey">PLANNING</div>'+
-    '<h1 class="page-title">📅 IPO Roadmap Builder</h1>'+
-    '<p class="page-sub">AI builds a custom month-by-month IPO timeline based on your readiness and gaps.</p>'+
-    '<div class="card2">'+
-      '<div class="fg" style="margin-bottom:14px">'+
-        '<div class="field"><label class="lbl">Company Name</label><input class="inp" id="rl-name" placeholder="Your Company Pvt Ltd"/></div>'+
-        '<div class="field"><label class="lbl">AIRA Score</label><input class="inp" id="rl-score" type="number" placeholder="e.g. 74" min="0" max="100"/></div>'+
-        '<div class="field"><label class="lbl">Target Exchange</label><select class="inp" id="rl-ex"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Main Board</option><option>BSE Main Board</option></select></div>'+
-        '<div class="field"><label class="lbl">Target Timeline</label><select class="inp" id="rl-tl"><option>ASAP</option><option>Within 12 months</option><option>12–18 months</option><option>18–24 months</option><option>24–36 months</option></select></div>'+
-      '</div>'+
-      '<div class="field" style="margin-bottom:16px"><label class="lbl">Key Gaps (optional)</label>'+
-        '<textarea class="inp" id="rl-gaps" rows="3" placeholder="e.g. No independent directors, GST mismatch, D/E ratio 1.8x..." style="resize:vertical"></textarea></div>'+
-      '<button class="btn btn-teal" id="rl-btn" onclick="runRoadmap()" style="width:100%;justify-content:center;padding:12px">📅 Build My IPO Roadmap →</button>'+
-    '</div></div>';
-}
-
-function renderRoadmapResult(){
-  return '<div class="portal-pad">'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">'+
-      '<div><h1 class="page-title">📅 IPO Roadmap — '+roadmapResult.company+'</h1><p class="page-sub" style="margin-bottom:0">'+roadmapResult.exchange+'</p></div>'+
-      '<button class="btn-ghost" onclick="roadmapResult=null;renderView()">↺ Rebuild</button>'+
-    '</div>'+
-    '<div class="result-card"><pre>'+roadmapResult.report+'</pre></div>'+
-    '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20have%20my%20IPO%20roadmap%20for%20'+encodeURIComponent(roadmapResult.company)+'%20and%20need%20execution%20help." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:var(--tl);color:#fff;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;margin-top:10px">📱 Get Expert Help to Execute →</a>'+
-  '</div>';
-}
-
-async function runRoadmap(){
-  var name = document.getElementById('rl-name')?.value?.trim()||'Your Company';
-  var score = document.getElementById('rl-score')?.value||'—';
-  var ex = document.getElementById('rl-ex')?.value;
-  var tl = document.getElementById('rl-tl')?.value;
-  var gaps = document.getElementById('rl-gaps')?.value?.trim();
-  var btn = document.getElementById('rl-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Building…'; }
-  try {
-    var r = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2200,
-        system:'You are an IPO roadmap builder for Indian companies. Build a detailed month-by-month roadmap. Format as PHASE 1 (Month 1-2): items, PHASE 2 etc. Include: what each month, who does it (CA/CS/MB/Management), dependencies, critical path. Be specific and actionable.',
-        messages:[{role:'user',content:'Company: '+name+' | AIRA Score: '+score+' | Exchange: '+ex+' | Timeline: '+tl+(gaps?' | Gaps: '+gaps:'')}]})});
-    var d = await r.json();
-    roadmapResult = { company:name, exchange:ex, report:(d.content||[]).map(function(c){return c.text||'';}).join('') };
-  } catch(e){ roadmapResult = { company:name, exchange:'—', report:'Roadmap unavailable. Please check Worker configuration.' }; }
-  renderView();
-}
-
-/* ── INIT ── */
-document.addEventListener('DOMContentLoaded', function(){
-  updateAuthUI();
-  renderNav();
-  renderView();
-});
-</script>
