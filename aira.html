@@ -691,7 +691,11 @@ async function runFree(){
       '<div class="score-sub">'+(c.company_name||'Company')+' · '+sector+' · '+exchange+'</div>'+
       '<div class="score-tags"><span class="stag" style="background:'+v.bg+';color:'+v.txt+'">'+v.label+'</span>'+
       '<span class="stag '+(score>=65?'good':'warn')+'">MCA Verified</span><span class="stag">SEBI ICDR 2018</span></div></div>'+
-    '<div class="score-right"><div class="sc-lbl">Score</div><div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div></div>'+
+    '<div class="score-right">'+
+    '<div class="sc-lbl">Score</div>'+
+    '<div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div>'+
+    '<div id="score-pct-badge" style="margin-top:8px;display:inline-block;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:700;color:#fff">Loading…</div>'+
+  '</div>'+
   '</div>';
 
 
@@ -840,7 +844,7 @@ async function runPaid(){
       '<div class="score-sub">'+(probe.company_name||'Company')+' · '+sector+' · '+exchange+'</div>'+
       '<div class="score-tags"><span class="stag '+(score>=65?'good':'warn')+'">'+v.label+'</span>'+
       '<span class="stag good">Data Verified</span><span class="stag">7-Year Financials</span><span class="stag">SEBI ICDR 2018</span></div></div>'+
-    '<div class="score-right"><div class="sc-lbl">Full Score</div><div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div></div>'+
+    '<div class="score-right"><div class="sc-lbl">Full Score</div><div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div><div id="score-pct-badge" style="margin-top:8px;display:inline-block;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:700;color:#fff">Loading…</div></div>'+
   '</div>';
 
 
@@ -1052,7 +1056,86 @@ function downloadReport(tier){
     aiSection = '<div style="margin-top:24px"><div class="sec-hdr">AI Analysis</div><div style="font-size:13px;color:#3D5460;line-height:1.8;white-space:pre-wrap;background:#FAFAF8;padding:16px;border-radius:8px;border:1px solid #E2E8EA">' + aiText.substring(0,2000) + (aiText.length>2000?'\n\n[Full report available in Pro version]':'') + '</div></div>';
   }
 
-  var proDisclaimer = tier === 'free'
+
+  /* ── BENCHMARK PDF SECTION ── */
+  var sector_bm = sector;
+  var b_bm = (typeof BENCH !== 'undefined') ? (BENCH[sector_bm]||BENCH['Other']) : null;
+  var pct_bm = 0, topPct_bm = 100, pctLabel_bm = '—';
+  var prob_bm = '—', probLbl_bm = '—', probCol_bm = '#6B7E85';
+  if(b_bm && typeof getPercentile === 'function'){
+    pct_bm = getPercentile(scoreNum, b_bm);
+    topPct_bm = 100 - pct_bm;
+    pctLabel_bm = topPct_bm<=10?'Top 10%':topPct_bm<=25?'Top 25%':topPct_bm<=40?'Top 40%':topPct_bm<=60?'Top 60%':'Bottom 40%';
+  }
+  if(scoreNum>=82){prob_bm='87%';probLbl_bm='Very High';probCol_bm='#1A9E6B';}
+  else if(scoreNum>=75){prob_bm='74%';probLbl_bm='High';probCol_bm='#2E8B57';}
+  else if(scoreNum>=65){prob_bm='58%';probLbl_bm='Moderate';probCol_bm='#E88A2E';}
+  else if(scoreNum>=55){prob_bm='34%';probLbl_bm='Low';probCol_bm='#D4860C';}
+  else{prob_bm='12%';probLbl_bm='Very Low';probCol_bm='#C0392B';}
+
+  var benchmarkPDF = '';
+  if(b_bm){
+    benchmarkPDF += '<div style="margin-bottom:24px;page-break-inside:avoid">';
+    benchmarkPDF += '<div class="sec-hdr">Industry Benchmark · '+sector_bm+'</div>';
+
+    /* Percentile highlight */
+    var pCol = topPct_bm<=25?'#1A9E6B':topPct_bm<=50?'#E88A2E':'#C0392B';
+    benchmarkPDF += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:12px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:20px">';
+    benchmarkPDF += '<div><div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Your Ranking</div>';
+    benchmarkPDF += '<div style="font-family:Georgia,serif;font-size:20px;font-weight:900;color:#fff">AIRA Score <span style="color:#E88A2E">'+score+'</span> = <span style="color:'+(topPct_bm<=25?'#6DDC9E':topPct_bm<=50?'#F5C072':'#F4A09A')+'">'+pctLabel_bm+'</span> in '+sector_bm+'</div>';
+    benchmarkPDF += '<div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:4px">Beats '+pct_bm+'% of comparable companies · Sector median: '+b_bm.p50+'</div></div>';
+    benchmarkPDF += '<div style="text-align:center;background:rgba(255,255,255,.1);border-radius:10px;padding:12px 18px;flex-shrink:0">';
+    benchmarkPDF += '<div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">BEATS</div>';
+    benchmarkPDF += '<div style="font-family:Georgia,serif;font-size:28px;font-weight:900;color:'+pCol+'">'+pct_bm+'%</div>';
+    benchmarkPDF += '<div style="font-size:10px;color:rgba(255,255,255,.4)">of peers</div></div>';
+    benchmarkPDF += '</div>';
+
+    /* Peer comparison table */
+    benchmarkPDF += '<div style="margin-bottom:14px">';
+    benchmarkPDF += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    benchmarkPDF += '<thead><tr style="background:#F7F3EE">';
+    benchmarkPDF += '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7E85;border-bottom:2px solid #E2E8EA">Metric</th>';
+    benchmarkPDF += '<th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#08404D;border-bottom:2px solid #E2E8EA;background:rgba(13,92,107,.04)">★ Your Company</th>';
+    benchmarkPDF += '<th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B7E85;border-bottom:2px solid #E2E8EA">Sector Average</th>';
+    benchmarkPDF += '<th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#1A9E6B;border-bottom:2px solid #E2E8EA;background:rgba(26,158,107,.03)">Top Quartile</th>';
+    benchmarkPDF += '</tr></thead><tbody>';
+    var pdfRows = [
+      ['AIRA Score',score,b_bm.p50,b_bm.p75],
+      ['Sector Median','—',b_bm.p50,'—'],
+      ['Bottom 25% threshold','—',b_bm.p25,'—'],
+      ['IPO Success Probability',prob_bm,b_bm.sebi?b_bm.sebi.approvalRate+'%':'72%','87%'],
+    ];
+    pdfRows.forEach(function(r,i){
+      var yNum2 = parseFloat(r[1]); var aNum2 = parseFloat(r[2]);
+      var yc = (!isNaN(yNum2)&&!isNaN(aNum2)) ? (yNum2>=aNum2?'#0D5C6B':'#C0392B') : '#2C3E47';
+      benchmarkPDF += '<tr style="background:'+(i%2?'#fff':'#FAFAF8')+'">';
+      benchmarkPDF += '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;font-weight:600;color:#2C3E47">'+r[0]+'</td>';
+      benchmarkPDF += '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;text-align:center;font-family:monospace;font-weight:800;color:'+yc+';background:rgba(13,92,107,.02)">'+r[1]+'</td>';
+      benchmarkPDF += '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;text-align:center;font-family:monospace;color:#6B7E85">'+r[2]+'</td>';
+      benchmarkPDF += '<td style="padding:8px 12px;border-bottom:1px solid #E2E8EA;text-align:center;font-family:monospace;font-weight:700;color:#1A9E6B;background:rgba(26,158,107,.02)">'+r[3]+'</td>';
+      benchmarkPDF += '</tr>';
+    });
+    benchmarkPDF += '</tbody></table></div>';
+
+    /* Success probability */
+    benchmarkPDF += '<div style="display:flex;align-items:center;gap:14px;padding:13px 16px;background:rgba(13,92,107,.04);border:1.5px solid rgba(13,92,107,.15);border-radius:10px">';
+    benchmarkPDF += '<div style="font-size:28px">'+( scoreNum>=75?'🚀':scoreNum>=65?'⚡':'🔧')+'</div>';
+    benchmarkPDF += '<div><div style="font-size:14px;font-weight:800;color:#08404D;margin-bottom:3px">IPO Success Probability: <span style="color:'+probCol_bm+'">'+prob_bm+' ('+probLbl_bm+')</span></div>';
+    benchmarkPDF += '<div style="font-size:12px;color:#6B7E85">Based on SEBI FY2024 approval data · Companies scoring 75+ have 3.2× higher success rate</div></div>';
+    benchmarkPDF += '</div>';
+
+    if(b_bm.sebi){
+      benchmarkPDF += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">';
+      benchmarkPDF += '<div style="padding:10px;background:rgba(26,158,107,.05);border:1px solid rgba(26,158,107,.2);border-radius:8px;text-align:center"><div style="font-size:10px;color:#6B7E85;margin-bottom:2px">FY24 Approvals</div><div style="font-size:18px;font-weight:900;color:#1A9E6B;font-family:Georgia,serif">'+b_bm.sebi.approved+'/'+b_bm.sebi.total_fy24+'</div><div style="font-size:10px;color:#6B7E85">'+b_bm.sebi.approvalRate+'% rate</div></div>';
+      benchmarkPDF += '<div style="padding:10px;background:rgba(192,57,43,.05);border:1px solid rgba(192,57,43,.2);border-radius:8px;text-align:center"><div style="font-size:10px;color:#6B7E85;margin-bottom:2px">FY24 Rejections</div><div style="font-size:18px;font-weight:900;color:#C0392B;font-family:Georgia,serif">'+b_bm.sebi.rejected+'/'+b_bm.sebi.total_fy24+'</div><div style="font-size:10px;color:#6B7E85">'+b_bm.sebi.rejectionRate+'% rate</div></div>';
+      benchmarkPDF += '<div style="padding:10px;background:rgba(212,134,12,.05);border:1px solid rgba(212,134,12,.2);border-radius:8px"><div style="font-size:10px;color:#6B7E85;margin-bottom:2px">Top Rejection Reason</div><div style="font-size:11px;font-weight:700;color:#D4860C;line-height:1.4">'+b_bm.sebi.topRejectionReason+'</div></div>';
+      benchmarkPDF += '</div>';
+    }
+    benchmarkPDF += '</div>';
+  }
+
+  
+    var proDisclaimer = tier === 'free'
     ? '<div style="background:rgba(232,138,46,.08);border:1px solid rgba(232,138,46,.25);border-radius:8px;padding:12px 16px;margin-top:20px;font-size:12px;color:#7A5B1A">📊 <strong>Free Report</strong> — Shows top 3 gaps. Run Full AIRA Score at ipowork.com/aira.html for complete 16-parameter analysis, 7-year financials and valuation matrix.</div>'
     : '<div style="background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.2);border-radius:8px;padding:12px 16px;margin-top:20px;font-size:12px;color:#0F6E4A">✅ <strong>Full AIRA Report</strong> — Complete 16-parameter analysis with verified financial data.</div>';
 
@@ -1174,6 +1257,9 @@ function downloadReport(tier){
     html += '</tbody></table></div>';
   }
 
+  // Benchmark section
+  html += benchmarkPDF;
+
   // AI Analysis (free tier)
   html += aiSection;
 
@@ -1278,384 +1364,267 @@ function getDimPercentile(score, dimData){
    Shows: Overall rank · Dimension ranks · Cohort · Predictive
 ══════════════════════════════════════════ */
 function renderBenchmark(score, sector, dims){
-  var b   = BENCH[sector] || BENCH['Other'];
+  var b = BENCH[sector] || BENCH['Other'];
   var pct = getPercentile(score, b);
-  var topPct  = 100 - pct;
-  var pctLabel = topPct<=10?'Top 10%':topPct<=25?'Top 25%':topPct<=40?'Top 40%':topPct<=60?'Top 60%':'Bottom 40%';
-  var pctCol   = topPct<=25?'#1A9E6B':topPct<=50?'#E88A2E':'#C0392B';
+  var topPct = 100 - pct;
 
-  /* IPO success probability */
-  var prob, probLbl, probCol;
-  if(score>=82){prob=87;probLbl='Very High';probCol='#1A9E6B';}
-  else if(score>=75){prob=74;probLbl='High';probCol='#2E8B57';}
-  else if(score>=65){prob=58;probLbl='Moderate';probCol='#E88A2E';}
-  else if(score>=55){prob=34;probLbl='Low';probCol='#D4860C';}
-  else{prob=12;probLbl='Very Low';probCol='#C0392B';}
+  /* Probability */
+  var prob, probLbl, probCol, probMult;
+  if(score>=82){prob=87;probLbl='Very High';probCol='#1A9E6B';probMult='3.2×';}
+  else if(score>=75){prob=74;probLbl='High';probCol='#2E8B57';probMult='2.4×';}
+  else if(score>=65){prob=58;probLbl='Moderate';probCol='#E88A2E';probMult='1.8×';}
+  else if(score>=55){prob=34;probLbl='Low';probCol='#D4860C';probMult='0.9×';}
+  else{prob=12;probLbl='Very Low';probCol='#C0392B';probMult='0.3×';}
+
+  var pctCol = topPct<=25?'#1A9E6B':topPct<=50?'#E88A2E':'#C0392B';
+  var pctLabel = topPct<=10?'Top 10%':topPct<=25?'Top 25%':topPct<=40?'Top 40%':topPct<=60?'Top 60%':'Bottom 40%';
+
+  /* Update score hero badge */
+  setTimeout(function(){
+    var badge = document.getElementById('score-pct-badge');
+    if(badge){
+      badge.textContent = pctLabel+' in '+esc(b.label);
+      badge.style.background = topPct<=25?'rgba(26,158,107,.25)':topPct<=50?'rgba(232,138,46,.25)':'rgba(192,57,43,.25)';
+      badge.style.borderColor = topPct<=25?'rgba(26,158,107,.5)':topPct<=50?'rgba(232,138,46,.5)':'rgba(192,57,43,.5)';
+      badge.style.color = topPct<=25?'#6DDC9E':topPct<=50?'#F5C072':'#F4A09A';
+    }
+  }, 200);
 
   var html = '';
 
-  /* ── SECTION 1: Overall Ranking ── */
-  html += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:16px;padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden">';
-  html += '<div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.03)"></div>';
-  html += '<div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:14px">📊 Industry Benchmark · '+esc(b.label)+'</div>';
+  /* ═══════════════════════════════════════════
+     SECTION A — PERCENTILE + PEER COMPARISON
+  ═══════════════════════════════════════════ */
+  html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:18px;overflow:hidden;margin-bottom:14px;box-shadow:var(--sh2)">';
 
-  /* 3 stat boxes */
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">';
-
-  /* Box 1: Percentile */
-  html += '<div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;text-align:center">';
-  html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:6px">Your Rank</div>';
-  html += '<div style="font-family:var(--serif);font-size:32px;font-weight:900;color:'+pctCol+';line-height:1">'+esc(pctLabel)+'</div>';
-  html += '<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">Score '+score+' beats '+pct+'% of<br>'+esc(b.label)+' companies</div>';
+  /* Header strip */
+  html += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">';
+  html += '<div>';
+  html += '<div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:4px">CIBIL for IPOs · Industry Benchmark</div>';
+  html += '<div style="font-family:var(--serif);font-size:17px;font-weight:900;color:#fff">AIRA Score <span style="color:#E88A2E">'+score+'</span> = <span style="color:'+(topPct<=25?'#6DDC9E':topPct<=50?'#F5C072':'#F4A09A')+'">'+pctLabel+'</span> in '+esc(b.label)+'</div>';
   html += '</div>';
-
-  /* Box 2: Sector median */
-  html += '<div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;text-align:center">';
-  html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:6px">Sector Median</div>';
-  html += '<div style="font-family:var(--serif);font-size:32px;font-weight:900;color:#fff;line-height:1">'+b.p50+'</div>';
-  html += '<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">You are '+(score>=b.p50?'<span style="color:#6DDC9E">+'+(score-b.p50)+' above</span>':'<span style="color:#F4A09A">'+(b.p50-score)+' below</span>')+' median</div>';
-  html += '</div>';
-
-  /* Box 3: IPO Probability */
-  html += '<div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;text-align:center">';
-  html += '<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.4);margin-bottom:6px">IPO Success Odds</div>';
-  html += '<div style="font-family:var(--serif);font-size:32px;font-weight:900;color:'+probCol+';line-height:1">'+prob+'%</div>';
-  html += '<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">Based on SEBI FY24<br>approval data · '+probLbl+'</div>';
+  html += '<div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px 16px;text-align:center;flex-shrink:0">';
+  html += '<div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px">Beats</div>';
+  html += '<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+pctCol+'">'+pct+'%</div>';
+  html += '<div style="font-size:10px;color:rgba(255,255,255,.45)">of '+esc(b.label)+' companies</div>';
   html += '</div>';
   html += '</div>';
 
   /* Distribution bar */
-  html += '<div>';
-  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px">';
-  html += '<span>0</span><span>Bottom 25% (≤'+b.p25+')</span><span>Median: '+b.p50+'</span><span>Top 25% (≥'+b.p75+')</span><span>Top 10% (≥'+b.p90+')</span>';
+  html += '<div style="padding:16px 22px 0;background:#fff">';
+  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mu);margin-bottom:6px">';
+  html += '<span style="font-weight:600">Distribution of AIRA Scores — '+esc(b.label)+'</span>';
+  html += '<span>Based on '+esc(b.label)+' IPO applications</span>';
   html += '</div>';
-  html += '<div style="height:10px;background:rgba(255,255,255,.08);border-radius:99px;position:relative;overflow:visible">';
-  /* Gradient zones */
-  html += '<div style="position:absolute;inset:0;border-radius:99px;background:linear-gradient(90deg,rgba(192,57,43,.4) 0%,rgba(212,134,12,.4) 40%,rgba(26,158,107,.4) 65%,rgba(26,158,107,.6) 82%,rgba(26,158,107,.8) 90%,rgba(26,158,107,1) 100%)"></div>';
-  /* Your position marker */
-  var markerPct = Math.min(Math.max(score, 0), 100);
-  html += '<div id="bm-marker" style="position:absolute;top:50%;transform:translate(-50%,-50%);left:0%;transition:left 1.2s cubic-bezier(.4,0,.2,1)">';
-  html += '<div style="width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #E88A2E;box-shadow:0 0 8px rgba(232,138,46,.6);position:relative">';
-  html += '<div style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;font-weight:700;color:#fff;background:#E88A2E;padding:2px 6px;border-radius:4px">You: '+score+'</div>';
-  html += '</div></div>';
-  html += '</div>';
-  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.3);margin-top:4px">';
-  html += '<span>0</span><span>25th</span><span>Median</span><span>75th</span><span>Top 10%</span><span>100</span>';
-  html += '</div>';
-  html += '</div>';
-  html += '</div>'; /* end section 1 */
 
-  /* ── SECTION 2: Per-Dimension Ranking ── */
-  if(dims && Object.keys(dims).length >= 4){
-    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh)">';
-    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px">📐 Dimension Ranking vs Sector<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  /* Score band bar */
+  html += '<div style="position:relative;height:28px;border-radius:8px;overflow:hidden;background:var(--bg);border:1px solid var(--bd);margin-bottom:6px">';
+  /* Bands */
+  html += '<div style="position:absolute;left:0;top:0;bottom:0;width:'+Math.round((b.p25/100)*100)+'%;background:#FEE2E2;border-right:1px dashed #F4A09A"></div>';
+  html += '<div style="position:absolute;top:0;bottom:0;left:'+Math.round((b.p25/100)*100)+'%;width:'+Math.round(((b.p50-b.p25)/100)*100)+'%;background:#FEF3C7;border-right:1px dashed #F5C072"></div>';
+  html += '<div style="position:absolute;top:0;bottom:0;left:'+Math.round((b.p50/100)*100)+'%;width:'+Math.round(((b.p75-b.p50)/100)*100)+'%;background:#D1FAE5;border-right:1px dashed #6DDC9E"></div>';
+  html += '<div style="position:absolute;top:0;bottom:0;left:'+Math.round((b.p75/100)*100)+'%;right:0;background:#A7F3D0"></div>';
+  /* Band labels */
+  html += '<div style="position:absolute;left:4px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:600;color:#9B1C1C;opacity:.8">Bottom 25%</div>';
+  html += '<div style="position:absolute;left:'+Math.round((b.p25/100)*100)+'%;top:50%;transform:translateY(-50%) translateX(4px);font-size:9px;font-weight:600;color:#92400E;opacity:.8">Mid</div>';
+  html += '<div style="position:absolute;left:'+Math.round((b.p50/100)*100)+'%;top:50%;transform:translateY(-50%) translateX(4px);font-size:9px;font-weight:600;color:#065F46;opacity:.8">Top 50%</div>';
+  html += '<div style="position:absolute;left:'+Math.round((b.p75/100)*100)+'%;top:50%;transform:translateY(-50%) translateX(4px);font-size:9px;font-weight:600;color:#064E3B;opacity:.8">Top 25%</div>';
+  /* Your marker */
+  var markerLeft = Math.min(Math.max(score, 2), 98);
+  html += '<div id="bm-marker" style="position:absolute;top:0;bottom:0;left:0%;width:2px;background:#08404D;transition:left 1.2s cubic-bezier(.4,0,.2,1)">';
+  html += '<div style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#08404D;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px">YOU</div>';
+  html += '</div>';
+  html += '</div>';
 
-    var dimLabels = {financial:'💹 Financial',governance:'🏛 Governance',compliance:'✅ Compliance',promoter:'👤 Promoter',legal:'⚖️ Legal',readiness:'📋 Readiness'};
+  /* Axis labels */
+  html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mu);margin-bottom:14px">';
+  html += '<span>0 (Not ready)</span><span style="color:var(--wn)">SME threshold: 65</span><span style="color:var(--tl)">Main Board: 78</span><span>100 (Ideal)</span>';
+  html += '</div>';
+  html += '</div>';
+
+  /* ─── Peer Comparison Table ─── */
+  html += '<div style="padding:0 22px 18px;background:#fff">';
+  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:10px;display:flex;align-items:center;gap:8px">Peer Comparison<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+
+  var tableRows = [
+    {metric:'AIRA Score',     yours:score,   avg:b.p50, top:b.p75,  unit:'',  fmt:function(v){return String(v);}},
+    {metric:'Financial',      yours:dims&&dims.financial?dims.financial:'-',  avg:b.dims?b.dims.financial.avg:'-', top:b.dims?b.dims.financial.p75:'-',  unit:'', fmt:function(v){return String(v);}},
+    {metric:'Governance',     yours:dims&&dims.governance?dims.governance:'-',avg:b.dims?b.dims.governance.avg:'-',top:b.dims?b.dims.governance.p75:'-', unit:'', fmt:function(v){return String(v);}},
+    {metric:'Compliance',     yours:dims&&dims.compliance?dims.compliance:'-',avg:b.dims?b.dims.compliance.avg:'-',top:b.dims?b.dims.compliance.p75:'-', unit:'', fmt:function(v){return String(v);}},
+    {metric:'Sector median',  yours:'—',     avg:b.p50, top:b.p75,  unit:'', fmt:function(v){return String(v);}},
+    {metric:'IPO success %',  yours:prob+'%',avg:b.sebi?b.sebi.approvalRate+'%':'72%',top:'87%', unit:'', fmt:function(v){return String(v);}},
+  ];
+
+  html += '<div style="overflow-x:auto">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+  html += '<thead><tr>';
+  html += '<th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--mu);border-bottom:2px solid var(--bd);background:var(--bg)">Metric</th>';
+  html += '<th style="text-align:center;padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#08404D;border-bottom:2px solid var(--bd);background:rgba(13,92,107,.04)">★ Your Co</th>';
+  html += '<th style="text-align:center;padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--mu);border-bottom:2px solid var(--bd);background:var(--bg)">Sector Avg</th>';
+  html += '<th style="text-align:center;padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--ok);border-bottom:2px solid var(--bd);background:rgba(26,158,107,.03)">Top Quartile</th>';
+  html += '</tr></thead><tbody>';
+
+  tableRows.forEach(function(row, idx){
+    var y = row.yours, a = row.avg, t = row.top;
+    var yNum = parseFloat(y);
+    var aNum = parseFloat(String(a));
+    var yCol = (!isNaN(yNum) && !isNaN(aNum)) ? (yNum>=aNum?'#0D5C6B':'#C0392B') : '#2C3E47';
+    var bg = idx%2===0?'#fff':'#FAFAF8';
+    html += '<tr style="background:'+bg+'">';
+    html += '<td style="padding:9px 10px;font-weight:600;color:var(--sl);border-bottom:1px solid rgba(13,92,107,.04)">'+esc(row.metric)+'</td>';
+    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);font-weight:800;color:'+yCol+';border-bottom:1px solid rgba(13,92,107,.04);background:rgba(13,92,107,.03)">'+esc(String(y))+'</td>';
+    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);color:var(--mu);border-bottom:1px solid rgba(13,92,107,.04)">'+esc(String(a))+'</td>';
+    html += '<td style="padding:9px 10px;text-align:center;font-family:var(--mono);font-weight:700;color:var(--ok);border-bottom:1px solid rgba(13,92,107,.04);background:rgba(26,158,107,.02)">'+esc(String(t))+'</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '</div>'; /* end peer table */
+  html += '</div>'; /* end section A card */
+
+  /* ═══════════════════════════════════════════
+     SECTION B — POSITIONING INSIGHTS
+  ═══════════════════════════════════════════ */
+  html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:16px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--sh)">';
+  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px">';
+  html += '📐 Positioning Insights<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+
+  var insights = [];
+
+  /* Overall insight */
+  if(topPct<=25) insights.push({icon:'🏆',text:'Your overall AIRA score beats <strong style="color:#1A9E6B">'+pct+'% of '+esc(b.label)+' companies</strong>. You are in the top quartile.',col:'#1A9E6B',bg:'rgba(26,158,107,.05)',bd:'rgba(26,158,107,.2)'});
+  else if(topPct<=50) insights.push({icon:'📊',text:'Your AIRA score of '+score+' is <strong style="color:#E88A2E">above the sector median ('+b.p50+')</strong>. You beat '+pct+'% of peers.',col:'#E88A2E',bg:'rgba(232,138,46,.05)',bd:'rgba(232,138,46,.2)'});
+  else insights.push({icon:'⚠️',text:'Your AIRA score of '+score+' is <strong style="color:#C0392B">below the sector median ('+b.p50+')</strong>. '+( 100-pct)+'% of comparable companies score higher.',col:'#C0392B',bg:'rgba(192,57,43,.05)',bd:'rgba(192,57,43,.2)'});
+
+  /* Dimension insights */
+  if(dims && b.dims){
+    var dimMeta = {financial:{icon:'💹',name:'Financial strength'},governance:{icon:'🏛',name:'Governance'},compliance:{icon:'✅',name:'Compliance'},promoter:{icon:'👤',name:'Promoter quality'},legal:{icon:'⚖️',name:'Legal & IP'},readiness:{icon:'📋',name:'IPO readiness'}};
     Object.entries(dims).forEach(function(kv){
-      var k=kv[0], v=kv[1];
-      var dimData = b.dims ? b.dims[k] : null;
-      var dimPct  = getDimPercentile(v, dimData);
-      var topDimPct = 100 - dimPct;
-      var dimAvg = dimData ? dimData.avg : 60;
-      var isAbove = v >= dimAvg;
-      var barCol = topDimPct<=25?'#1A9E6B':topDimPct<=50?'#E88A2E':'#C0392B';
-      var rankLbl = topDimPct<=10?'Top 10%':topDimPct<=25?'Top 25%':topDimPct<=40?'Top 40%':topDimPct<=60?'Top 60%':'Bottom 40%';
-
-      html += '<div style="padding:11px 13px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;border-left:3px solid '+barCol+'">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
-      html += '<div style="font-size:12px;font-weight:600;color:var(--sl)">'+esc(dimLabels[k]||k)+'</div>';
-      html += '<div style="font-size:11px;font-weight:700;color:'+barCol+'">'+esc(rankLbl)+'</div>';
-      html += '</div>';
-      html += '<div style="display:flex;align-items:center;gap:8px">';
-      html += '<div style="font-family:var(--serif);font-size:22px;font-weight:900;color:'+barCol+'">'+v+'</div>';
-      html += '<div style="flex:1">';
-      html += '<div style="height:5px;background:var(--bd);border-radius:3px;overflow:hidden">';
-      html += '<div style="height:100%;width:'+v+'%;background:'+barCol+';border-radius:3px"></div>';
-      html += '</div>';
-      html += '<div style="font-size:10px;color:var(--mu);margin-top:2px">Sector avg: '+dimAvg+' · You: '+(isAbove?'<span style="color:#1A9E6B">+':'<span style="color:#C0392B">')+(v-dimAvg)+'</span></div>';
-      html += '</div></div></div>';
+      var k=kv[0], v=kv[1]; if(!b.dims[k]) return;
+      var dAvg = b.dims[k].avg; var d75 = b.dims[k].p75; var d25 = b.dims[k].p25;
+      var dimPct = getDimPercentile(v, b.dims[k]);
+      var topD = 100-dimPct;
+      var meta = dimMeta[k]||{icon:'•',name:k};
+      if(v < d25){
+        insights.push({icon:meta.icon,text:'<strong style="color:#C0392B">Your '+meta.name+' score ('+v+') is below '+( 100-dimPct)+'% of sector peers</strong> (sector avg: '+dAvg+'). This is a critical gap.',col:'#C0392B',bg:'rgba(192,57,43,.04)',bd:'rgba(192,57,43,.18)'});
+      } else if(v >= d75){
+        insights.push({icon:meta.icon,text:'Your '+meta.name+' score ('+v+') is in the <strong style="color:#1A9E6B">top 25% of '+esc(b.label)+' peers</strong> — a competitive advantage.',col:'#1A9E6B',bg:'rgba(26,158,107,.04)',bd:'rgba(26,158,107,.18)'});
+      } else if(v < dAvg){
+        insights.push({icon:meta.icon,text:'Your '+meta.name+' score ('+v+') is <strong style="color:#E88A2E">below sector average ('+dAvg+')</strong>. Improving this by '+( dAvg-v+5)+' points would push you above most peers.',col:'#E88A2E',bg:'rgba(232,138,46,.04)',bd:'rgba(232,138,46,.18)'});
+      }
     });
+  } else {
+    /* Free tier - generic insights based on overall score */
+    if(score < b.p75){
+      insights.push({icon:'🏛',text:'<strong style="color:#E88A2E">Governance gaps are the top rejection reason</strong> in '+esc(b.label)+' sector ('+( b.sebi?b.sebi.topRejectionReason:'see SEBI data')+'). Run Full AIRA to get your dimension scores.',col:'#E88A2E',bg:'rgba(232,138,46,.04)',bd:'rgba(232,138,46,.18)'});
+    }
+    var gapToTop = b.p75 - score;
+    if(gapToTop > 0){
+      insights.push({icon:'🎯',text:'You need <strong style="color:#0D5C6B">+'+gapToTop+' points</strong> to reach the top quartile ('+b.p75+'+). Use the Score Simulator below to identify the fastest path.',col:'#0D5C6B',bg:'rgba(13,92,107,.04)',bd:'rgba(13,92,107,.18)'});
+    }
+  }
+
+  insights.slice(0,4).forEach(function(ins){
+    html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:'+ins.bg+';border:1px solid '+ins.bd+';border-radius:10px;margin-bottom:8px">';
+    html += '<div style="font-size:18px;flex-shrink:0;margin-top:1px">'+ins.icon+'</div>';
+    html += '<div style="font-size:13px;color:var(--sl);line-height:1.65">'+ins.text+'</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  /* ═══════════════════════════════════════════
+     SECTION C — SUCCESS PROBABILITY STRIP
+  ═══════════════════════════════════════════ */
+  html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:16px;overflow:hidden;margin-bottom:14px;box-shadow:var(--sh)">';
+  html += '<div style="background:linear-gradient(90deg,rgba(13,92,107,.03),rgba(232,138,46,.06));padding:14px 22px;border-bottom:1px solid var(--bd)">';
+  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu)">🔮 IPO Success Probability — Based on SEBI FY2024 Approval Data</div>';
+  html += '</div>';
+  html += '<div style="padding:18px 22px">';
+
+  /* Probability scale */
+  var bands = [
+    {range:'< 55',label:'Not Ready',prob:12,col:'#C0392B',bg:'#FEE2E2'},
+    {range:'55–64',label:'Needs Work',prob:34,col:'#D4860C',bg:'#FEF3C7'},
+    {range:'65–74',label:'SME Eligible',prob:58,col:'#E88A2E',bg:'#FFF7ED'},
+    {range:'75–81',label:'IPO Ready',prob:74,col:'#2E8B57',bg:'#DCFCE7'},
+    {range:'≥ 82',label:'Main Board',prob:87,col:'#1A9E6B',bg:'#D1FAE5'},
+  ];
+
+  html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:18px">';
+  bands.forEach(function(band){
+    var isYou = (score<55&&band.range==='< 55')||(score>=55&&score<=64&&band.range==='55–64')||(score>=65&&score<=74&&band.range==='65–74')||(score>=75&&score<=81&&band.range==='75–81')||(score>=82&&band.range==='≥ 82');
+    html += '<div style="border-radius:10px;overflow:hidden;border:2px solid '+(isYou?band.col:'transparent')+';box-shadow:'+(isYou?'0 0 0 3px '+band.col+'33':'none')+'">';
+    html += '<div style="background:'+band.bg+';padding:10px 8px;text-align:center">';
+    html += '<div style="font-size:10px;font-weight:700;color:'+band.col+';margin-bottom:4px">'+esc(band.range)+'</div>';
+    html += '<div style="font-family:var(--serif);font-size:24px;font-weight:900;color:'+band.col+';line-height:1">'+band.prob+'%</div>';
+    html += '<div style="font-size:9px;color:var(--mu);margin-top:3px;font-weight:600">'+esc(band.label)+'</div>';
+    if(isYou) html += '<div style="font-size:9px;font-weight:800;color:'+band.col+';margin-top:4px;background:rgba(255,255,255,.7);border-radius:3px;padding:1px 4px">◀ YOUR SCORE</div>';
+    html += '</div></div>';
+  });
+  html += '</div>';
+
+  /* Key insight line */
+  html += '<div style="display:flex;align-items:center;gap:14px;padding:13px 16px;background:linear-gradient(135deg,rgba(13,92,107,.04),rgba(232,138,46,.04));border:1px solid rgba(13,92,107,.1);border-radius:10px">';
+  html += '<div style="font-size:26px;flex-shrink:0">'+( score>=75?'🚀':score>=65?'⚡':'🔧')+'</div>';
+  html += '<div>';
+  html += '<div style="font-size:14px;font-weight:800;color:var(--tld);margin-bottom:3px">Companies with AIRA ≥ 75 have <span style="color:#1A9E6B">'+probMult+' higher</span> IPO success probability</div>';
+  html += '<div style="font-size:12px;color:var(--mu)">Current score: <strong style="color:'+probCol+'">'+score+' → '+prob+'% probability ('+probLbl+')</strong>'+(score>=75?'':' · Need '+(75-score)+' more points to cross the 75 threshold')+'</div>';
+  html += '</div></div>';
+
+  /* SEBI stats row */
+  if(b.sebi){
+    var s = b.sebi;
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">';
+    html += '<div style="padding:10px 12px;background:rgba(26,158,107,.04);border:1px solid rgba(26,158,107,.15);border-radius:9px;text-align:center">';
+    html += '<div style="font-size:10px;color:var(--mu);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px">FY24 Approvals</div>';
+    html += '<div style="font-family:var(--serif);font-size:20px;font-weight:900;color:#1A9E6B">'+s.approved+'/'+s.total_fy24+'</div>';
+    html += '<div style="font-size:10px;color:var(--mu)">'+s.approvalRate+'% approval rate</div></div>';
+    html += '<div style="padding:10px 12px;background:rgba(192,57,43,.04);border:1px solid rgba(192,57,43,.15);border-radius:9px;text-align:center">';
+    html += '<div style="font-size:10px;color:var(--mu);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px">FY24 Rejections</div>';
+    html += '<div style="font-family:var(--serif);font-size:20px;font-weight:900;color:#C0392B">'+s.rejected+'/'+s.total_fy24+'</div>';
+    html += '<div style="font-size:10px;color:var(--mu)">'+s.rejectionRate+'% rejection rate</div></div>';
+    html += '<div style="padding:10px 12px;background:rgba(212,134,12,.04);border:1px solid rgba(212,134,12,.15);border-radius:9px">';
+    html += '<div style="font-size:10px;color:var(--mu);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px">Top Rejection Reason</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:#D4860C;line-height:1.4;margin-top:2px">'+esc(s.topRejectionReason)+'</div>';
     html += '</div></div>';
   }
 
-  /* ── SECTION 3: IPO Cohort Comparison ── */
+  html += '</div></div>'; /* end section C */
+
+  /* ═══════════════════════════════════════════
+     SECTION D — IPO COHORT COMPARISON
+  ═══════════════════════════════════════════ */
   if(b.cohort && b.cohort.length){
-    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh)">';
-    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px">🏢 Recent IPO Cohort — '+esc(b.label)+'<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:16px;padding:18px 22px;margin-bottom:14px;box-shadow:var(--sh)">';
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+    html += '<div style="display:flex;align-items:center;gap:8px">🏢 Recent IPO Cohort · '+esc(b.label)+'<div style="width:40px;height:1px;background:var(--bd)"></div></div>';
+    html += '<div style="font-size:11px;font-weight:500;color:var(--mu);font-style:italic">Companies that listed in same sector</div>';
+    html += '</div>';
 
-    /* Add "You" to cohort */
-    var cohort = b.cohort.slice(0,4);
-    var allCo  = cohort.concat([{name:'★ You (current)',score:score,listed:'Target',yr:'2025',you:true}]);
-    allCo.sort(function(a,b){ return b.score - a.score; });
+    var allCo = b.cohort.slice(0,4).concat([{name:'★ Your Company',score:score,listed:'Target',yr:'2025',you:true}]);
+    allCo.sort(function(a,b){return b.score-a.score;});
+    var coAvg = Math.round(b.cohort.reduce(function(s,c){return s+c.score;},0)/b.cohort.length);
 
-    allCo.forEach(function(co, idx){
-      var coCol = co.you ? '#E88A2E' : co.score>=75?'#1A9E6B':co.score>=65?'#0D5C6B':'#6B7E85';
-      var bg = co.you ? 'rgba(232,138,46,.05)' : 'transparent';
-      var bd = co.you ? '2px solid rgba(232,138,46,.3)' : '1px solid var(--bd)';
-      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:'+bg+';border:'+bd+';border-radius:9px;margin-bottom:6px">';
-      html += '<div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--mu);width:16px;text-align:center">#'+(idx+1)+'</div>';
-      html += '<div style="flex:1"><div style="font-size:13px;font-weight:'+(co.you?'800':'600')+';color:'+(co.you?'#C9932A':'var(--sl)')+'">'+esc(co.name)+'</div>';
+    allCo.forEach(function(co,idx){
+      var coCol = co.you?'#E88A2E':co.score>=78?'#1A9E6B':co.score>=65?'#0D5C6B':'#6B7E85';
+      var coBg  = co.you?'rgba(232,138,46,.04)':'#fff';
+      var coBd  = co.you?'rgba(232,138,46,.35)':'var(--bd)';
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:'+coBg+';border:1.5px solid '+coBd+';border-radius:10px;margin-bottom:6px;transition:.15s">';
+      html += '<div style="font-size:11px;font-weight:700;color:var(--mu);width:18px;text-align:center;flex-shrink:0">#'+(idx+1)+'</div>';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-size:13px;font-weight:'+(co.you?'800':'600')+';color:'+(co.you?'#C9932A':'var(--sl)')+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(co.name)+'</div>';
       html += '<div style="font-size:11px;color:var(--mu);margin-top:1px">'+esc(co.listed)+' · '+esc(co.yr)+'</div></div>';
-      html += '<div style="display:flex;align-items:center;gap:8px">';
-      html += '<div style="width:80px;height:6px;background:var(--bd);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+co.score+'%;background:'+coCol+'"></div></div>';
-      html += '<div style="font-family:var(--serif);font-size:17px;font-weight:900;color:'+coCol+';min-width:28px;text-align:right">'+co.score+'</div>';
+      /* Bar + score */
+      html += '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">';
+      html += '<div style="width:100px;height:7px;background:var(--bd);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+co.score+'%;background:'+coCol+';border-radius:4px"></div></div>';
+      html += '<div style="font-family:var(--serif);font-size:18px;font-weight:900;color:'+coCol+';min-width:32px;text-align:right">'+co.score+'</div>';
       html += '</div></div>';
     });
 
-    /* Cohort average */
-    var coAvg = Math.round(cohort.reduce(function(s,c){return s+c.score;},0)/cohort.length);
-    html += '<div style="font-size:11px;color:var(--mu);padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--bd);text-align:center;margin-top:6px">';
-    html += 'Cohort average: <strong style="color:var(--tl)">'+coAvg+'</strong> · Your score vs cohort avg: <strong style="color:'+(score>=coAvg?'#1A9E6B':'#C0392B')+'">'+( score>=coAvg?'+':'')+( score - coAvg)+'</strong>';
+    html += '<div style="font-size:12px;color:var(--mu);padding:9px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--bd);text-align:center;margin-top:8px">';
+    html += 'Cohort average: <strong style="color:var(--tl)">'+coAvg+'</strong> &nbsp;·&nbsp; Your score vs cohort: <strong style="color:'+(score>=coAvg?'#1A9E6B':'#C0392B')+'">'+(score>=coAvg?'+':'')+(score-coAvg)+'</strong>';
     html += '</div>';
     html += '</div>';
   }
-
-  /* ── SECTION 4: Predictive Intelligence ── */
-  html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh)">';
-  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:14px;display:flex;align-items:center;gap:8px">🔮 Predictive Intelligence — SEBI FY2024 Data<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
-
-  /* Score → outcome probability */
-  var outcomes = [
-    {range:'≥ 82',prob:87,label:'Main Board Ready',col:'#1A9E6B',bg:'rgba(26,158,107,.06)',bd:'rgba(26,158,107,.2)',desc:'SEBI approval highly likely. Begin DRHP preparation.'},
-    {range:'75–81',prob:74,label:'SME/Main Board',col:'#2E8B57',bg:'rgba(46,139,87,.05)',bd:'rgba(46,139,87,.2)',desc:'Strong for SME, borderline Main Board. Address governance gaps.'},
-    {range:'65–74',prob:58,label:'SME Eligible',col:'#E88A2E',bg:'rgba(232,138,46,.05)',bd:'rgba(232,138,46,.2)',desc:'SME IPO viable with 2–3 targeted fixes. 6–9 month runway.'},
-    {range:'55–64',prob:34,label:'Needs Work',col:'#D4860C',bg:'rgba(212,134,12,.05)',bd:'rgba(212,134,12,.2)',desc:'Multiple gaps. 12–18 months needed. Start with governance.'},
-    {range:'< 55',prob:12,label:'Not Ready',col:'#C0392B',bg:'rgba(192,57,43,.05)',bd:'rgba(192,57,43,.2)',desc:'Fundamental issues. 18–24+ months minimum. Fix compliance first.'},
-  ];
-
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:16px">';
-  outcomes.forEach(function(o){
-    var isActive = (score>=82&&o.range==='≥ 82')||(score>=75&&score<=81&&o.range==='75–81')||(score>=65&&score<=74&&o.range==='65–74')||(score>=55&&score<=64&&o.range==='55–64')||(score<55&&o.range==='< 55');
-    html += '<div style="text-align:center;padding:10px 6px;background:'+o.bg+';border:2px solid '+(isActive?o.col:o.bd)+';border-radius:10px;transition:.2s'+(isActive?';box-shadow:0 0 0 3px '+o.col+'22':'')+'">';
-    html += '<div style="font-size:10px;font-weight:700;color:'+o.col+';margin-bottom:3px">'+esc(o.range)+'</div>';
-    html += '<div style="font-family:var(--serif);font-size:18px;font-weight:900;color:'+o.col+'">'+o.prob+'%</div>';
-    html += '<div style="font-size:10px;color:var(--mu);margin-top:2px;line-height:1.3">'+esc(o.label)+'</div>';
-    if(isActive) html += '<div style="font-size:10px;font-weight:700;color:'+o.col+';margin-top:3px;background:rgba(255,255,255,.6);border-radius:3px;padding:1px 4px">← You</div>';
-    html += '</div>';
-  });
-  html += '</div>';
-
-  /* SEBI rejection intelligence */
-  if(b.sebi){
-    var s = b.sebi;
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">';
-    html += '<div style="padding:11px;background:rgba(26,158,107,.05);border:1px solid rgba(26,158,107,.2);border-radius:9px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">FY24 Approvals</div><div style="font-family:var(--serif);font-size:20px;font-weight:900;color:#1A9E6B">'+s.approved+' / '+s.total_fy24+'</div><div style="font-size:10px;color:var(--mu)">('+s.approvalRate+'% approval rate)</div></div>';
-    html += '<div style="padding:11px;background:rgba(192,57,43,.05);border:1px solid rgba(192,57,43,.2);border-radius:9px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">FY24 Rejections</div><div style="font-family:var(--serif);font-size:20px;font-weight:900;color:#C0392B">'+s.rejected+' / '+s.total_fy24+'</div><div style="font-size:10px;color:var(--mu)">('+s.rejectionRate+'% rejection rate)</div></div>';
-    html += '<div style="padding:11px;background:rgba(212,134,12,.05);border:1px solid rgba(212,134,12,.2);border-radius:9px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">Top Rejection Reason</div><div style="font-size:12px;font-weight:700;color:#D4860C;line-height:1.3;margin-top:2px">'+esc(s.topRejectionReason)+'</div></div>';
-    html += '</div>';
-  }
-
-  /* What score means */
-  var curr = outcomes.find(function(o){return (score>=82&&o.range==='≥ 82')||(score>=75&&score<=81&&o.range==='75–81')||(score>=65&&score<=74&&o.range==='65–74')||(score>=55&&score<=64&&o.range==='55–64')||(score<55&&o.range==='< 55');});
-  if(curr){
-    html += '<div style="padding:12px 16px;background:'+curr.bg+';border:1.5px solid '+curr.col+';border-radius:10px;display:flex;align-items:flex-start;gap:10px">';
-    html += '<div style="font-size:20px;flex-shrink:0">'+( score>=75?'✅':score>=65?'⚠️':'🔴')+'</div>';
-    html += '<div><div style="font-size:13px;font-weight:700;color:'+curr.col+';margin-bottom:3px">AIRA '+score+' → '+curr.label+' ('+curr.prob+'% IPO Success Probability)</div>';
-    html += '<div style="font-size:12px;color:var(--mu);line-height:1.6">'+esc(curr.desc)+'</div></div>';
-    html += '</div>';
-  }
-
-  html += '</div>'; /* end section 4 */
 
   return html;
 }
-
-function animateBenchmark(score, sector){
-  setTimeout(function(){
-    /* Animate position marker on distribution bar */
-    var marker = document.getElementById('bm-marker');
-    if(marker) marker.style.left = Math.min(Math.max(score, 2), 98) + '%';
-  }, 400);
-}
-
-
-function renderSimulator(score){
-  var col=function(s){return s>=78?'#1A9E6B':s>=65?'#C9932A':'#C0392B';};
-  var verd=function(s){return s>=78?'Main Board Eligible 🎯':s>=65?'SME IPO Eligible ✅':s>=50?'SME with gaps ⚠️':'Not IPO-ready ❌';};
-  var tl=function(s){return s>=78?'6–12 months':s>=65?'9–15 months':s>=50?'12–18 months':'18–24 months';};
-  return '<div class="form-card" id="score-simulator" style="margin-top:16px">'+
-    '<div class="fsec-lbl">Score Simulator — What if I fix this?</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">'+
-      '<div style="text-align:center;padding:14px;background:var(--card);border-radius:10px;border:1px solid var(--bd)">'+
-        '<div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Current Score</div>'+
-        '<div style="font-size:36px;font-weight:900;font-family:var(--serif);color:'+col(score)+'">'+score+'</div>'+
-        '<div style="font-size:12px;color:var(--mu)">'+verd(score)+'</div>'+
-      '</div>'+
-      '<div style="text-align:center;padding:14px;background:#fff;border-radius:10px;border:2px solid var(--tl)">'+
-        '<div style="font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Potential Score</div>'+
-        '<div id="sim-new-score" style="font-size:36px;font-weight:900;font-family:var(--serif);color:var(--tl)">'+score+'</div>'+
-        '<div id="sim-new-verdict" style="font-size:12px;color:var(--mu)">'+verd(score)+'</div>'+
-      '</div>'+
-    '</div>'+
-    '<div id="sim-items" style="display:flex;flex-direction:column;gap:6px"></div>'+
-    '<div style="margin-top:12px;padding:11px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.12);border-radius:9px">'+
-      '<div style="font-size:11px;color:var(--mu);margin-bottom:3px">Estimated IPO Timeline</div>'+
-      '<div id="sim-timeline" style="font-size:14px;font-weight:700;color:var(--tl)">'+tl(score)+'</div>'+
-    '</div>'+
-    '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20simulated%20my%20IPO%20score%20and%20want%20help%20improving%20it." target="_blank" '+
-      'style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:12px;background:#25D366;color:#fff;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none">'+
-      '📱 Help me achieve this score →</a>'+
-  '</div>';
-}
-
-function initSimulator(score){
-  var itemsEl=document.getElementById('sim-items');
-  if(!itemsEl)return;
-  var col=function(s){return s>=78?'#1A9E6B':s>=65?'#C9932A':'#C0392B';};
-  var verd=function(s){return s>=78?'Main Board Eligible 🎯':s>=65?'SME IPO Eligible ✅':s>=50?'SME with gaps ⚠️':'Not IPO-ready ❌';};
-  var tl=function(s){return s>=78?'6–12 months':s>=65?'9–15 months':s>=50?'12–18 months':'18–24 months';};
-  itemsEl.innerHTML='';
-  SIM_ITEMS.forEach(function(item){
-    var row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--bd);border-radius:9px;background:#fff;transition:.15s';
-    row.innerHTML='<input type="checkbox" data-impact="'+item.impact+'" style="width:16px;height:16px;accent-color:var(--tl);cursor:pointer;flex-shrink:0" onchange="updateSim('+score+')">'+
-      '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--sl)">'+item.label+'</div>'+
-      '<div style="font-size:11px;color:var(--mu);margin-top:2px">'+item.sebi+' · '+item.timeline+' · '+item.cost+'</div></div>'+
-      '<div style="font-size:14px;font-weight:800;color:var(--tl);flex-shrink:0">+'+item.impact+'</div>';
-    itemsEl.appendChild(row);
-  });
-}
-
-function updateSim(baseScore){
-  var checks=document.querySelectorAll('#sim-items input:checked');
-  var total=baseScore;
-  checks.forEach(function(c){total+=parseInt(c.dataset.impact||0);});
-  total=Math.min(total,98);
-  var col=function(s){return s>=78?'#1A9E6B':s>=65?'#C9932A':'#C0392B';};
-  var verd=function(s){return s>=78?'Main Board Eligible 🎯':s>=65?'SME IPO Eligible ✅':s>=50?'SME with gaps ⚠️':'Not IPO-ready ❌';};
-  var tl=function(s){return s>=78?'6–12 months':s>=65?'9–15 months':s>=50?'12–18 months':'18–24 months';};
-  var ns=document.getElementById('sim-new-score');
-  var nv=document.getElementById('sim-new-verdict');
-  var tlEl=document.getElementById('sim-timeline');
-  if(ns){ns.textContent=total;ns.style.color=col(total);}
-  if(nv)nv.textContent=verd(total);
-  if(tlEl)tlEl.textContent=tl(total);
-}
-
-/* ═══════════════════════════════════
-   FIX ENGINE
-═══════════════════════════════════ */
-var FIX_DATA=[
-  {issue:'No Independent Directors',fix:'Appoint minimum 2 IDs including 1 woman — SEBI ICDR 2018 Reg 26(6)',impact:6,expert:'Company Secretary',cost:'₹2–5L',timeline:'2–3 months',priority:'high'},
-  {issue:'Pending ROC Filings',fix:'File AOC-4 and MGT-7 with penalty — Companies Act 2013 §137–138',impact:3,expert:'Company Secretary',cost:'₹50K–₹2L',timeline:'2–4 weeks',priority:'high'},
-  {issue:'GST / TDS Mismatch',fix:'Reconcile GSTR-2B with books, clear all outstanding notices',impact:4,expert:'CA / Tax Consultant',cost:'₹1–3L',timeline:'1–2 months',priority:'medium'},
-  {issue:'High Debt-to-Equity',fix:'Pre-pay high-cost debt or convert to equity before DRHP',impact:3,expert:'CFO / Financial Advisor',cost:'Varies',timeline:'3–6 months',priority:'medium'},
-  {issue:'Audit Committee Not Formed',fix:'Constitute AC with majority independent directors — SEBI LODR Reg 18',impact:3,expert:'Company Secretary',cost:'₹50K',timeline:'1 month',priority:'medium'},
-  {issue:'Trademark / IP Unregistered',fix:'File trademark application — protects brand post-listing',impact:2,expert:'IP Lawyer',cost:'₹20K–₹50K',timeline:'Apply now',priority:'low'},
-];
-
-function renderFixEngine(){
-  var html='<div class="form-card" style="margin-top:16px"><div class="fsec-lbl">Fix Engine — How to close each gap</div><div style="display:flex;flex-direction:column;gap:10px">';
-  FIX_DATA.forEach(function(f){
-    var priCol=f.priority==='high'?'#C0392B':f.priority==='medium'?'#C9932A':'#6B8593';
-    html+='<div style="padding:13px 15px;border:1px solid var(--bd);border-left:3px solid '+priCol+';border-radius:10px;background:#fff">'+
-      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">'+
-        '<div style="font-size:14px;font-weight:700;color:var(--sl)">🔴 '+f.issue+'</div>'+
-        '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;color:'+priCol+';border:1px solid;border-color:'+priCol+';white-space:nowrap;text-transform:uppercase">'+f.priority.toUpperCase()+'</span>'+
-      '</div>'+
-      '<div style="font-size:13px;color:var(--mu);margin-bottom:8px;line-height:1.6">'+f.fix+'</div>'+
-      '<div style="display:flex;gap:14px;font-size:12px;margin-bottom:10px;flex-wrap:wrap">'+
-        '<span>👤 '+f.expert+'</span><span style="color:var(--tl)">💰 '+f.cost+'</span>'+
-        '<span style="color:var(--mu)">⏱ '+f.timeline+'</span><span style="color:var(--ok)">📈 +'+f.impact+' score</span>'+
-      '</div>'+
-      '<div style="display:flex;gap:8px">'+
-        '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20need%20help%20with%3A%20'+encodeURIComponent(f.issue)+'" target="_blank" '+
-          'style="padding:8px 14px;background:var(--tl);color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">Find Expert →</a>'+
-        '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20want%20to%20start%20fixing%3A%20'+encodeURIComponent(f.issue)+'" target="_blank" '+
-          'style="padding:8px 14px;background:var(--sf);color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">Start Now →</a>'+
-      '</div></div>';
-  });
-  html+='</div></div>';
-  return html;
-}
-
-/* ═══════════════════════════════════
-   VALUATION MATRIX
-═══════════════════════════════════ */
-var PEERS={
-  'Manufacturing':[{name:'Praj Industries',rev:'1,240',em:'14.2',pe:'28',ev:'16',mc:'3,200'},{name:'Hind Rectifiers',rev:'380',em:'12.8',pe:'22',ev:'13',mc:'620'},{name:'Menon Pistons',rev:'290',em:'11.5',pe:'18',ev:'11',mc:'380'}],
-  'Pharma':[{name:'Windlas Biotech',rev:'520',em:'16.2',pe:'24',ev:'14',mc:'980'},{name:'Marksans Pharma',rev:'1,100',em:'18.1',pe:'26',ev:'15',mc:'2,800'},{name:'Gland Pharma',rev:'4,100',em:'28.4',pe:'32',ev:'20',mc:'12,400'}],
-  'IT Services':[{name:'Mastech Digital',rev:'680',em:'12.4',pe:'22',ev:'13',mc:'1,200'},{name:'Kellton Tech',rev:'540',em:'11.8',pe:'18',ev:'11',mc:'800'},{name:'Tata Elxsi',rev:'3,100',em:'29.2',pe:'48',ev:'32',mc:'38,000'}],
-  'Auto Components':[{name:'Sansera Engineering',rev:'2,400',em:'17.2',pe:'28',ev:'16',mc:'5,200'},{name:'JBM Auto',rev:'3,800',em:'13.4',pe:'22',ev:'13',mc:'6,400'},{name:'Lumax Industries',rev:'2,100',em:'11.8',pe:'20',ev:'12',mc:'3,200'}],
-  'FMCG':[{name:'DFM Foods',rev:'790',em:'16.0',pe:'26',ev:'15',mc:'1,800'},{name:'Prataap Snacks',rev:'1,400',em:'12.5',pe:'22',ev:'13',mc:'2,400'},{name:'Bikaji Foods',rev:'2,200',em:'14.8',pe:'38',ev:'22',mc:'8,900'}],
-  'Chemicals':[{name:'Neogen Chemicals',rev:'620',em:'18.4',pe:'30',ev:'18',mc:'2,100'},{name:'Tatva Chintan',rev:'510',em:'21.2',pe:'34',ev:'20',mc:'2,900'},{name:'Clean Science',rev:'460',em:'45.1',pe:'55',ev:'35',mc:'8,400'}],
-};
-
-function renderValuationMatrix(sector,revenue,pat,ebitda,ebitdaMargin){
-  var peers=PEERS[sector]||PEERS['Manufacturing'];
-  var avgPE=peers.reduce(function(s,p){return s+parseFloat(p.pe||0);},0)/peers.length;
-  var avgEV=peers.reduce(function(s,p){return s+parseFloat(p.ev||0);},0)/peers.length;
-  var pat_n=parseFloat(pat)||5;
-  var ebitda_n=parseFloat(ebitda)||(parseFloat(revenue||50)*parseFloat(ebitdaMargin||15)/100)||8;
-  var val_low=Math.round(pat_n*(avgPE*0.6));
-  var val_base=Math.round(pat_n*(avgPE*0.8));
-  var val_high=Math.round(pat_n*avgPE);
-  var val_ev=Math.round(ebitda_n*avgEV);
-  var val_final=Math.round((val_base+val_ev)/2);
-
-  var html='<div class="fin-card" style="margin-top:16px"><div class="card-hd"><div class="card-ttl">Valuation Matrix · Peer Benchmarking — '+sector+'</div><div class="card-sub">Listed comparables · FY2024 multiples</div></div>';
-  html+='<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:500px"><thead><tr>'+
-    '<th>Company</th><th>Revenue ₹Cr</th><th>EBITDA%</th><th>P/E</th><th>EV/EBITDA</th><th>Mkt Cap ₹Cr</th></tr></thead><tbody>';
-  peers.forEach(function(p){
-    html+='<tr><td style="font-weight:600;color:var(--sl)">'+p.name+'</td><td>'+p.rev+'</td>'+
-      '<td style="color:var(--ok)">'+p.em+'%</td><td>'+p.pe+'x</td><td>'+p.ev+'x</td><td>'+p.mc+'</td></tr>';
-  });
-  html+='<tr style="background:rgba(13,92,107,.04);border-top:2px solid var(--tl)">'+
-    '<td style="font-weight:800;color:var(--tl)">★ Your Company</td>'+
-    '<td style="font-weight:700">'+(revenue||'—')+'</td>'+
-    '<td style="font-weight:700;color:'+(parseFloat(ebitdaMargin)>=(avgPE/3)?'var(--ok)':'var(--wn)')+'">'+(ebitdaMargin||'—')+'%</td>'+
-    '<td style="color:var(--mu)">?</td><td style="color:var(--mu)">?</td>'+
-    '<td style="font-weight:800;color:var(--tl)">₹'+val_final+' Cr est.</td></tr>'+
-  '</tbody></table></div>';
-
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px;border-top:1px solid rgba(13,92,107,.06)">'+
-    '<div style="text-align:center;padding:12px;background:rgba(201,147,42,.06);border:1px solid rgba(201,147,42,.2);border-radius:9px">'+
-      '<div style="font-size:11px;color:var(--mu);margin-bottom:3px">Conservative</div>'+
-      '<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:var(--go)">₹'+val_low+' Cr</div>'+
-      '<div style="font-size:11px;color:var(--mu)">P/E '+Math.round(avgPE*0.6)+'x</div>'+
-    '</div>'+
-    '<div style="text-align:center;padding:12px;background:rgba(13,92,107,.06);border:2px solid var(--tl);border-radius:9px">'+
-      '<div style="font-size:11px;color:var(--mu);margin-bottom:3px">Base Case</div>'+
-      '<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:var(--tl)">₹'+val_base+' Cr</div>'+
-      '<div style="font-size:11px;color:var(--mu)">Blended P/E + EV/EBITDA</div>'+
-    '</div>'+
-    '<div style="text-align:center;padding:12px;background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.2);border-radius:9px">'+
-      '<div style="font-size:11px;color:var(--mu);margin-bottom:3px">Optimistic</div>'+
-      '<div style="font-size:20px;font-weight:900;font-family:var(--serif);color:var(--ok)">₹'+val_high+' Cr</div>'+
-      '<div style="font-size:11px;color:var(--mu)">Peer P/E '+Math.round(avgPE)+'x</div>'+
-    '</div>'+
-  '</div>'+
-  '<div style="padding:10px 16px;font-size:12px;color:var(--mu);border-top:1px solid rgba(13,92,107,.04);line-height:1.6">'+
-    '⚠️ Indicative only. Final IPO valuation is determined by merchant banker and market conditions at time of DRHP filing.'+
-  '</div></div>';
-
-  return html;
-}
-
-/* ═══ INJECT ALL ENHANCEMENTS ═══ */
-function injectEnhancements(score,sector,revenue,pat,ebitda,ebitdaMargin,containerId){
-  var out=document.getElementById(containerId||'result-free');
-  if(!out)return;
-  if(!document.getElementById('score-simulator')){
-    var div=document.createElement('div');
-    div.innerHTML=renderSimulator(score);
-    out.appendChild(div.firstElementChild);
-    initSimulator(score);
-  }
-  if(!document.getElementById('fix-engine-sec')){
-    var div2=document.createElement('div');
-    div2.id='fix-engine-sec';
-    div2.innerHTML=renderFixEngine();
-    out.appendChild(div2);
-  }
-  if(!document.getElementById('valuation-sec')){
-    var div3=document.createElement('div');
-    div3.id='valuation-sec';
-    div3.innerHTML=renderValuationMatrix(sector||'Manufacturing',revenue,pat,ebitda,ebitdaMargin);
-    out.appendChild(div3);
-  }
-}
-</script>
-</body>
-</html>
