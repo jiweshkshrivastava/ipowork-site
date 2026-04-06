@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AI Assistants — ipowork</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FAFAF8;--surface:#fff;--card2:#F7F3EE;
+  --tl:#0D5C6B;--tld:#08404D;--tll:#1A7D90;
+  --sf:#E88A2E;--go:#C9932A;
+  --sl:#2C3E47;--mu:#6B7E85;--bd:#E2E8EA;
+  --ok:#1A9E6B;--er:#C0392B;
+  --sh:0 1px 4px rgba(13,92,107,.06),0 4px 16px rgba(13,92,107,.04);
+  --sh2:0 4px 20px rgba(13,92,107,.1),0 12px 40px rgba(13,92,107,.07);
+  --r:12px;--r2:16px;
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--sl);-webkit-font-smoothing:antialiased;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* TOPBAR */
+.topbar{height:54px;background:#fff;border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0;box-shadow:var(--sh);z-index:50}
+.logo{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--tld);text-decoration:none;letter-spacing:-.3px}
+.logo span{color:var(--sf)}
+.portal-lbl{font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.8px;padding-left:10px;border-left:1px solid var(--bd)}
+.spacer{flex:1}
+.tb-btn{font-size:13px;font-weight:700;color:var(--tl);padding:6px 14px;border:1px solid var(--bd);border-radius:7px;text-decoration:none;transition:.15s;cursor:pointer;background:#fff;font-family:var(--font)}
+.tb-btn:hover{border-color:var(--tl);background:rgba(13,92,107,.04)}
+
+/* VIEWS */
+.view{flex:1;overflow-y:auto;display:none}
+.view.active{display:block}
+
+/* HOME VIEW */
+.home-page{max-width:900px;margin:0 auto;padding:28px 24px 40px}
+.pg-ey{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tll);margin-bottom:5px}
+.pg-title{font-family:var(--serif);font-size:26px;font-weight:900;color:var(--tld);margin-bottom:6px}
+.pg-sub{font-size:14px;color:var(--mu);line-height:1.7;margin-bottom:24px}
+
+/* CAT TABS */
+.cat-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+.cat-tab{padding:6px 14px;background:#fff;border:1px solid var(--bd);border-radius:99px;font-size:12px;font-weight:600;color:var(--mu);cursor:pointer;transition:.15s;font-family:var(--font)}
+.cat-tab.active,.cat-tab:hover{background:var(--tl);color:#fff;border-color:var(--tl)}
+
+/* AI GRID */
+.ai-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.ai-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:450px){.ai-grid{grid-template-columns:1fr}}
+.ai-card{background:#fff;border:1px solid var(--bd);border-radius:var(--r2);padding:18px 16px;cursor:pointer;transition:.18s;position:relative;box-shadow:var(--sh)}
+.ai-card:hover{border-color:var(--tl);box-shadow:var(--sh2);transform:translateY(-2px)}
+.free-badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:800;color:var(--ok);background:rgba(26,158,107,.08);border:1px solid rgba(26,158,107,.2);border-radius:99px;padding:2px 7px;text-transform:uppercase;letter-spacing:.3px}
+.ai-icon{font-size:28px;margin-bottom:10px}
+.ai-cat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mu);margin-bottom:5px}
+.ai-name{font-size:15px;font-weight:800;color:var(--tld);margin-bottom:5px;line-height:1.3}
+.ai-tag{font-size:12px;color:var(--mu);line-height:1.55;margin-bottom:12px}
+.ai-starters{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.ai-starter{font-size:11px;color:var(--tl);padding:5px 8px;background:rgba(13,92,107,.04);border-radius:6px;cursor:pointer;transition:.12s;line-height:1.4}
+.ai-starter:hover{background:rgba(13,92,107,.1)}
+.open-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;background:var(--tl);color:#fff;border-radius:8px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;border:none;width:100%;transition:.15s}
+.open-btn:hover{background:var(--tld)}
+
+/* CHAT VIEW */
+.chat-view{flex:1;display:none;flex-direction:column;overflow:hidden}
+.chat-view.active{display:flex}
+.chat-head{height:52px;background:#fff;border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.ch-back{background:none;border:none;font-size:20px;cursor:pointer;color:var(--mu);padding:4px 8px;border-radius:6px;font-family:var(--font)}
+.ch-back:hover{background:var(--card2);color:var(--tl)}
+.ch-icon{font-size:22px}
+.ch-name{font-size:15px;font-weight:800;color:var(--tld);flex:1}
+.ch-cat{font-size:11px;color:var(--mu)}
+.ch-clear{background:none;border:1px solid var(--bd);border-radius:7px;font-size:12px;color:var(--mu);padding:5px 10px;cursor:pointer;font-family:var(--font)}
+.ch-clear:hover{border-color:var(--er);color:var(--er)}
+
+/* MESSAGES */
+.chat-msgs{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+@media(max-width:600px){.chat-msgs{padding:12px 12px}}
+.msg{max-width:82%;line-height:1.65;font-size:14px;padding:11px 14px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+.msg.user{background:var(--tld);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.ai{background:#fff;color:var(--sl);align-self:flex-start;border:1px solid var(--bd);box-shadow:var(--sh);border-bottom-left-radius:4px}
+.msg.loading::after{content:'●●●';animation:dots 1.2s infinite;color:var(--mu);font-size:18px;letter-spacing:4px}
+@keyframes dots{0%,100%{opacity:.3}50%{opacity:1}}
+.msg.ai img{max-width:100%;border-radius:8px;margin-top:6px}
+
+/* STARTERS IN CHAT */
+.chat-starters{display:flex;flex-wrap:wrap;gap:6px;padding:0 20px 8px}
+.cs{font-size:12px;color:var(--tl);padding:6px 12px;background:rgba(13,92,107,.05);border:1px solid rgba(13,92,107,.15);border-radius:99px;cursor:pointer;transition:.12s}
+.cs:hover{background:rgba(13,92,107,.12)}
+
+/* INPUT AREA */
+.chat-input-area{padding:10px 16px 14px;background:#fff;border-top:1px solid var(--bd);flex-shrink:0}
+
+/* TOOLBAR */
+.chat-toolbar{display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
+.tool-btn{display:flex;align-items:center;gap:5px;padding:6px 11px;background:#fff;border:1px solid var(--bd);border-radius:99px;font-size:12px;font-weight:600;color:var(--mu);cursor:pointer;transition:.15s;font-family:var(--font)}
+.tool-btn:hover{border-color:var(--tl);color:var(--tl);background:rgba(13,92,107,.04)}
+.tool-btn.active{background:rgba(13,92,107,.08);border-color:var(--tl);color:var(--tl)}
+.tool-btn svg{flex-shrink:0}
+
+/* FILE PREVIEW */
+.file-preview{display:none;padding:8px 12px;background:var(--card2);border:1px solid var(--bd);border-radius:8px;font-size:12px;color:var(--sl);margin-bottom:8px;align-items:center;gap:8px}
+.file-preview.show{display:flex}
+.fp-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fp-remove{background:none;border:none;color:var(--mu);cursor:pointer;font-size:16px;padding:0;line-height:1}
+.fp-remove:hover{color:var(--er)}
+
+/* IMAGE PREVIEW */
+.img-preview{display:none;position:relative;margin-bottom:8px}
+.img-preview.show{display:block}
+.img-preview img{max-height:120px;border-radius:8px;border:1px solid var(--bd)}
+.img-remove{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+
+/* SEND ROW */
+.send-row{display:flex;gap:8px;align-items:flex-end}
+.chat-textarea{flex:1;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;padding:10px 13px;font-family:var(--font);font-size:14px;color:var(--sl);resize:none;outline:none;transition:.15s;min-height:42px;max-height:120px;line-height:1.55}
+.chat-textarea:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(13,92,107,.08);background:#fff}
+.send-btn{width:40px;height:40px;background:var(--tl);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
+.send-btn:hover{background:var(--tld)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* RECORDING */
+.rec-indicator{display:none;align-items:center;gap:8px;padding:8px 12px;background:rgba(192,57,43,.06);border:1px solid rgba(192,57,43,.2);border-radius:8px;margin-bottom:8px;font-size:12px;color:var(--er);font-weight:600}
+.rec-indicator.show{display:flex}
+.rec-dot{width:8px;height:8px;background:var(--er);border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* CAMERA MODAL */
+.cam-modal{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);flex-direction:column;align-items:center;justify-content:center;padding:16px}
+.cam-modal.show{display:flex}
+.cam-video{width:100%;max-width:480px;border-radius:12px;background:#000}
+.cam-btns{display:flex;gap:12px;margin-top:16px}
+.cam-btn{padding:10px 22px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:700;transition:.15s}
+.cam-capture{background:var(--sf);color:#fff}
+.cam-close{background:rgba(255,255,255,.15);color:#fff}
+.cam-canvas{display:none}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="index.html" class="logo">ipo<span>work</span></a>
+  <div class="portal-lbl">AI Assistants</div>
+  <div class="spacer"></div>
+  <a href="issuer.html" class="tb-btn">← Issuer Portal</a>
+</div>
+
+<!-- HOME VIEW -->
+<div class="view active" id="view-home">
+  <div class="home-page">
+    <div class="pg-ey">IPO INTELLIGENCE SUITE</div>
+    <h1 class="pg-title">🤖 AI Assistants — 13 Specialists</h1>
+    <p class="pg-sub">Each assistant is trained on SEBI ICDR 2018, Companies Act 2013 and IPO best practices. Free to use. Upload documents, paste text, or ask anything.</p>
+
+    <div class="cat-tabs" id="cat-tabs">
+      <button class="cat-tab active" onclick="filterCat('All')">All 13</button>
+      <button class="cat-tab" onclick="filterCat('Foundation')">Foundation</button>
+      <button class="cat-tab" onclick="filterCat('Legal &amp; Compliance')">Legal</button>
+      <button class="cat-tab" onclick="filterCat('Strategy')">Strategy</button>
+      <button class="cat-tab" onclick="filterCat('Documentation')">Docs</button>
+      <button class="cat-tab" onclick="filterCat('Investor Readiness')">Investors</button>
+      <button class="cat-tab" onclick="filterCat('Planning')">Planning</button>
+    </div>
+
+    <div class="ai-grid" id="ai-grid">
+      <!-- rendered by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- CHAT VIEW -->
+<div class="chat-view" id="view-chat">
+  <div class="chat-head">
+    <button class="ch-back" onclick="goHome()">←</button>
+    <div class="ch-icon" id="ch-icon">🤖</div>
+    <div>
+      <div class="ch-name" id="ch-name">Assistant</div>
+      <div class="ch-cat" id="ch-cat">AI</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="ch-clear" onclick="clearChat()">✕ Clear</button>
+  </div>
+
+  <div class="chat-msgs" id="chat-msgs"></div>
+
+  <div class="chat-starters" id="chat-starters"></div>
+
+  <div class="chat-input-area">
+
+    <!-- Toolbar: Upload / Camera / Voice -->
+    <div class="chat-toolbar">
+      <button class="tool-btn" onclick="triggerFileUpload()" title="Upload document">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload
+      </button>
+      <button class="tool-btn" onclick="openCamera()" title="Take photo / scan">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Scan / Photo
+      </button>
+      <button class="tool-btn" id="mic-btn" onclick="toggleVoice()" title="Voice input">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        Speak
+      </button>
+    </div>
+
+    <!-- Recording indicator -->
+    <div class="rec-indicator" id="rec-indicator">
+      <div class="rec-dot"></div>
+      Recording… tap Speak again to stop
+    </div>
+
+    <!-- File preview -->
+    <div class="file-preview" id="file-preview">
+      <span>📄</span>
+      <span class="fp-name" id="fp-name">filename.pdf</span>
+      <button class="fp-remove" onclick="removeFile()">✕</button>
+    </div>
+
+    <!-- Image preview -->
+    <div class="img-preview" id="img-preview">
+      <img id="img-preview-img" src="" alt=""/>
+      <button class="img-remove" onclick="removeImage()">✕</button>
+    </div>
+
+    <!-- Hidden inputs -->
+    <input type="file" id="file-input" style="display:none" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.xls" onchange="handleFile(this)"/>
+    <canvas id="cam-canvas" class="cam-canvas"></canvas>
+
+    <!-- Send row -->
+    <div class="send-row">
+      <textarea class="chat-textarea" id="chat-inp" rows="1" placeholder="Ask anything about IPO readiness, SEBI compliance, valuation…" oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendChat()">↑</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- CAMERA MODAL -->
+<div class="cam-modal" id="cam-modal">
+  <video class="cam-video" id="cam-video" autoplay playsinline></video>
+  <div class="cam-btns">
+    <button class="cam-btn cam-capture" onclick="capturePhoto()">📸 Capture</button>
+    <button class="cam-btn cam-close" onclick="closeCamera()">✕ Close</button>
+  </div>
+</div>
+
+<script>
+const WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+/* ── AI ASSISTANTS DATA ── */
+var AI_ASSISTANTS=[
+  {id:'ipo-eligibility',cat:'Foundation',icon:'✅',name:'IPO Eligibility Checker',tag:'Assess SME vs Main Board eligibility instantly',free:true,
+   system:'You are an IPO Eligibility Checker for Indian companies. Assess eligibility for SME IPO (BSE/NSE) and Main Board based on SEBI ICDR 2018 criteria. Give clear YES/NO verdicts with specific criteria. Be concise and cite regulation numbers.',
+   starters:['What are NSE Emerge SME IPO eligibility criteria?','My company has ₹48 Cr revenue, 3 profitable years. Am I eligible?','Compare BSE SME vs NSE Emerge requirements']},
+
+  {id:'financial-readiness',cat:'Foundation',icon:'💹',name:'Financial Readiness Advisor',tag:'Assess financial statement readiness for IPO',free:true,
+   system:'You are a Financial Readiness Advisor for Indian IPO. Assess whether financial statements are IPO-ready per SEBI ICDR 2018 and ICAI standards. Check revenue growth, EBITDA margins, PAT track record, debt ratios, working capital and Ind AS compliance.',
+   starters:['What financial red flags should I check first?','How to handle a financial restatement for IPO?','My D/E ratio is 1.8x — is that acceptable for SME IPO?']},
+
+  {id:'due-diligence',cat:'Legal & Compliance',icon:'🔍',name:'Due Diligence Coach',tag:'SEBI ICDR compliant due diligence framework',free:true,
+   system:'You are a Due Diligence Coach for Indian IPO. Guide through legal, financial, technical and management due diligence. Reference SEBI ICDR 2018 and Companies Act 2013. Identify red flags and explain how to resolve them before DRHP filing.',
+   starters:['What are the key due diligence areas for SME IPO?','List the most common red flags in legal DD','How long does DD typically take?']},
+
+  {id:'sebi-compliance',cat:'Legal & Compliance',icon:'⚖️',name:'SEBI Compliance Coach',tag:'SEBI ICDR 2018 expert guidance',free:true,
+   system:'You are a SEBI Compliance Coach specialising in SEBI ICDR 2018 and LODR 2015. Answer precise questions about IPO regulations, mandatory disclosures, lock-in periods, promoter obligations and post-listing compliance. Always cite exact regulation numbers.',
+   starters:['What is the promoter lock-in period for SME IPO?','Explain SEBI ICDR Regulation 26 requirements','What disclosures are mandatory in DRHP?']},
+
+  {id:'rpt-advisor',cat:'Legal & Compliance',icon:'🤝',name:'RPT Advisor',tag:'Related party transaction analysis for IPO',free:true,
+   system:'You are an RPT (Related Party Transaction) Advisor for Indian IPO. Analyze RPT disclosures, identify material transactions, advise on compliance with Companies Act 2013 Section 188 and SEBI LODR 2015 Regulation 23. Help clean up RPT structures before listing.',
+   starters:['What RPTs need to be disclosed in DRHP?','How to handle loans to promoters before IPO?','What is the threshold for material RPT under SEBI?']},
+
+  {id:'valuation',cat:'Strategy',icon:'💰',name:'Valuation & Pricing Expert',tag:'IPO valuation, peer comps and price discovery',free:true,
+   system:'You are a Valuation and IPO Pricing Expert for Indian markets. Advise on valuation methodologies (P/E, EV/EBITDA, DCF), comparable company analysis, IPO price band determination and book building process. Use realistic Indian market multiples.',
+   starters:['How is IPO price band determined for SME?','My PAT is ₹6 Cr — what valuation range is realistic?','What P/E multiple can a pharma company expect?']},
+
+  {id:'drhp-guide',cat:'Documentation',icon:'📋',name:'DRHP Preparation Guide',tag:'Draft Red Herring Prospectus expert assistance',free:true,
+   system:'You are a DRHP Preparation Guide for Indian IPO. Help structure and draft sections of the Draft Red Herring Prospectus per SEBI ICDR 2018 Schedule VI. Guide on risk factors, business description, financial disclosures and objects of issue. Ensure SEBI compliance.',
+   starters:['What sections are mandatory in DRHP?','How to write risk factors for a manufacturing company?','What goes in the "Objects of the Issue" section?']},
+
+  {id:'roadshow',cat:'Strategy',icon:'🎤',name:'Roadshow & Marketing Coach',tag:'IPO roadshow preparation and investor pitch',free:true,
+   system:'You are a Roadshow and IPO Marketing Coach. Help companies prepare compelling investor presentations, roadshow scripts, Q&A preparation and analyst briefings. Focus on highlighting growth story, competitive moats and use of IPO proceeds.',
+   starters:['What questions do institutional investors typically ask?','How to structure a 20-minute roadshow presentation?','What makes a compelling IPO growth story?']},
+
+  {id:'promoter-lockin',cat:'Strategy',icon:'🔐',name:'Promoter Lock-In Calculator',tag:'Lock-in periods, escrow and promoter obligations',free:true,
+   system:'You are a Promoter Lock-In and Obligations expert for Indian IPO. Explain lock-in requirements under SEBI ICDR 2018 Regulation 17, escrow mechanisms, creeping acquisition limits and post-listing promoter obligations. Provide clear timelines.',
+   starters:['What is the minimum promoter contribution for SME IPO?','How does the 3-year lock-in work?','Can promoters sell shares after lock-in expires?']},
+
+  {id:'investor-qa',cat:'Investor Readiness',icon:'👥',name:'Investor Q&A Prep Coach',tag:'Prepare for investor and analyst questions',free:true,
+   system:'You are an Investor Q&A Coach for IPO companies. Simulate tough questions from institutional investors, HNIs and analysts. Help craft clear, confident answers on financials, strategy, governance, competition and use of proceeds.',
+   starters:['Ask me tough investor questions about profitability','How to answer questions about our high D/E ratio?','What do QIB investors look for in SME companies?']},
+
+  {id:'ipo-timeline',cat:'Planning',icon:'📅',name:'IPO Timeline Planner',tag:'Month-by-month IPO execution roadmap',free:true,
+   system:'You are an IPO Timeline Planner for Indian companies. Build detailed month-by-month execution roadmaps covering DRHP preparation, SEBI filing, exchange approval, roadshow and listing. Factor in regulatory timelines, typical delays and critical path items.',
+   starters:['How long does a typical SME IPO take end-to-end?','What are the SEBI review timelines?','Build a 12-month IPO timeline for a manufacturing company']},
+
+  {id:'mb-fee-advisor',cat:'Strategy',icon:'🏦',name:'MB Fee Advisor',tag:'Merchant banker fees, negotiations and structures',free:true,
+   system:'You are an MB Fee Advisor for Indian IPO. Guide on typical merchant banker fee structures for SME and Main Board IPOs, success fees, retainers, reimbursements and negotiation tactics. Help companies get fair deals.',
+   starters:['What is typical MB fee for ₹25 Cr SME IPO?','How to negotiate MB fees?','What expenses are typically charged separately?']},
+
+  {id:'post-listing',cat:'Planning',icon:'📊',name:'Post-Listing Compliance Guide',tag:'SEBI LODR and post-IPO obligations',free:true,
+   system:'You are a Post-Listing Compliance Guide for Indian listed companies. Advise on SEBI LODR 2015 obligations — quarterly results, board meeting timelines, corporate governance reports, disclosure of material events, insider trading policies and SEBI SCORES.',
+   starters:['What are mandatory disclosures after listing?','How soon must quarterly results be filed?','What is SEBI SCORES and how to handle complaints?']},
+];
+
+/* ── STATE ── */
+var currentAssistant = null;
+var chatHistory = [];
+var isLoading = false;
+var currentFile = null;
+var currentImage = null;
+var mediaStream = null;
+var recognition = null;
+var isRecording = false;
+
+/* ── HOME ── */
+function filterCat(cat) {
+  // Update active tab
+  document.querySelectorAll('.cat-tab').forEach(function(t) {
+    t.classList.toggle('active', t.textContent.trim() === cat || (cat === 'All' && t.textContent.includes('All')));
+  });
+  renderGrid(cat === 'All' ? null : cat);
+}
+
+function renderGrid(catFilter) {
+  var grid = document.getElementById('ai-grid');
+  var list = catFilter ? AI_ASSISTANTS.filter(function(a) { return a.cat === catFilter; }) : AI_ASSISTANTS;
+  grid.innerHTML = list.map(function(a) {
+    var starters = (a.starters||[]).slice(0,2).map(function(s) {
+      return '<div class="ai-starter" onclick="openChat(\''+a.id+'\',\''+escQ(s)+'\')">'+escH(s)+'</div>';
+    }).join('');
+    return '<div class="ai-card" onclick="openChat(\''+a.id+'\')">'+
+      '<div class="free-badge">FREE</div>'+
+      '<div class="ai-icon">'+a.icon+'</div>'+
+      '<div class="ai-cat">'+a.cat+'</div>'+
+      '<div class="ai-name">'+escH(a.name)+'</div>'+
+      '<div class="ai-tag">'+escH(a.tag)+'</div>'+
+      '<div class="ai-starters">'+starters+'</div>'+
+      '<button class="open-btn">Open Chat →</button>'+
+    '</div>';
+  }).join('');
+}
+
+/* ── OPEN CHAT ── */
+function openChat(id, starter) {
+  var a = AI_ASSISTANTS.find(function(x) { return x.id === id; });
+  if (!a) return;
+  currentAssistant = a;
+  chatHistory = [];
+  currentFile = null;
+  currentImage = null;
+
+  document.getElementById('ch-icon').textContent = a.icon;
+  document.getElementById('ch-name').textContent = a.name;
+  document.getElementById('ch-cat').textContent = a.cat;
+
+  // Show starters
+  var starterDiv = document.getElementById('chat-starters');
+  starterDiv.innerHTML = (a.starters||[]).map(function(s) {
+    return '<div class="cs" onclick="useStarter(\''+escQ(s)+'\')">'+escH(s)+'</div>';
+  }).join('');
+
+  // Clear messages
+  document.getElementById('chat-msgs').innerHTML = '';
+
+  // Switch view
+  document.getElementById('view-home').classList.remove('active');
+  document.getElementById('view-chat').classList.add('active');
+  document.getElementById('chat-inp').focus();
+
+  if (starter) {
+    setTimeout(function() {
+      document.getElementById('chat-inp').value = starter;
+      sendChat();
+    }, 200);
+  }
+}
+
+function goHome() {
+  document.getElementById('view-chat').classList.remove('active');
+  document.getElementById('view-home').classList.add('active');
+  stopCamera(); stopVoice();
+}
+
+function useStarter(q) {
+  document.getElementById('chat-inp').value = q;
+  sendChat();
+}
+
+function clearChat() {
+  chatHistory = [];
+  currentFile = null;
+  currentImage = null;
+  document.getElementById('chat-msgs').innerHTML = '';
+  removeFile(); removeImage();
+}
+
+/* ── AUTO RESIZE TEXTAREA ── */
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+/* ── FILE UPLOAD ── */
+function triggerFileUpload() {
+  document.getElementById('file-input').click();
+}
+function handleFile(input) {
+  var file = input.files[0];
+  if (!file) return;
+  currentFile = file;
+  document.getElementById('fp-name').textContent = file.name + ' (' + Math.round(file.size/1024) + 'KB)';
+  document.getElementById('file-preview').classList.add('show');
+  input.value = '';
+}
+function removeFile() {
+  currentFile = null;
+  document.getElementById('file-preview').classList.remove('show');
+  document.getElementById('fp-name').textContent = '';
+}
+
+/* ── CAMERA ── */
+function openCamera() {
+  var modal = document.getElementById('cam-modal');
+  var video = document.getElementById('cam-video');
+  modal.classList.add('show');
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+    .then(function(stream) {
+      mediaStream = stream;
+      video.srcObject = stream;
+    })
+    .catch(function(e) {
+      modal.classList.remove('show');
+      alert('Camera access denied or not available. Please allow camera permission.');
+    });
+}
+function capturePhoto() {
+  var video = document.getElementById('cam-video');
+  var canvas = document.getElementById('cam-canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  var dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+  currentImage = dataUrl;
+  var preview = document.getElementById('img-preview');
+  var img = document.getElementById('img-preview-img');
+  img.src = dataUrl;
+  preview.classList.add('show');
+  closeCamera();
+}
+function closeCamera() {
+  stopCamera();
+  document.getElementById('cam-modal').classList.remove('show');
+}
+function stopCamera() {
+  if (mediaStream) { mediaStream.getTracks().forEach(function(t) { t.stop(); }); mediaStream = null; }
+}
+function removeImage() {
+  currentImage = null;
+  document.getElementById('img-preview').classList.remove('show');
+  document.getElementById('img-preview-img').src = '';
+}
+
+/* ── VOICE / SPEECH ── */
+function toggleVoice() {
+  if (isRecording) { stopVoice(); return; }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Voice input not supported in this browser. Try Chrome.'); return; }
+  recognition = new SR();
+  recognition.lang = 'en-IN';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.onresult = function(e) {
+    var text = e.results[0][0].transcript;
+    var inp = document.getElementById('chat-inp');
+    inp.value = (inp.value ? inp.value + ' ' : '') + text;
+    autoResize(inp);
+  };
+  recognition.onend = function() { stopVoice(); };
+  recognition.onerror = function() { stopVoice(); };
+  recognition.start();
+  isRecording = true;
+  document.getElementById('rec-indicator').classList.add('show');
+  document.getElementById('mic-btn').classList.add('active');
+}
+function stopVoice() {
+  isRecording = false;
+  document.getElementById('rec-indicator').classList.remove('show');
+  document.getElementById('mic-btn').classList.remove('active');
+  if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
+}
+
+/* ── SEND CHAT ── */
+async function sendChat() {
+  var inp = document.getElementById('chat-inp');
+  var msg = inp.value.trim();
+  var sb = document.getElementById('send-btn');
+  var starters = document.getElementById('chat-starters');
+
+  if (!msg && !currentFile && !currentImage) return;
+  if (isLoading) return;
+
+  // Hide starters after first message
+  if (starters) starters.style.display = 'none';
+
+  var userContent = msg;
+
+  // Add file context
+  if (currentFile) {
+    var fileText = await readFileText(currentFile);
+    userContent += '\n\n[DOCUMENT ATTACHED: ' + currentFile.name + ']\n' + fileText.substring(0, 6000);
+    removeFile();
+  }
+
+  // Add image context
+  if (currentImage) {
+    userContent += '\n\n[IMAGE/SCAN ATTACHED — please analyze the content in this image and provide relevant IPO guidance]';
+    removeImage();
+  }
+
+  // Display user message
+  var msgs = document.getElementById('chat-msgs');
+  var ud = document.createElement('div');
+  ud.className = 'msg user';
+  ud.textContent = msg || (currentFile ? '📄 ' + currentFile.name : '📷 Image attached');
+  msgs.appendChild(ud);
+
+  // Typing indicator
+  var typing = document.createElement('div');
+  typing.className = 'msg ai loading';
+  typing.id = 'ai-typing';
+  typing.textContent = '';
+  msgs.appendChild(typing);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  inp.value = '';
+  autoResize(inp);
+  isLoading = true;
+  sb.disabled = true;
+
+  chatHistory.push({ role: 'user', content: userContent });
+
+  try {
+    var r = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: currentAssistant.system,
+        messages: chatHistory
+      })
+    });
+    var d = await r.json();
+    var text = (d.content || []).map(function(c) { return c.text || ''; }).join('');
+    if (!text) text = d.error ? JSON.stringify(d.error) : 'No response. Please try again.';
+    chatHistory.push({ role: 'assistant', content: text });
+    var t = document.getElementById('ai-typing');
+    if (t) { t.classList.remove('loading'); t.style.whiteSpace = 'pre-wrap'; t.textContent = text; }
+  } catch(e) {
+    var t = document.getElementById('ai-typing');
+    if (t) { t.classList.remove('loading'); t.textContent = 'Network error. Please check your connection.'; }
+  }
+
+  isLoading = false;
+  sb.disabled = false;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+/* ── READ FILE ── */
+function readFileText(file) {
+  return new Promise(function(resolve) {
+    var reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result || ''); };
+    reader.onerror = function() { resolve('[Could not read file]'); };
+    if (file.type === 'application/pdf') {
+      reader.readAsDataURL(file);
+      resolve('[PDF attached: ' + file.name + ' — ' + Math.round(file.size/1024) + 'KB. Please describe the document content or paste key sections as text for AI analysis.]');
+    } else {
+      reader.readAsText(file);
+    }
+  });
+}
+
+/* ── HELPERS ── */
+function escH(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escQ(s) { return String(s||'').replace(/'/g,"\\'"); }
+
+/* ── INIT ── */
+renderGrid(null);
+</script>
+</body>
+</html>
