@@ -1568,181 +1568,192 @@ async function runPaid(){
   stepDone('pp5');
   btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Run Full AIRA Score →';
 
-  var cleanReport = report.replace(/AIRA Score:\s*\d+\n?/i,'').replace(/---JSON---[\s\S]*?---END---/,'').trim();
-
-  /* ── Pre-compute benchmark ── */
-  var _bm2 = BENCH[sector]||BENCH['Other'];
-  var _p2;
-  if(score<=_bm2.p25)      _p2=Math.round((score/_bm2.p25)*25);
-  else if(score<=_bm2.p50) _p2=Math.round(25+(score-_bm2.p25)/(_bm2.p50-_bm2.p25)*25);
-  else if(score<=_bm2.p75) _p2=Math.round(50+(score-_bm2.p50)/(_bm2.p75-_bm2.p50)*25);
-  else if(score<=_bm2.p90) _p2=Math.round(75+(score-_bm2.p75)/(_bm2.p90-_bm2.p75)*15);
-  else _p2=90;
-  _p2=Math.min(_p2,99);
-  var _top2=100-_p2;
-  var _rl2=_top2<=10?'Top 10%':_top2<=25?'Top 25%':_top2<=40?'Top 40%':_top2<=60?'Top 60%':'Bottom 40%';
-  var _rc2=_top2<=25?'rgba(26,158,107,.22)':_top2<=50?'rgba(232,138,46,.22)':'rgba(192,57,43,.22)';
-  var _rbc2=_top2<=25?'#1A9E6B88':_top2<=50?'#E88A2E88':'#C0392B88';
-  var _rtc2=_top2<=25?'#6DDC9E':_top2<=50?'#F5C072':'#F4A09A';
-  var _pool2=Math.round(_bm2.p50*8);
-  var _rank2=Math.round(_pool2*(1-_p2/100))+1;
-  var _abv2=score>=_bm2.p50?'Above':'Below';
-  var _diff2=Math.abs(score-_bm2.p50);
-  var _isSig2=score>=75;
-  var _sigBg2=_isSig2?'rgba(26,158,107,.2)':'rgba(232,138,46,.2)';
-  var _sigBd2=_isSig2?'rgba(26,158,107,.45)':'rgba(232,138,46,.45)';
-  var _sigC2=_isSig2?'#6DDC9E':'#F5C072';
-  var _sigTxt2=_isSig2?'✅ Meets investor threshold (75+)':'⚡ '+(75-score)+' pts to investor threshold (75+)';
-  var _rankCol2=_top2<=25?'#1A9E6B':_top2<=50?'#E88A2E':'#C0392B';
-  var _bbLabel2=_top2<=25?'🟢 Top Quartile':_top2<=50?'🟡 Above Average':_top2<=75?'🟠 Below Average':'🔴 Bottom Tier';
-
-  /* ── Score drivers from AI report ── */
-  var _drv2=[];
-  var _rpt2=cleanReport||'';
-  if(/revenue.*cagr|strong.*financial|profitable/i.test(_rpt2)) _drv2.push({s:'+',p:'~18',t:'Strong financials & revenue track record',c:'#1A9E6B'});
-  if(/promoter.*hold|founder.*hold/i.test(_rpt2))               _drv2.push({s:'+',p:'~12',t:'High promoter holding & zero pledge',c:'#1A9E6B'});
-  if(/complian.*clean|roc.*time|gst.*clean/i.test(_rpt2))       _drv2.push({s:'+',p:'~8', t:'Clean compliance track record',c:'#2E8B57'});
-  if(/no.*independent|0.*independent/i.test(_rpt2))              _drv2.push({s:'−',p:'~10',t:'No independent directors appointed',c:'#C0392B'});
-  if(/governance|audit.*commit/i.test(_rpt2))                    _drv2.push({s:'−',p:'~8', t:'Governance structure gaps',c:'#D4860C'});
-  if(/debt.*equity|high.*d.e/i.test(_rpt2))                      _drv2.push({s:'−',p:'~6', t:'High debt or active charges',c:'#D4860C'});
-  if(_drv2.length<3) _drv2=[{s:'+',p:'~15',t:'Operational track record',c:'#1A9E6B'},{s:'+',p:'~10',t:'MCA compliance status',c:'#2E8B57'},{s:'−',p:'~12',t:'Governance gaps — board composition',c:'#C0392B'},{s:'−',p:'~7',t:'Capital structure optimisation',c:'#D4860C'}];
-
-  /* ── Goal path ── */
-  var _tgt2=score>=78?90:score>=65?78:65;
-  var _tgtLbl2=score>=78?'Main Board Elite (90+)':score>=65?'Main Board Ready (78+)':'SME IPO Ready (65+)';
-  var _gap2=_tgt2-score; if(_gap2<=0) _gap2=90-score;
-  var _acts2;
-  if(score<65) _acts2=[{n:1,a:'Appoint 2 independent directors',p:'+6',t:'60 days',pr:'CRITICAL',c:'#C0392B'},{n:2,a:'Clear pending ROC filings',p:'+4',t:'2–3 weeks',pr:'HIGH',c:'#D4860C'},{n:3,a:'Constitute audit committee',p:'+3',t:'45 days',pr:'HIGH',c:'#D4860C'}];
-  else if(score<78) _acts2=[{n:1,a:'Appoint IDs & form board committees',p:'+7',t:'60 days',pr:'HIGH',c:'#D4860C'},{n:2,a:'Reduce D/E ratio below 1.0x',p:'+4',t:'3–4 months',pr:'MEDIUM',c:'#E88A2E'},{n:3,a:'Register trademark / IP',p:'+2',t:'Apply now',pr:'MEDIUM',c:'#E88A2E'}];
-  else _acts2=[{n:1,a:'Commission Ind AS financial restatement',p:'+4',t:'2–3 months',pr:'HIGH',c:'#0D5C6B'},{n:2,a:'Engage merchant banker & begin DRHP',p:'—',t:'Now',pr:'HIGH',c:'#0D5C6B'},{n:3,a:'Complete pre-filing SEBI due diligence',p:'+3',t:'1–2 months',pr:'MEDIUM',c:'#2E8B57'}];
-
-  /* ── Biggest risk ── */
-  var _riskT2, _riskS2;
-  if(/no.*independent|0.*independent/i.test(_rpt2)){_riskT2='Governance — No Independent Directors';_riskS2='Bottom 30% vs peers · Fix in 60 days · SEBI ICDR 2018 Reg 26(6)';}
-  else if(dims.governance<55){_riskT2='Governance — Below Sector Average ('+dims.governance+'/100)';_riskS2='Blocks DRHP filing · Fix governance structure first · ICDR Reg 26';}
-  else if(dims.compliance<60){_riskT2='Compliance — Below Sector Average ('+dims.compliance+'/100)';_riskS2='Blocks DRHP filing · Fix GST/TDS/ROC issues first · ICDR Reg 26(1)';}
-  else{_riskT2='Governance Structure — Board Composition';_riskS2='Most common rejection reason · Target: 3+ directors incl. 1 woman ID';}
-
-  /* ════════ BUILD HTML ════════ */
-  var html = '<div class="result-wrap">';
-  if(isMock){
-    html += '<div class="mock-notice">🔬 <strong>Illustrative Preview</strong> — using sample data. Enter your CIN for live financial intelligence.</div>';
-  }
-
-  /* Score Hero */
-  html += '<div class="score-hero">';
-  html += '<div class="score-dial">'+dialSVG(score,col)+'<div class="sdn"><div class="sdn-big">'+score+'</div><div class="sdn-den">/100</div></div></div>';
-  html += '<div>';
-  html += '<div class="score-verdict">'+v.label+'</div>';
-  html += '<div class="score-sub">'+escHtml(probe.company_name||'Company')+' · '+escHtml(sector)+' · '+escHtml(exchange)+'</div>';
-  html += '<div class="score-tags"><span class="stag '+(score>=65?'good':'warn')+'">'+v.label+'</span><span class="stag good">Data Verified</span><span class="stag">7-Year Financials</span><span class="stag">SEBI ICDR 2018</span></div>';
-  html += '</div>';
-  html += '<div class="score-right">';
-  html += '<div class="sc-lbl">Full AIRA Score</div>';
-  html += '<div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div>';
-  html += '<div style="margin-top:7px;display:inline-block;padding:4px 10px;border-radius:99px;background:'+_rc2+';border:1px solid '+_rbc2+';font-size:11px;font-weight:700;color:'+_rtc2+'">'+_rl2+' in '+escHtml(_bm2.label)+'</div>';
-  html += '<div style="margin-top:5px;font-size:11px;color:rgba(255,255,255,.65)">Rank <strong style="color:#fff">~'+_rank2+'</strong> of ~'+_pool2+' · Beats <strong style="color:'+_rtc2+'">'+_p2+'%</strong></div>';
-  html += '<div style="margin-top:4px;font-size:11px;color:rgba(255,255,255,.55)"><strong style="color:'+(_abv2==='Above'?'#6DDC9E':'#F4A09A')+'">'+_abv2+' median</strong> ('+_bm2.p50+') by '+_diff2+' pts</div>';
-  html += '<div style="margin-top:6px;font-size:11px;padding:4px 8px;border-radius:7px;background:'+_sigBg2+';border:1px solid '+_sigBd2+';color:'+_sigC2+'">'+_sigTxt2+'</div>';
-  html += '</div></div>';
-
-  /* Benchmark Badge */
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">';
-  html += '<div style="font-size:13px;font-weight:800;color:'+_rankCol2+';padding:6px 14px;background:#fff;border:1.5px solid '+_rankCol2+'44;border-radius:99px;box-shadow:var(--sh)">'+_bbLabel2+'</div>';
-  html += '<div style="font-size:12px;color:var(--mu)">vs. '+escHtml(sector)+' peers · SEBI ICDR 2018</div></div>';
-
-  /* Score Breakdown */
-  html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;margin-bottom:12px;box-shadow:var(--sh)">';
-  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin-bottom:12px;display:flex;align-items:center;gap:8px">🔍 Score Breakdown — Why '+score+'?<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">';
-  _drv2.slice(0,4).forEach(function(d){
-    html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 11px;background:'+(d.s==='+'?'rgba(26,158,107,.04)':'rgba(192,57,43,.04)')+';border:1px solid '+(d.s==='+'?'rgba(26,158,107,.15)':'rgba(192,57,43,.15)')+';border-radius:8px">';
-    html += '<div style="font-size:16px;font-weight:900;color:'+d.c+'">'+d.s+'</div>';
-    html += '<div><div style="font-size:11px;font-weight:800;color:'+d.c+'">'+d.p+' pts</div><div style="font-size:11px;color:var(--sl);line-height:1.45">'+escHtml(d.t)+'</div></div></div>';
-  });
-  html += '</div></div>';
-
-  /* Goal Path */
-  html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;margin-bottom:12px;box-shadow:var(--sh)">';
-  html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin-bottom:4px;display:flex;align-items:center;gap:8px">🎯 Your Fastest Path to IPO Ready<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
-  html += '<div style="font-size:13px;color:var(--mu);margin-bottom:12px">To reach <strong style="color:var(--tld)">'+escHtml(_tgtLbl2)+'</strong> → need <strong>+'+_gap2+' points</strong></div>';
-  _acts2.forEach(function(a){
-    html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 12px;background:rgba(13,92,107,.03);border:1px solid rgba(13,92,107,.08);border-radius:9px;margin-bottom:7px">';
-    html += '<div style="width:22px;height:22px;border-radius:50%;background:var(--tl);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+a.n+'</div>';
-    html += '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--sl)">'+escHtml(a.a)+'</div>';
-    html += '<div style="font-size:11px;color:var(--mu);margin-top:2px"><span>⏱ '+escHtml(a.t)+'</span> <span style="color:'+a.c+';font-weight:700">'+escHtml(a.p)+'</span> <span style="color:'+a.c+';font-weight:700">'+escHtml(a.pr)+'</span></div></div></div>';
-  });
-  html += '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20AIRA%20score%20'+score+'%20in%20'+encodeURIComponent(sector)+'%2C%20need%20help." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:11px 16px;background:var(--tl);color:#fff;border-radius:9px;font-weight:700;font-size:13px;text-decoration:none">👥 Fix these gaps with CA/CS on ipowork →</a>';
-  html += '</div>';
-
-  /* Biggest Risk */
-  html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(192,57,43,.04);border:1.5px solid rgba(192,57,43,.2);border-radius:12px;margin-bottom:16px">';
-  html += '<div style="font-size:22px;flex-shrink:0">⚠️</div>';
-  html += '<div><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#C0392B;margin-bottom:4px">Biggest Risk</div>';
-  html += '<div style="font-size:14px;font-weight:800;color:var(--tld);margin-bottom:3px">'+escHtml(_riskT2)+'</div>';
-  html += '<div style="font-size:12px;color:var(--mu)">'+escHtml(_riskS2)+'</div></div></div>';
-
-    /* ── MCA Data Grid (Paid) ── */
-  var _charges2 = probe.charges || {};
-  html += '<div class="sec-hd">Verified Intelligence — 7-Year Data</div>';
-  html += '<div class="ds-grid">';
-  html += '<div class="ds-card"><div class="ds-head"><div class="ds-name">Company Profile</div><span class="ds-badge '+(isMock?'ds-mock':'ds-live')+'">'+(isMock?'DEMO':'LIVE')+'</span></div>';
-  html += '<div class="ds-rows">';
-  html += '<div class="ds-row"><span class="k">Company</span><span class="v v-ok">'+escHtml(probe.company_name||'N/A')+'</span></div>';
-  html += '<div class="ds-row"><span class="k">Status</span><span class="v v-ok">'+escHtml(probe.company_status||'Active')+'</span></div>';
-  html += '<div class="ds-row"><span class="k">Incorporated</span><span class="v">'+escHtml(probe.date_of_incorporation||'N/A')+'</span></div>';
-  html += '<div class="ds-row"><span class="k">Paid-up Capital</span><span class="v">₹'+escHtml(probe.paid_up_capital||'N/A')+'</span></div>';
-  html += '<div class="ds-row"><span class="k">Directors</span><span class="v">'+escHtml(String(probe.number_of_members||'N/A'))+'</span></div>';
-  html += '</div></div>';
-  html += '<div class="ds-card"><div class="ds-head"><div class="ds-name">Financials</div><span class="ds-badge '+(isMock?'ds-mock':'ds-live')+'">'+(isMock?'DEMO':'LIVE')+'</span></div>';
-  html += '<div class="ds-rows">';
-  var fin2 = probe.financials||{};
-  html += '<div class="ds-row"><span class="k">Revenue (latest)</span><span class="v">₹'+escHtml(String(fin2.revenue||'N/A'))+'</span></div>';
-  html += '<div class="ds-row"><span class="k">EBITDA Margin</span><span class="v '+(parseFloat(fin2.ebitda_margin)>=15?'v-ok':'v-warn')+'">'+escHtml(String(fin2.ebitda_margin||'N/A'))+'%</span></div>';
-  html += '<div class="ds-row"><span class="k">PAT</span><span class="v">₹'+escHtml(String(fin2.pat||'N/A'))+'</span></div>';
-  html += '<div class="ds-row"><span class="k">D/E Ratio</span><span class="v '+(parseFloat(fin2.de_ratio)>1.5?'v-warn':'v-ok')+'">'+escHtml(String(fin2.de_ratio||'N/A'))+'</span></div>';
-  html += '<div class="ds-row"><span class="k">Revenue CAGR</span><span class="v">'+escHtml(String(fin2.revenue_cagr||'N/A'))+'%</span></div>';
-  html += '</div></div></div>';
-
-  /* ── AI Report ── */
-  html += '<div class="sec-hd">AI Full Intelligence — Claude + Verified Data</div>';
-  html += '<div class="ai-card"><div class="ai-content">'+escHtml(cleanReport)+'</div></div>';
-
-  /* ── 16-Parameter Dimension Scores ── */
-  html += '<div class="sec-hd">16-parameter dimension scores</div><div class="dim-grid">';
-  Object.entries(dims).forEach(function(kv){
-    var dk=kv[0], dv=kv[1];
-    var dc=dv>=78?'#1A9E6B':dv>=65?'#C9932A':'#C0392B';
-    var dbg=dv>=78?'rgba(26,158,107,.06)':dv>=65?'rgba(201,147,42,.06)':'rgba(192,57,43,.06)';
-    html += '<div class="dim-card" style="background:'+dbg+';border-left-color:'+dc+'">';
-    html +=   '<div class="dim-top"><span class="dim-name">'+escHtml(dimLabel(dk))+'</span><span class="dim-score" style="color:'+dc+'">'+dv+'</span></div>';
-    html +=   '<div class="dim-bar"><div style="width:'+dv+'%;background:'+dc+'"></div></div>';
-    html +=   '<div class="dim-verd" style="color:'+dc+'">'+escHtml(dimVerd(dv))+'</div>';
+  try {
+    var cleanReport = report.replace(/AIRA Score:\s*\d+\n?/i,'').replace(/---JSON---[\s\S]*?---END---/,'').trim();
+  
+    /* ── Pre-compute benchmark ── */
+    var _bm2 = BENCH[sector]||BENCH['Other'];
+    var _p2;
+    if(score<=_bm2.p25)      _p2=Math.round((score/_bm2.p25)*25);
+    else if(score<=_bm2.p50) _p2=Math.round(25+(score-_bm2.p25)/(_bm2.p50-_bm2.p25)*25);
+    else if(score<=_bm2.p75) _p2=Math.round(50+(score-_bm2.p50)/(_bm2.p75-_bm2.p50)*25);
+    else if(score<=_bm2.p90) _p2=Math.round(75+(score-_bm2.p75)/(_bm2.p90-_bm2.p75)*15);
+    else _p2=90;
+    _p2=Math.min(_p2,99);
+    var _top2=100-_p2;
+    var _rl2=_top2<=10?'Top 10%':_top2<=25?'Top 25%':_top2<=40?'Top 40%':_top2<=60?'Top 60%':'Bottom 40%';
+    var _rc2=_top2<=25?'rgba(26,158,107,.22)':_top2<=50?'rgba(232,138,46,.22)':'rgba(192,57,43,.22)';
+    var _rbc2=_top2<=25?'#1A9E6B88':_top2<=50?'#E88A2E88':'#C0392B88';
+    var _rtc2=_top2<=25?'#6DDC9E':_top2<=50?'#F5C072':'#F4A09A';
+    var _pool2=Math.round(_bm2.p50*8);
+    var _rank2=Math.round(_pool2*(1-_p2/100))+1;
+    var _abv2=score>=_bm2.p50?'Above':'Below';
+    var _diff2=Math.abs(score-_bm2.p50);
+    var _isSig2=score>=75;
+    var _sigBg2=_isSig2?'rgba(26,158,107,.2)':'rgba(232,138,46,.2)';
+    var _sigBd2=_isSig2?'rgba(26,158,107,.45)':'rgba(232,138,46,.45)';
+    var _sigC2=_isSig2?'#6DDC9E':'#F5C072';
+    var _sigTxt2=_isSig2?'✅ Meets investor threshold (75+)':'⚡ '+(75-score)+' pts to investor threshold (75+)';
+    var _rankCol2=_top2<=25?'#1A9E6B':_top2<=50?'#E88A2E':'#C0392B';
+    var _bbLabel2=_top2<=25?'🟢 Top Quartile':_top2<=50?'🟡 Above Average':_top2<=75?'🟠 Below Average':'🔴 Bottom Tier';
+  
+    /* ── Score drivers from AI report ── */
+    var _drv2=[];
+    var _rpt2=cleanReport||'';
+    if(/revenue.*cagr|strong.*financial|profitable/i.test(_rpt2)) _drv2.push({s:'+',p:'~18',t:'Strong financials & revenue track record',c:'#1A9E6B'});
+    if(/promoter.*hold|founder.*hold/i.test(_rpt2))               _drv2.push({s:'+',p:'~12',t:'High promoter holding & zero pledge',c:'#1A9E6B'});
+    if(/complian.*clean|roc.*time|gst.*clean/i.test(_rpt2))       _drv2.push({s:'+',p:'~8', t:'Clean compliance track record',c:'#2E8B57'});
+    if(/no.*independent|0.*independent/i.test(_rpt2))              _drv2.push({s:'−',p:'~10',t:'No independent directors appointed',c:'#C0392B'});
+    if(/governance|audit.*commit/i.test(_rpt2))                    _drv2.push({s:'−',p:'~8', t:'Governance structure gaps',c:'#D4860C'});
+    if(/debt.*equity|high.*d.e/i.test(_rpt2))                      _drv2.push({s:'−',p:'~6', t:'High debt or active charges',c:'#D4860C'});
+    if(_drv2.length<3) _drv2=[{s:'+',p:'~15',t:'Operational track record',c:'#1A9E6B'},{s:'+',p:'~10',t:'MCA compliance status',c:'#2E8B57'},{s:'−',p:'~12',t:'Governance gaps — board composition',c:'#C0392B'},{s:'−',p:'~7',t:'Capital structure optimisation',c:'#D4860C'}];
+  
+    /* ── Goal path ── */
+    var _tgt2=score>=78?90:score>=65?78:65;
+    var _tgtLbl2=score>=78?'Main Board Elite (90+)':score>=65?'Main Board Ready (78+)':'SME IPO Ready (65+)';
+    var _gap2=_tgt2-score; if(_gap2<=0) _gap2=90-score;
+    var _acts2;
+    if(score<65) _acts2=[{n:1,a:'Appoint 2 independent directors',p:'+6',t:'60 days',pr:'CRITICAL',c:'#C0392B'},{n:2,a:'Clear pending ROC filings',p:'+4',t:'2–3 weeks',pr:'HIGH',c:'#D4860C'},{n:3,a:'Constitute audit committee',p:'+3',t:'45 days',pr:'HIGH',c:'#D4860C'}];
+    else if(score<78) _acts2=[{n:1,a:'Appoint IDs & form board committees',p:'+7',t:'60 days',pr:'HIGH',c:'#D4860C'},{n:2,a:'Reduce D/E ratio below 1.0x',p:'+4',t:'3–4 months',pr:'MEDIUM',c:'#E88A2E'},{n:3,a:'Register trademark / IP',p:'+2',t:'Apply now',pr:'MEDIUM',c:'#E88A2E'}];
+    else _acts2=[{n:1,a:'Commission Ind AS financial restatement',p:'+4',t:'2–3 months',pr:'HIGH',c:'#0D5C6B'},{n:2,a:'Engage merchant banker & begin DRHP',p:'—',t:'Now',pr:'HIGH',c:'#0D5C6B'},{n:3,a:'Complete pre-filing SEBI due diligence',p:'+3',t:'1–2 months',pr:'MEDIUM',c:'#2E8B57'}];
+  
+    /* ── Biggest risk ── */
+    var _riskT2, _riskS2;
+    if(/no.*independent|0.*independent/i.test(_rpt2)){_riskT2='Governance — No Independent Directors';_riskS2='Bottom 30% vs peers · Fix in 60 days · SEBI ICDR 2018 Reg 26(6)';}
+    else if(dims.governance<55){_riskT2='Governance — Below Sector Average ('+dims.governance+'/100)';_riskS2='Blocks DRHP filing · Fix governance structure first · ICDR Reg 26';}
+    else if(dims.compliance<60){_riskT2='Compliance — Below Sector Average ('+dims.compliance+'/100)';_riskS2='Blocks DRHP filing · Fix GST/TDS/ROC issues first · ICDR Reg 26(1)';}
+    else{_riskT2='Governance Structure — Board Composition';_riskS2='Most common rejection reason · Target: 3+ directors incl. 1 woman ID';}
+  
+    /* ════════ BUILD HTML ════════ */
+    var html = '<div class="result-wrap">';
+    if(isMock){
+      html += '<div class="mock-notice">🔬 <strong>Illustrative Preview</strong> — using sample data. Enter your CIN for live financial intelligence.</div>';
+    }
+  
+    /* Score Hero */
+    html += '<div class="score-hero">';
+    html += '<div class="score-dial">'+dialSVG(score,col)+'<div class="sdn"><div class="sdn-big">'+score+'</div><div class="sdn-den">/100</div></div></div>';
+    html += '<div>';
+    html += '<div class="score-verdict">'+v.label+'</div>';
+    html += '<div class="score-sub">'+escHtml(probe.company_name||'Company')+' · '+escHtml(sector)+' · '+escHtml(exchange)+'</div>';
+    html += '<div class="score-tags"><span class="stag '+(score>=65?'good':'warn')+'">'+v.label+'</span><span class="stag good">Data Verified</span><span class="stag">7-Year Financials</span><span class="stag">SEBI ICDR 2018</span></div>';
     html += '</div>';
-  });
-  html += '</div>';
-
-  /* ── Full Benchmark Engine ── */
-  html += renderBenchmark(score, sector, dims);
-
-  /* ── Score Simulator ── */
-  html += renderSimulator(score);
-
-  /* ── Fix Engine ── */
-  html += '<div id="fix-engine-sec">'+renderFixEngine()+'</div>';
-
-  /* ── Valuation Matrix ── */
-  var rev = String((probe.financials||{}).revenue||'');
-  var pat = String((probe.financials||{}).pat||'');
-  var ebitda = String((probe.financials||{}).ebitda||'');
-  var ebitdaM = String((probe.financials||{}).ebitda_margin||'');
-  html += '<div id="valuation-sec">'+renderValuationMatrix(sector,rev,pat,ebitda,ebitdaM)+'</div>';
-
-  html += '</div>';
-  out.innerHTML = html;
-  initSimulator(score);
-  animateBenchmark(score, sector);
-  out.scrollIntoView({behavior:'smooth', block:'start'});
+    html += '<div class="score-right">';
+    html += '<div class="sc-lbl">Full AIRA Score</div>';
+    html += '<div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div>';
+    html += '<div style="margin-top:7px;display:inline-block;padding:4px 10px;border-radius:99px;background:'+_rc2+';border:1px solid '+_rbc2+';font-size:11px;font-weight:700;color:'+_rtc2+'">'+_rl2+' in '+escHtml(_bm2.label)+'</div>';
+    html += '<div style="margin-top:5px;font-size:11px;color:rgba(255,255,255,.65)">Rank <strong style="color:#fff">~'+_rank2+'</strong> of ~'+_pool2+' · Beats <strong style="color:'+_rtc2+'">'+_p2+'%</strong></div>';
+    html += '<div style="margin-top:4px;font-size:11px;color:rgba(255,255,255,.55)"><strong style="color:'+(_abv2==='Above'?'#6DDC9E':'#F4A09A')+'">'+_abv2+' median</strong> ('+_bm2.p50+') by '+_diff2+' pts</div>';
+    html += '<div style="margin-top:6px;font-size:11px;padding:4px 8px;border-radius:7px;background:'+_sigBg2+';border:1px solid '+_sigBd2+';color:'+_sigC2+'">'+_sigTxt2+'</div>';
+    html += '</div></div>';
+  
+    /* Benchmark Badge */
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">';
+    html += '<div style="font-size:13px;font-weight:800;color:'+_rankCol2+';padding:6px 14px;background:#fff;border:1.5px solid '+_rankCol2+'44;border-radius:99px;box-shadow:var(--sh)">'+_bbLabel2+'</div>';
+    html += '<div style="font-size:12px;color:var(--mu)">vs. '+escHtml(sector)+' peers · SEBI ICDR 2018</div></div>';
+  
+    /* Score Breakdown */
+    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;margin-bottom:12px;box-shadow:var(--sh)">';
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin-bottom:12px;display:flex;align-items:center;gap:8px">🔍 Score Breakdown — Why '+score+'?<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">';
+    _drv2.slice(0,4).forEach(function(d){
+      html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 11px;background:'+(d.s==='+'?'rgba(26,158,107,.04)':'rgba(192,57,43,.04)')+';border:1px solid '+(d.s==='+'?'rgba(26,158,107,.15)':'rgba(192,57,43,.15)')+';border-radius:8px">';
+      html += '<div style="font-size:16px;font-weight:900;color:'+d.c+'">'+d.s+'</div>';
+      html += '<div><div style="font-size:11px;font-weight:800;color:'+d.c+'">'+d.p+' pts</div><div style="font-size:11px;color:var(--sl);line-height:1.45">'+escHtml(d.t)+'</div></div></div>';
+    });
+    html += '</div></div>';
+  
+    /* Goal Path */
+    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;margin-bottom:12px;box-shadow:var(--sh)">';
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin-bottom:4px;display:flex;align-items:center;gap:8px">🎯 Your Fastest Path to IPO Ready<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+    html += '<div style="font-size:13px;color:var(--mu);margin-bottom:12px">To reach <strong style="color:var(--tld)">'+escHtml(_tgtLbl2)+'</strong> → need <strong>+'+_gap2+' points</strong></div>';
+    _acts2.forEach(function(a){
+      html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 12px;background:rgba(13,92,107,.03);border:1px solid rgba(13,92,107,.08);border-radius:9px;margin-bottom:7px">';
+      html += '<div style="width:22px;height:22px;border-radius:50%;background:var(--tl);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+a.n+'</div>';
+      html += '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--sl)">'+escHtml(a.a)+'</div>';
+      html += '<div style="font-size:11px;color:var(--mu);margin-top:2px"><span>⏱ '+escHtml(a.t)+'</span> <span style="color:'+a.c+';font-weight:700">'+escHtml(a.p)+'</span> <span style="color:'+a.c+';font-weight:700">'+escHtml(a.pr)+'</span></div></div></div>';
+    });
+    html += '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20AIRA%20score%20'+score+'%20in%20'+encodeURIComponent(sector)+'%2C%20need%20help." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:11px 16px;background:var(--tl);color:#fff;border-radius:9px;font-weight:700;font-size:13px;text-decoration:none">👥 Fix these gaps with CA/CS on ipowork →</a>';
+    html += '</div>';
+  
+    /* Biggest Risk */
+    html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(192,57,43,.04);border:1.5px solid rgba(192,57,43,.2);border-radius:12px;margin-bottom:16px">';
+    html += '<div style="font-size:22px;flex-shrink:0">⚠️</div>';
+    html += '<div><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#C0392B;margin-bottom:4px">Biggest Risk</div>';
+    html += '<div style="font-size:14px;font-weight:800;color:var(--tld);margin-bottom:3px">'+escHtml(_riskT2)+'</div>';
+    html += '<div style="font-size:12px;color:var(--mu)">'+escHtml(_riskS2)+'</div></div></div>';
+  
+      /* ── PDF Download (Paid) ── */
+    html += '<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">';
+    html += '<button onclick="downloadReport(\'paid\')" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:var(--sf);border:none;border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 3px 12px rgba(232,138,46,.3)">⭐ Download Full Report (PDF)</button>';
+    html += '<button onclick="downloadReport(\'free\')" style="display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:#fff;border:1.5px solid var(--tl);border-radius:9px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--tl);cursor:pointer">📄 Download Summary (PDF)</button>';
+    html += '</div>';
+  
+      /* ── MCA Data Grid (Paid) ── */
+    var _charges2 = probe.charges || {};
+    html += '<div class="sec-hd">Verified Intelligence — 7-Year Data</div>';
+    html += '<div class="ds-grid">';
+    html += '<div class="ds-card"><div class="ds-head"><div class="ds-name">Company Profile</div><span class="ds-badge '+(isMock?'ds-mock':'ds-live')+'">'+(isMock?'DEMO':'LIVE')+'</span></div>';
+    html += '<div class="ds-rows">';
+    html += '<div class="ds-row"><span class="k">Company</span><span class="v v-ok">'+escHtml(probe.company_name||'N/A')+'</span></div>';
+    html += '<div class="ds-row"><span class="k">Status</span><span class="v v-ok">'+escHtml(probe.company_status||'Active')+'</span></div>';
+    html += '<div class="ds-row"><span class="k">Incorporated</span><span class="v">'+escHtml(probe.date_of_incorporation||'N/A')+'</span></div>';
+    html += '<div class="ds-row"><span class="k">Paid-up Capital</span><span class="v">₹'+escHtml(probe.paid_up_capital||'N/A')+'</span></div>';
+    html += '<div class="ds-row"><span class="k">Directors</span><span class="v">'+escHtml(String(probe.number_of_members||'N/A'))+'</span></div>';
+    html += '</div></div>';
+    html += '<div class="ds-card"><div class="ds-head"><div class="ds-name">Financials</div><span class="ds-badge '+(isMock?'ds-mock':'ds-live')+'">'+(isMock?'DEMO':'LIVE')+'</span></div>';
+    html += '<div class="ds-rows">';
+    var fin2 = probe.financials||{};
+    html += '<div class="ds-row"><span class="k">Revenue (latest)</span><span class="v">₹'+escHtml(String(fin2.revenue||'N/A'))+'</span></div>';
+    html += '<div class="ds-row"><span class="k">EBITDA Margin</span><span class="v '+(parseFloat(fin2.ebitda_margin)>=15?'v-ok':'v-warn')+'">'+escHtml(String(fin2.ebitda_margin||'N/A'))+'%</span></div>';
+    html += '<div class="ds-row"><span class="k">PAT</span><span class="v">₹'+escHtml(String(fin2.pat||'N/A'))+'</span></div>';
+    html += '<div class="ds-row"><span class="k">D/E Ratio</span><span class="v '+(parseFloat(fin2.de_ratio)>1.5?'v-warn':'v-ok')+'">'+escHtml(String(fin2.de_ratio||'N/A'))+'</span></div>';
+    html += '<div class="ds-row"><span class="k">Revenue CAGR</span><span class="v">'+escHtml(String(fin2.revenue_cagr||'N/A'))+'%</span></div>';
+    html += '</div></div></div>';
+  
+    /* ── AI Report ── */
+    html += '<div class="sec-hd">AI Full Intelligence — Claude + Verified Data</div>';
+    html += '<div class="ai-card"><div class="ai-content">'+escHtml(cleanReport)+'</div></div>';
+  
+    /* ── 16-Parameter Dimension Scores ── */
+    html += '<div class="sec-hd">16-parameter dimension scores</div><div class="dim-grid">';
+    Object.entries(dims).forEach(function(kv){
+      var dk=kv[0], dv=kv[1];
+      var dc=dv>=78?'#1A9E6B':dv>=65?'#C9932A':'#C0392B';
+      var dbg=dv>=78?'rgba(26,158,107,.06)':dv>=65?'rgba(201,147,42,.06)':'rgba(192,57,43,.06)';
+      html += '<div class="dim-card" style="background:'+dbg+';border-left-color:'+dc+'">';
+      html +=   '<div class="dim-top"><span class="dim-name">'+escHtml(dimLabel(dk))+'</span><span class="dim-score" style="color:'+dc+'">'+dv+'</span></div>';
+      html +=   '<div class="dim-bar"><div style="width:'+dv+'%;background:'+dc+'"></div></div>';
+      html +=   '<div class="dim-verd" style="color:'+dc+'">'+escHtml(dimVerd(dv))+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  
+    /* ── Full Benchmark Engine ── */
+    html += renderBenchmark(score, sector, dims);
+  
+    /* ── Score Simulator ── */
+    html += renderSimulator(score);
+  
+    /* ── Fix Engine ── */
+    html += '<div id="fix-engine-sec">'+renderFixEngine()+'</div>';
+  
+    /* ── Valuation Matrix ── */
+    var rev = String((probe.financials||{}).revenue||'');
+    var pat = String((probe.financials||{}).pat||'');
+    var ebitda = String((probe.financials||{}).ebitda||'');
+    var ebitdaM = String((probe.financials||{}).ebitda_margin||'');
+    html += '<div id="valuation-sec">'+renderValuationMatrix(sector,rev,pat,ebitda,ebitdaM)+'</div>';
+  
+    html += '</div>';
+    out.innerHTML = html;
+    initSimulator(score);
+    animateBenchmark(score, sector);
+    out.scrollIntoView({behavior:'smooth', block:'start'});
+  } catch(renderErr2) {
+    console.error('AIRA Paid render error:', renderErr2);
+    out.innerHTML = '<div style="padding:20px;background:#FEF2F2;border:2px solid #C0392B;border-radius:12px;color:#C0392B;font-family:monospace;font-size:13px"><strong>Render error (check console):</strong><br>' + renderErr2.message + '</div>';
+  }
 }
 
 function downloadReport(tier){
