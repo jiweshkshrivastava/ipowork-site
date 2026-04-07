@@ -858,16 +858,35 @@ async function runFree(){
       '<div class="score-sub">'+(c.company_name||'Company')+' · '+sector+' · '+exchange+'</div>'+
       '<div class="score-tags"><span class="stag" style="background:'+v.bg+';color:'+v.txt+'">'+v.label+'</span>'+
       '<span class="stag '+(score>=65?'good':'warn')+'">MCA Verified</span><span class="stag">SEBI ICDR 2018</span></div></div>'+
-    '<div class="score-right">'+
-    '<div class="sc-lbl">AIRA Score</div>'+
-    '<div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div>'+
-    '<div id="score-pct-badge" style="margin-top:7px;display:inline-block;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:11px;font-weight:700;color:#fff">Ranking…</div>'+
-    '<div id="score-rank-line" style="margin-top:5px;font-size:11px;color:rgba(255,255,255,.55)">Calculating rank…</div>'+
-    '<div id="score-investor-signal" style="margin-top:7px;font-size:11px;padding:5px 8px;border-radius:7px;background:rgba(232,138,46,.18);border:1px solid rgba(232,138,46,.35);color:#F5C072;display:none">'+
-      (score>=75?'✅ Meets investor threshold (75+)':'⚡ '+(75-score)+' pts to investor threshold (75+)')+
+    (function(){
+    var _b=BENCH[sector]||BENCH['Other'];
+    var _pct;
+    if(score<=_b.p25) _pct=Math.round((score/_b.p25)*25);
+    else if(score<=_b.p50) _pct=Math.round(25+(score-_b.p25)/(_b.p50-_b.p25)*25);
+    else if(score<=_b.p75) _pct=Math.round(50+(score-_b.p50)/(_b.p75-_b.p50)*25);
+    else if(score<=_b.p90) _pct=Math.round(75+(score-_b.p75)/(_b.p90-_b.p75)*15);
+    else _pct=90;
+    _pct=Math.min(_pct,99);
+    var _top=100-_pct;
+    var _rl=_top<=10?'Top 10%':_top<=25?'Top 25%':_top<=40?'Top 40%':_top<=60?'Top 60%':'Bottom 40%';
+    var _rc=_top<=25?'rgba(26,158,107,.22)':_top<=50?'rgba(232,138,46,.22)':'rgba(192,57,43,.22)';
+    var _rbc=_top<=25?'#1A9E6B88':_top<=50?'#E88A2E88':'#C0392B88';
+    var _rtc=_top<=25?'#6DDC9E':_top<=50?'#F5C072':'#F4A09A';
+    var _pool=Math.round(_b.p50*8);
+    var _rank=Math.round(_pool*(1-_pct/100))+1;
+    var _abv=score>=_b.p50?'Above':'Below';
+    var _diff=Math.abs(score-_b.p50);
+    var _isSig=score>=75;
+    html+='<div class="score-right">'+
+      '<div class="sc-lbl">AIRA Score</div>'+
+      '<div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div>'+
+      '<div id="score-pct-badge" style="margin-top:7px;display:inline-block;padding:4px 10px;border-radius:99px;background:'+_rc+';border:1px solid '+_rbc+';font-size:11px;font-weight:700;color:'+_rtc+'">'+_rl+' in '+escHtml(_b.label)+'</div>'+
+      '<div id="score-rank-line" style="margin-top:5px;font-size:11px;color:rgba(255,255,255,.6)">Rank <strong style="color:#fff">~'+_rank+'</strong> of ~'+_pool+' · Beats <strong style="color:'+_rtc+'">'+_pct+'%</strong> of peers</div>'+
+      '<div style="margin-top:5px;font-size:11px;color:rgba(255,255,255,.55)"><strong style="color:'+(_abv==='Above'?'#6DDC9E':'#F4A09A')+'">'+_abv+' sector median</strong> ('+_b.p50+') by '+_diff+' pts</div>'+
+      '<div id="score-investor-signal" style="margin-top:7px;font-size:11px;padding:5px 8px;border-radius:7px;background:'+(_isSig?'rgba(26,158,107,.18)':'rgba(232,138,46,.18)')+';border:1px solid '+(_isSig?'rgba(26,158,107,.4)':'rgba(232,138,46,.35)')+';color:'+(_isSig?'#6DDC9E':'#F5C072')+'">'+(_isSig?'✅ Meets investor threshold (75+)':'⚡ '+(75-score)+' pts to investor threshold (75+)')+'</div>'+
     '</div>'+
-  '</div>'+
-  '</div>';
+    '</div>';
+  })();
 
 
   /* ── Benchmark Badge ── */
