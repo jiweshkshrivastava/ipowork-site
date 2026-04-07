@@ -849,7 +849,7 @@ async function runFree(){
   var html='<div class="result-wrap">';
 
   if(isMock){
-    html+='<div class="mock-notice">⚠️ <strong>Demo mode active.</strong> This report uses sample data to illustrate the full AIRA output. Contact our team to activate live company data.</div>';
+    html+='<div class="mock-notice">🔬 <strong>Illustrative Preview</strong> — using sample data. Enter your CIN above and click Run for your real company analysis.</div>';
   }
 
   html+='<div class="score-hero">'+
@@ -859,12 +859,100 @@ async function runFree(){
       '<div class="score-tags"><span class="stag" style="background:'+v.bg+';color:'+v.txt+'">'+v.label+'</span>'+
       '<span class="stag '+(score>=65?'good':'warn')+'">MCA Verified</span><span class="stag">SEBI ICDR 2018</span></div></div>'+
     '<div class="score-right">'+
-    '<div class="sc-lbl">Score</div>'+
+    '<div class="sc-lbl">AIRA Score</div>'+
     '<div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div>'+
-    '<div id="score-pct-badge" style="margin-top:8px;display:inline-block;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:12px;font-weight:700;color:#fff">Loading…</div>'+
+    '<div id="score-pct-badge" style="margin-top:7px;display:inline-block;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:11px;font-weight:700;color:#fff">Ranking…</div>'+
+    '<div id="score-rank-line" style="margin-top:5px;font-size:11px;color:rgba(255,255,255,.55)">Calculating rank…</div>'+
+    '<div id="score-investor-signal" style="margin-top:7px;font-size:11px;padding:5px 8px;border-radius:7px;background:rgba(232,138,46,.18);border:1px solid rgba(232,138,46,.35);color:#F5C072;display:none">'+
+      (score>=75?'✅ Meets investor threshold (75+)':'⚡ '+(75-score)+' pts to investor threshold (75+)')+
+    '</div>'+
   '</div>'+
   '</div>';
 
+
+  /* ── Benchmark Badge ── */
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">';
+  html += '<div id="bench-badge" style="font-size:13px;font-weight:800;color:var(--mu);padding:6px 14px;background:#fff;border:1.5px solid var(--bd);border-radius:99px;box-shadow:var(--sh)">🟡 Calculating…</div>';
+  html += '<div style="font-size:12px;color:var(--mu)">vs. '+escHtml(sector)+' peers · SEBI ICDR 2018</div>';
+  html += '</div>';
+
+  /* ── Score Breakdown Card ── */
+  (function(){
+    var drivers=[];
+    var r=cleanReport||'';
+    /* Parse AI report for score drivers — look for positive/negative signals */
+    if(/revenue.*cagr|strong.*financial|profitable/i.test(r)) drivers.push({sign:'+',pts:'~18',text:'Strong financials & revenue track record',col:'#1A9E6B'});
+    if(/promoter.*hold|founder.*hold|72|75|78|80/i.test(r))  drivers.push({sign:'+',pts:'~12',text:'High promoter holding & zero pledge',col:'#1A9E6B'});
+    if(/complian|gst.*clean|tds.*clean|roc.*time/i.test(r))   drivers.push({sign:'+',pts:'~8', text:'Clean compliance track record',col:'#2E8B57'});
+    if(/independent.*director|no.*id|0.*independ/i.test(r))   drivers.push({sign:'−',pts:'~10',text:'No independent directors appointed',col:'#C0392B'});
+    if(/governance|board|audit.*commit/i.test(r))              drivers.push({sign:'−',pts:'~8', text:'Governance structure gaps',col:'#D4860C'});
+    if(/debt.*equity|d.e.*1|lien|charge/i.test(r))            drivers.push({sign:'−',pts:'~6', text:'Debt-to-equity above recommended level',col:'#D4860C'});
+    if(drivers.length<3){
+      /* Defaults */
+      drivers=[{sign:'+',pts:'~15',text:'Company age & operational track record',col:'#1A9E6B'},{sign:'+',pts:'~10',text:'MCA filings & ROC compliance status',col:'#2E8B57'},{sign:'−',pts:'~12',text:'Governance gaps (see critical gaps below)',col:'#C0392B'},{sign:'−',pts:'~7',text:'Capital structure optimisation needed',col:'#D4860C'}];
+    }
+    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;margin-bottom:12px;box-shadow:var(--sh)">';
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin-bottom:12px;display:flex;align-items:center;gap:8px">🔍 Score Breakdown — Why '+score+'?<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">';
+    drivers.slice(0,4).forEach(function(d){
+      html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 11px;background:'+(d.sign==='+'?'rgba(26,158,107,.04)':'rgba(192,57,43,.04)')+';border:1px solid '+(d.sign==='+'?'rgba(26,158,107,.15)':'rgba(192,57,43,.15)')+';border-radius:8px">';
+      html += '<div style="font-size:16px;font-weight:900;color:'+d.col+';flex-shrink:0;width:14px">'+d.sign+'</div>';
+      html += '<div><div style="font-size:11px;font-weight:800;color:'+d.col+';margin-bottom:1px">'+d.pts+' pts</div>';
+      html += '<div style="font-size:11px;color:var(--sl);line-height:1.45">'+escHtml(d.text)+'</div></div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  })();
+
+  /* ── Goal-Based Action Path ── */
+  (function(){
+    var targetScore=score>=78?90:score>=65?78:65;
+    var targetLabel=score>=78?'Main Board Elite (90+)':score>=65?'Main Board Ready (78+)':'SME IPO Ready (65+)';
+    if(score>=78) targetLabel='Main Board Elite (90+)';
+    else if(score>=65) targetLabel='Main Board Ready (78+)';
+    else targetLabel='SME IPO Ready (65+)';
+    var gap=targetScore-score;
+    if(gap<=0) gap=90-score;
+    var actions=[];
+    if(score<65){
+      actions=[{step:1,action:'Appoint 2 independent directors (incl. 1 woman)',pts:'+6',time:'60 days',priority:'CRITICAL',col:'#C0392B'},{step:2,action:'Clear all pending ROC filings (AOC-4, MGT-7)',pts:'+4',time:'2–3 weeks',priority:'HIGH',col:'#D4860C'},{step:3,action:'Constitute audit & nomination committees',pts:'+3',time:'45 days',priority:'HIGH',col:'#D4860C'}];
+    } else if(score<78){
+      actions=[{step:1,action:'Improve governance: appoint IDs + form committees',pts:'+7',time:'60 days',priority:'HIGH',col:'#D4860C'},{step:2,action:'Reduce D/E ratio below 1.0x before DRHP',pts:'+4',time:'3–4 months',priority:'MEDIUM',col:'#E88A2E'},{step:3,action:'Register trademark / IP to protect brand value',pts:'+2',time:'Apply now',priority:'MEDIUM',col:'#E88A2E'}];
+    } else {
+      actions=[{step:1,action:'Commission 3-year Ind AS financial restatement',pts:'+4',time:'2–3 months',priority:'HIGH',col:'#0D5C6B'},{step:2,action:'Engage merchant banker & start DRHP drafting',pts:'—',time:'Now',priority:'HIGH',col:'#0D5C6B'},{step:3,action:'Complete pre-filing SEBI due diligence',pts:'+3',time:'1–2 months',priority:'MEDIUM',col:'#2E8B57'}];
+    }
+    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;margin-bottom:12px;box-shadow:var(--sh)">';
+    html += '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tl);margin-bottom:4px;display:flex;align-items:center;gap:8px">🎯 Your Fastest Path to IPO Ready<div style="flex:1;height:1px;background:var(--bd)"></div></div>';
+    html += '<div style="font-size:13px;color:var(--mu);margin-bottom:12px">To reach <strong style="color:var(--tld)">'+escHtml(targetLabel)+'</strong> → need <strong>+'+gap+' points</strong></div>';
+    actions.forEach(function(a){
+      html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 12px;background:rgba(13,92,107,.03);border:1px solid rgba(13,92,107,.08);border-radius:9px;margin-bottom:7px">';
+      html += '<div style="width:22px;height:22px;border-radius:50%;background:var(--tl);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+a.step+'</div>';
+      html += '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--sl);margin-bottom:2px">'+escHtml(a.action)+'</div>';
+      html += '<div style="display:flex;gap:10px;font-size:11px;color:var(--mu)"><span>⏱ '+escHtml(a.time)+'</span><span style="font-weight:700;color:'+a.col+'">'+escHtml(a.pts)+'</span><span style="color:'+a.col+';font-weight:700">'+escHtml(a.priority)+'</span></div></div>';
+      html += '</div>';
+    });
+    /* Fix CTA */
+    html += '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20my%20AIRA%20score%20is%20'+score+'%20in%20'+encodeURIComponent(sector)+'%2C%20I%20need%20a%20CA%2FCS%20to%20fix%20these%20gaps." target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:11px 16px;background:var(--tl);color:#fff;border-radius:9px;font-weight:700;font-size:13px;text-decoration:none;transition:.15s">👥 Fix these gaps with CA/CS on ipowork →</a>';
+    html += '</div>';
+  })();
+
+  /* ── Biggest Risk Highlight ── */
+  (function(){
+    var riskText='', riskSub='';
+    var r=cleanReport||'';
+    if(/independent.*director|no.*id|0.*independ/i.test(r)){riskText='Governance — No Independent Directors';riskSub='Bottom 30% vs peers · Fix in 60 days · Regulation: SEBI ICDR 2018 Reg 26(6)';}
+    else if(/gst|tds.*demand|tax.*notice/i.test(r)){riskText='Tax Compliance — GST/TDS Notices Pending';riskSub='Blocks DRHP filing · Fix in 30–45 days · Regulation: ICDR Reg 26(1)';}
+    else if(/debt.*equity|d.e.*1\.[5-9]|d.e.*2/i.test(r)){riskText='Balance Sheet — High Debt-to-Equity Ratio';riskSub='Below sector average · Fix in 3–6 months · Regulation: SEBI ICDR General';}
+    else if(/roc|filing.*delay|overdue/i.test(r)){riskText='ROC Compliance — Pending Filings';riskSub='Must be cleared before DRHP · Fix in 2–3 weeks · CA2013 §137';}
+    else{riskText='Governance Structure — Board Composition';riskSub='Most common rejection reason in sector · Target: 3+ active directors incl. 1 woman ID';}
+    html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(192,57,43,.04);border:1.5px solid rgba(192,57,43,.2);border-radius:12px;margin-bottom:12px">';
+    html += '<div style="font-size:22px;flex-shrink:0">⚠️</div>';
+    html += '<div>';
+    html += '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#C0392B;margin-bottom:4px">Biggest Risk</div>';
+    html += '<div style="font-size:14px;font-weight:800;color:var(--tld);margin-bottom:3px">'+escHtml(riskText)+'</div>';
+    html += '<div style="font-size:12px;color:var(--mu);line-height:1.5">'+escHtml(riskSub)+'</div>';
+    html += '</div></div>';
+  })();
 
   /* ── PDF Download (Free) ── */
   html += '<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">';
@@ -1002,7 +1090,7 @@ async function runPaid(){
 
   var html='<div class="result-wrap">';
   if(isMock){
-    html+='<div class="mock-notice">⚠️ <strong>Demo mode active.</strong> This full report uses sample data. Contact our team to activate live financial intelligence for your company.</div>';
+    html+='<div class="mock-notice">🔬 <strong>Illustrative Preview</strong> — using sample data. Enter your CIN above for live financial intelligence.</div>';
   }
 
   html+='<div class="score-hero">'+
@@ -1835,9 +1923,14 @@ function renderBenchmark(score, sector, dims){
 
 function animateBenchmark(score, sector){
   setTimeout(function(){
+    /* Animate distribution bar marker */
     var m=document.getElementById('bm-you');
     if(m) m.style.left=Math.min(Math.max(score,2),98)+'%';
+
     var b=BENCH[sector]||BENCH['Other'];
+    if(!b) return;
+
+    /* Percentile calc */
     var pct;
     if(score<=b.p25)      pct=Math.round((score/b.p25)*25);
     else if(score<=b.p50) pct=Math.round(25+(score-b.p25)/(b.p50-b.p25)*25);
@@ -1846,12 +1939,54 @@ function animateBenchmark(score, sector){
     else pct=90;
     pct=Math.min(pct,99);
     var topPct=100-pct;
-    var bg=document.getElementById('score-pct-badge');
-    if(bg){
-      bg.textContent=(topPct<=10?'Top 10%':topPct<=25?'Top 25%':topPct<=40?'Top 40%':topPct<=60?'Top 60%':'Bottom 40%')+' in '+(b.label||sector);
-      bg.style.background=topPct<=25?'rgba(26,158,107,.22)':topPct<=50?'rgba(232,138,46,.22)':'rgba(192,57,43,.22)';
-      bg.style.borderColor=topPct<=25?'#1A9E6B88':topPct<=50?'#E88A2E88':'#C0392B88';
-      bg.style.color=topPct<=25?'#6DDC9E':topPct<=50?'#F5C072':'#F4A09A';
+    var rankLabel=topPct<=10?'Top 10%':topPct<=25?'Top 25%':topPct<=40?'Top 40%':topPct<=60?'Top 60%':'Bottom 40%';
+    var rankCol=topPct<=25?'rgba(26,158,107,.22)':topPct<=50?'rgba(232,138,46,.22)':'rgba(192,57,43,.22)';
+    var borderCol=topPct<=25?'#1A9E6B88':topPct<=50?'#E88A2E88':'#C0392B88';
+    var textCol=topPct<=25?'#6DDC9E':topPct<=50?'#F5C072':'#F4A09A';
+
+    /* Estimated rank (approx pool = p50 * 8) */
+    var poolSize=Math.round(b.p50*8);
+    var yourRank=Math.round(poolSize*(1-pct/100))+1;
+
+    /* Update badge */
+    var badge=document.getElementById('score-pct-badge');
+    if(badge){
+      badge.textContent=rankLabel+' in '+b.label;
+      badge.style.background=rankCol;
+      badge.style.borderColor=borderCol;
+      badge.style.color=textCol;
+    }
+
+    /* Update rank line */
+    var rankLine=document.getElementById('score-rank-line');
+    if(rankLine){
+      rankLine.innerHTML='Rank <strong style="color:#fff">~'+yourRank+'</strong> of ~'+poolSize+' companies · Beats <strong style="color:'+textCol+'">'+pct+'%</strong> of peers';
+    }
+
+    /* Show investor signal */
+    var sig=document.getElementById('score-investor-signal');
+    if(sig){
+      sig.style.display='block';
+      if(score>=75){
+        sig.innerHTML='✅ Meets investor threshold (75+)';
+        sig.style.background='rgba(26,158,107,.18)';
+        sig.style.borderColor='rgba(26,158,107,.4)';
+        sig.style.color='#6DDC9E';
+      } else {
+        sig.innerHTML='⚡ '+(75-score)+' pts to investor threshold (75+)';
+        sig.style.background='rgba(232,138,46,.18)';
+        sig.style.borderColor='rgba(232,138,46,.35)';
+        sig.style.color='#F5C072';
+      }
+    }
+
+    /* Benchmark badge update */
+    var bench_badge=document.getElementById('bench-badge');
+    if(bench_badge){
+      var bb_text=topPct<=25?'🟢 Top Quartile':topPct<=50?'🟡 Above Average':topPct<=75?'🟠 Below Average':'🔴 Bottom Tier';
+      var bb_col=topPct<=25?'#1A9E6B':topPct<=50?'#E88A2E':'#C0392B';
+      bench_badge.textContent=bb_text;
+      bench_badge.style.color=bb_col;
     }
   },500);
 }
