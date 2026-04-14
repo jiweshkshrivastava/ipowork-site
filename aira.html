@@ -960,35 +960,191 @@ async function runPaidCore(){
   await new Promise(function(r){setTimeout(r,300);});
   stepDone('pp5');
   btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Run Full AIRA →';
+  var co = probe;
+  var fin2 = co.financials || {};
+  var com2 = co.compliance || {};
+  var prom2= co.promoters  || {};
+  var lit2 = co.litigation || {};
+  var dirs2= Array.isArray(co.directors) ? co.directors : [];
+  var chgs2= Array.isArray(co.charges)   ? co.charges   : [];
+  var peers2=Array.isArray(co.peer_comparison) ? co.peer_comparison : [];
+  var cr2  = Array.isArray(co.credit_ratings)  ? co.credit_ratings  : [];
+
+  function fmtINR(v){ if(!v&&v!==0) return '—'; var n=parseFloat(v); if(isNaN(n)) return String(v); if(n>=10000000) return '₹'+(n/10000000).toFixed(1)+' Cr'; if(n>=100000) return '₹'+(n/100000).toFixed(1)+' L'; return '₹'+n.toLocaleString('en-IN'); }
+  function fmtPct(v){ return v!=null&&v!==undefined&&v!==''?parseFloat(v).toFixed(1)+'%':'—'; }
+  function fmtN(v){ return v!=null&&v!==undefined&&v!==''?String(v):'—'; }
+
   var html='<div class="result-wrap">';
-  html+='<div style="padding:9px 14px;background:rgba(26,158,107,.04);border:1px solid rgba(26,158,107,.2);border-radius:9px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--ok)">● Probe42 Live Data · 400+ data points · 7-year financials</div>';
+
+  /* Source badge */
+  html+='<div style="padding:8px 14px;background:rgba(26,158,107,.08);border:1px solid rgba(26,158,107,.2);border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--ok)">● Probe42 Live Data · '+esc(co.company_name||cin)+' · '+esc(co.active_compliance||co.status||'')+'</div>';
+
+  /* Score hero */
   html+='<div class="score-hero">';
   html+='<div class="score-dial">'+dialSVG(score,col)+'<div class="sdn"><div class="sdn-big">'+score+'</div><div class="sdn-den">/100</div></div></div>';
-  html+='<div><div class="score-verdict">'+v.label+'</div><div class="score-sub">'+esc(probeName||cin)+' · '+esc(sector)+' · '+esc(exchange)+'</div>';
-  html+='<div class="score-tags"><span class="stag '+(score>=65?'good':'warn')+'">'+v.label+'</span><span class="stag good">Probe42 Verified</span><span class="stag good">7-Year Data</span><span class="stag">SEBI ICDR 2018</span></div></div>';
-  html+='<div class="score-right"><div class="sc-lbl">Full AIRA Score</div><div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div></div>';
+  html+='<div>';
+  html+='<div class="score-verdict">'+v.label+'</div>';
+  html+='<div class="score-sub">'+esc(co.company_name||cin)+' · '+esc(sector)+' · '+esc(exchange)+'</div>';
+  html+='<div class="score-tags"><span class="stag '+(score>=65?'good':'warn')+'">'+v.label+'</span><span class="stag good">Probe42 Verified</span>';
+  if(co.listing_status) html+='<span class="stag">'+esc(co.listing_status)+'</span>';
+  html+='<span class="stag">SEBI ICDR 2018</span></div>';
+  if(co.description) html+='<div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:8px;line-height:1.5">'+esc(co.description.substring(0,200))+'…</div>';
   html+='</div>';
-  html+='<div class="dl-row"><button class="dl-btn-filled" onclick="downloadReport(\'paid\')">⭐ Download Full Report (PDF)</button><button class="dl-btn-outline" onclick="downloadReport(\'free\')">📄 Download Summary</button></div>';
+  html+='<div class="score-right"><div class="sc-lbl">AIRA Score</div><div class="sc-val">'+score+'<span style="font-size:14px;color:rgba(255,255,255,.4)">/100</span></div></div>';
+  html+='</div>';
+
+  /* Download buttons */
+  html+='<div class="dl-row"><button class="dl-btn-filled" onclick="downloadReport(\'paid\')">⭐ Download Full Report</button><button class="dl-btn-outline" onclick="downloadReport(\'free\')">📄 Download Summary</button></div>';
+
+  /* Benchmark */
   html+=renderBenchmark(score,sector);
-  if(fin&&Object.keys(fin).length>0){
-    html+='<div class="sec-hd">Verified Financials — Probe42</div><div class="kv-grid">';
-    [{l:'Revenue FY24',v:fin.revenue_fy24||fin.revenue||fin.totalRevenue||fin.sales,g:true},{l:'PAT FY24',v:fin.pat_fy24||fin.pat||fin.net_profit||fin.netProfit,g:true},{l:'EBITDA Margin',v:fin.ebitda_margin?fin.ebitda_margin+'%':null,g:(parseFloat(fin.ebitda_margin)>=12)},{l:'Revenue CAGR',v:fin.revenue_cagr?fin.revenue_cagr+'%':null,g:(parseFloat(fin.revenue_cagr)>=15)},{l:'Net Worth',v:fin.net_worth,g:true},{l:'D/E Ratio',v:fin.debt_equity_ratio?fin.debt_equity_ratio+'x':null,g:(parseFloat(fin.debt_equity_ratio)<=1.5)}].forEach(function(kv){
-      if(!kv.v||kv.v==='null'||kv.v===null)return;
-      html+='<div class="kv-card"><div class="kv-val '+(kv.g?'g':'a')+'">'+esc(String(kv.v))+'</div><div class="kv-lbl">'+kv.l+'</div></div>';
-    });
-    html+='</div>';
-  }
-  html+='<div class="sec-hd">16-Parameter Dimension Scores</div><div class="dim-grid">';
-  Object.keys(dims).forEach(function(k){var dv=dims[k],dc=sc(dv);html+='<div class="dim-card" style="border-top-color:'+dc+'"><div class="dim-lbl">'+dimIcon(k)+' '+dimLabel(k)+'</div><div class="dim-val" style="color:'+dc+'">'+dv+'</div><div class="dim-bar-bg"><div class="dim-bar" style="width:'+dv+'%;background:'+dc+'"></div></div><div class="dim-verd">'+dimVerd(dv)+'</div></div>';});
+
+  /* Company Master */
+  html+='<div class="sec-hd">Company Profile — Probe42 Verified</div>';
+  html+='<div class="ds-grid">';
+  html+='<div class="ds-card"><div class="ds-head"><div class="ds-name">MCA Master</div><span class="ds-badge ds-live">VERIFIED</span></div><div class="ds-rows">';
+  html+='<div class="ds-row"><span class="k">Status</span><span class="v v-ok">'+fmtN(co.status)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Compliance</span><span class="v '+(co.active_compliance&&co.active_compliance.includes('ACTIVE')?'v-ok':'v-warn')+'">'+fmtN(co.active_compliance)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Incorporated</span><span class="v">'+fmtN(co.date_of_incorporation)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Type</span><span class="v">'+fmtN(co.company_type)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Paid-up Capital</span><span class="v">'+fmtINR(co.paid_up_capital)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Auth Capital</span><span class="v">'+fmtINR(co.authorised_capital)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">State</span><span class="v">'+fmtN(co.registered_state)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Last AGM</span><span class="v">'+fmtN(co.last_agm_date)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Last Filing</span><span class="v">'+fmtN(co.last_filing_date)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">CIRP Status</span><span class="v '+(co.cirp_status?'v-bad':'v-ok')+'">'+fmtN(co.cirp_status||'None')+'</span></div>';
+  if(co.website) html+='<div class="ds-row"><span class="k">Website</span><span class="v"><a href="'+esc(co.website)+'" target="_blank" style="color:var(--tl)">'+esc(co.website)+'</a></span></div>';
+  html+='</div></div>';
+
+  html+='<div class="ds-card"><div class="ds-head"><div class="ds-name">Compliance</div><span class="ds-badge ds-live">PROBE42</span></div><div class="ds-rows">';
+  html+='<div class="ds-row"><span class="k">GST Status</span><span class="v">'+fmtN(com2.gst_status)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">GST Registrations</span><span class="v">'+fmtN(com2.gst_count)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">EPFO</span><span class="v '+(com2.epfo_registered?'v-ok':'v-warn')+'">'+fmtN(com2.epfo_registered?'Registered ('+com2.epfo_count+' estbl.)':'Not found')+'</span></div>';
+  html+='<div class="ds-row"><span class="k">ROC Filings</span><span class="v">'+fmtN(com2.roc_filing_status)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">MSME Delays</span><span class="v '+(com2.msme_delays>0?'v-warn':'v-ok')+'">'+fmtN(com2.msme_delays||0)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Defaulter</span><span class="v '+(com2.defaulter?'v-bad':'v-ok')+'">'+fmtN(com2.defaulter?'⚠️ YES':'No')+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Promoter Holding</span><span class="v">'+fmtPct(prom2.promoter_holding_pct)+'</span></div>';
+  html+='<div class="ds-row"><span class="k">Pledge %</span><span class="v '+(parseFloat(prom2.pledge_pct||0)>0?'v-warn':'v-ok')+'">'+fmtPct(prom2.pledge_pct||0)+'</span></div>';
+  if(co.rpt_count) html+='<div class="ds-row"><span class="k">RPT Count</span><span class="v">'+fmtN(co.rpt_count)+'</span></div>';
+  html+='</div></div>';
   html+='</div>';
+
+  /* Financials */
+  if(fin2.revenue_fy24||fin2.total_income||fin2.pat_fy24||fin2.net_worth){
+    html+='<div class="sec-hd">Verified Financials — Probe42 ('+esc(fin2.fy_year||'FY24')+')</div>';
+    html+='<div class="kv-grid">';
+    var kp=[
+      {l:'Revenue',v:fmtINR(fin2.revenue_fy24||fin2.total_income),g:true},
+      {l:'EBITDA',v:fmtINR(fin2.ebitda),g:(parseFloat(fin2.ebitda_margin)>=12)},
+      {l:'EBITDA Margin',v:fmtPct(fin2.ebitda_margin),g:(parseFloat(fin2.ebitda_margin)>=12)},
+      {l:'PAT',v:fmtINR(fin2.pat_fy24),g:(parseFloat(fin2.pat_fy24)>0)},
+      {l:'Net Worth',v:fmtINR(fin2.net_worth),g:true},
+      {l:'Total Debt',v:fmtINR(fin2.total_debt),g:(parseFloat(fin2.total_debt||0)===0)},
+      {l:'D/E Ratio',v:fmtN(fin2.debt_equity_ratio),g:(parseFloat(fin2.debt_equity_ratio||99)<=1.5)},
+      {l:'ROE',v:fmtPct(fin2.roe),g:(parseFloat(fin2.roe||0)>=15)},
+      {l:'ROCE',v:fmtPct(fin2.roce),g:(parseFloat(fin2.roce||0)>=15)},
+      {l:'Current Ratio',v:fmtN(fin2.current_ratio),g:(parseFloat(fin2.current_ratio||0)>=1.5)},
+      {l:'Cash Flow Ops',v:fmtINR(fin2.cash_flow_ops),g:(parseFloat(fin2.cash_flow_ops||0)>0)},
+      {l:'Auditor',v:fmtN(fin2.auditor),g:true},
+    ];
+    kp.forEach(function(k){if(k.v&&k.v!=='—')html+='<div class="kv-card"><div class="kv-val '+(k.g?'g':'a')+'">'+k.v+'</div><div class="kv-lbl">'+k.l+'</div></div>';});
+    html+='</div>';
+    if(cr2.length){
+      html+='<div style="padding:10px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:9px;margin-bottom:14px;font-size:13px">';
+      html+='<strong style="color:var(--tl)">Credit Ratings:</strong> ';
+      html+=cr2.map(function(r){return esc(r.agency)+': <strong>'+esc(r.rating)+'</strong>'+(r.outlook?' ('+esc(r.outlook)+')':'');}).join(' &nbsp;|&nbsp; ');
+      html+='</div>';
+    }
+  }
+
+  /* Directors */
+  if(dirs2.length){
+    html+='<div class="sec-hd">Board of Directors — Probe42 ('+dirs2.length+' found)</div>';
+    html+='<div class="dir-wrap"><div class="card-hd"><div class="card-ttl">Directors</div><div class="card-sub">Source: Probe42</div></div>';
+    html+='<table class="dtable"><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Gender</th><th>Status</th><th>Appointed</th></tr></thead><tbody>';
+    dirs2.forEach(function(d){
+      var act=(!d.cessation||d.status==='Active');
+      html+='<tr><td style="font-weight:600">'+esc(d.name||'N/A')+'</td>';
+      html+='<td><span class="din-tag">'+esc(d.din||'N/A')+'</span></td>';
+      html+='<td>'+esc(d.designation||'Director')+'</td>';
+      html+='<td>'+esc(d.gender||'—')+'</td>';
+      html+='<td><span style="color:'+(act?'var(--ok)':'var(--mu)')+'">●</span> '+esc(d.status||'Active')+'</td>';
+      html+='<td style="color:var(--mu)">'+esc(d.appointed||'—')+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  /* Charges */
+  if(chgs2.length){
+    html+='<div class="sec-hd">Charges & Liens — Probe42 ('+chgs2.length+' open)</div>';
+    html+='<div class="fin-card"><table class="fin-tbl"><thead><tr><th>Charge Holder</th><th>Amount</th><th>Type</th><th>Status</th><th>Date</th></tr></thead><tbody>';
+    chgs2.forEach(function(c){
+      html+='<tr><td style="font-weight:600">'+esc(c.holder||'N/A')+'</td>';
+      html+='<td>'+esc(c.amount||'N/A')+'</td>';
+      html+='<td>'+esc(c.type||'N/A')+'</td>';
+      html+='<td><span style="font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(192,57,43,.08);color:var(--er)">'+esc(c.status||'Open')+'</span></td>';
+      html+='<td>'+esc(c.date||'N/A')+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  /* Peer comparison — REAL DATA from Probe42 */
+  if(peers2.length){
+    html+='<div class="sec-hd">Peer Comparison — Probe42 Real Data</div>';
+    html+='<div class="fin-card"><table class="fin-tbl"><thead><tr><th>Company</th><th>Revenue</th><th>PAT</th><th>Net Worth</th><th>EBITDA%</th></tr></thead><tbody>';
+    peers2.forEach(function(p){
+      html+='<tr><td style="font-weight:600;color:var(--sl)">'+esc(p.name||'N/A')+'</td>';
+      html+='<td>'+fmtINR(p.revenue)+'</td><td>'+fmtINR(p.pat)+'</td><td>'+fmtINR(p.net_worth)+'</td><td>'+fmtPct(p.ebitda_margin)+'</td></tr>';
+    });
+    /* Your company row */
+    html+='<tr style="background:rgba(13,92,107,.04);border-top:2px solid var(--tl)"><td style="font-weight:800;color:var(--tl)">★ '+esc((co.company_name||cin).substring(0,30))+'</td>';
+    html+='<td>'+fmtINR(fin2.revenue_fy24||fin2.total_income)+'</td>';
+    html+='<td>'+fmtINR(fin2.pat_fy24)+'</td>';
+    html+='<td>'+fmtINR(fin2.net_worth)+'</td>';
+    html+='<td>'+fmtPct(fin2.ebitda_margin)+'</td></tr>';
+    html+='</tbody></table><div style="padding:10px 16px;font-size:12px;color:var(--mu)">Peer data sourced directly from Probe42 API</div></div>';
+  }
+
+  /* Peer Comparison — REAL Probe42 data */
+  if(peers2&&peers2.length){
+    html+='<div class="sec-hd">Real Peer Comparison — Probe42 Data</div>';
+    html+='<div class="fin-card"><table class="fin-tbl"><thead><tr><th>Company</th><th>Revenue</th><th>PAT</th><th>Net Worth</th><th>EBITDA%</th></tr></thead><tbody>';
+    peers2.forEach(function(p){
+      html+='<tr><td style="font-weight:600;color:var(--sl)">'+esc(p.name||'N/A')+'</td>';
+      html+='<td>'+fmtINR(p.revenue)+'</td><td>'+fmtINR(p.pat)+'</td>';
+      html+='<td>'+fmtINR(p.net_worth)+'</td><td>'+fmtPct(p.ebitda_margin)+'</td></tr>';
+    });
+    html+='<tr style="background:rgba(13,92,107,.04);border-top:2px solid var(--tl)">';
+    html+='<td style="font-weight:800;color:var(--tl)">★ '+esc((co.company_name||cin).substring(0,28))+'</td>';
+    html+='<td>'+fmtINR(fin2.revenue_fy24||fin2.total_income)+'</td>';
+    html+='<td>'+fmtINR(fin2.pat_fy24)+'</td>';
+    html+='<td>'+fmtINR(fin2.net_worth)+'</td>';
+    html+='<td>'+fmtPct(fin2.ebitda_margin)+'</td></tr>';
+    html+='</tbody></table>';
+    html+='<div style="padding:10px 16px;font-size:12px;color:var(--mu)">Real peer data from Probe42 API · FY2024</div></div>';
+  }
+
+  /* Dimension scores */
+  html+='<div class="sec-hd">16-Parameter Dimension Scores</div><div class="dim-grid">';
+  Object.keys(dims).forEach(function(k){
+    var dv=dims[k],dc=sc(dv);
+    html+='<div class="dim-card" style="border-top-color:'+dc+'"><div class="dim-lbl">'+dimIcon(k)+' '+dimLabel(k)+'</div><div class="dim-val" style="color:'+dc+'">'+dv+'</div><div class="dim-bar-bg"><div class="dim-bar" style="width:'+dv+'%;background:'+dc+'"></div></div><div class="dim-verd">'+dimVerd(dv)+'</div></div>';
+  });
+  html+='</div>';
+
+  /* AI analysis */
   html+='<div class="sec-hd">Full AI Intelligence — Claude + Probe42</div>';
   html+='<div class="ai-card"><div class="ai-content">'+esc(cleanR)+'</div></div>';
-  html+='<div class="sec-hd">IPO Roadmap</div><div class="roadmap-card"><div class="phases"><div class="phase ph1"><div class="phase-lbl">Immediate</div><div class="phase-item">Appoint IDs & form board committees</div><div class="phase-item">Resolve compliance gaps</div></div><div class="phase ph2"><div class="phase-lbl">60–120 days</div><div class="phase-item">Commission Ind AS restatement</div><div class="phase-item">Engage SEBI-registered MB</div></div><div class="phase ph3"><div class="phase-lbl">120–180 days</div><div class="phase-item">Sign MB mandate</div><div class="phase-item">Begin DRHP drafting</div></div></div></div>';
+
+  /* Roadmap */
+  html+='<div class="sec-hd">IPO Roadmap</div>';
+  html+='<div class="roadmap-card"><div class="phases"><div class="phase ph1"><div class="phase-lbl">Immediate (0–60 days)</div><div class="phase-item">Appoint IDs & form board committees</div><div class="phase-item">Resolve compliance gaps (GST/TDS)</div><div class="phase-item">Register trademark / IP</div></div>';
+  html+='<div class="phase ph2"><div class="phase-lbl">Preparation (60–120 days)</div><div class="phase-item">Commission Ind AS restatement</div><div class="phase-item">Engage SEBI-registered merchant banker</div><div class="phase-item">Internal audit — 3 years</div></div>';
+  html+='<div class="phase ph3"><div class="phase-lbl">MB Engagement (120–180 days)</div><div class="phase-item">Sign MB mandate</div><div class="phase-item">Begin DRHP drafting</div><div class="phase-item">Pre-SEBI due diligence</div></div></div></div>';
+
   html+=renderSimulator(score);
-  html+=renderFixEngine();
-  html+=renderValuation(sector,fin.revenue_fy24||'',fin.pat_fy24||'',fin.ebitda_fy24||'',fin.ebitda_margin||'');
   html+='</div>';
-  out.innerHTML=html;
+  out.innerHTML = html;idC
   initSimulator(score);
   animateBenchmarkBar();
   out.scrollIntoView({behavior:'smooth',block:'start'});
