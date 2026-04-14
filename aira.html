@@ -759,9 +759,14 @@ async function runFreeCore(){
   var dims={financial:60,governance:55,compliance:65,promoter:60,legal:65,readiness:50};
   var jm=report.match(/---JSON---\s*([\s\S]*?)---END---/);
   if(jm){try{dims=JSON.parse(jm[1].trim());}catch(e){}}
-  var cleanReport=report.replace(/AIRA Score:\s*\d+\n?/i,'').replace(/---JSON---[\s\S]*?---END---/,'').trim();
+  var cleanReport=report.replace(/AIRA Score:\s*\d+\n?/i,'').replace(/---JSON---[\s\S]*?---END---/,'').replace(/===?REPORT_START===?\s*/,'').replace(/\s*===?REPORT_END===?/,'').replace(/===?RESEARCH[^=]*===?[\s\S]*?===?RESEARCH[^=]*===?/g,'').trim();
   var companyName=research.company_name||cname||cin;
   window._lastCompanyName=companyName;
+  /* Auto-fill company name field if empty */
+  if(!cname&&research.company_name&&research.company_name!==cin){
+    var fnEl=document.getElementById('f-cname');
+    if(fnEl) fnEl.value=research.company_name;
+  }
   var lastBS=research.last_balance_sheet_date||'N/A';
   var bsMonths=(lastBS!=='N/A'&&lastBS)?Math.floor((Date.now()-new Date(lastBS))/864e5/30):null;
   var html='<div class="result-wrap">';
@@ -787,13 +792,45 @@ async function runFreeCore(){
   /* Benchmark */
   html+=renderBenchmark(score,sector);
   /* Financials */
-  if(hasWeb){
-    html+='<div class="sec-hd">Financials — web-researched</div><div class="kv-grid">';
-    var kvs=[{l:'Revenue ('+esc(fin.fy_year||'Latest')+')',v:fin.revenue_fy24,g:true},{l:'PAT',v:fin.pat_fy24,g:(parseFloat(fin.pat_fy24)>0)},{l:'EBITDA Margin',v:fin.ebitda_margin,g:(parseFloat(fin.ebitda_margin)>=12)},{l:'Revenue CAGR',v:fin.revenue_cagr_3y,g:(parseFloat(fin.revenue_cagr_3y)>=15)},{l:'Net Worth',v:fin.net_worth,g:true},{l:'D/E Ratio',v:fin.debt_equity_ratio,g:(parseFloat(fin.debt_equity_ratio)<=1.5)},{l:'ROE',v:fin.roe,g:(parseFloat(fin.roe)>=15)},{l:'Auditor',v:fin.auditor,g:true}];
-    kvs.forEach(function(kv){if(!kv.v||kv.v==='null'||kv.v===null||kv.v==='N/A')return;html+='<div class="kv-card"><div class="kv-val '+(kv.g?'g':'a')+'">'+esc(String(kv.v))+'</div><div class="kv-lbl">'+kv.l+'</div></div>';});
+  /* ── Financials — always show what we have ── */
+  var anyFin=fin.revenue_fy24||fin.pat_fy24||fin.net_worth||fin.ebitda_margin||fin.revenue_fy23;
+  html+='<div class="sec-hd">Financials — '+(anyFin?'from AI research':'data not publicly available')+'</div>';
+  if(anyFin){
+    html+='<div class="kv-grid">';
+    var kvs=[
+      {l:'Revenue ('+esc(fin.fy_year||'Latest')+')',v:fin.revenue_fy24,g:true},
+      {l:'PAT',v:fin.pat_fy24,g:(parseFloat(fin.pat_fy24)>0)},
+      {l:'EBITDA Margin',v:fin.ebitda_margin,g:(parseFloat(fin.ebitda_margin)>=12)},
+      {l:'Revenue CAGR',v:fin.revenue_cagr_3y,g:(parseFloat(fin.revenue_cagr_3y)>=15)},
+      {l:'Net Worth',v:fin.net_worth,g:true},
+      {l:'D/E Ratio',v:fin.debt_equity_ratio,g:(parseFloat(fin.debt_equity_ratio)<=1.5)},
+      {l:'ROE',v:fin.roe,g:(parseFloat(fin.roe)>=15)},
+      {l:'Auditor',v:fin.auditor,g:true}
+    ];
+    kvs.forEach(function(kv){
+      if(!kv.v||kv.v==='null'||kv.v===null||kv.v==='N/A')return;
+      html+='<div class="kv-card"><div class="kv-val '+(kv.g?'g':'a')+'">'+esc(String(kv.v))+'</div><div class="kv-lbl">'+kv.l+'</div></div>';
+    });
     html+='</div>';
+    /* Revenue trend table */
+    if(fin.revenue_fy23&&fin.revenue_fy23!=='null'){
+      html+='<div class="fin-card"><div class="card-hd"><div class="card-ttl">Revenue Trend</div><div class="card-sub">AI-researched · '+esc(fin.fy_year||'Latest')+'</div></div>';
+      html+='<table class="fin-tbl"><thead><tr><th>Metric</th><th>FY24/Latest</th><th>FY23</th><th>FY22</th></tr></thead><tbody>';
+      html+='<tr><td>Revenue</td><td>'+esc(fin.revenue_fy24||'—')+'</td><td>'+esc(fin.revenue_fy23||'—')+'</td><td>'+esc(fin.revenue_fy22||'—')+'</td></tr>';
+      html+='<tr><td>PAT</td><td>'+esc(fin.pat_fy24||'—')+'</td><td>'+esc(fin.pat_fy23||'—')+'</td><td>—</td></tr>';
+      html+='</tbody></table></div>';
+    }
   } else {
-    html+='<div style="padding:12px 14px;background:rgba(212,134,12,.04);border:1px solid rgba(212,134,12,.2);border-radius:9px;font-size:13px;color:var(--sl);margin-bottom:16px">⚠️ <strong>Financial data not found via web research</strong> — this company may not have public financial disclosures. The AI has factored this into the score. Use Full AIRA with Probe42 for verified data.</div>';
+    html+='<div style="padding:12px 14px;background:rgba(212,134,12,.04);border:1px solid rgba(212,134,12,.2);border-radius:9px;font-size:13px;color:var(--sl);margin-bottom:16px">';
+    html+='⚠️ <strong>Financials not found publicly</strong> for this company. ';
+    html+='This is common for small private companies not on Screener.in or Tofler. ';
+    html+='The AI has scored conservatively. Use <strong>Full AIRA with Probe42</strong> for verified 7-year financials.</div>';
+  }
+  if(biz&&biz.key_products_services&&biz.key_products_services!=='null'){
+    html+='<div style="padding:11px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:9px;font-size:13px;color:var(--sl);margin-bottom:16px">';
+    html+='<strong style="color:var(--tl)">Business:</strong> '+esc(biz.key_products_services);
+    if(biz.notable_clients&&biz.notable_clients!=='null') html+=' · <strong style="color:var(--tl)">Key Clients:</strong> '+esc(biz.notable_clients);
+    html+='</div>';
   }
   /* Company info */
   html+='<div class="sec-hd">Company Profile — AI web research</div><div class="ds-grid">';
