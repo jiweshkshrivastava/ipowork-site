@@ -412,29 +412,32 @@ function submitLogin(){
   var phone=(document.getElementById('login-phone').value||'').trim();
   var email=(document.getElementById('login-email').value||'').trim();
   var btn=document.getElementById('btn-login');
-  if(!(/^[6-9]\d{9}$/.test(phone))){
-    document.getElementById('phone-wrap').style.borderColor='var(--er)';
-    document.getElementById('login-phone').focus(); return;
+
+  if(phone.length!==10||!/^[6-9]/.test(phone)){
+    var pw=document.getElementById('phone-wrap');
+    if(pw) pw.style.borderColor='var(--er)';
+    var ph=document.getElementById('login-phone'); if(ph) ph.focus();
+    return;
   }
-  if(!email||!email.includes('@')){
-    document.getElementById('login-email').style.borderColor='var(--er)';
-    document.getElementById('login-email').focus(); return;
+  if(!email||!email.includes('@')||!email.includes('.')){
+    var el=document.getElementById('login-email');
+    if(el){el.style.borderColor='var(--er)';el.focus();}
+    return;
   }
-  btn.disabled=true; btn.textContent='Saving…';
+
+  if(btn){btn.disabled=true;btn.textContent='Please wait...';}
   var user={phone:phone,email:email,ts:Date.now()};
   try{localStorage.setItem('ipowork_user',JSON.stringify(user));}catch(e){}
-  /* Fire-and-forget lead notification */
   try{
     fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({type:'email',to:'partners@ipowork.com',
         subject:'New AIRA Lead: +91 '+phone,
-        html:'<p><b>Phone:</b> +91 '+phone+'</p><p><b>Email:</b> '+email+'</p>'})
-    }).catch(function(){});
+        html:'<p><b>Phone:</b> +91 '+phone+'</p><p><b>Email:</b> '+email+'</p>'
+      })}).catch(function(){});
   }catch(e){}
-  /* Update topbar */
   var tl=document.getElementById('topbar-login');
-  if(tl){tl.textContent='👤 +91 '+phone;tl.onclick=function(){if(confirm('Sign out?')){localStorage.removeItem('ipowork_user');location.reload();}};}
-  btn.disabled=false; btn.textContent='Continue — Run My AIRA Score →';
+  if(tl){tl.textContent='User +91 '+phone;tl.onclick=function(){if(confirm('Sign out?')){localStorage.removeItem('ipowork_user');location.reload();}};}
+  if(btn){btn.disabled=false;btn.textContent='Continue - Run My AIRA Score';}
   closeLogin();
   if(_loginCallback){var cb=_loginCallback;_loginCallback=null;cb();}
 }
@@ -1206,84 +1209,6 @@ function downloadReport(tier){
     }catch(e2){alert('Allow popups for this site to download the report.');}
   }
 }
-
-/* ═══════════════════════════════════
-   LOGIN — Phone + Email (no OTP)
-═══════════════════════════════════ */
-function isLoggedIn(){
-  try{var u=JSON.parse(localStorage.getItem('ipowork_user')||'null');return !!(u&&u.phone);}catch(e){return false;}
-}
-
-var _loginPending = null;
-
-function requireLogin(cb){
-  if(isLoggedIn()){if(cb)cb();return;}
-  _loginPending=cb;
-  var m=document.getElementById('login-modal');
-  if(m){m.style.display='flex';}
-  setTimeout(function(){var el=document.getElementById('login-phone');if(el)el.focus();},300);
-}
-
-function closeLoginModal(){
-  var m=document.getElementById('login-modal');
-  if(m)m.style.display='none';
-  _loginPending=null;
-}
-
-function setLoginStatus(phone, email){
-  var tl=document.getElementById('topbar-login');
-  if(!tl)return;
-  tl.textContent='👤 +91 '+phone;
-  tl.style.color='rgba(255,255,255,.8)';
-  tl.onclick=function(){if(confirm('Sign out?')){localStorage.removeItem('ipowork_user');location.reload();}};
-}
-
-function submitLogin(){
-  var phone=(document.getElementById('login-phone').value||'').trim();
-  var email=(document.getElementById('login-email').value||'').trim();
-  var btn=document.getElementById('btn-login-submit');
-
-  /* Validate phone */
-  if(!(/^[6-9]\d{9}$/.test(phone))){
-    document.getElementById('phone-field-wrap').style.borderColor='#C0392B';
-    document.getElementById('login-phone').focus();
-    return;
-  }
-  /* Validate email */
-  if(!email||!email.includes('@')||!email.includes('.')){
-    document.getElementById('login-email').style.borderColor='#C0392B';
-    document.getElementById('login-email').focus();
-    return;
-  }
-
-  btn.disabled=true;btn.textContent='Saving…';
-
-  var user={phone:phone,email:email,ts:Date.now()};
-  try{localStorage.setItem('ipowork_user',JSON.stringify(user));}catch(e){}
-
-  /* Silent lead ping */
-  try{
-    fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'email',to:'partners@ipowork.com',
-        subject:'New AIRA Lead — +91 '+phone,
-        html:'<p><strong>Phone:</strong> +91 '+phone+'</p><p><strong>Email:</strong> '+email+'</p><p><strong>Time:</strong> '+new Date().toISOString()+'</p>'
-      })}).catch(function(){});
-  }catch(e){}
-
-  setLoginStatus(phone,email);
-  document.getElementById('login-modal').style.display='none';
-  btn.disabled=false;btn.textContent='View My Report →';
-
-  if(_loginPending){var cb=_loginPending;_loginPending=null;cb();}
-}
-
-/* Init login state on load */
-(function(){
-  try{
-    var u=JSON.parse(localStorage.getItem('ipowork_user')||'null');
-    if(u&&u.phone)setLoginStatus(u.phone,u.email||'');
-  }catch(e){}
-})();
 </script>
 </body>
 </html>
