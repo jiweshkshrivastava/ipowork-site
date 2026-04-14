@@ -773,6 +773,7 @@ async function runFreeCore(){
   /* Confidence banner */
   var conf=dq.data_confidence||'Unknown';
   var confCol=conf==='High'?'var(--ok)':conf==='Medium'?'var(--wn)':'var(--mu)';
+  var dataSources=(result._sources||dq.data_sources||[]).join(', ')||'AI knowledge base';
   html+='<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.12);border-radius:10px;margin-bottom:14px;flex-wrap:wrap">';
   html+='<span style="font-size:12px;font-weight:700;color:var(--tl)">🔍 AI Web Research</span>';
   html+='<span style="font-size:12px;color:var(--mu)">Sources: '+esc((dq.data_sources||[]).join(', ')||'Web search')+'</span>';
@@ -910,14 +911,24 @@ async function runPaidCore(){
   stepDone('pp1');stepActive('pp2');await new Promise(function(r){setTimeout(r,300);});
   stepDone('pp2');stepActive('pp3');await new Promise(function(r){setTimeout(r,300);});
   stepDone('pp3');stepActive('pp4');
-  var fin=probe.financials||probe.financial_data||{};
-  var comp=probe.compliance||{};
-  var prom=probe.promoters||probe.promoter_data||{};
-  var lit=probe.litigation||probe.litigation_data||{};
-  var dirs=probe.directors||probe.director_data||[];
+  /* Probe42 comprehensive-details field aliases */
+  var _p = probe.data || probe.company || probe;
+  var fin  = _p.financials || _p.financial_data  || _p.financialData  || probe.financials || {};
+  var comp = _p.compliance || _p.complianceData  || _p.compliance_data|| probe.compliance || {};
+  var prom = _p.promoters  || _p.promoterData    || _p.promoter_data  || probe.promoters  || {};
+  var lit  = _p.litigation || _p.litigationData  || _p.litigation_data|| probe.litigation || {};
+  var dirs = Array.isArray(_p.directors||_p.directorData||probe.directors) 
+           ? (_p.directors||_p.directorData||probe.directors) : [];
+  var chgs = Array.isArray(_p.charges||_p.chargeData||probe.charges) 
+           ? (_p.charges||_p.chargeData||probe.charges) : [];
+  /* Basic company info */
+  var bas = _p.basic || _p.companyData || _p;
+  var probeName = bas.company_name||bas.companyName||bas.name||probe.company_name||probe.name||'';
+  var probeStatus = bas.company_status||bas.companyStatus||bas.status||probe.company_status||'';
+  var probeInc = bas.date_of_incorporation||bas.dateOfIncorporation||bas.incorporationDate||probe.date_of_incorporation||'';
   var probeStr=[
-    'Company: '+esc(probe.company_name||probe.name||'N/A')+' | CIN: '+cin,
-    'Status: '+esc(probe.company_status||probe.status||'N/A')+' | Inc: '+esc(probe.date_of_incorporation||'N/A'),
+    'Company: '+esc(probeName||'N/A')+' | CIN: '+cin,
+    'Status: '+esc(probeStatus||'N/A')+' | Inc: '+esc(probeInc||'N/A'),
     '','=== FINANCIALS ===',
     'Revenue FY24: ₹'+(fin.revenue_fy24||fin.revenue||'N/A'),
     'Revenue FY23: ₹'+(fin.revenue_fy23||'N/A')+' | FY22: ₹'+(fin.revenue_fy22||'N/A'),
@@ -934,7 +945,7 @@ async function runPaidCore(){
   var report='';
   try{
     var cr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'aira_paid_score',messages:[{role:'user',content:'CIN: '+cin+'\nSector: '+sector+'\nExchange: '+exchange+'\n\n'+probeStr}]})});
+      body:JSON.stringify({type:'aira_paid_score',cin:cin,sector:sector,exchange:exchange,probe:probe,messages:[{role:'user',content:'CIN: '+cin+'\nSector: '+sector+'\nExchange: '+exchange+'\n\n'+probeStr}]})});
     var cd=await cr.json();
     report=cd.report||(cd.content||[]).map(function(c){return c.text||'';}).join('');
   }catch(e){report='AIRA Score: 70\nELIGIBILITY VERDICT: AI scoring failed: '+e.message;}
@@ -953,7 +964,7 @@ async function runPaidCore(){
   html+='<div style="padding:9px 14px;background:rgba(26,158,107,.04);border:1px solid rgba(26,158,107,.2);border-radius:9px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--ok)">● Probe42 Live Data · 400+ data points · 7-year financials</div>';
   html+='<div class="score-hero">';
   html+='<div class="score-dial">'+dialSVG(score,col)+'<div class="sdn"><div class="sdn-big">'+score+'</div><div class="sdn-den">/100</div></div></div>';
-  html+='<div><div class="score-verdict">'+v.label+'</div><div class="score-sub">'+esc(probe.company_name||probe.name||cin)+' · '+esc(sector)+' · '+esc(exchange)+'</div>';
+  html+='<div><div class="score-verdict">'+v.label+'</div><div class="score-sub">'+esc(probeName||cin)+' · '+esc(sector)+' · '+esc(exchange)+'</div>';
   html+='<div class="score-tags"><span class="stag '+(score>=65?'good':'warn')+'">'+v.label+'</span><span class="stag good">Probe42 Verified</span><span class="stag good">7-Year Data</span><span class="stag">SEBI ICDR 2018</span></div></div>';
   html+='<div class="score-right"><div class="sc-lbl">Full AIRA Score</div><div class="sc-val">'+score+'<span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">/100</span></div></div>';
   html+='</div>';
@@ -961,7 +972,7 @@ async function runPaidCore(){
   html+=renderBenchmark(score,sector);
   if(fin&&Object.keys(fin).length>0){
     html+='<div class="sec-hd">Verified Financials — Probe42</div><div class="kv-grid">';
-    [{l:'Revenue FY24',v:fin.revenue_fy24||fin.revenue,g:true},{l:'PAT FY24',v:fin.pat_fy24||fin.pat,g:true},{l:'EBITDA Margin',v:fin.ebitda_margin?fin.ebitda_margin+'%':null,g:(parseFloat(fin.ebitda_margin)>=12)},{l:'Revenue CAGR',v:fin.revenue_cagr?fin.revenue_cagr+'%':null,g:(parseFloat(fin.revenue_cagr)>=15)},{l:'Net Worth',v:fin.net_worth,g:true},{l:'D/E Ratio',v:fin.debt_equity_ratio?fin.debt_equity_ratio+'x':null,g:(parseFloat(fin.debt_equity_ratio)<=1.5)}].forEach(function(kv){
+    [{l:'Revenue FY24',v:fin.revenue_fy24||fin.revenue||fin.totalRevenue||fin.sales,g:true},{l:'PAT FY24',v:fin.pat_fy24||fin.pat||fin.net_profit||fin.netProfit,g:true},{l:'EBITDA Margin',v:fin.ebitda_margin?fin.ebitda_margin+'%':null,g:(parseFloat(fin.ebitda_margin)>=12)},{l:'Revenue CAGR',v:fin.revenue_cagr?fin.revenue_cagr+'%':null,g:(parseFloat(fin.revenue_cagr)>=15)},{l:'Net Worth',v:fin.net_worth,g:true},{l:'D/E Ratio',v:fin.debt_equity_ratio?fin.debt_equity_ratio+'x':null,g:(parseFloat(fin.debt_equity_ratio)<=1.5)}].forEach(function(kv){
       if(!kv.v||kv.v==='null'||kv.v===null)return;
       html+='<div class="kv-card"><div class="kv-val '+(kv.g?'g':'a')+'">'+esc(String(kv.v))+'</div><div class="kv-lbl">'+kv.l+'</div></div>';
     });
