@@ -189,6 +189,22 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 .phase-item{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--sl);line-height:1.5;margin-bottom:5px}
 .phase-item::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:5px}
 .ph1 .phase-item::before{background:var(--er)}.ph2 .phase-item::before{background:var(--wn)}.ph3 .phase-item::before{background:var(--ok)}
+/* AI Report styles */
+.rh1{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--tld);margin:0 0 12px}
+.rh2{font-family:var(--serif);font-size:15px;font-weight:800;color:var(--tld);margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid rgba(13,92,107,.1)}
+.rh3{font-size:13px;font-weight:700;color:var(--tld);margin:14px 0 6px}
+.rh4{font-size:12px;font-weight:700;color:var(--mu);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+.rhr{border:none;border-top:1px solid var(--bd);margin:14px 0}
+.rbul{display:flex;gap:8px;margin-bottom:5px;align-items:flex-start}
+.rbd{color:var(--tl);flex-shrink:0;margin-top:4px;font-size:10px}
+.rnum{display:flex;gap:10px;margin-bottom:6px;align-items:flex-start}
+.rns{background:var(--tl);color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rp{margin:0 0 10px;font-size:13px;line-height:1.7;color:var(--sl)}
+#ai-report-body strong{color:var(--sl)}
+#ai-report-body table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:12px}
+#ai-report-body th{padding:7px 10px;background:var(--card);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--mu);border-bottom:1px solid var(--bd);text-align:left}
+#ai-report-body td{padding:7px 10px;border-bottom:1px solid rgba(13,92,107,.04)}
+#ai-report-body tr:last-child td{border-bottom:none}
 /* Login Modal */
 .login-overlay{position:fixed;inset:0;z-index:9999;background:rgba(7,35,42,.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
 .login-overlay.open{display:flex}
@@ -886,6 +902,32 @@ async function runFreeCore(){
 /* ═══════════════════════════
    PAID TIER RUN
 ═══════════════════════════ */
+
+/* ── Convert markdown to styled HTML for AI reports ── */
+function mdToHtml(t){
+  if(!t) return '';
+  // Remove code blocks
+  t = t.replace(/```[\s\S]*?```/g,'');
+  // Headers
+  t = t.replace(/^#{4} (.+)/gm,'<h4 class="rh4">$1</h4>');
+  t = t.replace(/^#{3} (.+)/gm,'<h3 class="rh3">$1</h3>');
+  t = t.replace(/^#{2} (.+)/gm,'<h2 class="rh2">$1</h2>');
+  t = t.replace(/^# (.+)/gm,'<h1 class="rh1">$1</h1>');
+  // Bold
+  t = t.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
+  t = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  // HR
+  t = t.replace(/^---+$/gm,'<hr class="rhr">');
+  // Bullets
+  t = t.replace(/^[-*] (.+)/gm,'<div class="rbul"><span class="rbd">●</span><span>$1</span></div>');
+  // Numbers
+  t = t.replace(/^(\d+)\. (.+)/gm,'<div class="rnum"><span class="rns">$1</span><span>$2</span></div>');
+  // Paragraphs
+  t = t.split('\n\n').map(function(p){ return '<p class="rp">'+p+'</p>'; }).join('');
+  t = t.replace(/\n/g,'<br>');
+  return t;
+}
+
 async function runPaidCore(){
   var cin=document.getElementById('p-cin').value.trim().toUpperCase();
   var sector=document.getElementById('p-sector').value;
@@ -994,7 +1036,17 @@ async function runPaidCore(){
   html+='</div>';
 
   /* Download buttons */
-  html+='<div class="dl-row"><button class="dl-btn-filled" onclick="downloadReport(\'paid\')">⭐ Download Full Report</button><button class="dl-btn-outline" onclick="downloadReport(\'free\')">📄 Download Summary</button></div>';
+  /* Eligibility verdict card */
+  var eligText = cleanR.match(/ELIGIBILITY VERDICT[:\s]*([^\n]{10,200})/i);
+  var eligStr = eligText ? eligText[1].trim() : (v.label + ' — see full analysis below');
+  var eligCol = score>=78?'rgba(26,158,107,.08)':score>=65?'rgba(201,147,42,.08)':'rgba(192,57,43,.06)';
+  var eligBdr = score>=78?'rgba(26,158,107,.3)':score>=65?'rgba(201,147,42,.3)':'rgba(192,57,43,.3)';
+  var eligTxt = score>=78?'#0F6E4A':score>=65?'#7A5B1A':'#8B2B20';
+  html+='<div style="padding:12px 16px;background:'+eligCol+';border:1.5px solid '+eligBdr+';border-radius:10px;margin-bottom:14px">';
+  html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:'+eligTxt+';margin-bottom:4px">ELIGIBILITY VERDICT</div>';
+  html+='<div style="font-size:13px;font-weight:600;color:var(--sl);line-height:1.5">'+esc(eligStr.replace(/\*\*/g,''))+'</div></div>';
+
+  html+='<div class="dl-row"><button class="dl-btn-filled" onclick="downloadReport(\'paid\')" >⭐ Download Full Report</button><button class="dl-btn-outline" onclick="downloadReport(\'free\')">📄 Download Summary</button></div>';
 
   /* Benchmark */
   html+=renderBenchmark(score,sector);
@@ -1102,9 +1154,11 @@ async function runPaidCore(){
     html+='<div class="sec-hd">Real Peer Comparison — Probe42 Data</div>';
     html+='<div class="fin-card"><table class="fin-tbl"><thead><tr><th>Company</th><th>Revenue</th><th>PAT</th><th>Net Worth</th><th>EBITDA%</th></tr></thead><tbody>';
     peers2.forEach(function(p){
-      html+='<tr><td style="font-weight:600;color:var(--sl)">'+esc(p.name||'N/A')+'</td>';
+      if(!p.name||p.name==='N/A') return;
+      html+='<tr><td style="font-weight:600;color:var(--sl)">'+esc(p.name)+(p.city?'<br><span style="font-size:10px;color:var(--mu)">'+esc(p.city)+'</span>':'')+'</td>';
       html+='<td>'+fmtINR(p.revenue)+'</td><td>'+fmtINR(p.pat)+'</td>';
-      html+='<td>'+fmtINR(p.net_worth)+'</td><td>'+fmtPct(p.ebitda_margin)+'</td></tr>';
+      html+='<td>'+fmtINR(p.net_worth)+'</td>';
+      html+='<td>'+(p.ebitda_margin!=null?parseFloat(p.ebitda_margin).toFixed(1)+'%':'—')+'</td></tr>';
     });
     html+='<tr style="background:rgba(13,92,107,.04);border-top:2px solid var(--tl)">';
     html+='<td style="font-weight:800;color:var(--tl)">★ '+esc((co.company_name||cin).substring(0,28))+'</td>';
@@ -1126,9 +1180,46 @@ async function runPaidCore(){
 
   /* AI analysis */
   html+='<div class="sec-hd">Full AI Intelligence — Claude + Probe42</div>';
-  html+='<div class="ai-card"><div class="ai-content">'+esc(cleanR)+'</div></div>';
+  /* AI Report - styled sections */
+  var reportSections = cleanR.split('---');
+  html+='<div class="ai-card" style="padding:0;overflow:hidden">';
+  html+='<div style="padding:14px 20px;background:var(--tld);color:#fff;font-size:12px;font-weight:700;letter-spacing:.5px">AIRA INTELLIGENCE REPORT · '+esc(co.company_name||cin)+' · Probe42 Verified</div>';
+  html+='<div style="padding:20px" id="ai-report-body"><p style="margin-bottom:10px;font-size:13px;line-height:1.7;color:var(--sl)">'+mdToHtml(cleanR)+'</p></div>';
+  html+='</div>';
 
   /* Roadmap */
+  /* Valuation using real peer revenue data */
+  if(peers2&&peers2.length&&peers2.filter(function(p){return p.name&&p.name!=='N/A';}).length){
+    var validPeers=peers2.filter(function(p){return p.name&&p.name!=='N/A';});
+    html+='<div class="sec-hd">Valuation Benchmarking — Probe42 Peer Data</div>';
+    html+='<div class="fin-card" style="padding:16px 20px">';
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">';
+    /* Calculate peer avg revenue for context */
+    var peerRevAvg=0,peerRevCount=0;
+    validPeers.forEach(function(p){var r=parseFloat(p.revenue||0);if(r>0){peerRevAvg+=r;peerRevCount++;}});
+    if(peerRevCount) peerRevAvg=peerRevAvg/peerRevCount;
+    var coRev=parseFloat(fin2.revenue_fy24||0);
+    var coEm=parseFloat(fin2.ebitda_margin||0);
+    var coRoe=parseFloat(fin2.roe||0);
+    /* Segment info */
+    html+='<div style="background:rgba(13,92,107,.04);border-radius:9px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">Segment</div><div style="font-size:13px;font-weight:700;color:var(--tl)">'+esc(co.peer_segment||sector)+'</div></div>';
+    html+='<div style="background:rgba(13,92,107,.04);border-radius:9px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">Peers in segment</div><div style="font-size:24px;font-weight:900;color:var(--tl);font-family:var(--serif)">'+validPeers.length+'</div></div>';
+    html+='<div style="background:rgba(13,92,107,.04);border-radius:9px;padding:12px;text-align:center"><div style="font-size:11px;color:var(--mu);margin-bottom:3px">Peer avg revenue</div><div style="font-size:14px;font-weight:700;color:var(--tl)">'+fmtINR(peerRevAvg)+'</div></div>';
+    html+='</div>';
+    /* Company vs peers */
+    if(coRev>0||coEm>0){
+      html+='<div style="background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.12);border-radius:9px;padding:12px 14px;margin-bottom:12px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--tl);margin-bottom:8px">'+esc(co.company_name||cin)+' vs Peers</div>';
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+      if(coRev>0) html+='<div><div style="font-size:11px;color:var(--mu)">Revenue</div><div style="font-size:14px;font-weight:700;color:var(--sl)">'+fmtINR(coRev)+'</div></div>';
+      if(coEm>0) html+='<div><div style="font-size:11px;color:var(--mu)">EBITDA Margin</div><div style="font-size:14px;font-weight:700;color:'+(coEm>=14?'var(--ok)':'var(--wn)')+'">'+coEm.toFixed(1)+'%</div></div>';
+      if(coRoe>0) html+='<div><div style="font-size:11px;color:var(--mu)">ROE</div><div style="font-size:14px;font-weight:700;color:'+(coRoe>=15?'var(--ok)':'var(--wn)')+'">'+coRoe.toFixed(1)+'%</div></div>';
+      html+='</div></div>';
+    }
+    html+='<div style="font-size:11px;color:var(--mu);border-top:1px solid var(--bd);padding-top:10px">⚠️ IPO valuation set by merchant banker at DRHP filing. Revenue figures are raw numbers from Probe42 (in ₹).</div>';
+    html+='</div>';
+  }
+
   html+='<div class="sec-hd">IPO Roadmap</div>';
   html+='<div class="roadmap-card"><div class="phases"><div class="phase ph1"><div class="phase-lbl">Immediate (0–60 days)</div><div class="phase-item">Appoint IDs & form board committees</div><div class="phase-item">Resolve compliance gaps (GST/TDS)</div><div class="phase-item">Register trademark / IP</div></div>';
   html+='<div class="phase ph2"><div class="phase-lbl">Preparation (60–120 days)</div><div class="phase-item">Commission Ind AS restatement</div><div class="phase-item">Engage SEBI-registered merchant banker</div><div class="phase-item">Internal audit — 3 years</div></div>';
