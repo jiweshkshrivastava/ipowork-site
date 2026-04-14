@@ -1034,20 +1034,26 @@ async function runPaidCore(){
     html+='<div class="sec-hd">Verified Financials — Probe42 ('+esc(fin2.fy_year||'FY24')+')</div>';
     html+='<div class="kv-grid">';
     var kp=[
-      {l:'Revenue',v:fmtINR(fin2.revenue_fy24||fin2.total_income),g:true},
-      {l:'EBITDA',v:fmtINR(fin2.ebitda),g:(parseFloat(fin2.ebitda_margin)>=12)},
-      {l:'EBITDA Margin',v:fmtPct(fin2.ebitda_margin),g:(parseFloat(fin2.ebitda_margin)>=12)},
-      {l:'PAT',v:fmtINR(fin2.pat_fy24),g:(parseFloat(fin2.pat_fy24)>0)},
+      {l:'Revenue ('+esc(fin2.fy_year||'FY24')+')',v:fmtINR(fin2.revenue_fy24),g:true},
+      {l:'PAT',v:fmtINR(fin2.pat_fy24),g:(parseFloat(fin2.pat_fy24||0)>0)},
+      {l:'EBITDA Margin',v:fin2.ebitda_margin!=null?parseFloat(fin2.ebitda_margin).toFixed(1)+'%':null,g:(parseFloat(fin2.ebitda_margin||0)>=12)},
+      {l:'Net Margin',v:fin2.net_margin!=null?parseFloat(fin2.net_margin).toFixed(1)+'%':null,g:(parseFloat(fin2.net_margin||0)>=8)},
       {l:'Net Worth',v:fmtINR(fin2.net_worth),g:true},
-      {l:'Total Debt',v:fmtINR(fin2.total_debt),g:(parseFloat(fin2.total_debt||0)===0)},
-      {l:'D/E Ratio',v:fmtN(fin2.debt_equity_ratio),g:(parseFloat(fin2.debt_equity_ratio||99)<=1.5)},
-      {l:'ROE',v:fmtPct(fin2.roe),g:(parseFloat(fin2.roe||0)>=15)},
-      {l:'ROCE',v:fmtPct(fin2.roce),g:(parseFloat(fin2.roce||0)>=15)},
-      {l:'Current Ratio',v:fmtN(fin2.current_ratio),g:(parseFloat(fin2.current_ratio||0)>=1.5)},
-      {l:'Cash Flow Ops',v:fmtINR(fin2.cash_flow_ops),g:(parseFloat(fin2.cash_flow_ops||0)>0)},
+      {l:'Total Assets',v:fmtINR(fin2.total_assets),g:true},
+      {l:'D/E Ratio',v:fin2.debt_equity_ratio!=null?parseFloat(fin2.debt_equity_ratio).toFixed(2)+'x':null,g:(parseFloat(fin2.debt_equity_ratio||99)<=1.5)},
+      {l:'Current Ratio',v:fin2.current_ratio!=null?parseFloat(fin2.current_ratio).toFixed(2)+'x':null,g:(parseFloat(fin2.current_ratio||0)>=1.5)},
+      {l:'ROE',v:fin2.roe!=null?parseFloat(fin2.roe).toFixed(1)+'%':null,g:(parseFloat(fin2.roe||0)>=15)},
+      {l:'ROCE',v:fin2.roce!=null?parseFloat(fin2.roce).toFixed(1)+'%':null,g:(parseFloat(fin2.roce||0)>=15)},
+      {l:'Revenue Growth',v:fin2.revenue_growth!=null?parseFloat(fin2.revenue_growth).toFixed(1)+'%':null,g:(parseFloat(fin2.revenue_growth||0)>=10)},
+      {l:'Interest Coverage',v:fin2.interest_coverage!=null?parseFloat(fin2.interest_coverage).toFixed(1)+'x':null,g:(parseFloat(fin2.interest_coverage||0)>=3)},
+      {l:'Inventory Days',v:fin2.inventory_days!=null?parseFloat(fin2.inventory_days).toFixed(0)+' days':null,g:true},
+      {l:'Debtor Days',v:fin2.debtor_days!=null?parseFloat(fin2.debtor_days).toFixed(0)+' days':null,g:true},
       {l:'Auditor',v:fmtN(fin2.auditor),g:true},
     ];
-    kp.forEach(function(k){if(k.v&&k.v!=='—')html+='<div class="kv-card"><div class="kv-val '+(k.g?'g':'a')+'">'+k.v+'</div><div class="kv-lbl">'+k.l+'</div></div>';});
+    kp.forEach(function(kv){
+      if(!kv.v||kv.v===null||kv.v==='null'||kv.v==='N/A'||kv.v==='—')return;
+      html+='<div class="kv-card"><div class="kv-val '+(kv.g?'g':'a')+'">'+esc(String(kv.v))+'</div><div class="kv-lbl">'+kv.l+'</div></div>';
+    });
     html+='</div>';
     if(cr2.length){
       html+='<div style="padding:10px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:9px;margin-bottom:14px;font-size:13px">';
@@ -1089,21 +1095,7 @@ async function runPaidCore(){
   }
 
   /* Peer comparison — REAL DATA from Probe42 */
-  if(peers2.length){
-    html+='<div class="sec-hd">Peer Comparison — Probe42 Real Data</div>';
-    html+='<div class="fin-card"><table class="fin-tbl"><thead><tr><th>Company</th><th>Revenue</th><th>PAT</th><th>Net Worth</th><th>EBITDA%</th></tr></thead><tbody>';
-    peers2.forEach(function(p){
-      html+='<tr><td style="font-weight:600;color:var(--sl)">'+esc(p.name||'N/A')+'</td>';
-      html+='<td>'+fmtINR(p.revenue)+'</td><td>'+fmtINR(p.pat)+'</td><td>'+fmtINR(p.net_worth)+'</td><td>'+fmtPct(p.ebitda_margin)+'</td></tr>';
-    });
-    /* Your company row */
-    html+='<tr style="background:rgba(13,92,107,.04);border-top:2px solid var(--tl)"><td style="font-weight:800;color:var(--tl)">★ '+esc((co.company_name||cin).substring(0,30))+'</td>';
-    html+='<td>'+fmtINR(fin2.revenue_fy24||fin2.total_income)+'</td>';
-    html+='<td>'+fmtINR(fin2.pat_fy24)+'</td>';
-    html+='<td>'+fmtINR(fin2.net_worth)+'</td>';
-    html+='<td>'+fmtPct(fin2.ebitda_margin)+'</td></tr>';
-    html+='</tbody></table><div style="padding:10px 16px;font-size:12px;color:var(--mu)">Peer data sourced directly from Probe42 API</div></div>';
-  }
+  
 
   /* Peer Comparison — REAL Probe42 data */
   if(peers2&&peers2.length){
