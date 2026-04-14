@@ -276,6 +276,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   <div class="tier-tabs">
     <button class="tier-tab active" id="tab-free" onclick="switchTier('free')">📊 Free Analysis <span class="tb">FREE</span></button>
     <button class="tier-tab pro-tab" id="tab-paid" onclick="switchTier('paid')">🔬 Full Intelligence <span class="tb">PRO</span></button>
+    <button class="tier-tab" id="tab-admin" onclick="switchTier('admin')">📊 Admin <span class="tb">INTERNAL</span></button>
   </div>
 
   <!-- FREE TIER -->
@@ -408,12 +409,41 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     </div>
     <div id="result-paid"></div>
   </div>
+
+  <!-- ADMIN DASHBOARD -->
+  <div class="tier-content" id="content-admin">
+    <div class="form-card">
+      <div class="fsec-lbl">Admin Dashboard — Supabase Live Data</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn-run btn-primary" onclick="loadAdmin()">🔄 Refresh Data</button>
+        <button class="btn-ghost" onclick="exportCSV()">⬇️ Export CSV</button>
+      </div>
+      <div id="admin-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+      <div class="sec-hd">Recent Reports</div>
+      <div id="admin-reports" style="overflow-x:auto"></div>
+      <div class="sec-hd" style="margin-top:16px">All Users / Leads</div>
+      <div id="admin-users" style="overflow-x:auto"></div>
+    </div>
+  </div>
 </div>
 
 <script>
 
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+var SB_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+
+/* Supabase fetch helper */
+function sbFetch(path, opts) {
+  return fetch(SB_URL + '/rest/v1/' + path, Object.assign({
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json'
+    }
+  }, opts || {}));
+}
 
 /* ═══════════════════════════
    LOGIN SYSTEM
@@ -468,10 +498,13 @@ function submitLogin(){
    UI HELPERS
 ═══════════════════════════ */
 function switchTier(t){
-  ['free','paid'].forEach(function(id){
-    document.getElementById('content-'+id).classList.toggle('active',id===t);
-    document.getElementById('tab-'+id).classList.toggle('active',id===t);
+  ['free','paid','admin'].forEach(function(id){
+    var c=document.getElementById('content-'+id);
+    var tb=document.getElementById('tab-'+id);
+    if(c) c.classList.toggle('active',id===t);
+    if(tb) tb.classList.toggle('active',id===t);
   });
+  if(t==='admin') loadAdmin();
 }
 function resetAll(){
   ['f-cin','f-cname','p-cin','p-cname','zauba-search','zauba-search-p'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
@@ -1219,6 +1252,108 @@ async function runPaidCore(){
   out.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+
+/* ════ ADMIN DASHBOARD ════ */
+async function loadAdmin(){
+  var statsEl=document.getElementById('admin-stats');
+  var repEl=document.getElementById('admin-reports');
+  var usrEl=document.getElementById('admin-users');
+  if(statsEl) statsEl.innerHTML='<div style="grid-column:1/-1;color:var(--mu);font-size:13px">Loading...</div>';
+
+  try{
+    // Fetch reports via worker (avoids CORS)
+    var rr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'reports',limit:100,order:'created_at.desc'})});
+    var rj=await rr.json();
+    var reports=rj.data||[];
+    // Fetch users via worker
+    var ur=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'users',limit:200,order:'created_at.desc'})});
+    var uj=await ur.json();
+    var users=uj.data||[];
+
+    // Stats
+    var totalRep=reports.length;
+    var paidRep=reports.filter(function(r){return r.tier==='paid';}).length;
+    var freeRep=reports.filter(function(r){return r.tier==='free';}).length;
+    var uniqueCINs=new Set(reports.map(function(r){return r.cin;})).size;
+    var avgScore=totalRep?Math.round(reports.reduce(function(s,r){return s+(r.score||0);},0)/totalRep):0;
+
+    if(statsEl){
+      var stats=[
+        {l:'Total Reports',v:totalRep,col:'var(--tl)'},
+        {l:'Paid Reports',v:paidRep,col:'var(--sf)'},
+        {l:'Free Reports',v:freeRep,col:'var(--mu)'},
+        {l:'Unique Companies',v:uniqueCINs,col:'var(--ok)'},
+        {l:'Avg AIRA Score',v:avgScore,col:avgScore>=65?'var(--ok)':'var(--wn)'},
+        {l:'Total Leads',v:users.length,col:'var(--tl)'},
+      ];
+      statsEl.innerHTML=stats.map(function(s){
+        return '<div style="background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:14px;text-align:center;box-shadow:var(--sh)">'
+          +'<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+s.col+'">'+s.v+'</div>'
+          +'<div style="font-size:11px;color:var(--mu);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">'+s.l+'</div></div>';
+      }).join('');
+    }
+
+    // Reports table
+    if(repEl){
+      if(!reports.length){repEl.innerHTML='<div style="padding:16px;color:var(--mu)">No reports yet.</div>';}
+      else{
+        repEl.innerHTML='<table class="fin-tbl" style="min-width:800px"><thead><tr>'
+          +'<th>Date</th><th>CIN</th><th>Company</th><th>Tier</th><th>Score</th>'
+          +'<th>Sector</th><th>Phone</th></tr></thead><tbody>'
+          +reports.map(function(r){
+            var d=new Date(r.created_at);
+            var ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+            var sc=r.score||0;
+            var col=sc>=78?'var(--ok)':sc>=65?'var(--wn)':'var(--er)';
+            return '<tr><td style="color:var(--mu);font-size:11px">'+ds+'</td>'
+              +'<td style="font-family:var(--mono);font-size:11px">'+esc(r.cin||'')+'</td>'
+              +'<td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((r.company_name||'').substring(0,30))+'</td>'
+              +'<td><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:'+(r.tier==='paid'?'rgba(232,138,46,.1)':'rgba(13,92,107,.08)')+';color:'+(r.tier==='paid'?'var(--sf)':'var(--tl)')+'">'+esc(r.tier||'')+'</span></td>'
+              +'<td style="font-weight:700;color:'+col+'">'+sc+'</td>'
+              +'<td style="font-size:12px">'+esc(r.sector||'')+'</td>'
+              +'<td style="font-family:var(--mono);font-size:11px">'+esc(r.user_phone||'—')+'</td></tr>';
+          }).join('')+'</tbody></table>';
+      }
+    }
+
+    // Users table
+    if(usrEl){
+      if(!users.length){usrEl.innerHTML='<div style="padding:16px;color:var(--mu)">No users yet.</div>';}
+      else{
+        usrEl.innerHTML='<table class="fin-tbl"><thead><tr><th>Phone</th><th>Email</th><th>Reports</th><th>First Seen</th><th>Last Seen</th></tr></thead><tbody>'
+          +users.map(function(u){
+            var d1=new Date(u.created_at);
+            var d2=new Date(u.last_seen);
+            var fmt=function(d){return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();};
+            return '<tr><td style="font-family:var(--mono);font-weight:600">+91 '+esc(u.phone||'')+'</td>'
+              +'<td>'+esc(u.email||'')+'</td>'
+              +'<td style="font-weight:700;color:var(--tl)">'+esc(String(u.total_reports||0))+'</td>'
+              +'<td style="color:var(--mu);font-size:12px">'+fmt(d1)+'</td>'
+              +'<td style="color:var(--mu);font-size:12px">'+fmt(d2)+'</td></tr>';
+          }).join('')+'</tbody></table>';
+      }
+    }
+
+    // Store for CSV export
+    window._adminData={reports:reports,users:users};
+
+  }catch(e){
+    if(statsEl) statsEl.innerHTML='<div style="color:var(--er);padding:16px">Error loading data: '+esc(e.message)+'</div>';
+  }
+}
+
+function exportCSV(){
+  var data=window._adminData;
+  if(!data){alert('Load data first');return;}
+  var rows=[['Date','CIN','Company','Tier','Score','Sector','Exchange','Phone','Email','Financial','Governance','Compliance','Promoter','Legal','Readiness']];
+  data.reports.forEach(function(r){
+    rows.push([r.created_at,r.cin,r.company_name||'',r.tier,r.score||'',r.sector||'',r.exchange||'',r.user_phone||'',r.user_email||'',r.financial_score||'',r.governance_score||'',r.compliance_score||'',r.promoter_score||'',r.legal_score||'',r.readiness_score||'']);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ipowork-reports-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+}
 
 function downloadReport(tier){
   /* ── Collect all data ── */
