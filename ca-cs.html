@@ -171,6 +171,12 @@ button,input,select,textarea{font-family:var(--font)}
 [data-aiid]{border-radius:14px!important}
 [data-aiid]:hover{border-color:rgba(13,92,107,.2)!important;box-shadow:var(--sh2)!important;transform:translateY(-2px)}
 
+/* ── AI PORTAL CARD ── */
+.ai-portal-card{background:#fff;border:1.5px solid var(--bd);border-radius:14px;cursor:pointer;transition:.2s;box-shadow:var(--sh);overflow:hidden;display:flex;flex-direction:column}
+.ai-portal-card:hover{border-color:var(--tl);box-shadow:var(--sh2);transform:translateY(-3px)}
+.dash-item{transition:.15s;border-radius:8px}
+.dash-item:hover{background:rgba(13,92,107,.05)!important;padding-left:4px!important}
+
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
   .portal-sidebar{display:none}
@@ -1010,7 +1016,43 @@ NCLT PROCEEDINGS:
 • Filing: digital signature mandatory for all petitions post 2021
 
 When answering: always cite section numbers, form names, due dates, and applicable MCA circulars. Practical compliance steps with typical timelines.`,
- starters:['What are all the RoC annual filings required for a Private Limited Company and their due dates?','What secretarial and legal compliances must a company complete to convert from Private to Public Ltd before IPO?','Explain the private placement procedure under Section 42 of Companies Act — forms, limits, timing and restrictions']}
+ starters:['What are all the RoC annual filings required for a Private Limited Company and their due dates?','What secretarial and legal compliances must a company complete to convert from Private to Public Ltd before IPO?','Explain the private placement procedure under Section 42 of Companies Act — forms, limits, timing and restrictions']},
+
+{id:'iec-fema-advisor',group:'registration',cat:'Import-Export & FEMA',icon:'🌏',name:'IEC & FEMA Advisor',
+ tag:'Import-Export Code, FEMA compliance, foreign investment, RBI approvals & ECB',free:true,
+ system:`You are an expert Import-Export and FEMA Advisor for Indian professionals. You have comprehensive knowledge of:
+
+IMPORT-EXPORT CODE (IEC):
+• IEC registration — DGFT online portal, documents required, processing time
+• Mandatory for export/import of goods and services from India
+• Exemptions from IEC — small consignments, personal imports, government departments
+• IEC modification, surrender, blocking procedures
+• DGFT policies — Foreign Trade Policy 2023 — key provisions, export promotion schemes
+
+FOREIGN TRADE POLICY 2023:
+• Export Promotion schemes — EPCG, Advance Authorisation, RoDTEP
+• Star Export House status — criteria, benefits, customs privileges
+• SEIS — service exports, notified services, scrips usage
+• Special Economic Zones — unit approval, compliance, benefits
+
+FEMA 1999:
+• Current vs capital account transactions
+• FDI — automatic route vs approval route, sectoral caps
+• FDI reporting — Form FC-GPR, FC-TRS on FIRMS portal
+• ECB (External Commercial Borrowings) — automatic route, RBI approval, hedging
+• ODI (Overseas Direct Investment) — Form ODI, APR filing
+• Remittance abroad — Form A2, LRS limit ₹2,50,000 per year
+• NRI investments — NRE/NRO accounts, repatriation rules
+• FEMA violations — compounding procedure, penalties under §13
+
+IPO-SPECIFIC:
+• Pre-IPO FDI — pricing guidelines, convertible instruments, clean-up
+• Foreign shareholding post-listing — FPI limits, sectoral caps
+• FEMA compliance for promoter NRI shareholders — disclosure in DRHP
+• ECB outstanding at IPO — disclosure and repayment requirements
+
+When answering: cite specific FEMA sections/regulations, RBI Master Directions, DGFT Policy Circulars. Mention practical portal steps.`,
+ starters:['How do I apply for IEC registration online?','What are the reporting requirements for FDI received by a company?','Explain ECB automatic route eligibility and end-use restrictions']}
 ];
 
 /* ══ RENDER ENGINE ══ */
@@ -1044,8 +1086,8 @@ function renderDashboard(){
   html+='<div class="stat-card"><div class="stat-num">Free</div><div class="stat-lbl">All Tools Unlocked</div></div>';
   html+='</div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">';
-  html+='<div class="card" style="border-color:rgba(245,158,11,.2)">';
-  html+='<div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🟡 Taxation Suite</div>';
+  html+='<div class="card" style="border-top:3px solid var(--sf);border-color:rgba(232,138,46,.2)">';
+  html+='<div style="font-size:11px;font-weight:800;color:var(--go);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;background:rgba(232,138,46,.08);padding:6px 10px;border-radius:7px;display:inline-block">🟡 Taxation Suite</div>';
   CA_AI.filter(function(a){return a.group==='taxation';}).forEach(function(a){
     html+='<div onclick="window.startAI(\''+a.id+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:.15s" class="dash-item">';
     html+='<span style="font-size:18px">'+a.icon+'</span>';
@@ -1053,8 +1095,8 @@ function renderDashboard(){
     html+='</div>';
   });
   html+='</div>';
-  html+='<div class="card" style="border-color:rgba(59,130,246,.2)">';
-  html+='<div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🏢 Registration Suite</div>';
+  html+='<div class="card" style="border-top:3px solid #2563EB;border-color:rgba(37,99,235,.2)">';
+  html+='<div style="font-size:11px;font-weight:800;color:#2563EB;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;background:rgba(37,99,235,.08);padding:6px 10px;border-radius:7px;display:inline-block">🏢 Registration Suite</div>';
   CA_AI.filter(function(a){return a.group==='registration';}).forEach(function(a){
     html+='<div onclick="window.startAI(\''+a.id+'\')" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:.15s" class="dash-item">';
     html+='<span style="font-size:18px">'+a.icon+'</span>';
@@ -1078,21 +1120,40 @@ function renderAIGrid(group){
   var html='<div class="portal-pad">';
   html+='<div class="page-title">'+(isT?'🟡 Taxation Advisors':'🏢 Registration Advisors')+'</div>';
   html+='<div class="page-sub">'+(isT?'6 specialised AI advisors — GST, Income Tax, Customs, State Tax, Property Tax, International Tax':'6 specialised AI advisors — Company, LLP, Trademark, Licenses, RoC Compliance')+'</div>';
-  html+='<div style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:24px">';
-  html+='<div style="font-size:18px">🎯</div>';
-  html+='<div><div style="font-size:12px;font-weight:700;color:var(--amber)">Demo Mode — All '+items.length+' Tools Unlocked</div>';
-  html+='<div style="font-size:10px;color:var(--muted)">Free access · Trained on Indian law, CBDT/CBIC circulars, MCA rules, SEBI regulations</div></div></div>';
+  html+='<div style="background:'+(isT?'rgba(232,138,46,.05)':'rgba(37,99,235,.05)')+';border:1px solid '+(isT?'rgba(232,138,46,.15)':'rgba(37,99,235,.15)')+';border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:24px">';
+  html+='<div style="font-size:22px">'+(isT?'📊':'📂')+'</div>';
+  html+='<div style="flex:1"><div style="font-size:13px;font-weight:800;color:'+(isT?'var(--go)':'#2563EB')+';margin-bottom:2px">'+items.length+' AI Advisors — All Free</div>';
+  html+='<div style="font-size:11px;color:var(--mu)">Trained on Indian law, CBDT/CBIC circulars, MCA rules, SEBI regulations</div></div>';
+  html+='<div style="font-size:11px;font-weight:700;color:var(--ok);background:rgba(26,158,107,.08);border:1px solid rgba(26,158,107,.2);padding:4px 10px;border-radius:99px">✓ Free</div>';
+  html+='</div>';
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">';
+  var CAT_CLR={
+    'Indirect Tax':    {s:'linear-gradient(90deg,#E88A2E,#C9932A)',ib:'rgba(232,138,46,.1)',ic:'#C9932A',   b:'#E88A2E'},
+    'Direct Tax':      {s:'linear-gradient(90deg,#2563EB,#60A5FA)',ib:'rgba(37,99,235,.1)', ic:'#2563EB',  b:'#2563EB'},
+    'Customs & FEMA':  {s:'linear-gradient(90deg,#7C3AED,#A78BFA)',ib:'rgba(124,58,237,.1)',ic:'#7C3AED',  b:'#7C3AED'},
+    'State Tax':       {s:'linear-gradient(90deg,#0891B2,#22D3EE)',ib:'rgba(8,145,178,.1)', ic:'#0891B2',  b:'#0891B2'},
+    'Property Tax':    {s:'linear-gradient(90deg,#B45309,#D97706)',ib:'rgba(180,83,9,.1)',  ic:'#B45309',  b:'#B45309'},
+    'International Tax':{s:'linear-gradient(90deg,#0D5C6B,#1A7D90)',ib:'rgba(13,92,107,.1)',ic:'#0D5C6B', b:'#0D5C6B'},
+    'Company Formation':{s:'linear-gradient(90deg,#0D5C6B,#1A7D90)',ib:'rgba(13,92,107,.1)',ic:'#0D5C6B', b:'#0D5C6B'},
+    'LLP & Partnership':{s:'linear-gradient(90deg,#7C3AED,#A78BFA)',ib:'rgba(124,58,237,.1)',ic:'#7C3AED',b:'#7C3AED'},
+    'Trademark & IP':  {s:'linear-gradient(90deg,#E88A2E,#C9932A)',ib:'rgba(232,138,46,.1)',ic:'#C9932A',  b:'#E88A2E'},
+    'FSSAI & Licenses':{s:'linear-gradient(90deg,#1A9E6B,#34D399)',ib:'rgba(26,158,107,.1)',ic:'#1A9E6B', b:'#1A9E6B'},
+    'RoC Compliance':  {s:'linear-gradient(90deg,#2563EB,#60A5FA)',ib:'rgba(37,99,235,.1)', ic:'#2563EB',  b:'#2563EB'},
+    'Import-Export & FEMA':{s:'linear-gradient(90deg,#0891B2,#22D3EE)',ib:'rgba(8,145,178,.1)',ic:'#0891B2',b:'#0891B2'},
+  };
+  var DC={s:'linear-gradient(90deg,#0D5C6B,#1A7D90)',ib:'rgba(13,92,107,.1)',ic:'#0D5C6B',b:'#0D5C6B'};
   items.forEach(function(a){
-    var catClass='cat-'+(a.cat.toLowerCase().includes('tax')||a.cat.includes('Direct')||a.cat.includes('Indirect')||a.cat.includes('Customs')||a.cat.includes('Property')||a.cat.includes('State')||a.cat.includes('International')?'tax':(a.cat.includes('Reg')||a.cat.includes('LLP')||a.cat.includes('Trademark')||a.cat.includes('License')||a.cat.includes('RoC')?'reg':'audit'));
-    html+='<div class="card" data-aiid="'+a.id+'" style="margin-bottom:0;cursor:pointer;position:relative;transition:.2s">';
-    html+='<span class="ai-badge free" style="position:absolute;top:12px;right:12px">FREE</span>';
-    html+='<div class="cat-label '+catClass+'">'+a.cat+'</div>';
-    html+='<div style="font-size:22px;margin-bottom:8px">'+a.icon+'</div>';
-    html+='<div style="font-size:12px;font-weight:800;color:var(--tld);margin-bottom:4px">'+a.name+'</div>';
-    html+='<div style="font-size:10px;color:var(--muted);line-height:1.6;margin-bottom:12px">'+a.tag+'</div>';
-    html+='<button class="btn btn-amber" style="padding:6px 14px;font-size:10px">Open Chat →</button>';
-    html+='</div>';
+    var cc=CAT_CLR[a.cat]||DC;
+    html+='<div class="ai-portal-card" data-aiid="'+a.id+'">';
+    html+='<div style="height:4px;background:'+cc.s+'"></div>';
+    html+='<div style="padding:18px 16px 16px;flex:1;display:flex;flex-direction:column">';
+    html+='<span class="ai-badge free" style="float:right;margin:-2px -2px 0 0">FREE</span>';
+    html+='<div style="width:42px;height:42px;border-radius:11px;background:'+cc.ib+';display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:12px">'+a.icon+'</div>';
+    html+='<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:'+cc.ic+';margin-bottom:5px">'+a.cat+'</div>';
+    html+='<div style="font-size:13px;font-weight:800;color:var(--tld);margin-bottom:6px;line-height:1.25">'+a.name+'</div>';
+    html+='<div style="font-size:12px;color:var(--mu);line-height:1.55;margin-bottom:14px;flex:1">'+a.tag+'</div>';
+    html+='<button data-aiid="'+a.id+'" style="display:flex;align-items:center;justify-content:center;padding:10px;background:'+cc.b+';color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;width:100%;transition:.15s">Open Chat →</button>';
+    html+='</div></div>';
   });
   html+='</div>';
   html+='</div>';
