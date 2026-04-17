@@ -382,6 +382,9 @@ a{color:inherit;text-decoration:none}
   }
 
 .nav-item > span:first-child { font-size: 16px; flex-shrink: 0; }
+
+.ai-portal-card{background:#fff;border:1.5px solid #E2E8EA;border-radius:14px;cursor:pointer;transition:.2s;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 4px rgba(13,92,107,.06)}
+.ai-portal-card:hover{border-color:#0D5C6B;transform:translateY(-3px);box-shadow:0 4px 20px rgba(13,92,107,.12)}
 </style>
 <script>
 /* ═══════════════════════════════════════════════════
@@ -1536,7 +1539,7 @@ function bindAfterRender(){
   });
 
   /* AI cards */
-  pm.querySelectorAll('[data-aiid]').forEach(function(el){
+  pm.querySelectorAll('[data-aiid],.ai-portal-card[data-aiid]').forEach(function(el){
     el.addEventListener('click', function(){ startAI(this.dataset.aiid); });
     el.addEventListener('mouseover', function(){ this.style.borderColor='rgba(74,158,122,.25)'; });
     el.addEventListener('mouseout',  function(){ this.style.borderColor='var(--border)'; });
@@ -1738,29 +1741,43 @@ function renderWatchlist(){
 
 /* ── AI HOME ── */
 function renderAIHome(){
-  var CAT_C={'Intelligence':{s:'linear-gradient(90deg,#0D5C6B,#1A7D90)',ib:'rgba(13,92,107,.1)',ic:'#0D5C6B',b:'#0D5C6B'},'Valuation':{s:'linear-gradient(90deg,#E88A2E,#C9932A)',ib:'rgba(232,138,46,.1)',ic:'#C9932A',b:'#E88A2E'},'Deal Flow':{s:'linear-gradient(90deg,#1A9E6B,#34D399)',ib:'rgba(26,158,107,.1)',ic:'#1A9E6B',b:'#1A9E6B'},'Legal':{s:'linear-gradient(90deg,#7C3AED,#A78BFA)',ib:'rgba(124,58,237,.1)',ic:'#7C3AED',b:'#7C3AED'},'Exit':{s:'linear-gradient(90deg,#2563EB,#60A5FA)',ib:'rgba(37,99,235,.1)',ic:'#2563EB',b:'#2563EB'}};
+  var CAT_C={
+    'Intelligence':{s:'linear-gradient(90deg,#0D5C6B,#1A7D90)',ib:'rgba(13,92,107,.1)',ic:'#0D5C6B',b:'#0D5C6B'},
+    'Valuation':   {s:'linear-gradient(90deg,#E88A2E,#C9932A)',ib:'rgba(232,138,46,.1)',ic:'#C9932A',b:'#E88A2E'},
+    'Deal Flow':   {s:'linear-gradient(90deg,#1A9E6B,#34D399)',ib:'rgba(26,158,107,.1)',ic:'#1A9E6B',b:'#1A9E6B'},
+    'Legal':       {s:'linear-gradient(90deg,#7C3AED,#A78BFA)',ib:'rgba(124,58,237,.1)',ic:'#7C3AED',b:'#7C3AED'},
+    'Exit':        {s:'linear-gradient(90deg,#2563EB,#60A5FA)',ib:'rgba(37,99,235,.1)',ic:'#2563EB',b:'#2563EB'}
+  };
   var DC={s:'linear-gradient(90deg,#0D5C6B,#1A7D90)',ib:'rgba(13,92,107,.1)',ic:'#0D5C6B',b:'#0D5C6B'};
   var html='<div class="portal-pad">';
-  html+='<div class="page-title">🤖 AI Intelligence Suite</div>';
+  html+='<div class="page-title">\u{1F916} AI Intelligence Suite</div>';
   html+='<div class="page-sub">'+INST_AI.length+' AI assistants built for India IPO institutional investors</div>';
   html+='<div style="background:rgba(13,92,107,.05);border:1px solid rgba(13,92,107,.15);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:24px">';
-  html+='<div style="font-size:22px">🎯</div><div style="flex:1"><div style="font-size:13px;font-weight:800;color:#08404D;margin-bottom:2px">'+INST_AI.length+' AI Assistants — All Unlocked</div>';
-  html+='<div style="font-size:12px;color:#6B7E85">Built on SEBI ICDR 2018 · Indian IPO market data · Institutional workflows</div></div>';
-  html+='<span style="font-size:11px;font-weight:700;color:#1A9E6B;background:rgba(26,158,107,.08);border:1px solid rgba(26,158,107,.2);padding:4px 10px;border-radius:99px">✓ Free</span></div>';
+  html+='<span style="font-size:22px">\u{1F3AF}</span>';
+  html+='<div style="flex:1"><div style="font-size:13px;font-weight:800;color:#08404D;margin-bottom:2px">'+INST_AI.length+' AI Assistants \u2014 All Unlocked</div>';
+  html+='<div style="font-size:12px;color:#6B7E85">SEBI ICDR 2018 \u00b7 Indian IPO data \u00b7 Institutional workflows</div></div>';
+  html+='<span style="font-size:11px;font-weight:700;color:#1A9E6B;background:rgba(26,158,107,.08);border:1px solid rgba(26,158,107,.2);padding:4px 10px;border-radius:99px">\u2713 Free</span>';
+  html+='</div>';
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">';
   INST_AI.forEach(function(a){
     var cc=CAT_C[a.cat]||DC;
-    html+='<div data-aiid="'+a.id+'" style="background:#fff;border:1.5px solid #E2E8EA;border-radius:14px;cursor:pointer;transition:.2s;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 4px rgba(13,92,107,.06)" onmouseover="this.style.borderColor='#0D5C6B';this.style.transform='translateY(-3px)';this.style.boxShadow='0 4px 20px rgba(13,92,107,.12)'" onmouseout="this.style.borderColor='#E2E8EA';this.style.transform='';this.style.boxShadow='0 1px 4px rgba(13,92,107,.06)'">';
+    var fc=a.free?'#1A9E6B':'#C9932A';
+    var fb=a.free?'rgba(26,158,107,.08)':'rgba(232,138,46,.08)';
+    var fb2=a.free?'rgba(26,158,107,.2)':'rgba(232,138,46,.2)';
+    html+='<div class="ai-portal-card" data-aiid="'+a.id+'">';
     html+='<div style="height:4px;background:'+cc.s+'"></div>';
     html+='<div style="padding:16px 14px 14px;flex:1;display:flex;flex-direction:column">';
-    html+='<span style="float:right;font-size:10px;font-weight:800;color:'+(a.free?'#1A9E6B':'#C9932A')+';background:'+(a.free?'rgba(26,158,107,.08)':'rgba(232,138,46,.08)')+';border:1px solid '+(a.free?'rgba(26,158,107,.2)':'rgba(232,138,46,.2)')+';padding:2px 7px;border-radius:99px;margin:-2px -2px 0 0">'+(a.free?'FREE':'PRO')+'</span>';
+    html+='<span style="float:right;font-size:10px;font-weight:800;color:'+fc+';background:'+fb+';border:1px solid '+fb2+';padding:2px 7px;border-radius:99px;margin:-2px -2px 0 0">'+(a.free?'FREE':'PRO')+'</span>';
     html+='<div style="width:40px;height:40px;border-radius:10px;background:'+cc.ib+';display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:10px">'+a.icon+'</div>';
     html+='<div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:'+cc.ic+';margin-bottom:5px">'+a.cat+'</div>';
     html+='<div style="font-size:13px;font-weight:800;color:#08404D;margin-bottom:6px;line-height:1.25">'+a.name+'</div>';
     html+='<div style="font-size:12px;color:#6B7E85;line-height:1.55;margin-bottom:14px;flex:1">'+a.tag+'</div>';
-    html+='<button onclick="window.startInstAI && window.startInstAI(''+a.id+'')" style="padding:9px;background:'+cc.b+';color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;width:100%">Open Chat →</button>';
+    html+='<button style="padding:9px;background:'+cc.b+';color:#fff;border:none;border-radius:9px;font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;width:100%">Open Chat \u2192</button>';
     html+='</div></div>';
   });
+  html+='</div></div>';
+  return html;
+}
 
 window.startAI = function(id){
   var a = INST_AI.find(function(x){ return x.id===id; });
