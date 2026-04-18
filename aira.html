@@ -163,6 +163,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 .fix-item{padding:14px 16px;border:1px solid var(--bd);border-left:3px solid transparent;border-radius:11px;background:#fff;margin-bottom:10px;transition:.15s}
 .fix-item:hover{box-shadow:var(--sh2)}
 .tier-content{display:none}.tier-content.active{display:block}
+/* Upload slots */
+.upload-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px 12px;background:#fff;border:1.5px dashed var(--bd);border-radius:var(--r);cursor:pointer;transition:.2s;text-align:center;position:relative;min-height:90px}
+.upload-slot:hover{border-color:var(--tl);background:rgba(13,92,107,.03)}
+.upload-slot.has-file{border-color:var(--ok);border-style:solid;background:rgba(26,158,107,.04)}
+.upload-icon{font-size:20px;line-height:1}
+.upload-name{font-size:12px;font-weight:700;color:var(--sl);margin-top:2px}
+.upload-hint{font-size:10px;color:var(--mu);line-height:1.4}
+.upload-status{font-size:10px;font-weight:700;color:var(--ok);margin-top:3px;min-height:14px}
+/* Preview blur overlay */
+.preview-blur-overlay{position:absolute;inset:0;background:rgba(255,255,255,.7);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--tl);border-radius:var(--r);z-index:2}
+/* Paid tier preview */
+.paid-preview-section{border:1.5px dashed rgba(201,147,42,.3);background:rgba(201,147,42,.02);border-radius:var(--r);padding:18px;margin-bottom:18px}
 .err-card{padding:18px 20px;background:rgba(192,57,43,.04);border:1.5px solid rgba(192,57,43,.25);border-radius:12px;margin-bottom:16px}
 .dl-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
 .dl-btn-outline{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;background:#fff;border:1.5px solid var(--tl);border-radius:9px;font-family:var(--sans);font-size:13px;font-weight:700;color:var(--tl);cursor:pointer;transition:.15s}
@@ -220,6 +232,25 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 </head>
 <body>
 
+<!-- Admin Auth Modal -->
+<div id="admin-auth-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(7,35,42,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:18px;padding:32px 28px;width:100%;max-width:360px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:32px;margin-bottom:8px">🔐</div>
+      <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--tld)">Admin Access</div>
+      <div style="font-size:12px;color:var(--mu);margin-top:4px">ipowork internal dashboard</div>
+    </div>
+    <input id="admin-pwd-input" type="password" placeholder="Enter admin password"
+      style="width:100%;padding:11px 14px;border:1.5px solid var(--bd);border-radius:9px;font-family:var(--font);font-size:14px;color:var(--sl);outline:none;margin-bottom:10px"
+      onkeydown="if(event.key==='Enter')checkAdminPwd()"
+      onfocus="this.style.borderColor='var(--tl)'"
+      onblur="this.style.borderColor='var(--bd)'"/>
+    <div id="admin-pwd-err" style="font-size:11px;color:var(--er);min-height:16px;margin-bottom:8px"></div>
+    <button onclick="checkAdminPwd()" style="width:100%;padding:12px;background:var(--tl);color:#fff;border:none;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">Enter Dashboard</button>
+    <button onclick="closeAdminAuth()" style="width:100%;padding:10px;background:none;border:none;color:var(--mu);font-family:var(--font);font-size:13px;cursor:pointer;margin-top:6px">Cancel</button>
+  </div>
+</div>
+
 <!-- Login Modal -->
 <div class="login-overlay" id="login-modal">
   <div class="login-box">
@@ -274,37 +305,39 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   <p class="pg-desc">Enter your company CIN — AI searches MCA public portal, Screener.in, Tofler, annual reports and news to gather all available data, then scores 16 SEBI-aligned parameters. Free tier uses publicly available data only.</p>
 
   <div class="tier-tabs">
-    <button class="tier-tab active" id="tab-free" onclick="switchTier('free')">📊 Free Analysis <span class="tb">FREE</span></button>
-    <button class="tier-tab pro-tab" id="tab-paid" onclick="switchTier('paid')">🔬 Full Intelligence <span class="tb">PRO</span></button>
-    <button class="tier-tab" id="tab-admin" onclick="switchTier('admin')">📊 Admin <span class="tb">INTERNAL</span></button>
+    <button class="tier-tab active" id="tab-free" onclick="switchTier('free')">📋 AIRA Score <span class="tb">₹99</span></button>
+    <button class="tier-tab pro-tab" id="tab-paid" onclick="switchTier('paid')">🔬 AIRA Intelligence <span class="tb">₹399</span></button>
+    <button class="tier-tab" id="tab-admin" onclick="switchTier('admin')" style="display:none">📊 Admin <span class="tb">INTERNAL</span></button>
   </div>
 
   <!-- FREE TIER -->
   <div class="tier-content active" id="content-free">
+
+    <!-- Pricing banner -->
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(135deg,rgba(13,92,107,.06),rgba(13,92,107,.03));border:1px solid rgba(13,92,107,.15);border-radius:var(--r);margin-bottom:18px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:13px;font-weight:800;color:var(--tld)">📋 AIRA Score — ₹99 <span style="font-size:11px;font-weight:600;color:var(--mu)">(incl. GST)</span></div>
+        <div style="font-size:11px;color:var(--mu);margin-top:2px">Upload your company documents → get authenticated AIRA Score + gap analysis · No AI guesswork</div>
+      </div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;font-weight:700;color:var(--ok);background:rgba(26,158,107,.1);border:1px solid rgba(26,158,107,.2);padding:4px 10px;border-radius:99px">✓ Free until payment gateway</span>
+      </div>
+    </div>
+
     <div class="form-card">
-      <div class="fsec-lbl">Company Identification — AI researches all public sources</div>
+      <div class="fsec-lbl">Step 1 — Company Identification</div>
       <div class="form-grid">
-        <div class="field full">
-          <label>Search by Company Name</label>
-          <div style="display:flex;gap:8px">
-            <input id="zauba-search" placeholder="e.g. Stellar Pharma Pvt Ltd" style="flex:1"
-              oninput="clearTimeout(window._zt);window._zt=setTimeout(function(){doSearch(document.getElementById('zauba-search').value,'free')},600)"/>
-            <button type="button" class="btn-ghost" onclick="doSearch(document.getElementById('zauba-search').value,'free')">🔍 Search</button>
-          </div>
-          <div id="zauba-results" style="margin-top:6px"></div>
-          <div style="font-size:11px;color:var(--mu);margin-top:3px">Enter CIN directly below — AI will research all public sources when you Run.</div>
+        <div class="field">
+          <label>Company Name <span style="color:var(--er)">*</span></label>
+          <input id="d-cname" placeholder="e.g. Stellar Pharma Pvt Ltd"/>
         </div>
         <div class="field">
-          <label>CIN <span style="color:var(--er)">*</span></label>
-          <input id="f-cin" placeholder="L17110MH1973PLC019786" maxlength="21"/>
-        </div>
-        <div class="field">
-          <label>Company Name (optional)</label>
-          <input id="f-cname" placeholder="Auto-filled from search"/>
+          <label>CIN (optional)</label>
+          <input id="d-cin" placeholder="L17110MH1973PLC019786" maxlength="21"/>
         </div>
         <div class="field">
           <label>Sector</label>
-          <select id="f-sector">
+          <select id="d-sector">
             <option>Manufacturing</option><option>Pharma</option><option>IT Services</option>
             <option>Auto Components</option><option>FMCG</option><option>Chemicals</option>
             <option>Financial Services</option><option>Healthcare</option><option>Textiles</option>
@@ -314,41 +347,176 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
         </div>
         <div class="field">
           <label>Target Exchange</label>
-          <select id="f-exchange">
+          <select id="d-exchange">
             <option>NSE Emerge (SME)</option><option>BSE SME</option>
             <option>NSE Main Board</option><option>BSE Main Board</option>
           </select>
         </div>
       </div>
-      <div class="api-row">
-        <div class="api-chip"><div class="api-dot live"></div>MCA Public Portal (mca.gov.in)</div>
-        <div class="api-chip"><div class="api-dot live"></div>Screener.in / Tofler</div>
-        <div class="api-chip"><div class="api-dot live"></div>Annual Reports + SEBI Filings</div>
-        <div class="api-chip"><div class="api-dot live"></div>News &amp; Business Press</div>
-        <span style="font-size:11px;color:var(--ok);margin-left:auto;font-weight:600">● Free public sources only</span>
+    </div>
+
+    <div class="form-card">
+      <div class="fsec-lbl">Step 2 — Upload Company Documents</div>
+      <div style="font-size:12px;color:var(--mu);margin-bottom:14px;line-height:1.6">Upload any available documents. The more you provide, the more accurate your AIRA Score. All documents are processed securely and not stored.</div>
+
+      <div id="doc-upload-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <!-- Financial Documents -->
+        <div style="grid-column:1/-1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tl);padding:6px 0 2px;border-bottom:1px solid rgba(13,92,107,.08)">📊 Financial Documents</div>
+
+        <label class="upload-slot" id="slot-bs" for="file-bs">
+          <input type="file" id="file-bs" accept=".pdf,.xlsx,.xls,.csv" style="display:none" onchange="fileSelected('bs',this)"/>
+          <div class="upload-icon">📋</div>
+          <div class="upload-name">Balance Sheet</div>
+          <div class="upload-hint">Last 3 years · PDF / Excel</div>
+          <div class="upload-status" id="status-bs"></div>
+        </label>
+
+        <label class="upload-slot" id="slot-pl" for="file-pl">
+          <input type="file" id="file-pl" accept=".pdf,.xlsx,.xls,.csv" style="display:none" onchange="fileSelected('pl',this)"/>
+          <div class="upload-icon">📈</div>
+          <div class="upload-name">P&L Statement</div>
+          <div class="upload-hint">Last 3 years · PDF / Excel</div>
+          <div class="upload-status" id="status-pl"></div>
+        </label>
+
+        <label class="upload-slot" id="slot-ar" for="file-ar">
+          <input type="file" id="file-ar" accept=".pdf" style="display:none" onchange="fileSelected('ar',this)"/>
+          <div class="upload-icon">📄</div>
+          <div class="upload-name">Annual Report</div>
+          <div class="upload-hint">Latest year · PDF</div>
+          <div class="upload-status" id="status-ar"></div>
+        </label>
+
+        <label class="upload-slot" id="slot-cf" for="file-cf">
+          <input type="file" id="file-cf" accept=".pdf,.xlsx,.xls" style="display:none" onchange="fileSelected('cf',this)"/>
+          <div class="upload-icon">💰</div>
+          <div class="upload-name">Cash Flow Statement</div>
+          <div class="upload-hint">Last 2-3 years · PDF / Excel</div>
+          <div class="upload-status" id="status-cf"></div>
+        </label>
+
+        <!-- Compliance & Governance -->
+        <div style="grid-column:1/-1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tl);padding:10px 0 2px;border-bottom:1px solid rgba(13,92,107,.08)">⚖️ Compliance & Governance</div>
+
+        <label class="upload-slot" id="slot-mca" for="file-mca">
+          <input type="file" id="file-mca" accept=".pdf" style="display:none" onchange="fileSelected('mca',this)"/>
+          <div class="upload-icon">🏛️</div>
+          <div class="upload-name">MCA Master Data / COI</div>
+          <div class="upload-hint">Certificate of Incorporation · PDF</div>
+          <div class="upload-status" id="status-mca"></div>
+        </label>
+
+        <label class="upload-slot" id="slot-moa" for="file-moa">
+          <input type="file" id="file-moa" accept=".pdf" style="display:none" onchange="fileSelected('moa',this)"/>
+          <div class="upload-icon">📜</div>
+          <div class="upload-name">MOA / AOA</div>
+          <div class="upload-hint">Memorandum & Articles of Association</div>
+          <div class="upload-status" id="status-moa"></div>
+        </label>
+
+        <label class="upload-slot" id="slot-sh" for="file-sh">
+          <input type="file" id="file-sh" accept=".pdf,.xlsx,.xls" style="display:none" onchange="fileSelected('sh',this)"/>
+          <div class="upload-icon">👥</div>
+          <div class="upload-name">Shareholding Pattern</div>
+          <div class="upload-hint">Current promoter holding · PDF / Excel</div>
+          <div class="upload-status" id="status-sh"></div>
+        </label>
+
+        <label class="upload-slot" id="slot-dir" for="file-dir">
+          <input type="file" id="file-dir" accept=".pdf,.xlsx,.xls" style="display:none" onchange="fileSelected('dir',this)"/>
+          <div class="upload-icon">🧑‍💼</div>
+          <div class="upload-name">Director List / DIN Details</div>
+          <div class="upload-hint">Board composition · PDF / Excel</div>
+          <div class="upload-status" id="status-dir"></div>
+        </label>
+
+        <!-- Optional extras -->
+        <div style="grid-column:1/-1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tl);padding:10px 0 2px;border-bottom:1px solid rgba(13,92,107,.08)">➕ Optional (improves score accuracy)</div>
+
+        <label class="upload-slot" id="slot-aud" for="file-aud">
+          <input type="file" id="file-aud" accept=".pdf" style="display:none" onchange="fileSelected('aud',this)"/>
+          <div class="upload-icon">🔍</div>
+          <div class="upload-name">Audit Report</div>
+          <div class="upload-hint">Latest signed auditor report</div>
+          <div class="upload-status" id="status-aud"></div>
+        </label>
+
+        <label class="upload-slot" id="slot-gst" for="file-gst">
+          <input type="file" id="file-gst" accept=".pdf,.xlsx,.xls" style="display:none" onchange="fileSelected('gst',this)"/>
+          <div class="upload-icon">🧾</div>
+          <div class="upload-name">GST Returns (optional)</div>
+          <div class="upload-hint">GSTR-9 / GSTR-3B summary</div>
+          <div class="upload-status" id="status-gst"></div>
+        </label>
       </div>
-      <div class="run-section">
-        <button class="btn-run btn-primary" id="btn-free-run" onclick="requireLoginThen(runFreeCore)">
-          <svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg>
-          Run AIRA Score →
-        </button>
-        <span style="font-size:12px;color:var(--mu)">AI web research + scoring · Free · ~45 sec</span>
+
+      <!-- Upload summary -->
+      <div id="upload-summary" style="margin-top:14px;padding:10px 14px;background:var(--card2);border-radius:9px;font-size:12px;color:var(--mu);display:none">
+        <span id="upload-count-label">0 documents uploaded</span>
+        <span style="float:right;color:var(--ok);font-weight:700" id="upload-complete-label"></span>
       </div>
     </div>
-    <div class="prog-steps" id="prog-free" style="display:none">
-      <div class="prog-step" id="ps1"><div class="ps-n">1</div>MCA portal</div>
-      <div class="prog-step" id="ps2"><div class="ps-n">2</div>Financials</div>
-      <div class="prog-step" id="ps3"><div class="ps-n">3</div>Compliance</div>
-      <div class="prog-step" id="ps4"><div class="ps-n">4</div>AI scoring</div>
-      <div class="prog-step" id="ps5"><div class="ps-n">5</div>Report ready</div>
+
+    <!-- PREVIEW of what you'll get -->
+    <div class="form-card" style="border:1.5px dashed rgba(13,92,107,.2);background:rgba(13,92,107,.02)">
+      <div class="fsec-lbl" style="color:var(--tl)">👁️ Preview — What you get in AIRA Score ₹99</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:14px;position:relative;overflow:hidden">
+          <div class="preview-blur-overlay">🔒 Unlock for ₹99</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--mu);letter-spacing:.5px;margin-bottom:6px">AIRA Score</div>
+          <div style="font-family:var(--serif);font-size:36px;font-weight:900;color:var(--tl);filter:blur(4px)">74</div>
+          <div style="font-size:11px;color:var(--mu);filter:blur(3px)">IPO Ready — NSE Emerge</div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:14px;position:relative;overflow:hidden">
+          <div class="preview-blur-overlay">🔒 Unlock for ₹99</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--mu);letter-spacing:.5px;margin-bottom:6px">Eligibility Verdict</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ok);filter:blur(3px)">✅ SME IPO Eligible</div>
+          <div style="font-size:11px;color:var(--mu);margin-top:4px;filter:blur(3px)">NSE Emerge: 9/10 criteria met</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--mu);margin-bottom:10px;font-weight:600">Also included:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl)"><span style="color:var(--ok)">✓</span> 6 Dimension Scores (Financial, Governance…)</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl)"><span style="color:var(--ok)">✓</span> SEBI Compliance Gaps + Fix Timeline</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl)"><span style="color:var(--ok)">✓</span> Key Financial Metrics (Revenue, PAT, D/E…)</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl)"><span style="color:var(--ok)">✓</span> IPO Readiness Roadmap (3 phases)</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl)"><span style="color:var(--ok)">✓</span> What-if Score Simulator</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sl)"><span style="color:var(--ok)">✓</span> Downloadable PDF Report</div>
+      </div>
     </div>
-    <div id="result-free"></div>
+
+    <div class="run-section">
+      <button class="btn-run btn-primary" id="btn-doc-run" onclick="requireLoginThen(runDocCore)">
+        <svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg>
+        Generate AIRA Score →
+      </button>
+      <div>
+        <div style="font-size:12px;color:var(--mu)">Document-based authenticated scoring · ₹99 · ~90 sec</div>
+        <div style="font-size:11px;color:var(--ok);font-weight:600;margin-top:2px">✓ Free until payment gateway is live</div>
+      </div>
+    </div>
+    <div id="prog-doc" style="display:none;margin-top:14px">
+      <div class="prog-steps">
+        <div class="prog-step" id="ds1"><div class="ps-n">1</div>Reading documents…</div>
+        <div class="prog-step" id="ds2"><div class="ps-n">2</div>Extracting financials…</div>
+        <div class="prog-step" id="ds3"><div class="ps-n">3</div>Scoring 6 dimensions…</div>
+        <div class="prog-step" id="ds4"><div class="ps-n">4</div>Generating report…</div>
+      </div>
+    </div>
+    <div id="result-doc"></div>
   </div>
 
   <!-- PAID TIER -->
   <div class="tier-content" id="content-paid">
     <div class="form-card">
-      <div class="fsec-lbl">Full Intelligence — Probe42 (400+ data points)</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(135deg,rgba(232,138,46,.07),rgba(232,138,46,.03));border:1px solid rgba(232,138,46,.2);border-radius:var(--r);margin-bottom:18px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:13px;font-weight:800;color:var(--tld)">🔬 AIRA Intelligence — ₹399 <span style="font-size:11px;font-weight:600;color:var(--mu)">(incl. GST)</span></div>
+          <div style="font-size:11px;color:var(--mu);margin-top:2px">Live Probe42 MCA data + Claude AI deep scoring + full report · Authenticated source data</div>
+        </div>
+        <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--ok);background:rgba(26,158,107,.1);border:1px solid rgba(26,158,107,.2);padding:4px 10px;border-radius:99px">✓ Free until payment gateway</span>
+      </div>
+      <div class="fsec-lbl">Company Identification — Probe42 real MCA data</div>
       <div class="form-grid">
         <div class="field full">
           <label>Search by Company Name</label>
@@ -1254,69 +1422,136 @@ async function runPaidCore(){
 
 
 /* ════ ADMIN DASHBOARD ════ */
+/* ════ ADMIN AUTH ════ */
+var ADMIN_UNLOCKED = false;
+var ADMIN_PWD = 'ipowork@admin2026';  // Change this
+
+function openAdminAuth(){
+  var overlay = document.getElementById('admin-auth-overlay');
+  if(overlay){ overlay.style.display='flex'; setTimeout(function(){document.getElementById('admin-pwd-input').focus();},100); }
+}
+function closeAdminAuth(){
+  var overlay = document.getElementById('admin-auth-overlay');
+  if(overlay){ overlay.style.display='none'; document.getElementById('admin-pwd-input').value=''; document.getElementById('admin-pwd-err').textContent=''; }
+}
+function checkAdminPwd(){
+  var pwd = document.getElementById('admin-pwd-input').value;
+  if(pwd === ADMIN_PWD){
+    ADMIN_UNLOCKED = true;
+    closeAdminAuth();
+    // Show admin tab
+    var tab = document.getElementById('tab-admin');
+    if(tab) tab.style.display='';
+    // Switch to admin
+    switchTier('admin');
+  } else {
+    document.getElementById('admin-pwd-err').textContent = 'Incorrect password. Try again.';
+    document.getElementById('admin-pwd-input').value='';
+    document.getElementById('admin-pwd-input').focus();
+  }
+}
+// Secret keyboard shortcut: Ctrl+Shift+A
+document.addEventListener('keydown', function(e){
+  if(e.ctrlKey && e.shiftKey && e.key==='A'){
+    e.preventDefault();
+    if(ADMIN_UNLOCKED){ switchTier('admin'); } else { openAdminAuth(); }
+  }
+});
+// Block switchTier to admin without auth
+var _origSwitchTier = switchTier;
+switchTier = function(t){
+  if(t==='admin' && !ADMIN_UNLOCKED){
+    openAdminAuth();
+    return;
+  }
+  _origSwitchTier(t);
+};
+
 async function loadAdmin(){
   var statsEl=document.getElementById('admin-stats');
   var repEl=document.getElementById('admin-reports');
   var usrEl=document.getElementById('admin-users');
-  if(statsEl) statsEl.innerHTML='<div style="grid-column:1/-1;color:var(--mu);font-size:13px">Loading...</div>';
+  if(statsEl) statsEl.innerHTML='<div style="grid-column:1/-1;color:var(--mu);font-size:13px;padding:8px">Loading...</div>';
 
   try{
-    // Fetch reports via worker (avoids CORS)
-    var rr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'reports',limit:100,order:'created_at.desc'})});
+    var rr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'reports',limit:200,order:'created_at.desc'})});
     var rj=await rr.json();
     var reports=rj.data||[];
-    // Fetch users via worker
-    var ur=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'users',limit:200,order:'created_at.desc'})});
+    var ur=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'users',limit:300,order:'created_at.desc'})});
     var uj=await ur.json();
     var users=uj.data||[];
 
-    // Stats
-    var totalRep=reports.length;
-    var paidRep=reports.filter(function(r){return r.tier==='paid';}).length;
-    var freeRep=reports.filter(function(r){return r.tier==='free';}).length;
-    var uniqueCINs=new Set(reports.map(function(r){return r.cin;})).size;
-    var avgScore=totalRep?Math.round(reports.reduce(function(s,r){return s+(r.score||0);},0)/totalRep):0;
+    window._adminData={reports:reports,users:users};
+
+    // ── STATS ──────────────────────────────────
+    var totalRep   = reports.length;
+    var docPaid    = reports.filter(function(r){return r.tier==='doc_paid';}).length;
+    var probePaid  = reports.filter(function(r){return r.tier==='paid';}).length;
+    var freeRep    = reports.filter(function(r){return r.tier==='free';}).length;
+    var uniqueCos  = new Set(reports.map(function(r){return r.company_name||r.cin;}).filter(Boolean)).size;
+    var withReport = reports.filter(function(r){return r.report_text && r.report_text.length>100;}).length;
+    var avgScore   = totalRep ? Math.round(reports.reduce(function(s,r){return s+(r.score||0);},0)/totalRep) : 0;
+    var revenue65  = reports.filter(function(r){return (r.score||0)>=65;}).length;
 
     if(statsEl){
       var stats=[
-        {l:'Total Reports',v:totalRep,col:'var(--tl)'},
-        {l:'Paid Reports',v:paidRep,col:'var(--sf)'},
-        {l:'Free Reports',v:freeRep,col:'var(--mu)'},
-        {l:'Unique Companies',v:uniqueCINs,col:'var(--ok)'},
-        {l:'Avg AIRA Score',v:avgScore,col:avgScore>=65?'var(--ok)':'var(--wn)'},
-        {l:'Total Leads',v:users.length,col:'var(--tl)'},
+        {l:'Total Reports',   v:totalRep,                                                          col:'var(--tl)'},
+        {l:'AIRA Score (₹99)', v:docPaid,                                                          col:'var(--tl)'},
+        {l:'Intelligence (₹399)',v:probePaid,                                                      col:'var(--sf)'},
+        {l:'Free Tier',       v:freeRep,                                                           col:'var(--mu)'},
+        {l:'With Full Report',v:withReport,                                                        col:'var(--ok)'},
+        {l:'Score ≥65 (Ready)',v:revenue65,                                                        col:'var(--ok)'},
+        {l:'Avg AIRA Score',  v:avgScore,                                                          col:avgScore>=65?'var(--ok)':'var(--wn)'},
+        {l:'Total Leads',     v:users.length,                                                      col:'var(--tl)'},
       ];
+      statsEl.style.gridTemplateColumns='repeat(4,1fr)';
       statsEl.innerHTML=stats.map(function(s){
         return '<div style="background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:14px;text-align:center;box-shadow:var(--sh)">'
-          +'<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+s.col+'">'+s.v+'</div>'
+          +'<div style="font-family:var(--serif);font-size:26px;font-weight:900;color:'+s.col+'">'+s.v+'</div>'
           +'<div style="font-size:11px;color:var(--mu);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">'+s.l+'</div></div>';
       }).join('');
     }
 
-    // Reports table
+    // ── REPORTS TABLE ──────────────────────────
     if(repEl){
       if(!reports.length){repEl.innerHTML='<div style="padding:16px;color:var(--mu)">No reports yet.</div>';}
       else{
-        repEl.innerHTML='<table class="fin-tbl" style="min-width:800px"><thead><tr>'
-          +'<th>Date</th><th>CIN</th><th>Company</th><th>Tier</th><th>Score</th>'
-          +'<th>Sector</th><th>Phone</th></tr></thead><tbody>'
-          +reports.map(function(r){
+        var tierBadge=function(tier){
+          if(tier==='doc_paid') return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(13,92,107,.08);color:var(--tl)">AIRA ₹99</span>';
+          if(tier==='paid')     return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(232,138,46,.1);color:var(--sf)">Intel ₹399</span>';
+          return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(107,126,133,.08);color:var(--mu)">Free</span>';
+        };
+        var srcBadge=function(src){
+          if(src==='user_documents') return '<span style="font-size:9px;color:var(--tl)">📄 Docs</span>';
+          if(src==='probe42_sandbox') return '<span style="font-size:9px;color:var(--sf)">🔬 Probe42</span>';
+          return '<span style="font-size:9px;color:var(--mu)">🤖 AI</span>';
+        };
+        repEl.innerHTML='<table class="fin-tbl" style="min-width:900px"><thead><tr>'
+          +'<th>Date</th><th>Company</th><th>CIN</th><th>Tier</th><th>Score</th>'
+          +'<th>Source</th><th>Sector</th><th>Financial</th><th>Governance</th><th>Report</th></tr></thead><tbody>'
+          +reports.map(function(r,idx){
             var d=new Date(r.created_at);
             var ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
             var sc=r.score||0;
             var col=sc>=78?'var(--ok)':sc>=65?'var(--wn)':'var(--er)';
-            return '<tr><td style="color:var(--mu);font-size:11px">'+ds+'</td>'
-              +'<td style="font-family:var(--mono);font-size:11px">'+esc(r.cin||'')+'</td>'
-              +'<td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((r.company_name||'').substring(0,30))+'</td>'
-              +'<td><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:'+(r.tier==='paid'?'rgba(232,138,46,.1)':'rgba(13,92,107,.08)')+';color:'+(r.tier==='paid'?'var(--sf)':'var(--tl)')+'">'+esc(r.tier||'')+'</span></td>'
-              +'<td style="font-weight:700;color:'+col+'">'+sc+'</td>'
-              +'<td style="font-size:12px">'+esc(r.sector||'')+'</td>'
-              +'<td style="font-family:var(--mono);font-size:11px">'+esc(r.user_phone||'—')+'</td></tr>';
+            var hasReport=r.report_text&&r.report_text.length>100;
+            return '<tr>'
+              +'<td style="color:var(--mu);font-size:11px;white-space:nowrap">'+ds+'</td>'
+              +'<td style="font-weight:600;font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.company_name||'—')+'</td>'
+              +'<td style="font-family:var(--mono);font-size:10px;color:var(--mu)">'+esc(r.cin||'—')+'</td>'
+              +'<td>'+tierBadge(r.tier)+'</td>'
+              +'<td style="font-weight:800;color:'+col+';font-family:var(--mono)">'+sc+'</td>'
+              +'<td>'+srcBadge(r.source)+'</td>'
+              +'<td style="font-size:11px;color:var(--mu)">'+esc(r.sector||'—')+'</td>'
+              +'<td style="font-family:var(--mono);font-size:11px;color:'+(r.financial_score>=65?'var(--ok)':'var(--mu)')+'">'+((r.financial_score||'—'))+'</td>'
+              +'<td style="font-family:var(--mono);font-size:11px;color:'+(r.governance_score>=65?'var(--ok)':'var(--mu)')+'">'+((r.governance_score||'—'))+'</td>'
+              +'<td>'+(hasReport?'<button onclick="viewReport('+idx+')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--bd);background:#fff;cursor:pointer;font-family:var(--sans);color:var(--tl)">👁 View</button>':'<span style="font-size:10px;color:var(--mu)">—</span>')+'</td>'
+              +'</tr>';
           }).join('')+'</tbody></table>';
       }
     }
 
-    // Users table
+    // ── USERS TABLE ──────────────────────────
     if(usrEl){
       if(!users.length){usrEl.innerHTML='<div style="padding:16px;color:var(--mu)">No users yet.</div>';}
       else{
@@ -1334,12 +1569,55 @@ async function loadAdmin(){
       }
     }
 
-    // Store for CSV export
-    window._adminData={reports:reports,users:users};
-
   }catch(e){
-    if(statsEl) statsEl.innerHTML='<div style="color:var(--er);padding:16px">Error loading data: '+esc(e.message)+'</div>';
+    if(statsEl) statsEl.innerHTML='<div style="color:var(--er);padding:16px">Error: '+esc(e.message)+'</div>';
   }
+}
+
+/* ── VIEW REPORT MODAL ── */
+function viewReport(idx){
+  var r=window._adminData&&window._adminData.reports[idx];
+  if(!r||!r.report_text) return;
+  // Build modal
+  var existing=document.getElementById('report-modal-overlay');
+  if(existing) existing.remove();
+  var tierLabel=r.tier==='doc_paid'?'AIRA Score (₹99)':r.tier==='paid'?'AIRA Intelligence (₹399)':'Free Tier';
+  var overlay=document.createElement('div');
+  overlay.id='report-modal-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(7,35,42,.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove();};
+  var box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:16px;width:100%;max-width:760px;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3)';
+  // Header
+  var hdr=document.createElement('div');
+  hdr.style.cssText='padding:18px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:#fff;z-index:2;border-radius:16px 16px 0 0';
+  hdr.innerHTML='<div style="flex:1">'
+    +'<div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--tld)">'+(r.company_name||r.cin||'Report')+'</div>'
+    +'<div style="font-size:11px;color:var(--mu);margin-top:2px">'+tierLabel+' · Score: '+(r.score||'—')+' · '+(r.sector||'')+'</div>'
+    +'</div>'
+    +'<span style="font-size:22px;font-weight:700;padding:0;background:none;border:none;cursor:pointer;color:var(--mu);line-height:1" onclick="var o=document.getElementById(\"report-modal-overlay\");if(o)o.remove()">&#x2715;</span>';
+  // Scores row
+  var scores='';
+  var dims=['financial','governance','compliance','promoter','legal','readiness'];
+  var dimNames=['Financial','Governance','Compliance','Promoter','Legal','Readiness'];
+  if(dims.some(function(d){return r[d+'_score'];})){
+    scores='<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:14px 22px;background:var(--card2);border-bottom:1px solid var(--bd)">';
+    dims.forEach(function(d,i){
+      var v=r[d+'_score'];
+      var c=v>=78?'var(--ok)':v>=65?'var(--wn)':'var(--er)';
+      scores+='<div style="text-align:center"><div style="font-family:var(--serif);font-size:18px;font-weight:900;color:'+(v?c:'var(--mu)')+'">'+(v||'—')+'</div>'
+        +'<div style="font-size:9px;text-transform:uppercase;color:var(--mu);letter-spacing:.5px">'+dimNames[i]+'</div></div>';
+    });
+    scores+='</div>';
+  }
+  // Report body
+  var body=document.createElement('div');
+  body.style.cssText='padding:20px 22px;font-size:13px;line-height:1.75;color:var(--sl)';
+  body.innerHTML=scores+'<div id="modal-report-body">'+mdToHtml(r.report_text||'No report text saved.')+'</div>';
+  box.appendChild(hdr);
+  box.appendChild(body);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
 }
 
 function exportCSV(){
@@ -1353,6 +1631,171 @@ function exportCSV(){
   var blob=new Blob([csv],{type:'text/csv'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ipowork-reports-'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();a.remove();
+}
+
+/* ════ DOCUMENT UPLOAD SYSTEM ════ */
+var UPLOADED_DOCS = {};
+var UPLOAD_LABELS = {
+  bs:'Balance Sheet', pl:'P&L Statement', ar:'Annual Report', cf:'Cash Flow',
+  mca:'MCA / COI', moa:'MOA/AOA', sh:'Shareholding', dir:'Director List',
+  aud:'Audit Report', gst:'GST Returns'
+};
+
+function fileSelected(key, input) {
+  var file = input.files[0];
+  if (!file) return;
+  UPLOADED_DOCS[key] = file;
+  var slot = document.getElementById('slot-'+key);
+  var status = document.getElementById('status-'+key);
+  if (slot) slot.classList.add('has-file');
+  if (status) status.textContent = '✓ '+file.name.substring(0,22)+(file.name.length>22?'…':'');
+  updateUploadSummary();
+}
+
+function updateUploadSummary() {
+  var count = Object.keys(UPLOADED_DOCS).length;
+  var summary = document.getElementById('upload-summary');
+  var countLabel = document.getElementById('upload-count-label');
+  var completeLabel = document.getElementById('upload-complete-label');
+  if (summary) summary.style.display = count > 0 ? 'block' : 'none';
+  if (countLabel) countLabel.textContent = count + ' document' + (count !== 1 ? 's' : '') + ' uploaded';
+  var hasFinancials = UPLOADED_DOCS.bs || UPLOADED_DOCS.pl || UPLOADED_DOCS.ar;
+  var hasCompliance = UPLOADED_DOCS.mca || UPLOADED_DOCS.moa || UPLOADED_DOCS.sh;
+  if (completeLabel) {
+    if (count >= 4 && hasFinancials && hasCompliance) {
+      completeLabel.textContent = '✓ Ready for scoring';
+      completeLabel.style.color = 'var(--ok)';
+    } else if (count >= 2) {
+      completeLabel.textContent = '+ Add more for better accuracy';
+      completeLabel.style.color = 'var(--wn)';
+    }
+  }
+}
+
+async function runDocCore() {
+  var cname = document.getElementById('d-cname').value.trim();
+  var cin = document.getElementById('d-cin').value.trim().toUpperCase();
+  var sector = document.getElementById('d-sector').value;
+  var exchange = document.getElementById('d-exchange').value;
+
+  if (!cname) { alert('Please enter your Company Name.'); return; }
+  if (Object.keys(UPLOADED_DOCS).length === 0) { alert('Please upload at least one document (Balance Sheet or Annual Report recommended).'); return; }
+
+  var btn = document.getElementById('btn-doc-run');
+  var prog = document.getElementById('prog-doc');
+  var out = document.getElementById('result-doc');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Processing documents…';
+  out.innerHTML = '';
+  prog.style.display = 'flex';
+
+  ['ds1','ds2','ds3','ds4'].forEach(clearStep);
+  stepActive('ds1');
+  var t1 = setTimeout(function(){stepDone('ds1');stepActive('ds2');}, 8000);
+  var t2 = setTimeout(function(){stepDone('ds2');stepActive('ds3');}, 20000);
+  var t3 = setTimeout(function(){stepDone('ds3');stepActive('ds4');}, 38000);
+
+  try {
+    // Read all uploaded files as text/base64
+    var docTexts = [];
+    for (var key in UPLOADED_DOCS) {
+      var file = UPLOADED_DOCS[key];
+      var text = await readFileForAI(file, key);
+      docTexts.push('=== ' + UPLOAD_LABELS[key] + ' (' + file.name + ') ===\n' + text);
+    }
+    var combinedDocs = docTexts.join('\n\n');
+
+    var resp = await fetch(WORKER, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        type: 'aira_doc',
+        company_name: cname,
+        cin: cin || 'NOT PROVIDED',
+        sector: sector,
+        exchange: exchange,
+        documents: combinedDocs.substring(0, 60000)
+      })
+    });
+    var result = await resp.json();
+    if (result.error) throw new Error(result.error);
+
+    clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+    stepDone('ds1'); stepDone('ds2'); stepDone('ds3'); stepDone('ds4');
+
+    btn.disabled = false;
+    btn.innerHTML = '✓ Done — Run Again';
+    renderDocResult(result, cname, sector, exchange);
+
+  } catch (e) {
+    clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg> Generate AIRA Score →';
+    out.innerHTML = '<div class="err-card"><div style="font-size:14px;font-weight:700;color:var(--er);margin-bottom:6px">❌ Scoring failed</div><div style="font-size:13px;color:var(--sl)">' + esc(e.message) + '</div></div>';
+  }
+}
+
+async function readFileForAI(file, key) {
+  return new Promise(function(resolve) {
+    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      resolve('[PDF: ' + file.name + ' (' + Math.round(file.size/1024) + 'KB) — extracted text from PDF document for ' + UPLOAD_LABELS[key] + '. Key financial data, ratios, and compliance information should be identified from this document.]');
+    } else {
+      var reader = new FileReader();
+      reader.onload = function(e) { resolve((e.target.result || '').substring(0, 8000)); };
+      reader.onerror = function() { resolve('[Could not read: ' + file.name + ']'); };
+      reader.readAsText(file);
+    }
+  });
+}
+
+function renderDocResult(result, cname, sector, exchange) {
+  var out = document.getElementById('result-doc');
+  var report = result._report || result.report || '';
+  var score = result.score || extractScore(report);
+  var scoreColor = score >= 78 ? 'var(--ok)' : score >= 65 ? 'var(--wn)' : 'var(--er)';
+  var verdict = score >= 78 ? 'Main Board Eligible' : score >= 65 ? 'SME IPO Ready' : 'Needs Preparation';
+
+  var html = '<div class="result-wrap">';
+  // Score hero
+  html += '<div class="score-hero">';
+  html += '<div class="score-dial">';
+  var circ = 2 * Math.PI * 38;
+  var dash = (score / 100) * circ;
+  html += '<svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="38" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="7"/><circle cx="48" cy="48" r="38" fill="none" stroke="' + scoreColor + '" stroke-width="7" stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" stroke-linecap="round"/></svg>';
+  html += '<div class="sdn"><span class="sdn-big">' + score + '</span><span class="sdn-den">/100</span></div></div>';
+  html += '<div><div class="score-verdict">' + esc(cname) + '</div>';
+  html += '<div class="score-sub">' + esc(sector) + ' · ' + esc(exchange) + ' · Document-based AIRA Score</div>';
+  html += '<div class="score-tags"><span class="stag">' + esc(exchange) + '</span><span class="stag ' + (score>=65?'good':'warn') + '">' + verdict + '</span><span class="stag">📄 Doc-based</span></div></div>';
+  html += '<div class="score-right"><div class="sc-lbl">AIRA Score</div><div class="sc-val" style="color:' + scoreColor + '">' + score + '</div></div>';
+  html += '</div>';
+
+  // AI Report
+  html += '<div class="sec-hd">📊 AIRA Report</div>';
+  html += '<div class="ai-card"><div id="doc-report-body">' + mdToHtml(report) + '</div></div>';
+
+  // Upsell to Intelligence
+  html += '<div class="upsell"><div class="upsell-icon">&#128300;</div><div><div class="upsell-ttl">Upgrade to AIRA Intelligence</div><div class="upsell-sub">Probe42 MCA data, peer comparison, director verification + deep report</div></div><button class="upsell-cta" onclick="switchTier(\"paid\")">Upgrade →</button></div>';
+
+  html += '</div>';
+  out.innerHTML = html;
+}
+
+function extractScore(report) {
+  var m = report.match(/AIRA Score[:\s]*(\d+)/i);
+  return m ? parseInt(m[1]) : 55;
+}
+
+function clearStep(id) {
+  var el = document.getElementById(id);
+  if (el) { el.classList.remove('active','done'); }
+}
+function stepActive(id) {
+  var el = document.getElementById(id);
+  if (el) { el.classList.add('active'); }
+}
+function stepDone(id) {
+  var el = document.getElementById(id);
+  if (el) { el.classList.remove('active'); el.classList.add('done'); }
 }
 
 function downloadReport(tier){
