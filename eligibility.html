@@ -1,309 +1,388 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>IPO Eligibility Checker — ipowork</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    :root{
-  --bg:#FAFAF8;
-  --surface:#FFFFFF;
-  --card:#FFFFFF;
-  --card2:#F7F3EE;
-  --teal:#0D5C6B;
-  --teal2:#1A7D90;
-  --tld:#08404D;
-  --green:#0D5C6B;
-  --green2:#1A7D90;
-  --ok:#1A9E6B;
-  --tl:#0D5C6B;
-  --tll:#1A7D90;
-  --saffron:#E88A2E;
-  --saffron2:#D4860C;
-  --gold:#C9932A;
-  --gold2:#E88A2E;
-  --amber:#E88A2E;
-  --amber2:#C9932A;
-  --sf:#E88A2E;
-  --go:#C9932A;
-  --red:#C0392B;
-  --er:#C0392B;
-  --orange:#E88A2E;
-  --wn:#D4860C;
-  --violet:#5B6FEC;
-  --purple:#5B6FEC;
-  --cyan:#0D5C6B;
-  --cyan2:#1A7D90;
-  --blue:#1A7D90;
-  --text:#2C3E47;
-  --txt:#2C3E47;
-  --sl:#2C3E47;
-  --muted:#6B7E85;
-  --mu:#6B7E85;
-  --dim:#6B7E85;
-  --cr:#F7F3EE;
-  --iv:#FAFAF8;
-  --wh:#FFFFFF;
-  --border:rgba(13,92,107,.15);
-  --border2:rgba(13,92,107,.1);
-  --bd:#E2E8EA;
-  --bdr:rgba(13,92,107,.15);
-  --bdr2:rgba(13,92,107,.06);
-  --sur:#FFFFFF;
-  --dimmer:rgba(13,92,107,.04);
-  --sh:0 2px 12px rgba(13,92,107,.08);
-  --sh2:0 8px 32px rgba(13,92,107,.16);
-  --bar:54px;
-  --sw:240px;
-  --ra:10px;
-  --font:'Sora',-apple-system,sans-serif;
-  --serif:'Fraunces',Georgia,serif;
-  --mono:'IBM Plex Mono',monospace;
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>IPO Eligibility Checker — ipowork</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900;1,9..144,400&family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+:root{
+  --bg:#FAFAF8;--surface:#fff;--card2:#F7F3EE;
+  --tl:#0D5C6B;--tld:#08404D;--tll:#1A7D90;
+  --sf:#E88A2E;--go:#C9932A;
+  --sl:#2C3E47;--mu:#6B7E85;--bd:#E2E8EA;
+  --ok:#1A9E6B;--er:#C0392B;--wn:#D4860C;
+  --sh:0 1px 4px rgba(13,92,107,.06),0 4px 16px rgba(13,92,107,.04);
+  --sh2:0 4px 20px rgba(13,92,107,.1),0 12px 40px rgba(13,92,107,.07);
+  --r:12px;--r2:18px;
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
 }
-    body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:17px;line-height:1.7;min-height:100vh}
-    a{color:var(--green);text-decoration:none}
-    a:hover{text-decoration:underline}
+body{font-family:var(--font);background:var(--bg);color:var(--sl);-webkit-font-smoothing:antialiased;line-height:1.65;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--card2)}::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:3px}
 
-    /* Header */
-    .header{background:var(--surface);border-bottom:1px solid var(--bd);box-shadow:var(--sh);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-    .logo{font-family:var(--serif);font-size:20px;font-weight:900;color:var(--text)}
-    .logo sup{font-size:11px;color:var(--gold);margin-left:2px}
-    .back-btn{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);font-size:15px;cursor:pointer;font-family:var(--font)}
-    .back-btn:hover{border-color:var(--green);color:var(--text)}
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.97);backdrop-filter:blur(14px);border-bottom:1px solid var(--bd);height:56px;display:flex;align-items:center;padding:0 28px;gap:14px;box-shadow:0 1px 0 var(--bd)}
+.tb-logo{font-family:var(--serif);font-weight:900;font-size:20px;color:var(--tld);letter-spacing:-.3px;cursor:pointer}
+.tb-logo sup{font-size:9px;color:var(--sf);font-family:var(--font);font-weight:800;vertical-align:super;margin-left:1px;text-transform:uppercase;letter-spacing:.5px}
+.tb-back{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--mu);padding:7px 14px;border:1px solid var(--bd);border-radius:8px;background:#fff;cursor:pointer;transition:.15s;font-family:var(--font)}
+.tb-back:hover{border-color:var(--tl);color:var(--tl)}
 
-    /* Hero */
-    .page-hero{text-align:center;padding:48px 24px 32px;max-width:760px;margin:0 auto}
-    .page-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:99px;background:rgba(29,158,117,.1);border:1px solid rgba(29,158,117,.25);color:var(--green2);font-size:15px;font-weight:700;margin-bottom:18px}
-    h1{font-family:var(--serif);font-size:clamp(28px,5vw,44px);font-weight:900;color:var(--text);margin-bottom:14px;line-height:1.2}
-    .page-sub{font-size:18px;color:var(--muted);line-height:1.7;max-width:600px;margin:0 auto 32px}
+/* ── HERO ── */
+.hero{background:linear-gradient(160deg,var(--tld) 0%,var(--tl) 100%);padding:52px 24px 0;text-align:center;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:36px;background:var(--bg);border-radius:28px 28px 0 0}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 100% 80% at 50% 0%,black,transparent)}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.9);font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;margin-bottom:20px}
+.hero h1{font-family:var(--serif);font-size:clamp(26px,4.5vw,46px);font-weight:900;color:#fff;line-height:1.1;margin-bottom:12px}
+.hero h1 em{color:rgba(232,138,46,.9);font-style:italic}
+.hero-sub{font-size:14px;color:rgba(255,255,255,.7);line-height:1.75;max-width:520px;margin:0 auto 36px}
 
-    /* Tabs */
-    .tab-row{display:flex;gap:8px;background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:8px;max-width:680px;margin:0 auto 32px;flex-wrap:wrap}
-    .tab-btn{flex:1;min-width:120px;padding:12px 16px;border-radius:9px;border:none;background:none;color:var(--muted);font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.15s;white-space:nowrap}
-    .tab-btn:hover{background:rgba(29,158,117,.08);color:var(--text)}
-    .tab-btn.active{color:var(--text)}
-    .tab-nse.active{background:rgba(29,158,117,.15);color:var(--green2)}
-    .tab-bse.active{background:rgba(245,166,35,.12);color:var(--gold)}
-    .tab-both.active{background:rgba(45,196,143,.12);color:var(--green2)}
-    .tab-mb.active{background:rgba(139,127,236,.12);color:#9B8FFF}
+/* ── EXCHANGE TABS ── */
+.tab-strip{max-width:820px;margin:0 auto;padding:0 20px;position:relative;z-index:10}
+.tab-row{display:flex;gap:6px;background:#fff;border:1px solid var(--bd);border-radius:14px;padding:6px;box-shadow:var(--sh2)}
+.tab-btn{flex:1;padding:11px 8px;border-radius:10px;border:none;background:none;color:var(--mu);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.18s;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tab-btn:hover{background:var(--card2);color:var(--sl)}
+.tab-icon{font-size:18px;line-height:1}
+.tab-lbl{font-size:11px;font-weight:700}
+.tab-tag{font-size:9px;font-weight:600;padding:2px 6px;border-radius:99px;background:var(--card2);color:var(--mu)}
+.tab-btn.active .tab-tag{color:#fff}
+.tab-nse.active{background:rgba(13,92,107,.1);color:var(--tl)}
+.tab-nse.active .tab-tag{background:var(--tl)}
+.tab-bse.active{background:rgba(232,138,46,.1);color:var(--go)}
+.tab-bse.active .tab-tag{background:var(--sf)}
+.tab-both.active{background:rgba(26,158,107,.1);color:var(--ok)}
+.tab-both.active .tab-tag{background:var(--ok)}
+.tab-mb.active{background:rgba(91,78,212,.1);color:#5B4ED4}
+.tab-mb.active .tab-tag{background:#5B4ED4}
 
-    /* Content */
-    .tab-content{display:none;max-width:900px;margin:0 auto;padding:0 20px 60px}
-    .tab-content.active{display:block}
+/* ── CONTENT AREA ── */
+.content{max-width:820px;margin:0 auto;padding:28px 20px 80px}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
 
-    /* Two-column for BOTH tab */
-    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-    @media(max-width:700px){.two-col{grid-template-columns:1fr}}
+/* ── SECTION HEADER ── */
+.sec-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--bd)}
+.sec-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sec-icon-tl{background:rgba(13,92,107,.1)}
+.sec-icon-sf{background:rgba(232,138,46,.1)}
+.sec-icon-ok{background:rgba(26,158,107,.1)}
+.sec-icon-pu{background:rgba(91,78,212,.1)}
+.sec-title{font-family:var(--serif);font-size:20px;font-weight:900;color:var(--tld)}
+.sec-sub{font-size:12px;color:var(--mu);margin-top:2px}
+.criteria-count{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--mu);background:var(--card2);padding:4px 10px;border-radius:99px;border:1px solid var(--bd)}
 
-    /* Section heading */
-    .sec-heading{font-size:18px;font-weight:800;color:var(--green2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+/* ── PROGRESS BAR ── */
+.progress-wrap{margin-bottom:20px}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--mu);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.progress-track{height:6px;background:var(--bd);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .4s ease;background:linear-gradient(90deg,var(--tl),var(--tll))}
 
-    /* Question card */
-    .q-card{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;background:var(--card);border:1px solid var(--bd);border-radius:12px;margin-bottom:10px;border-left:4px solid var(--dim);transition:.2s}
-    .q-card.pass{border-left-color:var(--green2);background:rgba(29,158,117,.05)}
-    .q-card.fail{border-left-color:var(--red);background:rgba(232,64,64,.05)}
-    .q-dot{width:10px;height:10px;border-radius:50%;background:var(--dim);flex-shrink:0;margin-top:8px;transition:.2s}
-    .q-card.pass .q-dot{background:var(--green2)}
-    .q-card.fail .q-dot{background:var(--red)}
-    .q-text{flex:1;font-size:17px;color:var(--text);line-height:1.65}
-    .q-card.pass .q-text{color:var(--muted)}
-    .q-note{font-size:15px;color:var(--dim);margin-top:5px;font-style:italic}
-    .q-btns{display:flex;gap:8px;flex-shrink:0;margin-top:4px}
-    .q-btn{padding:9px 20px;border-radius:8px;border:1.5px solid var(--border2);background:none;color:var(--muted);font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.15s;white-space:nowrap}
-    .q-btn:hover{border-color:var(--green);color:var(--text)}
-    .q-btn.yes-active{border-color:var(--green2);background:rgba(29,158,117,.15);color:var(--green2)}
-    .q-btn.no-active-bad{border-color:var(--red);background:rgba(232,64,64,.12);color:var(--red)}
-    .q-btn.no-active-good{border-color:var(--green2);background:rgba(29,158,117,.15);color:var(--green2)}
+/* ── QUESTION CARD ── */
+.q-list{display:flex;flex-direction:column;gap:8px}
+.q-card{background:#fff;border:1.5px solid var(--bd);border-radius:var(--r);padding:0;transition:.2s;overflow:hidden;box-shadow:var(--sh)}
+.q-card:hover{border-color:rgba(13,92,107,.2)}
+.q-card.pass{border-color:rgba(26,158,107,.3);background:#fff}
+.q-card.fail{border-color:rgba(192,57,43,.3);background:#fff}
+.q-card-inner{display:flex;align-items:flex-start;gap:14px;padding:14px 16px}
+.q-num{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--mu);width:22px;flex-shrink:0;margin-top:3px}
+.q-card.pass .q-num{color:var(--ok)}
+.q-card.fail .q-num{color:var(--er)}
+.q-body{flex:1;min-width:0}
+.q-text{font-size:13px;color:var(--sl);line-height:1.65;font-weight:500}
+.q-card.pass .q-text{color:var(--sl)}
+.q-note{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mu);margin-top:5px;font-style:italic}
+.q-actions{display:flex;gap:6px;flex-shrink:0;align-items:flex-start;margin-top:2px}
+.q-btn{padding:7px 14px;border-radius:8px;border:1.5px solid var(--bd);background:#fff;color:var(--mu);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.15s;white-space:nowrap}
+.q-btn:hover{border-color:var(--tl);color:var(--tl)}
+.q-btn.yes-pass{border-color:var(--ok);background:rgba(26,158,107,.08);color:var(--ok)}
+.q-btn.yes-fail{border-color:var(--er);background:rgba(192,57,43,.07);color:var(--er)}
+.q-btn.no-pass{border-color:var(--ok);background:rgba(26,158,107,.08);color:var(--ok)}
+.q-btn.no-fail{border-color:var(--er);background:rgba(192,57,43,.07);color:var(--er)}
+/* Status strip */
+.q-status{height:3px;width:100%}
+.q-card.pass .q-status{background:var(--ok)}
+.q-card.fail .q-status{background:var(--er)}
+.q-card:not(.pass):not(.fail) .q-status{background:transparent}
 
-    /* Verdict */
-    .verdict-box{border-radius:14px;padding:20px 24px;margin-top:24px;margin-bottom:12px;text-align:center;display:none}
-    .verdict-box.show{display:block}
-    .verdict-eligible{background:rgba(29,158,117,.1);border:1.5px solid rgba(29,158,117,.4)}
-    .verdict-not{background:rgba(232,64,64,.08);border:1.5px solid rgba(232,64,64,.3)}
-    .verdict-partial{background:rgba(245,166,35,.08);border:1.5px solid rgba(245,166,35,.3)}
-    .verdict-icon{font-size:36px;margin-bottom:8px}
-    .verdict-title{font-size:22px;font-weight:800;margin-bottom:6px}
-    .verdict-sub{font-size:17px;color:var(--muted);line-height:1.6}
+/* ── ROUTE SWITCH ── */
+.route-bar{display:flex;gap:8px;margin-bottom:22px;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:5px}
+.route-btn{flex:1;padding:9px 12px;border-radius:7px;border:none;background:none;color:var(--mu);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.15s;text-align:center}
+.route-btn.active{background:#5B4ED4;color:#fff;box-shadow:0 2px 8px rgba(91,78,212,.25)}
 
-    /* Expert strip */
-    .expert-strip{display:flex;align-items:center;gap:14px;padding:16px 20px;background:rgba(37,211,102,.06);border:1.5px solid rgba(37,211,102,.25);border-radius:14px;margin-top:28px;cursor:pointer}
-    .expert-strip:hover{background:rgba(37,211,102,.1)}
-    .expert-strip-text .title{font-size:18px;font-weight:800;color:#25D366}
-    .expert-strip-text .sub{font-size:16px;color:var(--muted);margin-top:3px}
-    .exp-btns{display:flex;gap:8px;flex-shrink:0}
-    .btn-wa{padding:10px 18px;border-radius:8px;background:#25D366;color:#fff;font-size:16px;font-weight:800;text-decoration:none;white-space:nowrap}
-    .btn-sch{padding:10px 18px;border-radius:8px;border:1px solid rgba(66,133,244,.4);background:rgba(66,133,244,.08);color:#4285F4;font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap}
+/* ── TWO COLUMN ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:680px){.two-col{grid-template-columns:1fr}}
 
-    /* Floating btn */
-    .fab{position:fixed;bottom:24px;right:24px;z-index:999;padding:13px 22px;border-radius:99px;border:none;background:linear-gradient(135deg,#128C7E,#25D366);color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:var(--font);animation:pulse 2.5s ease-in-out infinite;box-shadow:0 4px 20px rgba(37,211,102,.4)}
-    @keyframes pulse{0%,100%{box-shadow:0 4px 20px rgba(37,211,102,.4)}50%{box-shadow:0 4px 32px rgba(37,211,102,.7),0 0 0 10px rgba(37,211,102,.1)}}
+/* ── VERDICT ── */
+.verdict{display:none;border-radius:var(--r2);padding:24px;margin:24px 0;text-align:center;animation:fadeUp .3s ease}
+.verdict.show{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.v-eligible{background:linear-gradient(135deg,rgba(26,158,107,.08),rgba(26,158,107,.04));border:1.5px solid rgba(26,158,107,.3)}
+.v-partial{background:linear-gradient(135deg,rgba(212,134,12,.08),rgba(212,134,12,.04));border:1.5px solid rgba(212,134,12,.3)}
+.v-not{background:linear-gradient(135deg,rgba(192,57,43,.07),rgba(192,57,43,.03));border:1.5px solid rgba(192,57,43,.25)}
+.v-emoji{font-size:40px;margin-bottom:10px;display:block}
+.v-title{font-family:var(--serif);font-size:22px;font-weight:900;margin-bottom:6px}
+.v-eligible .v-title{color:var(--ok)}
+.v-partial .v-title{color:var(--wn)}
+.v-not .v-title{color:var(--er)}
+.v-sub{font-size:13px;color:var(--mu);line-height:1.7;max-width:500px;margin:0 auto 18px}
+.v-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.btn-aira{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;background:var(--tl);color:#fff;border-radius:9px;font-size:13px;font-weight:800;font-family:var(--font);border:none;cursor:pointer;transition:.15s;box-shadow:0 3px 12px rgba(13,92,107,.2)}
+.btn-aira:hover{background:var(--tld)}
+.btn-wa{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;background:#25D366;color:#fff;border-radius:9px;font-size:13px;font-weight:800;text-decoration:none;transition:.15s}
+.btn-wa:hover{background:#128C7E}
+.btn-outline{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;background:#fff;color:var(--sl);border-radius:9px;font-size:13px;font-weight:700;text-decoration:none;border:1.5px solid var(--bd);transition:.15s}
+.btn-outline:hover{border-color:var(--tl);color:var(--tl)}
 
-    /* Note */
-    .legal-note{font-size:15px;color:var(--dim);text-align:center;padding:20px;line-height:1.6;max-width:700px;margin:0 auto}
+/* ── EXPERT STRIP ── */
+.expert-strip{display:flex;align-items:center;gap:16px;padding:18px 20px;background:#fff;border:1.5px solid var(--bd);border-radius:var(--r2);margin-top:24px;box-shadow:var(--sh);transition:.2s}
+.expert-strip:hover{border-color:rgba(37,211,102,.4);box-shadow:var(--sh2)}
+.expert-avatar{width:48px;height:48px;border-radius:12px;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.25);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.expert-body{flex:1}
+.expert-title{font-size:14px;font-weight:800;color:var(--tld);margin-bottom:2px}
+.expert-sub{font-size:12px;color:var(--mu)}
+.expert-btns{display:flex;gap:8px;flex-shrink:0}
 
-    /* Route tabs for Main Board */
-    .route-row{display:flex;gap:8px;margin-bottom:20px}
-    .route-btn{padding:9px 18px;border-radius:8px;border:1px solid var(--border2);background:none;color:var(--muted);font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.15s}
-    .route-btn.active{border-color:#9B8FFF;background:rgba(139,127,236,.12);color:#9B8FFF}
-  </style>
+/* ── LEGAL NOTE ── */
+.legal-note{font-size:11px;color:var(--mu);text-align:center;padding:16px 20px 4px;line-height:1.7}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;align-items:center;gap:8px;padding:13px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,#128C7E,#25D366);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);box-shadow:0 4px 20px rgba(37,211,102,.4);animation:pulse 2.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 4px 20px rgba(37,211,102,.4)}50%{box-shadow:0 4px 32px rgba(37,211,102,.65),0 0 0 8px rgba(37,211,102,.1)}}
+.fab:hover{transform:translateY(-2px)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:540px){
+  .tab-btn{font-size:10px;padding:8px 4px}
+  .tab-icon{font-size:16px}
+  .tab-lbl{font-size:10px}
+  .fab{padding:10px 16px;font-size:12px;bottom:16px;right:16px}
+}
+</style>
 </head>
 <body>
 
-<div class="header">
-  <div class="logo">ipowork <sup>AI</sup></div>
-  <button class="back-btn" onclick="window.location.href='index.html'">← Back to ipowork</button>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-logo" onclick="window.location.href='index.html'">ipowork<sup>AI</sup></div>
+  <button class="tb-back" onclick="window.location.href='index.html'">← Back</button>
 </div>
 
-<div class="page-hero">
-  <div class="page-badge">✅ Free — No Login Required</div>
-  <h1>IPO Eligibility Checker</h1>
-  <p class="page-sub">Official eligibility criteria from NSE Emerge, BSE SME and Main Board. Answer Yes/No for an instant verdict.</p>
-</div>
-
-<!-- Tabs -->
-<div class="tab-row">
-  <button class="tab-btn tab-nse active" onclick="switchTab('nse',this)">📊 NSE Emerge (SME)</button>
-  <button class="tab-btn tab-bse" onclick="switchTab('bse',this)">📊 BSE SME</button>
-  <button class="tab-btn tab-both" onclick="switchTab('both',this)">⚖️ SME Both</button>
-  <button class="tab-btn tab-mb" onclick="switchTab('mb',this)">🏛️ Main Board</button>
-</div>
-
-<!-- NSE TAB -->
-<div class="tab-content active" id="tab-nse">
-  <div class="sec-heading">NSE Emerge — Official Eligibility Criteria</div>
-  <div id="qs-nse"></div>
-  <div class="verdict-box" id="verdict-nse"></div>
-  <div class="legal-note">Based on official NSE Emerge eligibility criteria · Source: NSE ipoplatform.com · Not a legal opinion — consult a SEBI-registered merchant banker.</div>
-  <div class="expert-strip" onclick="window.open('https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20NSE%20Emerge%20eligibility.%20Please%20connect%20me%20with%20an%20expert.','_blank')">
-    <div style="font-size:32px">🩺</div>
-    <div class="expert-strip-text" style="flex:1">
-      <div class="title">Talk to an IPO Expert about your eligibility</div>
-      <div class="sub">SEBI-registered merchant bankers · WhatsApp reply in 5 min · Free first consultation</div>
-    </div>
-    <div class="exp-btns">
-      <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20NSE%20Emerge%20eligibility.%20Please%20connect%20me%20with%20an%20expert." target="_blank" class="btn-wa" onclick="event.stopPropagation()">📱 WhatsApp</a>
-      <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20would%20like%20to%20schedule%20a%20free%20IPO%20consultation." target="_blank" class="btn-sch" onclick="event.stopPropagation()">📅 Schedule</a>
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div style="position:relative;z-index:2">
+    <div class="hero-badge">✅ Free · No Login Required</div>
+    <h1>IPO Eligibility <em>Checker</em></h1>
+    <p class="hero-sub">Official SEBI criteria for NSE Emerge, BSE SME and Main Board. Answer Yes/No — get an instant eligibility verdict with next steps.</p>
+  </div>
+  <!-- Tab strip pulls up into hero bottom -->
+  <div class="tab-strip" style="position:relative;z-index:3;margin-bottom:-18px">
+    <div class="tab-row">
+      <button class="tab-btn tab-nse active" onclick="switchTab('nse',this)">
+        <span class="tab-icon">📊</span>
+        <span class="tab-lbl">NSE Emerge</span>
+        <span class="tab-tag">SME</span>
+      </button>
+      <button class="tab-btn tab-bse" onclick="switchTab('bse',this)">
+        <span class="tab-icon">📊</span>
+        <span class="tab-lbl">BSE SME</span>
+        <span class="tab-tag">SME</span>
+      </button>
+      <button class="tab-btn tab-both" onclick="switchTab('both',this)">
+        <span class="tab-icon">⚖️</span>
+        <span class="tab-lbl">Compare Both</span>
+        <span class="tab-tag">SME</span>
+      </button>
+      <button class="tab-btn tab-mb" onclick="switchTab('mb',this)">
+        <span class="tab-icon">🏛️</span>
+        <span class="tab-lbl">Main Board</span>
+        <span class="tab-tag">NSE/BSE</span>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- BSE TAB -->
-<div class="tab-content" id="tab-bse">
-  <div class="sec-heading">BSE SME — Official Eligibility Criteria</div>
-  <div id="qs-bse"></div>
-  <div class="verdict-box" id="verdict-bse"></div>
-  <div class="legal-note">Based on official BSE SME eligibility criteria · Not a legal opinion — consult a SEBI-registered merchant banker.</div>
-  <div class="expert-strip" onclick="window.open('https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20BSE%20SME%20eligibility.%20Please%20connect%20me%20with%20an%20expert.','_blank')">
-    <div style="font-size:32px">🩺</div>
-    <div class="expert-strip-text" style="flex:1">
-      <div class="title">Talk to an IPO Expert about your eligibility</div>
-      <div class="sub">SEBI-registered merchant bankers · WhatsApp reply in 5 min · Free first consultation</div>
-    </div>
-    <div class="exp-btns">
-      <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20BSE%20SME%20eligibility.%20Please%20connect%20me%20with%20an%20expert." target="_blank" class="btn-wa" onclick="event.stopPropagation()">📱 WhatsApp</a>
-      <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20would%20like%20to%20schedule%20a%20free%20IPO%20consultation." target="_blank" class="btn-sch" onclick="event.stopPropagation()">📅 Schedule</a>
-    </div>
-  </div>
-</div>
+<!-- CONTENT -->
+<div class="content">
 
-<!-- BOTH TAB -->
-<div class="tab-content" id="tab-both">
-  <div class="two-col">
-    <div>
-      <div class="sec-heading">NSE Emerge</div>
-      <div id="qs-both-nse"></div>
+  <!-- NSE EMERGE -->
+  <div class="tab-pane active" id="tab-nse">
+    <div class="sec-header">
+      <div class="sec-icon sec-icon-tl">📊</div>
+      <div>
+        <div class="sec-title">NSE Emerge — SME Platform</div>
+        <div class="sec-sub">Official eligibility criteria · NSE EMERGE platform · SEBI ICDR 2018</div>
+      </div>
+      <div class="criteria-count" id="cnt-nse">10 criteria</div>
     </div>
-    <div>
-      <div class="sec-heading">BSE SME</div>
-      <div id="qs-both-bse"></div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Your progress</span><span id="prog-nse-txt">0 / 10 answered</span></div>
+      <div class="progress-track"><div class="progress-fill" id="prog-nse" style="width:0%"></div></div>
+    </div>
+    <div class="q-list" id="qs-nse"></div>
+    <div class="verdict" id="verdict-nse"></div>
+    <div class="legal-note">Based on official NSE Emerge eligibility criteria · Source: NSE ipoplatform.com · Not a legal opinion — consult a SEBI-registered merchant banker.</div>
+    <div class="expert-strip">
+      <div class="expert-avatar">🩺</div>
+      <div class="expert-body">
+        <div class="expert-title">Talk to a SEBI-Registered IPO Expert</div>
+        <div class="expert-sub">Merchant bankers · WhatsApp reply in 5 min · Free first consultation</div>
+      </div>
+      <div class="expert-btns">
+        <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20NSE%20Emerge%20eligibility.%20Please%20connect%20me%20with%20an%20expert." target="_blank" class="btn-wa">📱 WhatsApp</a>
+      </div>
     </div>
   </div>
-  <div class="verdict-box" id="verdict-both"></div>
-  <div class="expert-strip" style="margin-top:24px" onclick="window.open('https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20IPO%20eligibility.%20Please%20connect%20me%20with%20an%20expert.','_blank')">
-    <div style="font-size:32px">🩺</div>
-    <div class="expert-strip-text" style="flex:1">
-      <div class="title">Talk to an IPO Expert about your eligibility</div>
-      <div class="sub">SEBI-registered merchant bankers · WhatsApp reply in 5 min</div>
-    </div>
-    <div class="exp-btns">
-      <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20need%20IPO%20guidance." target="_blank" class="btn-wa" onclick="event.stopPropagation()">📱 WhatsApp</a>
-    </div>
-  </div>
-</div>
 
-<!-- MAIN BOARD TAB -->
-<div class="tab-content" id="tab-mb">
-  <div class="route-row">
-    <button class="route-btn active" id="btn-profit" onclick="setRoute('profit',this)">💰 Profitability Route §26(1)</button>
-    <button class="route-btn" id="btn-alt" onclick="setRoute('alt',this)">⚡ Alternate Route §26(2)</button>
-  </div>
-  <div class="sec-heading">Main Board IPO — SEBI ICDR 2018 Eligibility</div>
-  <div id="qs-mb"></div>
-  <div class="verdict-box" id="verdict-mb"></div>
-  <div class="legal-note">Based on SEBI ICDR Regulations 2018 §26 · Two routes available under SEBI ICDR 2018: Profitability Route §26(1) — standard track for companies with profit history. Alternate Route §26(2) — for high-growth companies (100% QIB allocation required). Not a legal opinion — consult a SEBI-registered merchant banker.</div>
-  <div class="expert-strip" style="margin-top:20px" onclick="window.open('https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20Main%20Board%20IPO%20eligibility.%20Please%20connect%20me%20with%20an%20expert.','_blank')">
-    <div style="font-size:32px">🩺</div>
-    <div class="expert-strip-text" style="flex:1">
-      <div class="title">Talk to an IPO Expert about Main Board eligibility</div>
-      <div class="sub">Big4-alumni bankers · Main Board specialists · Free first call</div>
+  <!-- BSE SME -->
+  <div class="tab-pane" id="tab-bse">
+    <div class="sec-header">
+      <div class="sec-icon sec-icon-sf">📊</div>
+      <div>
+        <div class="sec-title">BSE SME — SME Platform</div>
+        <div class="sec-sub">Official eligibility criteria · BSE SME platform · SEBI ICDR 2018</div>
+      </div>
+      <div class="criteria-count" id="cnt-bse">11 criteria</div>
     </div>
-    <div class="exp-btns">
-      <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20need%20Main%20Board%20IPO%20guidance." target="_blank" class="btn-wa" onclick="event.stopPropagation()">📱 WhatsApp</a>
-      <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20would%20like%20to%20schedule%20a%20Main%20Board%20IPO%20consultation." target="_blank" class="btn-sch" onclick="event.stopPropagation()">📅 Schedule</a>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Your progress</span><span id="prog-bse-txt">0 / 11 answered</span></div>
+      <div class="progress-track"><div class="progress-fill" id="prog-bse" style="width:0%"></div></div>
+    </div>
+    <div class="q-list" id="qs-bse"></div>
+    <div class="verdict" id="verdict-bse"></div>
+    <div class="legal-note">Based on official BSE SME eligibility criteria · Not a legal opinion — consult a SEBI-registered merchant banker.</div>
+    <div class="expert-strip">
+      <div class="expert-avatar">🩺</div>
+      <div class="expert-body">
+        <div class="expert-title">Talk to a SEBI-Registered IPO Expert</div>
+        <div class="expert-sub">Merchant bankers · WhatsApp reply in 5 min · Free first consultation</div>
+      </div>
+      <div class="expert-btns">
+        <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20BSE%20SME%20eligibility.%20Please%20connect%20me%20with%20an%20expert." target="_blank" class="btn-wa">📱 WhatsApp</a>
+      </div>
     </div>
   </div>
-</div>
+
+  <!-- BOTH -->
+  <div class="tab-pane" id="tab-both">
+    <div class="sec-header" style="margin-bottom:16px">
+      <div class="sec-icon sec-icon-ok">⚖️</div>
+      <div>
+        <div class="sec-title">NSE Emerge vs BSE SME — Side by Side</div>
+        <div class="sec-sub">Check both platforms simultaneously and compare your eligibility</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 14px;background:rgba(13,92,107,.06);border-radius:9px;border:1px solid rgba(13,92,107,.15)">
+          <span style="font-size:16px">📊</span>
+          <span style="font-size:13px;font-weight:800;color:var(--tl)">NSE Emerge</span>
+          <span style="margin-left:auto;font-size:10px;font-weight:700;color:var(--mu);background:var(--card2);padding:2px 8px;border-radius:99px;border:1px solid var(--bd)">10 criteria</span>
+        </div>
+        <div class="q-list" id="qs-both-nse"></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 14px;background:rgba(232,138,46,.06);border-radius:9px;border:1px solid rgba(232,138,46,.2)">
+          <span style="font-size:16px">📊</span>
+          <span style="font-size:13px;font-weight:800;color:var(--go)">BSE SME</span>
+          <span style="margin-left:auto;font-size:10px;font-weight:700;color:var(--mu);background:var(--card2);padding:2px 8px;border-radius:99px;border:1px solid var(--bd)">11 criteria</span>
+        </div>
+        <div class="q-list" id="qs-both-bse"></div>
+      </div>
+    </div>
+    <div class="verdict" id="verdict-both"></div>
+    <div class="expert-strip" style="margin-top:24px">
+      <div class="expert-avatar">🩺</div>
+      <div class="expert-body">
+        <div class="expert-title">Talk to an IPO Expert about your eligibility</div>
+        <div class="expert-sub">SEBI-registered merchant bankers · Free first consultation</div>
+      </div>
+      <div class="expert-btns">
+        <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20IPO%20eligibility.%20Please%20connect%20me%20with%20an%20expert." target="_blank" class="btn-wa">📱 WhatsApp</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN BOARD -->
+  <div class="tab-pane" id="tab-mb">
+    <div class="sec-header">
+      <div class="sec-icon sec-icon-pu">🏛️</div>
+      <div>
+        <div class="sec-title">Main Board IPO — SEBI ICDR 2018</div>
+        <div class="sec-sub">Two routes available: Profitability §26(1) and Alternate §26(2)</div>
+      </div>
+    </div>
+    <div class="route-bar">
+      <button class="route-btn active" id="btn-profit" onclick="setRoute('profit',this)">💰 Profitability Route §26(1)</button>
+      <button class="route-btn" id="btn-alt" onclick="setRoute('alt',this)">⚡ Alternate Route §26(2)</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Your progress</span><span id="prog-mb-txt">0 answered</span></div>
+      <div class="progress-track"><div class="progress-fill" id="prog-mb" style="width:0%;background:linear-gradient(90deg,#5B4ED4,#7C6EF0)"></div></div>
+    </div>
+    <div class="q-list" id="qs-mb"></div>
+    <div class="verdict" id="verdict-mb"></div>
+    <div class="legal-note">Based on SEBI ICDR Regulations 2018 §26 · Profitability Route §26(1) — standard track for companies with profit history · Alternate Route §26(2) — for high-growth companies (100% QIB) · Not a legal opinion</div>
+    <div class="expert-strip">
+      <div class="expert-avatar">🩺</div>
+      <div class="expert-body">
+        <div class="expert-title">Talk to a Main Board IPO Specialist</div>
+        <div class="expert-sub">Big-4 alumni bankers · Main Board specialists · Free first call</div>
+      </div>
+      <div class="expert-btns">
+        <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20checked%20Main%20Board%20IPO%20eligibility.%20Please%20connect%20me." target="_blank" class="btn-wa">📱 WhatsApp</a>
+        <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20would%20like%20to%20schedule%20a%20Main%20Board%20IPO%20consultation." target="_blank" class="btn-outline">📅 Schedule</a>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
 
 <button class="fab" onclick="window.open('https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20need%20IPO%20eligibility%20guidance.','_blank')">🩺 Talk to an Expert</button>
 
 <script>
-/* ═══════════════════════════════════════════════════
-   IPO ELIGIBILITY CHECKER DATA & LOGIC
-═══════════════════════════════════════════════════ */
-
 var STATE = {nse:{}, bse:{}, mb:{}};
 var MB_ROUTE = 'profit';
 var ACTIVE_TAB = 'nse';
 
-/* NSE Emerge Questions */
 var NSE_QS = [
   {id:'n1', txt:'Is the organisation a Private / Public Limited Company incorporated under the Companies Act 1956 / 2013?', pass:'yes'},
   {id:'n2', txt:'Is the Operating Profit at least ₹1 Cr for any 2 out of the last 3 financial years?', pass:'yes', note:'Operating profit = EBITDA'},
-  {id:'n3', txt:'Is the Free Cash Flow to Equity (FCFE) of the company positive for at least 2 out of the last 3 financial years?', pass:'yes'},
+  {id:'n3', txt:'Is the Free Cash Flow to Equity (FCFE) positive for at least 2 out of the last 3 financial years?', pass:'yes'},
   {id:'n4', txt:'Are there any pending defaults in payment of interest or principal to bondholders, debenture holders, or fixed deposit holders?', pass:'no'},
   {id:'n5', txt:'Are there any material regulatory or disciplinary actions by a stock exchange or regulatory authority in the past 3 years?', pass:'no'},
-  {id:'n6', txt:'Has the company been referred to the BIFR or have any proceedings been admitted under the Insolvency and Bankruptcy Code against the company or its promoters?', pass:'no'},
-  {id:'n7', txt:"Has the Company's application been returned by the exchange or SEBI in the last 6 complete months?", pass:'no'},
-  {id:'n8', txt:'Has the company undergone a change of promoter in the last one year preceding the application for IPO?', pass:'no'},
+  {id:'n6', txt:'Has the company been referred to BIFR or had proceedings admitted under the Insolvency and Bankruptcy Code against the company or its promoters?', pass:'no'},
+  {id:'n7', txt:"Has the company's application been returned by the exchange or SEBI in the last 6 complete months?", pass:'no'},
+  {id:'n8', txt:'Has the company undergone a change of promoter in the last one year preceding the IPO application?', pass:'no'},
   {id:'n9', txt:'Is the post-issue paid-up capital of the company not more than ₹25 crores?', pass:'yes', note:'For NSE Emerge SME platform'},
   {id:'n10',txt:'Has the company filed all required statutory documents with MCA/ROC (AOC-4, MGT-7) for the past 3 years?', pass:'yes'},
 ];
 
-/* BSE SME Questions */
 var BSE_QS = [
   {id:'b1', txt:'Is the organisation a Private / Public Limited Company incorporated under the Companies Act 1956 / 2013?', pass:'yes'},
   {id:'b2', txt:'Is the business in existence for more than 3 years?', pass:'yes'},
-  {id:'b3', txt:'Is the Net Worth of the business ≥₹1 Cr in the last two full financial years?', pass:'yes'},
+  {id:'b3', txt:'Is the Net Worth of the business ≥ ₹1 Cr in the last two full financial years?', pass:'yes'},
   {id:'b4', txt:'Is the Operating Profit at least ₹1 Cr for any 2 out of the last 3 financial years?', pass:'yes'},
-  {id:'b5', txt:'Is the Debt to Equity ratio of the business less than 3:1? (Additional BSE SME criterion)', pass:'yes'},
-  {id:'b6', txt:'Has the name of the organisation changed in the last one year preceding the application for IPO?', pass:'no'},
-  {id:'b7', txt:'Has there been any change in the Promoters of the company in the preceding one year? (Additional BSE SME criterion)', pass:'no'},
+  {id:'b5', txt:'Is the Debt to Equity ratio of the business less than 3:1?', pass:'yes', note:'Additional BSE SME criterion'},
+  {id:'b6', txt:'Has the name of the organisation changed in the last one year preceding the IPO application?', pass:'no'},
+  {id:'b7', txt:'Has there been any change in the Promoters of the company in the preceding one year?', pass:'no', note:'Additional BSE SME criterion'},
   {id:'b8', txt:'Are there any pending defaults in payment of interest or principal to bondholders, debenture holders, or fixed deposit holders?', pass:'no'},
   {id:'b9', txt:'Is there any winding-up petition filed or admitted against the company?', pass:'no'},
   {id:'b10',txt:'Is the post-issue paid-up capital of the company not more than ₹25 crores?', pass:'yes', note:'For BSE SME platform'},
   {id:'b11',txt:'Are the Net Tangible Assets of the company at least ₹1.5 Crore?', pass:'yes'},
 ];
 
-/* Main Board — Profitability Route §26(1) */
 var MB_QS_PROFIT = [
-  {id:'m1', txt:'Does the company have net tangible assets of at least ₹3 Crore in each of the preceding 3 full years?', pass:'yes', note:'Net tangible assets = total assets minus intangible assets minus revaluation reserve'},
+  {id:'m1', txt:'Does the company have net tangible assets of at least ₹3 Crore in each of the preceding 3 full years?', pass:'yes', note:'Net tangible assets = total assets minus intangibles minus revaluation reserve'},
   {id:'m2', txt:'Has the company had a net worth of at least ₹1 Crore in each of the preceding 3 full years?', pass:'yes'},
-  {id:'m3', txt:'Has the company had an average pre-tax operating profit of at least ₹15 Crore in any 3 of the preceding 5 years?', pass:'yes', note:'Profitability route — key criterion'},
-  {id:'m4', txt:'Is the aggregate of the proposed issue size and all previous issues by the company in the same financial year no more than 5 times the pre-issue net worth?', pass:'yes'},
-  {id:'m5', txt:'Has the company changed its name in the last 1 year? (If yes, at least 50% revenue in last 1 year must be from new activity)', pass:'no'},
+  {id:'m3', txt:'Has the company had an average pre-tax operating profit of at least ₹15 Crore in any 3 of the preceding 5 years?', pass:'yes', note:'Key criterion for profitability route'},
+  {id:'m4', txt:'Is the aggregate of proposed issue size and all previous issues in the same FY no more than 5× the pre-issue net worth?', pass:'yes'},
+  {id:'m5', txt:'Has the company changed its name in the last 1 year? (If yes, at least 50% revenue must be from the new activity)', pass:'no'},
   {id:'m6', txt:'Are all existing partly paid-up shares to be made fully paid-up before filing of DRHP?', pass:'yes'},
   {id:'m7', txt:'Is the company free from any SEBI debarment or regulatory action?', pass:'yes'},
   {id:'m8', txt:'Are there any winding-up proceedings or IBC insolvency proceedings against the company?', pass:'no'},
@@ -311,141 +390,153 @@ var MB_QS_PROFIT = [
   {id:'m10',txt:'Has the company filed all statutory returns with MCA/ROC and income tax for the last 3 years?', pass:'yes'},
 ];
 
-/* Main Board — Alternate Route §26(2) */
 var MB_QS_ALT = [
   {id:'a1', txt:'Does the company have net tangible assets of at least ₹3 Crore in each of the preceding 3 full years?', pass:'yes'},
-  {id:'a2', txt:'Is the company prepared for 100% QIB allocation (no retail/HNI allocation)?', pass:'yes', note:'Alternate route requires 100% QIB book — no retail portion'},
-  {id:'a3', txt:'Has the company been appraised and funded by a scheduled commercial bank or SEBI-registered financial institution for at least 50% of the project cost?', pass:'yes'},
+  {id:'a2', txt:'Is the company prepared for 100% QIB allocation (no retail or HNI allocation)?', pass:'yes', note:'Alternate route requires 100% QIB book'},
+  {id:'a3', txt:'Has the company been appraised and funded by a scheduled commercial bank or SEBI-registered institution for at least 50% of the project cost?', pass:'yes'},
   {id:'a4', txt:'Is the issue size at least ₹500 Crore?', pass:'yes', note:'Alternate route minimum issue size'},
-  {id:'a5', txt:'Has the company changed its name in the last 1 year? (If yes, at least 50% revenue must be from new activity)', pass:'no'},
+  {id:'a5', txt:'Has the company changed its name in the last 1 year? (If yes, at least 50% revenue must be from the new activity)', pass:'no'},
   {id:'a6', txt:'Is the company free from any SEBI debarment or regulatory action?', pass:'yes'},
   {id:'a7', txt:'Are there any winding-up proceedings or IBC insolvency proceedings against the company?', pass:'no'},
   {id:'a8', txt:'Will the promoter group hold at least 20% of the post-issue capital under lock-in?', pass:'yes'},
 ];
 
-/* ── Render questions ── */
-function renderQs(containerId, questions, stateKey){
+function renderQs(containerId, questions, stateKey) {
   var c = document.getElementById(containerId);
-  if(!c) return;
+  if (!c) return;
   var html = '';
-  questions.forEach(function(q){
-    var val = STATE[stateKey][q.id] || '';
+  questions.forEach(function(q, idx) {
+    var val = STATE[stateKey] ? STATE[stateKey][q.id] || '' : '';
     var isPass = val !== '' && val === q.pass;
     var isFail = val !== '' && val !== q.pass;
-    var cardClass = isFail ? 'q-card fail' : isPass ? 'q-card pass' : 'q-card';
-    html += '<div class="'+cardClass+'" id="card-'+stateKey+'-'+q.id+'">';
-    html += '<div class="q-dot"></div>';
-    html += '<div style="flex:1"><div class="q-text">'+q.txt+'</div>';
-    if(q.note) html += '<div class="q-note">ℹ️ '+q.note+'</div>';
+    var cardCls = 'q-card' + (isPass ? ' pass' : isFail ? ' fail' : '');
+    var numLabel = String(idx + 1).padStart(2, '0');
+    html += '<div class="' + cardCls + '" id="card-' + stateKey + '-' + q.id + '">';
+    html += '<div class="q-status"></div>';
+    html += '<div class="q-card-inner">';
+    html += '<span class="q-num">' + numLabel + '</span>';
+    html += '<div class="q-body"><div class="q-text">' + q.txt + '</div>';
+    if (q.note) html += '<div class="q-note"><span style="font-size:11px">ℹ</span> ' + q.note + '</div>';
     html += '</div>';
-    html += '<div class="q-btns">';
-    var yesCls = val==='yes' ? (q.pass==='yes' ? 'q-btn yes-active' : 'q-btn no-active-bad') : 'q-btn';
-    var noCls  = val==='no'  ? (q.pass==='no'  ? 'q-btn yes-active' : 'q-btn no-active-bad') : 'q-btn';
-    html += '<button class="'+yesCls+'" onclick="setAnswer(\''+stateKey+'\',\''+q.id+'\',\'yes\',\''+q.pass+'\')">✓ Yes</button>';
-    html += '<button class="'+noCls+'" onclick="setAnswer(\''+stateKey+'\',\''+q.id+'\',\'no\',\''+q.pass+'\')">✗ No</button>';
-    html += '</div></div>';
+    html += '<div class="q-actions">';
+    var yc = val === 'yes' ? (q.pass === 'yes' ? 'q-btn yes-pass' : 'q-btn yes-fail') : 'q-btn';
+    var nc = val === 'no'  ? (q.pass === 'no'  ? 'q-btn no-pass'  : 'q-btn no-fail')  : 'q-btn';
+    html += '<button class="' + yc + '" onclick="setAnswer(\'' + stateKey + '\',\'' + q.id + '\',\'yes\',\'' + q.pass + '\')">✓ Yes</button>';
+    html += '<button class="' + nc + '" onclick="setAnswer(\'' + stateKey + '\',\'' + q.id + '\',\'no\',\''  + q.pass + '\')">✗ No</button>';
+    html += '</div></div></div>';
   });
   c.innerHTML = html;
+  updateProgress(stateKey, questions);
 }
 
-function setAnswer(stateKey, qId, val, pass){
+function setAnswer(stateKey, qId, val, pass) {
+  if (!STATE[stateKey]) STATE[stateKey] = {};
   STATE[stateKey][qId] = val;
-  /* Refresh just this card */
-  var qs = stateKey==='nse' ? NSE_QS : stateKey==='bse' ? BSE_QS : (MB_ROUTE==='profit' ? MB_QS_PROFIT : MB_QS_ALT);
-  var q = qs.find(function(x){ return x.id===qId; });
-  var card = document.getElementById('card-'+stateKey+'-'+qId);
-  if(!card || !q) return;
+  var qs = getQs(stateKey);
+  var q = qs.find(function(x) { return x.id === qId; });
+  var card = document.getElementById('card-' + stateKey + '-' + qId);
+  if (!card || !q) return;
   var isPass = val === q.pass;
   card.className = 'q-card ' + (isPass ? 'pass' : 'fail');
-  /* Update button styles */
   var btns = card.querySelectorAll('.q-btn');
-  btns[0].className = val==='yes' ? (q.pass==='yes' ? 'q-btn yes-active' : 'q-btn no-active-bad') : 'q-btn';
-  btns[1].className = val==='no'  ? (q.pass==='no'  ? 'q-btn yes-active' : 'q-btn no-active-bad') : 'q-btn';
+  btns[0].className = val === 'yes' ? (q.pass === 'yes' ? 'q-btn yes-pass' : 'q-btn yes-fail') : 'q-btn';
+  btns[1].className = val === 'no'  ? (q.pass === 'no'  ? 'q-btn no-pass'  : 'q-btn no-fail')  : 'q-btn';
+  updateProgress(stateKey, qs);
   calcVerdict(stateKey);
 }
 
-function calcVerdict(stateKey){
-  var qs = stateKey==='nse' ? NSE_QS : stateKey==='bse' ? BSE_QS : (MB_ROUTE==='profit' ? MB_QS_PROFIT : MB_QS_ALT);
-  var state = STATE[stateKey];
-  var answered = 0, fails = [], passes = 0;
-  qs.forEach(function(q){
-    var v = state[q.id];
-    if(!v) return;
+function getQs(stateKey) {
+  if (stateKey === 'nse') return NSE_QS;
+  if (stateKey === 'bse') return BSE_QS;
+  return MB_ROUTE === 'profit' ? MB_QS_PROFIT : MB_QS_ALT;
+}
+
+function updateProgress(stateKey, qs) {
+  var state = STATE[stateKey] || {};
+  var answered = qs.filter(function(q) { return state[q.id]; }).length;
+  var total = qs.length;
+  var pct = total ? (answered / total * 100) : 0;
+  var fill = document.getElementById('prog-' + stateKey);
+  var txt  = document.getElementById('prog-' + stateKey + '-txt');
+  if (fill) fill.style.width = pct + '%';
+  if (txt)  txt.textContent = answered + ' / ' + total + ' answered';
+}
+
+function calcVerdict(stateKey) {
+  var qs = getQs(stateKey);
+  var state = STATE[stateKey] || {};
+  var answered = 0, fails = 0;
+  qs.forEach(function(q) {
+    if (!state[q.id]) return;
     answered++;
-    if(v === q.pass) passes++;
-    else fails.push(q.txt.slice(0,60)+'...');
+    if (state[q.id] !== q.pass) fails++;
   });
-  if(answered < 3) return; /* wait for more answers */
-
-  var verdictId = stateKey==='both' ? 'verdict-both' : 'verdict-'+stateKey;
-  /* For both tab use nse+bse */
-  var box = document.getElementById(verdictId);
-  if(!box) box = document.getElementById('verdict-'+stateKey);
-  if(!box) return;
-
-  var eligible = fails.length === 0 && answered === qs.length;
-  var partial  = fails.length > 0 && fails.length <= 2;
-  var notElig  = fails.length > 2;
-
-  var name = stateKey==='nse'?'NSE Emerge':stateKey==='bse'?'BSE SME':'Main Board';
-
-  if(eligible){
-    box.className = 'verdict-box show verdict-eligible';
-    box.innerHTML = '<div class="verdict-icon">🎉</div>'
-      +'<div class="verdict-title" style="color:#2DC48F">'+name+' — Likely Eligible!</div>'
-      +'<div class="verdict-sub">Based on your answers, your company meets the '+name+' criteria. Get a detailed IPO Readiness Score for a complete assessment.</div>'
-      +'<div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
-      +'<a href="issuer.html" style="padding:11px 22px;border-radius:8px;background:var(--green);color:#fff;font-size:17px;font-weight:800;text-decoration:none">📊 Run Full IPO Readiness Score →</a>'
-      +'<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20appear%20eligible%20for%20'+encodeURIComponent(name)+'.%20Please%20connect%20me%20with%20an%20expert." target="_blank" style="padding:11px 22px;border-radius:8px;background:#25D366;color:#fff;font-size:17px;font-weight:800;text-decoration:none">📱 Talk to an Expert</a>'
-      +'</div>';
-  } else if(partial){
-    box.className = 'verdict-box show verdict-partial';
-    box.innerHTML = '<div class="verdict-icon">⚠️</div>'
-      +'<div class="verdict-title" style="color:var(--gold)">'+fails.length+' Gap'+(fails.length>1?'s':'')+' Found — Fixable</div>'
-      +'<div class="verdict-sub">You have '+fails.length+' potential gap'+(fails.length>1?'s':'')+'. With proper preparation these can be resolved before filing. Talk to an expert to understand your timeline.</div>'
-      +'<div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
-      +'<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20have%20gaps%20in%20'+encodeURIComponent(name)+'%20eligibility.%20Please%20help%20me%20fix%20them." target="_blank" style="padding:11px 22px;border-radius:8px;background:#25D366;color:#fff;font-size:17px;font-weight:800;text-decoration:none">📱 Fix Gaps with an Expert</a>'
-      +'</div>';
-  } else if(notElig){
-    box.className = 'verdict-box show verdict-not';
-    box.innerHTML = '<div class="verdict-icon">📋</div>'
-      +'<div class="verdict-title" style="color:var(--red)">Not Yet Ready for '+name+'</div>'
-      +'<div class="verdict-sub">Based on your answers, '+fails.length+' eligibility criteria are not met. This is normal — most companies need 12–24 months of preparation. Talk to an expert to build a roadmap.</div>'
-      +'<div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
-      +'<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20am%20not%20yet%20eligible%20for%20'+encodeURIComponent(name)+'.%20Please%20help%20me%20build%20a%20roadmap." target="_blank" style="padding:11px 22px;border-radius:8px;background:#25D366;color:#fff;font-size:17px;font-weight:800;text-decoration:none">📱 Build Your IPO Roadmap</a>'
-      +'<a href="issuer.html" style="padding:11px 22px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text);font-size:17px;font-weight:700;text-decoration:none">📊 Run AIRA Score →</a>'
-      +'</div>';
+  if (answered < 4) return;
+  var box = document.getElementById('verdict-' + stateKey);
+  if (!box) return;
+  var name = stateKey === 'nse' ? 'NSE Emerge' : stateKey === 'bse' ? 'BSE SME' : 'Main Board';
+  var allAnswered = answered === qs.length;
+  if (allAnswered && fails === 0) {
+    box.className = 'verdict show v-eligible';
+    box.innerHTML = '<span class="v-emoji">🎉</span>'
+      + '<div class="v-title">' + name + ' — Likely Eligible!</div>'
+      + '<div class="v-sub">Based on your answers, your company meets the ' + name + ' criteria. Get a detailed AIRA™ IPO Readiness Score for a complete 16-parameter assessment.</div>'
+      + '<div class="v-actions">'
+      + '<a href="aira.html" class="btn-aira">📊 Run Full AIRA Score →</a>'
+      + '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20appear%20eligible%20for%20' + encodeURIComponent(name) + '.%20Please%20connect%20me%20with%20an%20expert." target="_blank" class="btn-wa">📱 Talk to Expert</a>'
+      + '</div>';
+  } else if (fails > 0 && fails <= 2) {
+    box.className = 'verdict show v-partial';
+    box.innerHTML = '<span class="v-emoji">⚠️</span>'
+      + '<div class="v-title">' + fails + ' Gap' + (fails > 1 ? 's' : '') + ' Found — Fixable</div>'
+      + '<div class="v-sub">You have ' + fails + ' potential gap' + (fails > 1 ? 's' : '') + '. With proper preparation these are typically resolvable in 6–18 months. Talk to an expert to understand your timeline and roadmap.</div>'
+      + '<div class="v-actions">'
+      + '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20have%20gaps%20in%20' + encodeURIComponent(name) + '%20eligibility.%20Please%20help%20me%20fix%20them." target="_blank" class="btn-wa">📱 Fix Gaps with Expert</a>'
+      + '<a href="aira.html" class="btn-outline">📊 Run AIRA Score</a>'
+      + '</div>';
+  } else if (fails > 2) {
+    box.className = 'verdict show v-not';
+    box.innerHTML = '<span class="v-emoji">📋</span>'
+      + '<div class="v-title">Not Yet Ready for ' + name + '</div>'
+      + '<div class="v-sub">' + fails + ' eligibility criteria are not currently met. Most companies need 12–24 months of preparation. This is normal — talk to an expert to build a structured IPO roadmap.</div>'
+      + '<div class="v-actions">'
+      + '<a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20am%20not%20yet%20eligible%20for%20' + encodeURIComponent(name) + '.%20Please%20help%20me%20build%20a%20roadmap." target="_blank" class="btn-wa">📱 Build IPO Roadmap</a>'
+      + '<a href="aira.html" class="btn-outline">📊 Run AIRA Score →</a>'
+      + '</div>';
   }
 }
 
-/* ── Tab switching ── */
-function switchTab(tab, btn){
+function switchTab(tab, btn) {
   ACTIVE_TAB = tab;
-  document.querySelectorAll('.tab-content').forEach(function(el){ el.classList.remove('active'); });
-  document.querySelectorAll('.tab-btn').forEach(function(el){ el.classList.remove('active'); });
-  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(function(el) { el.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('tab-' + tab).classList.add('active');
   btn.classList.add('active');
   renderAll();
 }
 
-function setRoute(route, btn){
+function setRoute(route, btn) {
   MB_ROUTE = route;
   STATE.mb = {};
-  document.querySelectorAll('.route-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.route-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
-  renderQs('qs-mb', MB_ROUTE==='profit' ? MB_QS_PROFIT : MB_QS_ALT, 'mb');
-  document.getElementById('verdict-mb').className = 'verdict-box';
+  var qs = MB_ROUTE === 'profit' ? MB_QS_PROFIT : MB_QS_ALT;
+  renderQs('qs-mb', qs, 'mb');
+  document.getElementById('verdict-mb').className = 'verdict';
+  var cnt = document.getElementById('prog-mb-txt');
+  if (cnt) cnt.textContent = '0 / ' + qs.length + ' answered';
+  var fill = document.getElementById('prog-mb');
+  if (fill) fill.style.width = '0%';
 }
 
-function renderAll(){
+function renderAll() {
   renderQs('qs-nse',      NSE_QS,   'nse');
   renderQs('qs-bse',      BSE_QS,   'bse');
   renderQs('qs-both-nse', NSE_QS,   'nse');
   renderQs('qs-both-bse', BSE_QS,   'bse');
-  renderQs('qs-mb',       MB_ROUTE==='profit' ? MB_QS_PROFIT : MB_QS_ALT, 'mb');
+  renderQs('qs-mb',       MB_ROUTE === 'profit' ? MB_QS_PROFIT : MB_QS_ALT, 'mb');
 }
 
-/* Init */
 renderAll();
 </script>
 </body>
