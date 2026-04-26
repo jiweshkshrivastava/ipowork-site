@@ -2681,7 +2681,13 @@ async function runPaidCore(){
   btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Run Full AIRA \u2192';
   console.log('[AIRA] Worker response received:', JSON.stringify(result).substring(0,200));
   console.log('[AIRA] _report length:', (result._report||'').length);
+  // ── RENDER WITH FULL ERROR VISIBILITY ──
+  try {
   var report=result._report||'';
+  if(!report){
+    out.innerHTML='<div class="err-card" style="padding:20px"><b>Worker returned empty report.</b><br/>result keys: '+Object.keys(result).join(', ')+'<br/>score: '+(result.score||'none')+'</div>';
+    return;
+  }
   var co=result;
   var fin2=co.financials||{};
   var com2=co.compliance||{};
@@ -2719,9 +2725,18 @@ async function runPaidCore(){
   html+=renderSimulator(score);
   html+='</div>';
   out.innerHTML=html;
-  initSimulator(score);
-  animateBenchmarkBar();
+  try{initSimulator(score);}catch(e){}
+  try{animateBenchmarkBar();}catch(e){}
   out.scrollIntoView({behavior:'smooth',block:'start'});
+  } catch(renderErr) {
+    console.error('[AIRA RENDER ERROR]', renderErr);
+    out.innerHTML='<div class="err-card" style="padding:20px">'
+      +'<b style="color:var(--er)">Render error — raw report below:</b><br/>'
+      +'<div style="font-size:11px;color:#666;margin:8px 0">'+esc(renderErr.message)+'</div>'
+      +'<div style="white-space:pre-wrap;font-size:12px;line-height:1.7;padding:14px;background:#f7f7f5;border-radius:8px;max-height:600px;overflow-y:auto">'
+      +esc(result._report||'no report')+'</div></div>';
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }
 }
 
 /* === runMainboardCore === */
