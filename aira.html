@@ -31,7 +31,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 .pg-ey{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--tll);margin-bottom:5px}
 .pg-title{font-family:var(--serif);font-size:26px;font-weight:900;color:var(--tld);line-height:1.2;margin-bottom:6px}
 .pg-desc{font-size:14px;color:var(--mu);line-height:1.7;max-width:560px;margin-bottom:20px}
-.tier-tabs{display:flex;background:#fff;border:1px solid var(--bd);border-radius:var(--r2);padding:5px;margin-bottom:0;width:fit-content;gap:0;box-shadow:var(--sh)}
+.tier-tabs{display:flex;background:#fff;border:1px solid var(--bd);border-radius:var(--r2);padding:5px;margin-bottom:0;width:100%;gap:0;box-shadow:var(--sh)}
 .tier-tab{padding:8px 10px;border-radius:9px;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--mu);transition:.15s;border:none;background:transparent;font-family:var(--sans);display:flex;align-items:center;flex-direction:column;gap:2px;text-align:center;line-height:1.2;white-space:nowrap}
 .tier-tab.active{background:var(--tld);color:#fff}
 .tier-tab .tb{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.18);color:rgba(255,255,255,.8)}
@@ -299,7 +299,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   </div>
 </div>
 
-<div class="content" style="max-width:100%;width:100%">
+<div class="content">
   <div class="pg-ey">AIRA v5 · AI Web Research · SEBI ICDR 2018</div>
   <h1 class="pg-title">IPO Readiness Score</h1>
   <p class="pg-desc">Enter your company CIN — AI searches MCA public portal, Screener.in, Tofler, annual reports and news to gather all available data, then scores 16 SEBI-aligned parameters. Free tier uses publicly available data only.</p>
@@ -1138,6 +1138,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 
 
 
+<script>
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 var SB_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
@@ -2753,42 +2754,23 @@ async function runCACore(){
 
 /* === WORKER DIAGNOSTIC TEST === */
 async function testWorker(){
-  var el = document.getElementById('worker-test-result');
-  if(el) el.innerHTML = '<span style="color:#C9932A">Testing...</span>';
-  try {
-    // Step 1: ping worker
-    var r1 = await fetch(WORKER, {method:'GET'});
-    var t1 = await r1.text();
-    if(!t1.includes('OK')) throw new Error('Worker not responding: '+t1.substring(0,80));
-
-    // Step 2: test Claude API via worker
-    var r2 = await fetch(WORKER, {method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({type:'aira_free', cin:'U74999MH2020PTC123456',
-        company_name:'Test Company', sector:'Manufacturing', exchange:'NSE Emerge (SME)'})
-    });
-    var j2 = await r2.json();
-
-    if(j2.error) throw new Error('Worker error: ' + j2.error);
-    if(!j2.report && !j2._report) throw new Error('Worker returned no report. Response: '+JSON.stringify(j2).substring(0,120));
-
-    var reportLen = (j2.report||j2._report||'').length;
-    if(el) el.innerHTML = '<span style="color:var(--ok)">\u2713 Worker OK \u2014 Claude responding \u2014 Report length: '+reportLen+' chars</span>';
-  } catch(e) {
-    if(el) el.innerHTML = '<span style="color:var(--er)">\u274C '+esc(e.message)+'</span>';
-    console.error('[AIRA TEST]', e);
-  }
-}
--display');
-    if(cred){var cur=parseInt(cred.textContent)||5;cred.textContent=Math.max(0,cur-1)+' / 5';}
-    document.getElementById('btn-ca-run').disabled=false;
-    document.getElementById('btn-ca-run').textContent='Run AIRA for Client';
-    runPaidResultRender(result,cin,sector,exchange,document.getElementById('result-ca'),'ca');
+  var el=document.getElementById('worker-test-result');
+  if(el)el.innerHTML='<span style="color:#C9932A">Testing...</span>';
+  try{
+    var r1=await fetch(WORKER,{method:'GET'});
+    var t1=await r1.text();
+    if(!t1.includes('OK'))throw new Error('Worker not responding: '+t1.substring(0,80));
+    var r2=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'aira_free',cin:'U74999MH2020PTC123456',
+        company_name:'Test Company',sector:'Manufacturing',exchange:'NSE Emerge (SME)'})});
+    var j2=await r2.json();
+    if(j2.error)throw new Error('API error: '+j2.error);
+    var rLen=(j2.report||j2._report||'').length;
+    if(!rLen)throw new Error('No report returned. Keys: '+Object.keys(j2).join(', '));
+    if(el)el.innerHTML='<span style="color:var(--ok)">✓ Worker OK — Claude API working — Report: '+rLen+' chars</span>';
   }catch(e){
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
-    document.getElementById('btn-ca-run').disabled=false;
-    document.getElementById('prog-ca').style.display='none';
-    document.getElementById('result-ca').innerHTML='<div class="err-card">'+esc(e.message)+'</div>';
+    if(el)el.innerHTML='<span style="color:var(--er)">❌ '+esc(e.message)+'</span>';
+    console.error('[AIRA TEST]',e);
   }
 }
 </script>
