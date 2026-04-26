@@ -2404,6 +2404,348 @@ function closeAdminAuth(){var o=document.getElementById('admin-auth-overlay');if
 function checkAdminPwd(){var p=document.getElementById('admin-pwd-input').value;if(p===ADMIN_PWD){ADMIN_UNLOCKED=true;closeAdminAuth();var t=document.getElementById('tab-admin');if(t)t.style.display='';switchTier('admin');}else{document.getElementById('admin-pwd-err').textContent='Incorrect password.';document.getElementById('admin-pwd-input').value='';document.getElementById('admin-pwd-input').focus();}}
 document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.shiftKey&&e.key==='A'){e.preventDefault();ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth();}});
 (function(){var _o=switchTier;switchTier=function(t){if(t==='admin'&&!ADMIN_UNLOCKED){openAdminAuth();return;}_o(t);};})();
+
+
+var UPLOADED_DOCS = {};
+var UPLOAD_LABELS = {
+  bs:'Balance Sheet', pl:'P&L Statement', ar:'Annual Report', cf:'Cash Flow',
+  mca:'MCA / COI', moa:'MOA/AOA', sh:'Shareholding', dir:'Director List',
+  aud:'Audit Report', gst:'GST Returns'
+};
+
+function fileSelected(key, input) {
+  var file = input.files[0]; if (!file) return;
+  UPLOADED_DOCS[key] = file;
+  var slot = document.getElementById('slot-' + key);
+  var status = document.getElementById('status-' + key);
+  if (slot) slot.classList.add('has-file');
+  if (status) status.textContent = '✓ ' + file.name.substring(0,22) + (file.name.length>22?'…':'');
+  updateUploadSummary();
+}
+
+function updateUploadSummary() {
+  var count = Object.keys(UPLOADED_DOCS).length;
+  var summary = document.getElementById('upload-summary');
+  var countLabel = document.getElementById('upload-count-label');
+  var completeLabel = document.getElementById('upload-complete-label');
+  if (summary) summary.style.display = count > 0 ? 'block' : 'none';
+  if (countLabel) countLabel.textContent = count + ' document' + (count !== 1 ? 's' : '') + ' uploaded';
+  var hasF = UPLOADED_DOCS.bs || UPLOADED_DOCS.pl || UPLOADED_DOCS.ar;
+  var hasC = UPLOADED_DOCS.mca || UPLOADED_DOCS.moa || UPLOADED_DOCS.sh;
+  if (completeLabel) {
+    if (count >= 4 && hasF && hasC) {
+      completeLabel.textContent = '✓ Ready for scoring';
+      completeLabel.style.color = 'var(--ok)';
+    } else if (count >= 2) {
+      completeLabel.textContent = '+ Add more for better accuracy';
+      completeLabel.style.color = 'var(--wn)';
+    }
+  }
+}
+
+
+function pickCompany(idx){
+  var co = (window._searchResults||[])[idx];
+  if(!co) return;
+  var cinEl = document.getElementById(window._searchCinId||'f-cin');
+  var nameEl = document.getElementById(window._searchNameId||'f-cname');
+  var resEl = document.getElementById(window._searchResId||'zauba-results');
+  if(cinEl && co.cin && co.cin!=='UNKNOWN') cinEl.value = co.cin;
+  if(nameEl) nameEl.value = co.name;
+  if(resEl) resEl.innerHTML = '<div style="font-size:12px;color:var(--ok);padding:4px 0">\u2713 Selected: '+esc(co.name)+'</div>';
+}
+
+
+function doSearch(q,tier){
+  if(!q||q.length<3)return;
+  var resEl=document.getElementById(tier==='paid'?'zauba-results-p':'zauba-results');
+  var cinId=tier==='paid'?'p-cin':'f-cin';
+  var nameId=tier==='paid'?'p-cname':'f-cname';
+  var cinRx=/^[ULul][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/i;
+  if(cinRx.test(q.trim())){
+    document.getElementById(cinId).value=q.trim().toUpperCase();
+    if(resEl)resEl.innerHTML='<div style="font-size:12px;color:var(--ok);padding:4px 0">\u2713 CIN detected \u2014 click Run AIRA Score</div>';
+    return;
+  }
+  // Search for company by name via worker
+  if(resEl)resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">\u1F50D Searching...</div>';
+  fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type:'company_search',query:q})})
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(!resEl)return;
+    var results=d.results||[];
+    if(!results.length){
+      resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">No results found. Try entering the CIN directly.</div>';
+      return;
+    }
+    window._searchResults = results;
+    window._searchCinId = cinId;
+    window._searchNameId = nameId;
+    window._searchResId = resEl.id;
+    resEl.innerHTML = results.map(function(co,idx){
+      return '<div onclick="pickCompany('+idx+')" style="padding:8px 12px;background:#fff;border:1px solid #E2E8EA;border-radius:8px;cursor:pointer;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
+        +'<div><div style="font-size:13px;font-weight:600;color:#2C3E47">'+esc(co.name)+'</div>'
+        +(co.cin&&co.cin!=='UNKNOWN'?'<div style="font-size:11px;color:#6B7E85;font-family:monospace">'+esc(co.cin)+'</div>':'')
+        +'</div><span style="font-size:11px;color:#0D5C6B">Select</span></div>';
+    }).join('');
+  })
+  .catch(function(){
+    if(resEl)resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">Search unavailable. Enter CIN directly.</div>';
+  });
+}
+
+
+/* === dialSVG === */
+function dialSVG(score,col){
+  var r=40,cx=48,cy=48,circ=2*Math.PI*r,dash=circ*(score/100),gap=circ-dash;
+  return '<svg width="96" height="96" viewBox="0 0 96 96">'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="7"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="7" '
+    +'stroke-dasharray="'+dash.toFixed(1)+' '+gap.toFixed(1)+'" stroke-linecap="round" '
+    +'style="transform:rotate(-90deg);transform-origin:'+cx+'px '+cy+'px"/></svg>';
+}
+
+/* === previewReport === */
+function previewReport(tier){
+  var r=buildReportHtml(tier);
+  if(!r)return;
+  var w=window.open('','_blank');
+  if(w&&w.document){
+    var toolbar='<div style="position:sticky;top:0;z-index:999;background:#08404D;padding:10px 20px;display:flex;align-items:center;gap:10px;font-family:system-ui,sans-serif">'
+      +'<span style="font-size:16px;font-weight:900;color:#fff;font-family:Georgia,serif">ipowork</span>'
+      +'<span style="flex:1"></span>'
+      +'<button onclick="window.print()" style="padding:8px 18px;background:#E88A2E;color:#fff;border:none;border-radius:7px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit">Print / Save PDF</button>'
+      +'<button onclick="window.close()" style="padding:8px 14px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit;margin-left:6px">Close</button>'
+      +'</div>';
+    var finalHtml=r.htm.replace('<body>','<body>'+toolbar);
+    w.document.write(finalHtml);w.document.close();w.focus();
+  } else {
+    alert('Allow popups for this site to preview the report.');
+  }
+}
+
+/* === loadAdmin === */
+async function loadAdmin(){
+  var statsEl=document.getElementById('admin-stats');
+  var repEl=document.getElementById('admin-reports');
+  var usrEl=document.getElementById('admin-users');
+  if(statsEl)statsEl.innerHTML='<div style="grid-column:1/-1;color:var(--mu);font-size:13px;padding:8px">Loading...</div>';
+  try{
+    var rr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'reports',limit:200,order:'created_at.desc'})});
+    var rj=await rr.json();var reports=rj.data||[];
+    var ur=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'users',limit:300,order:'created_at.desc'})});
+    var uj=await ur.json();var users=uj.data||[];
+    window._adminData={reports:reports,users:users};
+    var totalRep=reports.length;
+    var docPaid=reports.filter(function(r){return r.tier==='doc_paid';}).length;
+    var probePaid=reports.filter(function(r){return r.tier==='paid';}).length;
+    var cleanChit=reports.filter(function(r){return r.tier==='clean_chit';}).length;
+    var freeRep=reports.filter(function(r){return r.tier==='free';}).length;
+    var withReport=reports.filter(function(r){return r.report_text&&r.report_text.length>100;}).length;
+    var avgScore=totalRep?Math.round(reports.reduce(function(s,r){return s+(r.score||0);},0)/totalRep):0;
+    var ready65=reports.filter(function(r){return(r.score||0)>=65;}).length;
+    if(statsEl){
+      var stats=[
+        {l:'Total Reports',v:totalRep,col:'var(--tl)'},{l:'AIRA Score',v:docPaid,col:'var(--tl)'},
+        {l:'Intelligence',v:probePaid,col:'var(--sf)'},{l:'Clean Chit',v:cleanChit,col:'var(--ok)'},
+        {l:'Free Tier',v:freeRep,col:'var(--mu)'},{l:'With Report',v:withReport,col:'var(--ok)'},
+        {l:'Score >=65',v:ready65,col:'var(--ok)'},{l:'Avg Score',v:avgScore,col:avgScore>=65?'var(--ok)':'var(--wn)'},
+        {l:'Total Leads',v:users.length,col:'var(--tl)'},
+      ];
+      statsEl.style.gridTemplateColumns='repeat(4,1fr)';
+      statsEl.innerHTML=stats.map(function(s){
+        return '<div style="background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:14px;text-align:center;box-shadow:var(--sh)">'
+          +'<div style="font-family:var(--serif);font-size:26px;font-weight:900;color:'+s.col+'">'+s.v+'</div>'
+          +'<div style="font-size:11px;color:var(--mu);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">'+s.l+'</div></div>';
+      }).join('');
+    }
+    if(repEl){
+      if(!reports.length){repEl.innerHTML='<div style="padding:16px;color:var(--mu)">No reports yet.</div>';}
+      else{
+        var tierBadge=function(tier){
+          if(tier==='doc_paid')return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(13,92,107,.08);color:var(--tl)">Score</span>';
+          if(tier==='paid')return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(232,138,46,.1);color:var(--sf)">Intel</span>';
+          if(tier==='clean_chit')return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(26,158,107,.1);color:var(--ok)">Chit</span>';
+          return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(107,126,133,.08);color:var(--mu)">Free</span>';
+        };
+        repEl.innerHTML='<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:700px"><thead><tr><th>Date</th><th>Company</th><th>Tier</th><th>Score</th><th>Sector</th><th>Report</th></tr></thead><tbody>'
+          +reports.map(function(r,idx){
+            var d=new Date(r.created_at);
+            var ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+            var sc2=r.score||0;var col2=sc2>=78?'var(--ok)':sc2>=65?'var(--wn)':'var(--er)';
+            var hasReport=r.report_text&&r.report_text.length>100;
+            return '<tr><td style="color:var(--mu);font-size:11px">'+ds+'</td>'
+              +'<td style="font-weight:600;font-size:12px">'+esc(r.company_name||'—')+'</td>'
+              +'<td>'+tierBadge(r.tier)+'</td>'
+              +'<td style="font-weight:800;color:'+col2+';font-family:var(--mono)">'+sc2+'</td>'
+              +'<td style="font-size:11px;color:var(--mu)">'+esc(r.sector||'—')+'</td>'
+              +'<td>'+(hasReport?'<button onclick="viewReport('+idx+')" style="font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--bd);background:#fff;cursor:pointer;color:var(--tl)">View</button>':'<span style="font-size:10px;color:var(--mu)">—</span>')+'</td></tr>';
+          }).join('')+'</tbody></table></div>';
+      }
+    }
+    if(usrEl){
+      if(!users.length){usrEl.innerHTML='<div style="padding:16px;color:var(--mu)">No users yet.</div>';}
+      else{
+        usrEl.innerHTML='<table class="fin-tbl"><thead><tr><th>Phone</th><th>Email</th><th>Reports</th><th>Joined</th></tr></thead><tbody>'
+          +users.map(function(u){
+            var d1=new Date(u.created_at);
+            var fmt=function(d){return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();};
+            return '<tr><td style="font-family:var(--mono);font-weight:600">+91 '+esc(u.phone||'')+'</td>'
+              +'<td>'+esc(u.email||'')+'</td>'
+              +'<td style="font-weight:700;color:var(--tl)">'+esc(String(u.total_reports||0))+'</td>'
+              +'<td style="color:var(--mu);font-size:12px">'+fmt(d1)+'</td></tr>';
+          }).join('')+'</tbody></table>';
+      }
+    }
+  }catch(e){
+    if(statsEl)statsEl.innerHTML='<div style="color:var(--er);padding:16px">Error: '+esc(e.message)+'</div>';
+  }
+}
+
+/* === runPaidCore === */
+async function runPaidCore(){
+  var cin=document.getElementById('p-cin').value.trim().toUpperCase();
+  var sector=document.getElementById('p-sector').value;
+  var exchange=document.getElementById('p-exchange').value;
+  if(!cin){alert('Please enter your company CIN.');return;}
+  var btn=document.getElementById('btn-paid-run');
+  var prog=document.getElementById('prog-paid');
+  var out=document.getElementById('result-paid');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Fetching & scoring\u2026';
+  out.innerHTML='';prog.style.display='flex';
+  ['pp1','pp2','pp3','pp4','pp5'].forEach(clearStep);stepActive('pp1');
+  var t1=setTimeout(function(){stepDone('pp1');stepActive('pp2');},5000);
+  var t2=setTimeout(function(){stepDone('pp2');stepActive('pp3');},12000);
+  var t3=setTimeout(function(){stepDone('pp3');stepActive('pp4');},20000);
+  var result=null;
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange})});
+    result=await resp.json();
+    if(result.error)throw new Error(result.error);
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
+    out.innerHTML='<div class="err-card"><div style="font-size:15px;font-weight:800;color:var(--er);margin-bottom:8px">AIRA Intelligence Error</div>'
+      +'<div style="font-size:13px;color:var(--sl);margin-bottom:10px">'+esc(e.message)+'</div>'
+      +'<div style="font-size:12px;color:var(--mu);line-height:1.7">Check: PROBE42_KEY set in Cloudflare Secrets</div>'
+      +'<button onclick="switchTier(\'free\')" style="margin-top:14px;padding:10px 18px;background:var(--tl);color:#fff;border:none;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer">Use AIRA Score instead</button></div>';
+    btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Run Full AIRA \u2192';
+    prog.style.display='none';return;
+  }
+  clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
+  stepDone('pp3');stepActive('pp4');await new Promise(function(r){setTimeout(r,200);});
+  stepDone('pp4');stepActive('pp5');await new Promise(function(r){setTimeout(r,200);});
+  stepDone('pp5');
+  btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Run Full AIRA \u2192';
+  var report=result._report||'';
+  var co=result;
+  var fin2=co.financials||{};
+  var com2=co.compliance||{};
+  var prom2=co.promoters||{};
+  var dirs2=Array.isArray(co.directors)?co.directors:[];
+  var chgs2=Array.isArray(co.charges)?co.charges:[];
+  var peers2=Array.isArray(co.peer_comparison)?co.peer_comparison:[];
+  var cr2=Array.isArray(co.credit_ratings)?co.credit_ratings:[];
+  var sM=report.match(/AIRA Score:\s*(\d+)/i);
+  var score=sM?Math.min(99,Math.max(1,parseInt(sM[1]))):65;
+  var dims={financial:60,governance:55,compliance:70,promoter:60,legal:70,readiness:50};
+  var jm=report.match(/---JSON---\s*([\s\S]*?)---END---/);
+  if(jm){try{dims=JSON.parse(jm[1].trim());}catch(e){}}
+  var cleanR=report.replace(/AIRA Score:\s*\d+\n?/i,'').replace(/---JSON---[\s\S]*?---END---/,'').trim();
+  var v=vd(score),col=sc(score);
+  function fmtINR(v){if(!v&&v!==0)return'\u2014';var n=parseFloat(v);if(isNaN(n))return String(v);if(n>=10000000)return'\u20B9'+(n/10000000).toFixed(1)+' Cr';if(n>=100000)return'\u20B9'+(n/100000).toFixed(1)+' L';return'\u20B9'+n.toLocaleString('en-IN');}
+  function fmtPct2(v){return v!=null&&v!==''&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'\u2014';}
+  function fmtN(v){return v!=null&&v!==''&&v!=='null'?String(v):'\u2014';}
+  var html='<div class="result-wrap">';
+  html+='<div style="padding:8px 14px;background:rgba(26,158,107,.08);border:1px solid rgba(26,158,107,.2);border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--ok)">Probe42 Verified \u2014 '+esc(co.company_name||cin)+'</div>';
+  html+=dualScoreBanner(score,v,col,co.company_name||cin,sector,exchange,dims,null);
+  html+='<div class="dl-row"><button class="dl-btn-filled" style="background:var(--tl)" onclick="previewReport(\'paid\')">Preview Report</button><button class="dl-btn-outline" onclick="downloadReport(\'paid\')">Download Report</button></div>';
+  html+=renderBenchmark(score,sector);
+  html+='<div class="sec-hd">Dimension Scores</div><div class="dim-grid">';
+  Object.keys(dims).forEach(function(k){var dv=dims[k],dc=sc(dv);html+='<div class="dim-card" style="border-top-color:'+dc+'"><div class="dim-lbl">'+dimIcon(k)+' '+dimLabel(k)+'</div><div class="dim-val" style="color:'+dc+'">'+dv+'</div><div class="dim-bar-bg"><div class="dim-bar" style="width:'+dv+'%;background:'+dc+'"></div></div><div class="dim-verd">'+dimVerd(dv)+'</div></div>';});
+  html+='</div>';
+  if(dirs2.length){
+    html+='<div class="sec-hd">Directors</div><div class="dir-wrap"><table class="dtable"><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Status</th></tr></thead><tbody>';
+    dirs2.forEach(function(d){var act=!d.cessation;html+='<tr><td style="font-weight:600">'+esc(d.name||'N/A')+'</td><td><span class="din-tag">'+esc(d.din||'N/A')+'</span></td><td>'+esc(d.designation||'Director')+'</td><td><span style="color:'+(act?'var(--ok)':'var(--mu)')+'">'+( act?'Active':'Ceased')+'</span></td></tr>';});
+    html+='</tbody></table></div>';
+  }
+  html+='<div class="sec-hd">AI Intelligence Report</div>';
+  html+='<div class="ai-card" style="padding:0;overflow:hidden"><div style="padding:12px 18px;background:var(--tld);color:#fff;font-size:12px;font-weight:700">AIRA REPORT \u2014 '+esc(co.company_name||cin)+'</div>';
+  html+='<div id="ai-report-body" style="padding:18px 20px">'+mdToHtml(cleanR)+'</div></div>';
+  html+=renderSimulator(score);
+  html+='</div>';
+  out.innerHTML=html;
+  initSimulator(score);
+  animateBenchmarkBar();
+  out.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* === runMainboardCore === */
+async function runMainboardCore(){
+  var cin=document.getElementById('mb-cin').value.trim().toUpperCase();
+  var sector=document.getElementById('mb-sector').value;
+  var exchange=document.getElementById('mb-exchange').value;
+  if(!cin){alert('Please enter CIN.');return;}
+  document.getElementById('btn-mb-run').disabled=true;
+  document.getElementById('result-mainboard').innerHTML='';
+  document.getElementById('prog-mainboard').style.display='flex';
+  ['mp1','mp2','mp3','mp4','mp5'].forEach(clearStep);stepActive('mp1');
+  var t1=setTimeout(function(){stepDone('mp1');stepActive('mp2');},5000);
+  var t2=setTimeout(function(){stepDone('mp2');stepActive('mp3');},12000);
+  var t3=setTimeout(function(){stepDone('mp3');stepActive('mp4');},20000);
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,board:'mainboard'})});
+    var result=await resp.json();
+    if(result.error)throw new Error(result.error);
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
+    ['mp1','mp2','mp3','mp4','mp5'].forEach(stepDone);
+    document.getElementById('btn-mb-run').disabled=false;
+    document.getElementById('btn-mb-run').textContent='Run Mainboard AIRA';
+    runPaidResultRender(result,cin,sector,exchange,document.getElementById('result-mainboard'),'mainboard');
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
+    document.getElementById('btn-mb-run').disabled=false;
+    document.getElementById('prog-mainboard').style.display='none';
+    document.getElementById('result-mainboard').innerHTML='<div class="err-card">'+esc(e.message)+'</div>';
+  }
+}
+
+/* === runCACore === */
+async function runCACore(){
+  var cin=document.getElementById('ca-cin').value.trim().toUpperCase();
+  var sector=document.getElementById('ca-sector').value;
+  var exchange=document.getElementById('ca-exchange').value;
+  var firm=document.getElementById('ca-firm').value.trim();
+  if(!cin){alert('Please enter client CIN.');return;}
+  document.getElementById('btn-ca-run').disabled=true;
+  document.getElementById('result-ca').innerHTML='';
+  document.getElementById('prog-ca').style.display='flex';
+  ['cp1','cp2','cp3','cp4','cp5'].forEach(clearStep);stepActive('cp1');
+  var t1=setTimeout(function(){stepDone('cp1');stepActive('cp2');},5000);
+  var t2=setTimeout(function(){stepDone('cp2');stepActive('cp3');},12000);
+  var t3=setTimeout(function(){stepDone('cp3');stepActive('cp4');},20000);
+  var t4=setTimeout(function(){stepDone('cp4');stepActive('cp5');},30000);
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,price_tier:'ca_bundle_4999',firm_name:firm})});
+    var result=await resp.json();
+    if(result.error)throw new Error(result.error);
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
+    ['cp1','cp2','cp3','cp4','cp5'].forEach(stepDone);
+    var cred=document.getElementById('ca-credits-display');
+    if(cred){var cur=parseInt(cred.textContent)||5;cred.textContent=Math.max(0,cur-1)+' / 5';}
+    document.getElementById('btn-ca-run').disabled=false;
+    document.getElementById('btn-ca-run').textContent='Run AIRA for Client';
+    runPaidResultRender(result,cin,sector,exchange,document.getElementById('result-ca'),'ca');
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
+    document.getElementById('btn-ca-run').disabled=false;
+    document.getElementById('prog-ca').style.display='none';
+    document.getElementById('result-ca').innerHTML='<div class="err-card">'+esc(e.message)+'</div>';
+  }
+}
 </script>
 </body>
 </html>
