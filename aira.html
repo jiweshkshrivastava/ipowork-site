@@ -1390,7 +1390,7 @@ async function runFreeCore(){
   if(!cin){alert('Please enter your company CIN.');return;}
   var btn=document.getElementById('btn-free-run');
   var prog=document.getElementById('prog-free');
-  var out=document.getElementById('result-free');
+  var out=document.getElementById('result-doc');
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span> AI researching\u2026';
   out.innerHTML='';prog.style.display='flex';
   ['ps1','ps2','ps3','ps4','ps5'].forEach(clearStep);
@@ -1444,113 +1444,7 @@ async function runFreeCore(){
   }
   var lastBS=research.last_balance_sheet_date||'N/A';
   var bsMonths=(lastBS!=='N/A'&&lastBS)?Math.floor((Date.now()-new Date(lastBS))/864e5/30):null;
-  var html='<div class="result-wrap">';
-  /* Confidence banner */
-  var conf=dq.data_confidence||'Unknown';
-  var confCol=conf==='High'?'var(--ok)':conf==='Medium'?'var(--wn)':'var(--mu)';
-  var dataSources=(result._sources||dq.data_sources||[]).join(', ')||'AI knowledge base';
-  html+='<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.12);border-radius:10px;margin-bottom:14px;flex-wrap:wrap">';
-  html+='<span style="font-size:12px;font-weight:700;color:var(--tl)">🔍 AI Web Research</span>';
-  html+='<span style="font-size:12px;color:var(--mu)">Sources: '+esc((dq.data_sources||[]).join(', ')||'Web search')+'</span>';
-  html+='<span style="font-size:12px;font-weight:700;color:'+confCol+'">Confidence: '+esc(conf)+'</span>';
-  html+='<span style="font-size:12px;font-weight:700;color:'+(hasWeb?'var(--ok)':'var(--mu)')+'">'+( hasWeb?'● Financials found':'○ Financials: not publicly available')+'</span>';
-  html+='</div>';
-  /* Score hero */
-  
-  /* Download */
-  html+='<div class="dl-row"><button class="dl-btn-outline" onclick="downloadReport(\'free\')">📄 Download Report (PDF)</button><button class="dl-btn-filled" onclick="switchTier(\'paid\')">⭐ Upgrade to Full AIRA</button></div>';
-  /* Benchmark */
-  html+=dualScoreBanner(score,v,col,companyName,sector,exchange,{financial:dims.financial||0,governance:dims.governance||0,compliance:dims.compliance||0},null);
-  html+=renderBenchmark(score,sector);
-  /* Financials */
-  /* --- Financials \u2014 always show what we have --- */
-  var anyFin=fin.revenue_fy24||fin.pat_fy24||fin.net_worth||fin.ebitda_margin||fin.revenue_fy23;
-  html+='<div class="sec-hd">Financials — '+(anyFin?'from AI research':'data not publicly available')+'</div>';
-  if(anyFin){
-    html+='<div class="kv-grid">';
-    var kvs=[
-      {l:'Revenue ('+esc(fin.fy_year||'Latest')+')',v:fin.revenue_fy24,g:true},
-      {l:'PAT',v:fin.pat_fy24,g:(parseFloat(fin.pat_fy24)>0)},
-      {l:'EBITDA Margin',v:fin.ebitda_margin,g:(parseFloat(fin.ebitda_margin)>=12)},
-      {l:'Revenue CAGR',v:fin.revenue_cagr_3y,g:(parseFloat(fin.revenue_cagr_3y)>=15)},
-      {l:'Net Worth',v:fin.net_worth,g:true},
-      {l:'D/E Ratio',v:fin.debt_equity_ratio,g:(parseFloat(fin.debt_equity_ratio)<=1.5)},
-      {l:'ROE',v:fin.roe,g:(parseFloat(fin.roe)>=15)},
-      {l:'Auditor',v:fin.auditor,g:true}
-    ];
-    kvs.forEach(function(kv){
-      if(!kv.v||kv.v==='null'||kv.v===null||kv.v==='N/A')return;
-      html+='<div class="kv-card"><div class="kv-val '+(kv.g?'g':'a')+'">'+esc(String(kv.v))+'</div><div class="kv-lbl">'+kv.l+'</div></div>';
-    });
-    html+='</div>';
-    /* Revenue trend table */
-    if(fin.revenue_fy23&&fin.revenue_fy23!=='null'){
-      html+='<div class="fin-card"><div class="card-hd"><div class="card-ttl">Revenue Trend</div><div class="card-sub">AI-researched · '+esc(fin.fy_year||'Latest')+'</div></div>';
-      html+='<table class="fin-tbl"><thead><tr><th>Metric</th><th>FY24/Latest</th><th>FY23</th><th>FY22</th></tr></thead><tbody>';
-      html+='<tr><td>Revenue</td><td>'+esc(fin.revenue_fy24||'—')+'</td><td>'+esc(fin.revenue_fy23||'—')+'</td><td>'+esc(fin.revenue_fy22||'—')+'</td></tr>';
-      html+='<tr><td>PAT</td><td>'+esc(fin.pat_fy24||'—')+'</td><td>'+esc(fin.pat_fy23||'—')+'</td><td>—</td></tr>';
-      html+='</tbody></table></div>';
-    }
-  } else {
-    html+='<div style="padding:12px 14px;background:rgba(212,134,12,.04);border:1px solid rgba(212,134,12,.2);border-radius:9px;font-size:13px;color:var(--sl);margin-bottom:16px">';
-    html+='⚠️ <strong>Financials not found publicly</strong> for this company. ';
-    html+='This is common for small private companies not on Screener.in or Tofler. ';
-    html+='The AI has scored conservatively. Use <strong>Full AIRA with Probe42</strong> for verified 7-year financials.</div>';
-  }
-  if(biz&&biz.key_products_services&&biz.key_products_services!=='null'){
-    html+='<div style="padding:11px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:9px;font-size:13px;color:var(--sl);margin-bottom:16px">';
-    html+='<strong style="color:var(--tl)">Business:</strong> '+esc(biz.key_products_services);
-    if(biz.notable_clients&&biz.notable_clients!=='null') html+=' · <strong style="color:var(--tl)">Key Clients:</strong> '+esc(biz.notable_clients);
-    html+='</div>';
-  }
-  /* Company info */
-  html+='<div class="sec-hd">Company Profile — AI web research</div><div class="ds-grid">';
-  html+='<div class="ds-card"><div class="ds-head"><div class="ds-name">MCA Registration</div><span class="ds-badge '+(dq.mca_data_found?'ds-live':'ds-mock')+'">'+( dq.mca_data_found?'FOUND':'PARTIAL')+'</span></div>';
-  html+='<div class="ds-rows">';
-  html+='<div class="ds-row"><span class="k">Status</span><span class="v '+(research.status==='Active'?'v-ok':'v-bad')+'">'+esc(research.status||'N/A')+'</span></div>';
-  html+='<div class="ds-row"><span class="k">Type</span><span class="v">'+esc(research.company_type||'N/A')+'</span></div>';
-  html+='<div class="ds-row"><span class="k">Incorporated</span><span class="v">'+esc(research.date_of_incorporation||'N/A')+'</span></div>';
-  html+='<div class="ds-row"><span class="k">Paid-Up Capital</span><span class="v">'+esc(research.paid_up_capital||'N/A')+'</span></div>';
-  html+='<div class="ds-row"><span class="k">State / ROC</span><span class="v">'+esc((research.registered_state||'N/A')+' / '+(research.roc_code||'N/A'))+'</span></div>';
-  html+='<div class="ds-row"><span class="k">Last B/S Filed</span><span class="v '+(bsMonths!==null?(bsMonths>18?'v-bad':bsMonths>12?'v-warn':'v-ok'):'')+'">'+esc(lastBS)+(bsMonths!==null?' ('+bsMonths+'mo)':'')+'</span></div>';
-  html+='</div></div>';
-  html+='<div class="ds-card"><div class="ds-head"><div class="ds-name">Compliance</div><span class="ds-badge '+(conf==='High'?'ds-live':'ds-mock')+'">'+esc(conf)+'</span></div>';
-  html+='<div class="ds-rows">';
-  html+='<div class="ds-row"><span class="k">GST</span><span class="v">'+esc(comp.gst_status||'Unknown')+'</span></div>';
-  html+='<div class="ds-row"><span class="k">TDS</span><span class="v">'+esc(comp.tds_status||'Unknown')+'</span></div>';
-  html+='<div class="ds-row"><span class="k">ROC Filings</span><span class="v">'+esc(comp.roc_filing_status||'Unknown')+'</span></div>';
-  html+='<div class="ds-row"><span class="k">Promoter Holding</span><span class="v">'+esc(prom.promoter_holding_pct||'N/A')+'</span></div>';
-  html+='<div class="ds-row"><span class="k">Pledge</span><span class="v">'+esc(prom.pledge_pct||'N/A')+'</span></div>';
-  html+='</div></div></div>';
-  /* Directors */
-  if(dirList.length){
-    html+='<div class="sec-hd">Directors</div><div class="dir-wrap"><div class="card-hd"><div class="card-ttl">Directors ('+dirList.length+' found · '+activeDirs.length+' active)</div><div class="card-sub">Source: MCA / Tofler</div></div>';
-    html+='<table class="dtable"><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Status</th></tr></thead><tbody>';
-    dirList.forEach(function(d){
-      var isA=(d.status||'').toLowerCase()==='active'||(d.status||'').toLowerCase()==='current';
-      html+='<tr><td style="font-weight:600">'+esc(d.name||'N/A')+'</td><td><span class="din-tag">'+esc(d.din||'N/A')+'</span></td><td>'+esc(d.designation||'Director')+'</td><td><span style="color:'+(isA?'var(--ok)':'var(--mu)')+'">'+esc(d.status||'N/A')+'</span></td></tr>';
-    });
-    html+='</tbody></table></div>';
-  }
-  /* Dimension scores */
-  html+='<div class="sec-hd">Dimension Scores — AI assessment</div><div class="dim-grid">';
-  Object.keys(dims).forEach(function(k){var dv=dims[k],dc=sc(dv);html+='<div class="dim-card" style="border-top-color:'+dc+'"><div class="dim-lbl">'+dimIcon(k)+' '+dimLabel(k)+'</div><div class="dim-val" style="color:'+dc+'">'+dv+'</div><div class="dim-bar-bg"><div class="dim-bar" style="width:'+dv+'%;background:'+dc+'"></div></div><div class="dim-verd">'+dimVerd(dv)+'</div></div>';});
-  html+='</div>';
-  /* AI report */
-  html+='<div class="sec-hd">AI Analysis — Research + SEBI Assessment</div>';
-  html+='<div class="ai-card"><div class="ai-content">'+esc(cleanReport)+'</div></div>';
-  /* Upsell */
-  html+='<div class="upsell"><div class="upsell-icon">🔬</div><div><div class="upsell-ttl">Get verified data — Full AIRA with Probe42</div><div class="upsell-sub">7-year verified financials · Revenue CAGR · EBITDA trend · Promoter pledge · Litigation · Full 16-parameter score</div></div><button class="upsell-cta" onclick="switchTier(\'paid\')">Run Full AIRA →</button></div>';
-  /* Roadmap */
-  html+='<div class="sec-hd">IPO Roadmap</div><div class="roadmap-card"><div class="phases"><div class="phase ph1"><div class="phase-lbl">Now — Month 2</div><div class="phase-item">Appoint 2 IDs incl. woman director</div><div class="phase-item">Clear ROC filing backlogs</div><div class="phase-item">Resolve GST/TDS notices</div></div><div class="phase ph2"><div class="phase-lbl">Month 3–4</div><div class="phase-item">Constitute Audit committee</div><div class="phase-item">Commission Ind AS restatement</div><div class="phase-item">Register trademark / IP</div></div><div class="phase ph3"><div class="phase-lbl">Month 5–6</div><div class="phase-item">Sign merchant banker mandate</div><div class="phase-item">Start DRHP drafting</div><div class="phase-item">Pre-SEBI due diligence</div></div></div></div>';
-  html+=renderSimulator(score);
-  html+=renderFixEngine();
-  html+=renderValuation(sector,fin.revenue_fy24||'',fin.pat_fy24||'','',fin.ebitda_margin||'');
-  html+='</div>';
-  console.log('[AIRA] Setting out.innerHTML, html length=', html.length);
-  out.innerHTML=html;
-  initSimulator(score);
-  animateBenchmarkBar();
+  renderAIRAReport({_report:report, report:report, score:null, company_name:companyName, sector:sector, exchange:exchange}, companyName, sector, exchange, out, 'free');
   out.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -2001,12 +1895,7 @@ async function runDocCore(){
     ['ds1','ds2','ds3','ds4'].forEach(stepDone);
     btn.disabled=false;
     btn.innerHTML='\u2713 Done \u2014 Run Again';
-    try {
-      renderDocResult(result,cname,sector,exchange);
-    } catch(renderErr) {
-      document.getElementById('result-doc').innerHTML = '<div class="err-card"><b>Render error:</b> '+esc(renderErr.message)+'<br/><pre style="font-size:10px;overflow:auto;max-height:120px">'+esc(renderErr.stack||'')+'</pre></div>';
-      console.error('[AIRA RENDER]', renderErr);
-    }
+    renderAIRAReport(result,cname||result.company_name,sector,exchange,out,'doc');
   }catch(e){
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
     btn.disabled=false;
@@ -2681,62 +2570,8 @@ async function runPaidCore(){
   btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Run Full AIRA \u2192';
   console.log('[AIRA] Worker response received:', JSON.stringify(result).substring(0,200));
   console.log('[AIRA] _report length:', (result._report||'').length);
-  // ── RENDER WITH FULL ERROR VISIBILITY ──
-  try {
-  var report=result._report||'';
-  if(!report){
-    out.innerHTML='<div class="err-card" style="padding:20px"><b>Worker returned empty report.</b><br/>result keys: '+Object.keys(result).join(', ')+'<br/>score: '+(result.score||'none')+'</div>';
-    return;
-  }
-  var co=result;
-  var fin2=co.financials||{};
-  var com2=co.compliance||{};
-  var prom2=co.promoters||{};
-  var dirs2=Array.isArray(co.directors)?co.directors:[];
-  var chgs2=Array.isArray(co.charges)?co.charges:[];
-  var peers2=Array.isArray(co.peer_comparison)?co.peer_comparison:[];
-  var cr2=Array.isArray(co.credit_ratings)?co.credit_ratings:[];
-  var sM=report.match(/AIRA Score:\s*(\d+)/i);
-  var score=sM?Math.min(99,Math.max(1,parseInt(sM[1]))):65;
-  var dims={financial:60,governance:55,compliance:70,promoter:60,legal:70,readiness:50};
-  var jm=report.match(/---JSON---\s*([\s\S]*?)---END---/);
-  if(jm){try{dims=JSON.parse(jm[1].trim());}catch(e){}}
-  var cleanR=report.replace(/AIRA Score:\s*\d+\n?/i,'').replace(/---JSON---[\s\S]*?---END---/,'').trim();
-  var v=vd(score),col=sc(score);
-  function fmtINR(v){if(!v&&v!==0)return'\u2014';var n=parseFloat(v);if(isNaN(n))return String(v);if(n>=10000000)return'\u20B9'+(n/10000000).toFixed(1)+' Cr';if(n>=100000)return'\u20B9'+(n/100000).toFixed(1)+' L';return'\u20B9'+n.toLocaleString('en-IN');}
-  function fmtPct2(v){return v!=null&&v!==''&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'\u2014';}
-  function fmtN(v){return v!=null&&v!==''&&v!=='null'?String(v):'\u2014';}
-  var html='<div class="result-wrap">';
-  html+='<div style="padding:8px 14px;background:rgba(26,158,107,.08);border:1px solid rgba(26,158,107,.2);border-radius:8px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--ok)">Probe42 Verified \u2014 '+esc(co.company_name||cin)+'</div>';
-  html+=dualScoreBanner(score,v,col,co.company_name||cin,sector,exchange,dims,null);
-  html+='<div class="dl-row"><button class="dl-btn-filled" style="background:var(--tl)" onclick="previewReport(\'paid\')">Preview Report</button><button class="dl-btn-outline" onclick="downloadReport(\'paid\')">Download Report</button></div>';
-  html+=renderBenchmark(score,sector);
-  html+='<div class="sec-hd">Dimension Scores</div><div class="dim-grid">';
-  Object.keys(dims).forEach(function(k){var dv=dims[k],dc=sc(dv);html+='<div class="dim-card" style="border-top-color:'+dc+'"><div class="dim-lbl">'+dimIcon(k)+' '+dimLabel(k)+'</div><div class="dim-val" style="color:'+dc+'">'+dv+'</div><div class="dim-bar-bg"><div class="dim-bar" style="width:'+dv+'%;background:'+dc+'"></div></div><div class="dim-verd">'+dimVerd(dv)+'</div></div>';});
-  html+='</div>';
-  if(dirs2.length){
-    html+='<div class="sec-hd">Directors</div><div class="dir-wrap"><table class="dtable"><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Status</th></tr></thead><tbody>';
-    dirs2.forEach(function(d){var act=!d.cessation;html+='<tr><td style="font-weight:600">'+esc(d.name||'N/A')+'</td><td><span class="din-tag">'+esc(d.din||'N/A')+'</span></td><td>'+esc(d.designation||'Director')+'</td><td><span style="color:'+(act?'var(--ok)':'var(--mu)')+'">'+( act?'Active':'Ceased')+'</span></td></tr>';});
-    html+='</tbody></table></div>';
-  }
-  html+='<div class="sec-hd">AI Intelligence Report</div>';
-  html+='<div class="ai-card" style="padding:0;overflow:hidden"><div style="padding:12px 18px;background:var(--tld);color:#fff;font-size:12px;font-weight:700">AIRA REPORT \u2014 '+esc(co.company_name||cin)+'</div>';
-  html+='<div id="ai-report-body" style="padding:18px 20px">'+mdToHtml(cleanR)+'</div></div>';
-  html+=renderSimulator(score);
-  html+='</div>';
-  out.innerHTML=html;
-  try{initSimulator(score);}catch(e){}
-  try{animateBenchmarkBar();}catch(e){}
+  renderAIRAReport(result, cin, sector, exchange, out, 'paid');
   out.scrollIntoView({behavior:'smooth',block:'start'});
-  } catch(renderErr) {
-    console.error('[AIRA RENDER ERROR]', renderErr);
-    out.innerHTML='<div class="err-card" style="padding:20px">'
-      +'<b style="color:var(--er)">Render error — raw report below:</b><br/>'
-      +'<div style="font-size:11px;color:#666;margin:8px 0">'+esc(renderErr.message)+'</div>'
-      +'<div style="white-space:pre-wrap;font-size:12px;line-height:1.7;padding:14px;background:#f7f7f5;border-radius:8px;max-height:600px;overflow-y:auto">'
-      +esc(result._report||'no report')+'</div></div>';
-    out.scrollIntoView({behavior:'smooth',block:'start'});
-  }
 }
 
 /* === runMainboardCore === */
@@ -2761,7 +2596,7 @@ async function runMainboardCore(){
     ['mp1','mp2','mp3','mp4','mp5'].forEach(stepDone);
     document.getElementById('btn-mb-run').disabled=false;
     document.getElementById('btn-mb-run').textContent='Run Mainboard AIRA';
-    runPaidResultRender(result,cin,sector,exchange,document.getElementById('result-mainboard'),'mainboard');
+    renderAIRAReport(result,cin,sector,exchange,document.getElementById('result-mainboard'),'mainboard');
   }catch(e){
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
     document.getElementById('btn-mb-run').disabled=false;
@@ -2796,7 +2631,7 @@ async function runCACore(){
     if(cred){var cur=parseInt(cred.textContent)||5;cred.textContent=Math.max(0,cur-1)+' / 5';}
     document.getElementById('btn-ca-run').disabled=false;
     document.getElementById('btn-ca-run').textContent='Run AIRA for Client';
-    runPaidResultRender(result,cin,sector,exchange,document.getElementById('result-ca'),'ca');
+    renderAIRAReport(result,cin,sector,exchange,document.getElementById('result-ca'),'ca');
   }catch(e){
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
     document.getElementById('btn-ca-run').disabled=false;
@@ -2825,6 +2660,141 @@ async function testWorker(){
   }catch(e){
     if(el)el.innerHTML='<span style="color:var(--er)">❌ '+esc(e.message)+'</span>';
     console.error('[AIRA TEST]',e);
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   UNIVERSAL AIRA REPORT RENDERER — applies to all tabs
+   ═══════════════════════════════════════════════════════════════ */
+function renderAIRAReport(result, cname, sector, exchange, out, tier) {
+  if(!out) return;
+  try {
+    var report   = result._report || result.report || '';
+    var score    = result.score || 0;
+
+    // Extract score from report if not in result
+    if(!score) {
+      var sM = report.match(/AIRA Score:\s*(\d+)/i);
+      score = sM ? Math.min(99, Math.max(1, parseInt(sM[1]))) : 65;
+    }
+
+    var v   = vd(score);
+    var col = sc(score);
+
+    // Extract dimension scores
+    var dims = {financial:0, governance:0, compliance:0, promoter:0, legal:0, readiness:0};
+    var jm = report.match(/---JSON---\s*([\s\S]*?)---END---/);
+    if(jm){try{var d2=JSON.parse(jm[1].trim());Object.keys(dims).forEach(function(k){if(d2[k])dims[k]=d2[k];});}catch(e){}}
+
+    // Clean report text
+    var clean = report
+      .replace(/AIRA Score:\s*\d+\n?/gi,'')
+      .replace(/---JSON---[\s\S]*?---END---/g,'')
+      .replace(/RESEARCH_JSON_START[\s\S]*?RESEARCH_JSON_END/g,'')
+      .replace(/REPORT_START\s*/,'')
+      .replace(/\s*REPORT_END/,'')
+      .trim();
+
+    var company = cname || result.company_name || result.cin || '';
+    var tierLabel = {
+      'paid':'Intelligence',
+      'doc':'AIRA Score',
+      'mainboard':'Mainboard',
+      'ca':'CA/CS Bundle',
+      'clearchit':'Clean Chit',
+      'ddbundle':'DD Bundle',
+      'free':'Free Analysis'
+    }[tier] || tier;
+
+    var html = '<div class="result-wrap">';
+
+    // ── Dual score banner ──────────────────────────────────────
+    html += dualScoreBanner(score, v, col, company, sector, exchange, dims, null);
+
+    // ── Action buttons ─────────────────────────────────────────
+    html += '<div class="dl-row">'
+      + '<button class="dl-btn-filled" style="background:var(--tl)" onclick="previewReport(\''+tier+'\')">Preview Report</button>'
+      + '<button class="dl-btn-outline" onclick="downloadReport(\''+tier+'\')">Download PDF</button>'
+      + '</div>';
+
+    // ── Dimension score cards ──────────────────────────────────
+    var anyDim = Object.values(dims).some(function(v){return v>0;});
+    if(anyDim){
+      html += '<div class="sec-hd">Dimension Scores</div>';
+      html += '<div class="dim-grid">';
+      var dimLabels = {financial:'Financial',governance:'Governance',compliance:'Compliance',promoter:'Promoter',legal:'Legal',readiness:'Readiness'};
+      Object.keys(dims).forEach(function(k){
+        var dv = dims[k]; if(!dv) return;
+        var dc = sc(dv);
+        html += '<div class="dim-card" style="border-top-color:'+dc+'">'
+          + '<div class="dim-lbl">'+dimLabel(k)+'</div>'
+          + '<div class="dim-val" style="color:'+dc+'">'+dv+'</div>'
+          + '<div class="dim-bar-bg"><div class="dim-bar" style="width:'+dv+'%;background:'+dc+'"></div></div>'
+          + '<div class="dim-verd">'+dimVerd(dv)+'</div>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+
+    // ── Directors table (if available) ─────────────────────────
+    var dirs2 = Array.isArray(result.directors) ? result.directors : [];
+    if(dirs2.length){
+      html += '<div class="sec-hd">Board of Directors</div>';
+      html += '<div class="dir-wrap"><table class="dtable"><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Status</th></tr></thead><tbody>';
+      dirs2.forEach(function(d){
+        var act = !d.cessation;
+        html += '<tr>'
+          + '<td style="font-weight:600">'+esc(d.name||'N/A')+'</td>'
+          + '<td><span class="din-tag">'+esc(d.din||'N/A')+'</span></td>'
+          + '<td>'+esc(d.designation||'Director')+'</td>'
+          + '<td style="color:'+(act?'var(--ok)':'var(--mu)')+'">'+( act?'Active':'Ceased')+'</td>'
+          + '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    // ── Benchmark ──────────────────────────────────────────────
+    try{ html += renderBenchmark(score, sector); }catch(e){}
+
+    // ── AI Report ─────────────────────────────────────────────
+    html += '<div class="sec-hd">'+tierLabel+' Report</div>';
+    html += '<div class="ai-card">'
+      + '<div style="padding:10px 16px;background:var(--tld);color:#fff;font-size:11px;font-weight:700;border-radius:var(--r) var(--r) 0 0">'
+      + 'AIRA REPORT &mdash; '+esc(company)+'</div>'
+      + '<div id="ai-report-body-'+tier+'" style="padding:18px 20px">'+mdToHtml(clean)+'</div>'
+      + '</div>';
+
+    // ── Simulator ─────────────────────────────────────────────
+    try{ html += renderSimulator(score); }catch(e){}
+
+    // ── Upsell for free / doc tiers ────────────────────────────
+    if(tier==='free'||tier==='doc'){
+      html += '<div class="upsell">'
+        + '<div class="upsell-icon">&#128300;</div>'
+        + '<div><div class="upsell-ttl">Upgrade to AIRA Intelligence</div>'
+        + '<div class="upsell-sub">Live Probe42 MCA data &middot; peer comparison &middot; director verification</div></div>'
+        + '<button class="upsell-cta" onclick="switchTier(\'paid\')">Upgrade &#8594;</button>'
+        + '</div>';
+    }
+
+    html += '</div>';
+    out.innerHTML = html;
+    try{ initSimulator(score); }catch(e){}
+    try{ animateBenchmarkBar(); }catch(e){}
+
+  } catch(e) {
+    // Last-resort fallback: show raw report text
+    var fallbackReport = result._report || result.report || 'No report available.';
+    var fallbackScore = result.score || 0;
+    out.innerHTML = '<div class="result-wrap">'
+      + '<div style="padding:18px;background:var(--tld);border-radius:var(--r2);margin-bottom:16px;display:flex;align-items:center;gap:16px">'
+      + '<div style="font-size:42px;font-weight:900;color:#fff;font-family:var(--serif)">'+fallbackScore+'</div>'
+      + '<div><div style="font-size:16px;font-weight:700;color:#fff">'+esc(vd(fallbackScore).label||'')+'</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,.6)">'+esc(company)+'</div></div></div>'
+      + '<div style="padding:18px;background:#fff;border-radius:var(--r);border:1px solid var(--bd)">'
+      + mdToHtml(fallbackReport)
+      + '</div></div>';
   }
 }
 </script>
