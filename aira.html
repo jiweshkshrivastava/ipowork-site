@@ -540,7 +540,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 
   <!-- PAID TIER -->
   <div class="tier-content" id="content-paid">
-    <div class="form-card">
+    <div class="form-card"
+  <!-- WORKER TEST PANEL -->
+  <div id="worker-test-bar" style="background:#FFF8E7;border:1px solid #FAC775;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-size:12px;font-weight:700;color:#633806">🔧 Worker Test</span>
+    <button onclick="testWorker()" style="padding:6px 14px;background:#C9932A;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans)">Test Connection</button>
+    <span id="worker-test-result" style="font-size:12px;color:#633806;flex:1">Click to verify worker + API key</span>
+  </div>
+>
       <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(135deg,rgba(232,138,46,.07),rgba(232,138,46,.03));border:1px solid rgba(232,138,46,.2);border-radius:var(--r);margin-bottom:18px;flex-wrap:wrap">
         <div>
           <div style="font-size:13px;font-weight:800;color:var(--tld)">🔬 AIRA Intelligence — ₹999 <span style="font-size:11px;font-weight:600;color:var(--mu)">(incl. GST)</span></div>
@@ -1126,20 +1133,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   <div class="tier-content" id="content-admin">
     <div class="form-card">
       <div class="fsec-lbl">Admin Dashboard — Supabase Live Data</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-        <button class="btn-run btn-primary" onclick="loadAdmin()">🔄 Refresh Data</button>
-        <button class="btn-ghost" onclick="exportCSV()">⬇️ Export CSV</button>
-      </div>
-      <div id="admin-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
-      <div class="sec-hd">Recent Reports</div>
-      <div id="admin-reports" style="overflow-x:auto"></div>
-      <div class="sec-hd" style="margin-top:16px">All Users / Leads</div>
-      <div id="admin-users" style="overflow-x:auto"></div>
-    </div>
-  </div>
-</div>
-
-<script>
+      
 
 
 
@@ -1974,7 +1968,12 @@ async function runDocCore(){
     ['ds1','ds2','ds3','ds4'].forEach(stepDone);
     btn.disabled=false;
     btn.innerHTML='\u2713 Done \u2014 Run Again';
-    renderDocResult(result,cname,sector,exchange);
+    try {
+      renderDocResult(result,cname,sector,exchange);
+    } catch(renderErr) {
+      document.getElementById('result-doc').innerHTML = '<div class="err-card"><b>Render error:</b> '+esc(renderErr.message)+'<br/><pre style="font-size:10px;overflow:auto;max-height:120px">'+esc(renderErr.stack||'')+'</pre></div>';
+      console.error('[AIRA RENDER]', renderErr);
+    }
   }catch(e){
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
     btn.disabled=false;
@@ -2739,6 +2738,48 @@ async function runCACore(){
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
     ['cp1','cp2','cp3','cp4','cp5'].forEach(stepDone);
     var cred=document.getElementById('ca-credits-display');
+    if(cred){var cur=parseInt(cred.textContent)||5;cred.textContent=Math.max(0,cur-1)+' / 5';}
+    document.getElementById('btn-ca-run').disabled=false;
+    document.getElementById('btn-ca-run').textContent='Run AIRA for Client';
+    runPaidResultRender(result,cin,sector,exchange,document.getElementById('result-ca'),'ca');
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
+    document.getElementById('btn-ca-run').disabled=false;
+    document.getElementById('prog-ca').style.display='none';
+    document.getElementById('result-ca').innerHTML='<div class="err-card">'+esc(e.message)+'</div>';
+  }
+}
+
+
+/* === WORKER DIAGNOSTIC TEST === */
+async function testWorker(){
+  var el = document.getElementById('worker-test-result');
+  if(el) el.innerHTML = '<span style="color:#C9932A">Testing...</span>';
+  try {
+    // Step 1: ping worker
+    var r1 = await fetch(WORKER, {method:'GET'});
+    var t1 = await r1.text();
+    if(!t1.includes('OK')) throw new Error('Worker not responding: '+t1.substring(0,80));
+
+    // Step 2: test Claude API via worker
+    var r2 = await fetch(WORKER, {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type:'aira_free', cin:'U74999MH2020PTC123456',
+        company_name:'Test Company', sector:'Manufacturing', exchange:'NSE Emerge (SME)'})
+    });
+    var j2 = await r2.json();
+
+    if(j2.error) throw new Error('Worker error: ' + j2.error);
+    if(!j2.report && !j2._report) throw new Error('Worker returned no report. Response: '+JSON.stringify(j2).substring(0,120));
+
+    var reportLen = (j2.report||j2._report||'').length;
+    if(el) el.innerHTML = '<span style="color:var(--ok)">\u2713 Worker OK \u2014 Claude responding \u2014 Report length: '+reportLen+' chars</span>';
+  } catch(e) {
+    if(el) el.innerHTML = '<span style="color:var(--er)">\u274C '+esc(e.message)+'</span>';
+    console.error('[AIRA TEST]', e);
+  }
+}
+-display');
     if(cred){var cur=parseInt(cred.textContent)||5;cred.textContent=Math.max(0,cur-1)+' / 5';}
     document.getElementById('btn-ca-run').disabled=false;
     document.getElementById('btn-ca-run').textContent='Run AIRA for Client';
