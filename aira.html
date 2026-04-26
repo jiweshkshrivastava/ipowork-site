@@ -1552,6 +1552,7 @@ async function runFreeCore(){
   html+=renderFixEngine();
   html+=renderValuation(sector,fin.revenue_fy24||'',fin.pat_fy24||'','',fin.ebitda_margin||'');
   html+='</div>';
+  console.log('[AIRA] Setting out.innerHTML, html length=', html.length);
   out.innerHTML=html;
   initSimulator(score);
   animateBenchmarkBar();
@@ -1999,6 +2000,7 @@ async function readFileForAI(file,key){
 }
 
 function renderDocResult(result, cname, sector, exchange) {
+  console.log('[AIRA-DOC] renderDocResult called, score=', result.score, 'report len=', (result._report||'').length);
   var out = document.getElementById('result-doc');
   var report = result._report || result.report || '';
   var score = result.score || extractScore(report);
@@ -2638,6 +2640,8 @@ async function runPaidCore(){
   stepDone('pp4');stepActive('pp5');await new Promise(function(r){setTimeout(r,200);});
   stepDone('pp5');
   btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Run Full AIRA \u2192';
+  console.log('[AIRA] Worker response received:', JSON.stringify(result).substring(0,200));
+  console.log('[AIRA] _report length:', (result._report||'').length);
   var report=result._report||'';
   var co=result;
   var fin2=co.financials||{};
