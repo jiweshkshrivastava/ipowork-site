@@ -295,7 +295,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   <div class="topbar-r">
     <div class="credit-pill">🪙 <span id="credit-display">Free</span></div>
     <button class="btn-ghost" onclick="resetAll()">↺ Reset</button>
-    <button class="btn-ghost" id="topbar-login" onclick="openLogin()">👤 Sign In</button>
+    <button class="btn-ghost" id="topbar-login" onclick="openLogin()">&#128100; Sign In</button>
+    <button class="btn-ghost" id="btn-admin-trigger" onclick="ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth()" style="font-size:10px;opacity:.3;padding:4px 8px" title="Admin">&#128272;</button>
   </div>
 </div>
 
@@ -1126,16 +1127,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
         </div>
       </div>
     </div>
-    <div id="result-alert"></div>
-  </div>
-
-  <!-- ADMIN DASHBOARD -->
-  <div class="tier-content" id="content-admin">
-    <div class="form-card">
-      <div class="fsec-lbl">Admin Dashboard — Supabase Live Da
-
-
-<script>var AIRA_RESULTS={};
+    <div id="revar AIRA_RESULTS={};
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 var SB_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
@@ -1466,9 +1458,7 @@ function renderValuation(sector,revenue,pat,ebitda,ebitdaM){
   var pat_n   = cleanNum(pat);
   var ebitda_n = cleanNum(ebitda);
   var rev_n   = cleanNum(revenue);
-  var canVal  = pat_n > 0 || rev_n > 0;
-  // Only show valuation if we have actual financial data
-  if(!canVal) return '';
+  var canVal  = true; // Always show sector peer benchmarks
   var h='<div class="fin-card" style="margin-top:4px"><div class="card-hd"><div class="card-ttl">Valuation Matrix — '+esc(sector)+' Sector Peers</div><div class="card-sub">Sector benchmark comparables · FY2024 · indicative only</div></div>';
   h+='<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:480px"><thead><tr><th>Company</th><th>Revenue ₹Cr</th><th>EBITDA%</th><th>P/E</th><th>EV/EBITDA</th><th>Mkt Cap ₹Cr</th></tr></thead><tbody>';
   peers.forEach(function(p){h+='<tr><td style="font-weight:600;color:var(--sl)">'+p.name+'</td><td>'+p.rev+'</td><td style="color:var(--ok)">'+p.em+'%</td><td>'+p.pe+'x</td><td>'+p.ev+'x</td><td>'+p.mc+'</td></tr>';});
@@ -1880,6 +1870,7 @@ function stepDone(id) {
    ═══════════════════════════════════════════════════════════════ */
 function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   if(!out) return;
+  function fmtINR(v){if(v==null||v===''||v===undefined)return'—';var n=parseFloat(String(v).replace(/[^\d.-]/g,''));if(isNaN(n))return String(v);if(n>=10000000)return'₹'+(n/10000000).toFixed(1)+' Cr';if(n>=100000)return'₹'+(n/100000).toFixed(1)+' L';return'₹'+n.toLocaleString();}
   // Store result for download
   AIRA_RESULTS[tier] = {result:result, cname:cname, sector:sector, exchange:exchange, tier:tier};
 
@@ -2083,6 +2074,24 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
     html+='</tbody></table>';
   }
 
+  // ── 9b. Related Party Transactions (RPT) ──────────────────────────
+  var rpts2=Array.isArray(result.rpt_transactions)?result.rpt_transactions:[];
+  html+='<div class="sec-hd">Related Party Transactions</div>';
+  if(rpts2.length){
+    html+='<table class="fin-tbl"><thead><tr><th>Party</th><th>Relationship</th><th>Nature</th><th>Amount</th></tr></thead><tbody>';
+    rpts2.forEach(function(r){
+      html+='<tr><td style="font-weight:600">'+esc(r.party||'—')+'</td><td>'+esc(r.relationship||'—')+'</td><td>'+esc(r.nature||'—')+'</td><td>'+esc(r.amount?fmtINR(r.amount):'—')+'</td></tr>';
+    });
+    html+='</tbody></table>';
+  } else {
+    html+='<div style="padding:12px 16px;background:rgba(232,138,46,.06);border:1px solid rgba(232,138,46,.15);border-radius:9px;margin-bottom:14px;font-size:12px;color:var(--go)">';
+    html+='RPT data not returned by Probe42 for this company. Per SEBI ICDR 2018 Reg 32, all material RPTs must be disclosed in DRHP. Review audited financials and Directors’ Report.</div>';
+  }
+
+  // ── 9c. Valuation Matrix ─────────────────────────────────────────────
+  html+='<div class="sec-hd">Valuation Matrix — '+esc(sector)+' Sector</div>';
+  try{ html+=renderValuation(sector, fin2.revenue_fy24||'', fin2.pat_fy24||'', '', fin2.ebitda_margin||''); }catch(e){}
+
   // ── 10. Industry benchmark ────────────────────────────────────────────
   try{ html+=renderBenchmark(score,sector); }catch(e){}
 
@@ -2097,7 +2106,6 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   // ── 12. Score simulator + Fix engine ─────────────────────────────────
   try{ html+=renderSimulator(score); }catch(e){}
   try{ html+=renderFixEngine(); }catch(e){}
-  try{ html+=renderValuation(sector,fin2.revenue_fy24||'',fin2.pat_fy24||'','',fin2.ebitda_margin||''); }catch(e){}
 
   // ── 13. Upsell for lower tiers ────────────────────────────────────────
   if(tier==='free'||tier==='doc'){
@@ -2396,7 +2404,24 @@ var ADMIN_UNLOCKED=false,ADMIN_PWD='ipowork@admin2026';
 function openAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='flex';setTimeout(function(){document.getElementById('admin-pwd-input').focus();},100);}}
 function closeAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='none';document.getElementById('admin-pwd-input').value='';document.getElementById('admin-pwd-err').textContent='';}}
 function checkAdminPwd(){var p=document.getElementById('admin-pwd-input').value;if(p===ADMIN_PWD){ADMIN_UNLOCKED=true;closeAdminAuth();var t=document.getElementById('tab-admin');if(t)t.style.display='';switchTier('admin');}else{document.getElementById('admin-pwd-err').textContent='Incorrect password.';document.getElementById('admin-pwd-input').value='';}}
-document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.shiftKey&&e.key==='A'){e.preventDefault();ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth();}});
+// Admin shortcut: Ctrl+Shift+9 OR triple-click ipowork logo
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey&&e.shiftKey&&(e.key==='9'||e.key==='(')){
+    e.preventDefault();
+    ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth();
+  }
+});
+// Also: click ipowork logo 5 times quickly
+var _adminClicks=0,_adminTimer=null;
+document.addEventListener('click',function(e){
+  var el=e.target;
+  if(el&&(el.closest('.brand')||el.closest('.topbar-brand')||(el.tagName==='A'&&el.textContent.includes('ipowork')))){
+    _adminClicks++;
+    clearTimeout(_adminTimer);
+    _adminTimer=setTimeout(function(){_adminClicks=0;},2000);
+    if(_adminClicks>=5){_adminClicks=0;ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth();}
+  }
+});
 (function(){var _o=switchTier;switchTier=function(t){if(t==='admin'&&!ADMIN_UNLOCKED){openAdminAuth();return;}_o(t);};})();
 
 /* === WORKER TEST === */
@@ -2820,6 +2845,11 @@ function downloadReport(tier){
     var a=document.createElement('a');
     a.href=url;
     a.download='AIRA-'+(r.company||tier).replace(/[^a-zA-Z0-9\u0900-\u097F]/g,'-').substring(0,40)+'-'+new Date().toISOString().slice(0,10)+'.html';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},3000);
+  }catch(e2){alert('Download failed. Please use Preview and Print to PDF instead.');}
+}
+;
     document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(url);a.remove();},3000);
   }catch(e2){alert('Download failed. Please use Preview and Print to PDF instead.');}
