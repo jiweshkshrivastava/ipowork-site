@@ -2886,118 +2886,218 @@ function downloadReport(tier){
 }
 
 
+
+
+
 function buildReportHtml(tier){
   var container=document.getElementById('result-'+tier);
   if(!container||!container.innerHTML.trim())return null;
 
-  // Collect company info from any input
-  var company='',cin='',sector='',exchange='';
-  [['p-cname','p-cin','p-sector','p-exchange'],
-   ['d-cname','d-cin','d-sector','d-exchange'],
-   ['mb-cname','mb-cin','mb-sector','mb-exchange'],
-   ['ca-cname','ca-cin','ca-sector','ca-exchange'],
-   ['cc-cname','cc-cin','cc-sector','cc-exchange'],
-   ['dd-cname','dd-cin','dd-sector','dd-exchange'],
-   ['f-cname','f-cin','f-sector','f-exchange']
-  ].forEach(function(ids){
+  /* Collect metadata */
+  var company='',cin='',sector='',exchange='',firmName='';
+  var fieldSets=[
+    ['p-cname','p-cin','p-sector','p-exchange'],
+    ['d-cname','d-cin','d-sector','d-exchange'],
+    ['mb-cname','mb-cin','mb-sector','mb-exchange'],
+    ['ca-cname','ca-cin','ca-sector','ca-exchange'],
+    ['cc-cname','cc-cin','cc-sector','cc-exchange'],
+    ['dd-cname','dd-cin','dd-sector','dd-exchange'],
+    ['f-cname','f-cin','f-sector','f-exchange']
+  ];
+  fieldSets.forEach(function(ids){
     var nm=document.getElementById(ids[0]);
-    if(nm&&nm.value&&!company){
-      company=nm.value;
-      var c=document.getElementById(ids[1]);if(c)cin=c.value;
+    if(nm&&nm.value.trim()&&!company){
+      company=nm.value.trim();
+      var c=document.getElementById(ids[1]);if(c)cin=c.value.trim();
       var s=document.getElementById(ids[2]);if(s)sector=s.value;
       var x=document.getElementById(ids[3]);if(x)exchange=x.value;
     }
   });
+  var caFirm=document.getElementById('ca-firm');
+  if(caFirm)firmName=caFirm.value.trim();
 
-  // Get score
+  /* Score */
   var scoreEl=container.querySelector('.sdn-big');
   var score=scoreEl?parseInt(scoreEl.textContent.trim())||0:0;
+  var scoreCol=score>=78?'#1A9E6B':score>=65?'#D4860C':'#C0392B';
+  var scoreLbl=score>=78?'Main Board Eligible':score>=65?'SME IPO Ready':score>=50?'Needs Preparation':'Not Ready';
 
-  // Get all rendered sections as HTML
-  var sections='';
-  var aiEl=container.querySelector('[id^="ai-report-body"]');
-  if(aiEl) sections+=aiEl.outerHTML;
-
-  // Get full inner content  
-  var fullContent=container.innerHTML;
-
+  /* Tier label */
   var tierLabel={paid:'AIRA Intelligence',doc:'AIRA Score',mainboard:'Mainboard Intelligence',
     ca:'CA/CS Bundle',clearchit:'Clean Chit',ddbundle:'DD Bundle',
-    free:'Free Analysis',dirscan:'Director Risk Scan'}[tier]||tier;
+    free:'Free Analysis',dirscan:'Director Risk'}[tier]||tier;
   var now=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-  var scoreCol=score>=78?'#1A9E6B':score>=65?'#C9932A':'#C0392B';
 
-  var css='*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:-apple-system,system-ui,sans-serif;color:#2C3E47;font-size:13px;line-height:1.7;background:#FAFAF8}'
-    +'.page{max-width:900px;margin:0 auto;padding:32px 28px}'
-    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:3px solid #08404D;margin-bottom:24px}'
-    +'.brand{font-size:24px;font-weight:900;color:#08404D;font-family:Georgia,serif}'
-    +'.score-box{background:linear-gradient(135deg,#07232A,#0D5C6B);border-radius:14px;padding:22px 28px;margin-bottom:20px;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}'
-    +'.score-num{font-size:56px;font-weight:900;color:'+scoreCol+';line-height:1;font-family:Georgia,serif}'
-    +'.dim-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}'
-    +'.dim-card{background:#fff;border:1px solid #E2E8EA;border-radius:8px;padding:12px;border-top:3px solid #1A9E6B}'
-    +'.dim-val{font-size:22px;font-weight:700;color:#1A9E6B;font-family:Georgia,serif}'
-    +'.dim-lbl{font-size:11px;color:#6B7E85;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}'
-    +'table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}'
-    +'th{background:#F0F7F8;font-size:10px;font-weight:700;color:#6B7E85;text-transform:uppercase;padding:8px 12px;text-align:left;letter-spacing:.4px}'
-    +'td{padding:8px 12px;border-bottom:1px solid #EEF2F4;vertical-align:top}'
-    +'h2{font-size:13px;font-weight:800;color:#08404D;margin:22px 0 10px;text-transform:uppercase;letter-spacing:.6px;padding-bottom:6px;border-bottom:1px solid #E2E8EA}'
-    +'.ai-body{background:#fff;border:1px solid #E2E8EA;border-radius:10px;padding:20px 22px;line-height:1.8;font-size:13px}'
-    +'.ai-body h1,.ai-body h2,.ai-body h3{color:#08404D;margin:16px 0 8px;font-size:14px}'
-    +'.ai-body p{margin-bottom:10px}.ai-body ul,.ai-body ol{padding-left:20px;margin-bottom:10px}'
-    +'.ai-body li{margin-bottom:4px}.ai-body strong{color:#2C3E47}'
-    +'.footer{border-top:1px solid #E2E8EA;padding-top:14px;display:flex;justify-content:space-between;font-size:10px;color:#9EB5C0;margin-top:28px}'
-    +'@media print{.no-print{display:none}.page{padding:20px}body{font-size:12px}}';
+  /* Extract AI report text cleanly */
+  var aiEl=container.querySelector('[id^="ai-report-body"]');
+  var aiHtml=aiEl?aiEl.innerHTML:'';
 
-  var htm='<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>'
+  /* Extract dimension scores */
+  var dimCards=container.querySelectorAll('.dim-card');
+  var dimsHtml='';
+  if(dimCards.length){
+    dimsHtml='<table class="dim-tbl"><thead><tr>';
+    dimCards.forEach(function(d){
+      var lbl=d.querySelector('.dim-lbl');
+      if(lbl)dimsHtml+='<th>'+lbl.textContent.trim()+'</th>';
+    });
+    dimsHtml+='</tr></thead><tbody><tr>';
+    dimCards.forEach(function(d){
+      var val=d.querySelector('.dim-val');
+      var verd=d.querySelector('.dim-verd');
+      if(val){
+        var v=parseInt(val.textContent)||0;
+        var c=v>=78?'#1A9E6B':v>=65?'#D4860C':'#C0392B';
+        dimsHtml+='<td style="text-align:center"><span style="font-size:20px;font-weight:800;color:'+c+'">'+v+'</span>'+(verd?'<br/><span style="font-size:10px;color:#6B7E85">'+verd.textContent.trim()+'</span>':'')+'</td>';
+      }
+    });
+    dimsHtml+='</tr></tbody></table>';
+  }
+
+  /* Extract directors table */
+  var dtbl=container.querySelector('.dtable');
+  var dirsHtml=dtbl?dtbl.outerHTML:'';
+
+  /* Extract data cards (ds-card) */
+  var dsCards=container.querySelectorAll('.ds-card');
+  var dsHtml='';
+  dsCards.forEach(function(card){
+    dsHtml+=card.outerHTML;
+  });
+
+  /* Extract KV grid */
+  var kvGrid=container.querySelector('.kv-grid');
+  var kvHtml=kvGrid?kvGrid.outerHTML:'';
+
+  /* Extract charges table */
+  var allTables=container.querySelectorAll('.fin-tbl');
+  var tablesHtml='';
+  allTables.forEach(function(t){tablesHtml+=t.outerHTML;});
+
+  /* Build PDF */
+  var css=
+    '*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2B35;font-size:12px;line-height:1.65;background:#fff}'
+    +'.page{max-width:960px;margin:0 auto;padding:28px 32px}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2.5px solid #07232A}'
+    +'.brand{font-size:26px;font-weight:900;color:#07232A;font-family:Georgia,serif;letter-spacing:-0.5px}'
+    +'.brand sup{font-size:13px;color:#E88A2E;font-family:sans-serif}'
+    +'.tag{display:inline-block;padding:4px 12px;background:#EAF4F5;border-radius:5px;font-size:11px;font-weight:700;color:#0D5C6B;text-transform:uppercase;letter-spacing:.5px}'
+    +'.score-box{background:linear-gradient(135deg,#07232A 0%,#0D5C6B 100%);border-radius:14px;padding:22px 28px;margin-bottom:18px;display:flex;align-items:center;gap:24px}'
+    +'.big-score{font-size:60px;font-weight:900;color:'+scoreCol+';line-height:1;font-family:Georgia,serif}'
+    +'.score-info{flex:1}'
+    +'.score-lbl{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}'
+    +'.score-meta{font-size:12px;color:rgba(255,255,255,.55)}'
+    +'.sec{margin:18px 0 10px;font-size:11px;font-weight:800;color:#0D5C6B;text-transform:uppercase;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EEF0}'
+    +'table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}'
+    +'th{background:#EAF4F5;font-size:10px;font-weight:700;color:#4A6670;text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;text-align:left}'
+    +'td{padding:8px 12px;border-bottom:1px solid #EEF4F6;vertical-align:top}'
+    +'tr:last-child td{border-bottom:none}'
+    +'.dim-tbl th,.dim-tbl td{text-align:center}'
+    +'.kv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}'
+    +'.kv-card{background:#F4F9FA;border-radius:7px;padding:10px 12px;text-align:center;border:1px solid #E0EEF0}'
+    +'.kv-val{font-size:15px;font-weight:800;color:#07232A}'
+    +'.kv-val.g{color:#1A9E6B}'
+    +'.kv-val.a{color:#D4860C}'
+    +'.kv-lbl{font-size:9px;color:#6B8A94;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}'
+    +'.ds-card{border:1px solid #E0EEF0;border-radius:9px;margin-bottom:12px;overflow:hidden}'
+    +'.ds-hd{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#EAF4F5}'
+    +'.ds-name{font-size:11px;font-weight:800;color:#07232A;text-transform:uppercase;letter-spacing:.5px}'
+    +'.ds-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:#1A9E6B;color:#fff}'
+    +'.ds-rows{padding:0}'
+    +'.ds-row{display:flex;align-items:center;padding:7px 14px;border-top:1px solid #EEF4F6;font-size:12px}'
+    +'.ds-row .k{color:#6B8A94;min-width:140px;font-size:11px}'
+    +'.ds-row .v{font-weight:600;color:#1A2B35}'
+    +'.ds-row .v-ok{color:#1A9E6B}'
+    +'.ds-row .v-bad{color:#C0392B;font-weight:700}'
+    +'.ai-body{font-size:12.5px;line-height:1.75;color:#1A2B35}'
+    +'.ai-body h1,.ai-body h2,.ai-body h3{color:#07232A;margin:14px 0 6px;font-size:13px;font-weight:800;border-bottom:1px solid #EEF4F6;padding-bottom:4px}'
+    +'.ai-body p{margin-bottom:9px}'
+    +'.ai-body ul,.ai-body ol{padding-left:22px;margin-bottom:9px}'
+    +'.ai-body li{margin-bottom:3px}'
+    +'.ai-body strong,.ai-body b{color:#07232A}'
+    +'.ai-body table{width:100%;border-collapse:collapse;margin:10px 0}'
+    +'.ai-body th{background:#EAF4F5;padding:7px 10px;font-size:10px;text-align:left}'
+    +'.ai-body td{padding:7px 10px;border-bottom:1px solid #EEF4F6}'
+    +'.footer{margin-top:28px;padding-top:12px;border-top:1px solid #E0EEF0;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#8FA8B2}'
+    +'@media print{'
+    +'  body{font-size:11px}'
+    +'  .page{padding:16px 20px}'
+    +'  .score-box{break-inside:avoid}'
+    +'  .ds-card{break-inside:avoid}'
+    +'  .no-print{display:none!important}'
+    +'}';
+
+  var htm='<!DOCTYPE html><html lang="en"><head>'
+    +'<meta charset="UTF-8"/>'
     +'<meta name="viewport" content="width=device-width,initial-scale=1"/>'
-    +'<title>AIRA Report - '+esc(company)+'</title>'
-    +'<style>'+css+'</style></head><body><div class="page">';
+    +'<title>AIRA '+tierLabel+' Report — '+esc(company)+'</title>'
+    +'<style>'+css+'</style>'
+    +'</head><body><div class="page">';
 
-  // Header
+  /* ── HEADER ─────────────────────────────────────────────────────── */
   htm+='<div class="hdr">'
-    +'<div><div class="brand">ipowork<sup style="font-size:12px;color:#E88A2E;font-weight:700">AI</sup></div>'
-    +'<div style="font-size:12px;color:#6B7E85;margin-top:3px">IPO Readiness Platform</div></div>'
-    +'<div style="text-align:right">'
-    +'<div style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:5px;background:#E8F4FD;color:#0D5C6B;display:inline-block">'+esc(tierLabel)+'</div>'
-    +'<div style="font-size:11px;color:#6B7E85;margin-top:4px">Generated: '+now+'</div>'
-    +'</div></div>';
-
-  // Company + score box
-  htm+='<div class="score-box">'
-    +'<div class="score-num">'+score+'</div>'
     +'<div>'
-    +'<div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">AIRA Score</div>'
-    +'<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px">'+esc(company||'Company')+'</div>'
-    +(cin?'<div style="font-size:11px;color:rgba(255,255,255,.5);font-family:monospace">'+esc(cin)+'</div>':'')
-    +'<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:4px">'+esc(sector)+(exchange?' · '+esc(exchange):'')+'</div>'
+    +'<div class="brand">ipowork<sup>AI</sup></div>'
+    +'<div style="font-size:11px;color:#6B8A94;margin-top:3px">IPO Readiness Platform &middot; ipowork.com</div>'
+    +'</div>'
+    +'<div style="text-align:right">'
+    +'<div class="tag">'+esc(tierLabel)+'</div>'
+    +'<div style="font-size:11px;color:#8FA8B2;margin-top:5px">Generated: '+now+'</div>'
+    +(firmName?'<div style="font-size:11px;color:#0D5C6B;font-weight:600;margin-top:2px">Prepared by: '+esc(firmName)+'</div>':'')
     +'</div></div>';
 
-  // Render the full result content (strip buttons and interactive elements)
-  var cleanContent=fullContent
-    .replace(/<button[^>]*>[\s\S]*?<\/button>/gi,'')
-    .replace(/<input[^>]*>/gi,'')
-    .replace(/<div[^>]*class="[^"]*dl-row[^"]*"[^>]*>[\s\S]*?<\/div>/gi,'')
-    .replace(/<div[^>]*id="score-simulator[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi,'')
-    .replace(/<div[^>]*class="[^"]*upsell[^"]*"[^>]*>[\s\S]*?<\/div>/gi,'')
-    .replace(/style="[^"]*display:\s*none[^"]*"/gi,'');
+  /* ── SCORE BOX ──────────────────────────────────────────────────── */
+  htm+='<div class="score-box">'
+    +'<div class="big-score">'+score+'</div>'
+    +'<div class="score-info">'
+    +'<div class="score-lbl">'+esc(scoreLbl)+'</div>'
+    +'<div class="score-meta" style="font-size:14px;color:rgba(255,255,255,.75);margin-bottom:6px">'+esc(company)+(cin?' &nbsp;<span style="font-family:monospace;font-size:11px">'+esc(cin)+'</span>':'')+'</div>'
+    +'<div class="score-meta">'+esc(sector||'')+(exchange?' &middot; '+esc(exchange):'')+'</div>'
+    +'<div class="score-meta" style="margin-top:6px;font-size:10px">SEBI ICDR 2018 Compliance Score &middot; '+esc(tierLabel)+'</div>'
+    +'</div></div>';
 
-  // Wrap AI report body in styled div
-  cleanContent=cleanContent.replace(/<div id="ai-report-body[^"]*"[^>]*>/g,'<div class="ai-body">');
+  /* ── DIMENSION SCORES ───────────────────────────────────────────── */
+  if(dimsHtml){
+    htm+='<div class="sec">Dimension Scores</div>';
+    htm+=dimsHtml;
+  }
 
-  // Inject dim-card styling fixes  
-  cleanContent=cleanContent.replace(/border-top-color:#1A9E6B/g,'border-top-color:#1A9E6B')
-    .replace(/border-top-color:#C9932A/g,'border-top-color:#C9932A')
-    .replace(/border-top-color:#C0392B/g,'border-top-color:#C0392B');
+  /* ── DATA CARDS (MCA + Compliance) ─────────────────────────────── */
+  if(dsHtml){
+    htm+='<div class="sec">Company Data &mdash; Probe42 Verified</div>';
+    htm+=dsHtml;
+  }
 
-  htm+=cleanContent;
+  /* ── FINANCIAL KPIs ─────────────────────────────────────────────── */
+  if(kvHtml){
+    htm+='<div class="sec">Financial Indicators</div>';
+    htm+=kvHtml;
+  }
 
-  // Footer
+  /* ── DIRECTORS + CHARGES ─────────────────────────────────────────── */
+  if(dirsHtml){
+    htm+='<div class="sec">Board of Directors</div>';
+    htm+=dirsHtml;
+  }
+  if(tablesHtml){
+    htm+='<div class="sec">Additional Data</div>';
+    htm+=tablesHtml;
+  }
+
+  /* ── AI REPORT ─────────────────────────────────────────────────── */
+  if(aiHtml){
+    htm+='<div class="sec">AI Analysis Report</div>';
+    htm+='<div class="ai-body">'+aiHtml+'</div>';
+  }
+
+  /* ── FOOTER ─────────────────────────────────────────────────────── */
   htm+='<div class="footer">'
-    +'<div>ipowork.com &middot; partners@ipowork.com &middot; +91 88510 59588</div>'
-    +'<div>Indicative only &middot; Not SEBI registered research &middot; '+esc(tierLabel)+'</div>'
-    +'</div></div></body></html>';
+    +'<div>ipowork.com &middot; partners@ipowork.com &middot; WhatsApp: +91 88510 59588</div>'
+    +'<div>Indicative only. Not SEBI registered research. For professional use.</div>'
+    +'</div>';
 
+  htm+='</div></body></html>';
   return {htm:htm, company:company, score:score};
 }
 </script>
