@@ -2749,11 +2749,35 @@ function buildReport(tier){
       chgs.map(function(c){return [c.holder||'N/A',fmtR(c.amount),c.type||'N/A',c.status||'Open',c.date||'N/A'];}));
   }
 
+  // RPT
+  var rpts=Array.isArray(result.rpt_transactions)?result.rpt_transactions:[];
+  if(rpts.length){
+    htm+=secR('Related Party Transactions');
+    htm+=tblR(['Party','Relationship','Nature','Amount'],
+      rpts.map(function(r){return[r.party||'—',r.relationship||'—',r.nature||'—',r.amount?fmtR(r.amount):'—'];}));
+  }
+
   // PEERS
   if(peers.length){
     htm+=secR('Peer Comparison — Probe42');
     htm+=tblR(['Company','Revenue','PAT','City'],
       peers.map(function(p){return [p.name+(p.cin===result.cin?' ★':''),fmtR(p.revenue),fmtR(p.pat),p.city||'—'];}));
+  }
+
+  // VALUATION
+  var tierHasVal=['paid','mainboard','ca','ddbundle'].indexOf(tier)>=0;
+  if(tierHasVal){
+    var PEERS_BR={'Manufacturing':[{n:'Praj Industries',rev:'1,240',em:'14.2%',pe:'28x',ev:'16x',mc:'3,200'},{n:'Hind Rectifiers',rev:'380',em:'12.8%',pe:'22x',ev:'13x',mc:'620'},{n:'Menon Pistons',rev:'290',em:'11.5%',pe:'18x',ev:'11x',mc:'380'}],'Pharma':[{n:'Windlas Biotech',rev:'520',em:'16.2%',pe:'24x',ev:'14x',mc:'980'},{n:'Marksans Pharma',rev:'1,100',em:'18.1%',pe:'26x',ev:'15x',mc:'2,800'}],'IT Services':[{n:'Mastech Digital',rev:'680',em:'12.4%',pe:'22x',ev:'13x',mc:'1,200'},{n:'KPIT Technologies',rev:'1,300',em:'15.8%',pe:'32x',ev:'18x',mc:'5,800'}],'Other':[{n:'Sector Peer A',rev:'400',em:'12%',pe:'20x',ev:'12x',mc:'800'},{n:'Sector Peer B',rev:'600',em:'14%',pe:'22x',ev:'13x',mc:'1,200'}]};
+    var sectorPeers=PEERS_BR[sector]||PEERS_BR['Other'];
+    htm+=secR('Valuation Matrix — '+escR(sector)+' Sector Benchmarks');
+    htm+='<p style="font-size:10px;color:#8FA8B2;margin-bottom:8px">Sector benchmark comparables · FY2024 · indicative only</p>';
+    htm+='<table><thead><tr><th>Company</th><th>Revenue (Rs.Cr)</th><th>EBITDA%</th><th>P/E</th><th>EV/EBITDA</th><th>Mkt Cap (Rs.Cr)</th></tr></thead><tbody>';
+    sectorPeers.forEach(function(p){htm+='<tr><td>'+escR(p.n)+'</td><td>'+escR(p.rev)+'</td><td>'+escR(p.em)+'</td><td>'+escR(p.pe)+'</td><td>'+escR(p.ev)+'</td><td>'+escR(p.mc)+'</td></tr>';});
+    var coRev=fin.revenue_fy24?fmtR(fin.revenue_fy24):'Provide financial data';
+    var coEm=fin.ebitda_margin?pctR(fin.ebitda_margin):'—';
+    htm+='<tr style="background:#EAF4F5;font-weight:700"><td>&#9733; '+escR(cname)+'</td><td>'+escR(coRev)+'</td><td>'+escR(coEm)+'</td><td>—</td><td>—</td><td>—</td></tr>';
+    htm+='</tbody></table>';
+    htm+='<p style="font-size:10px;color:#8FA8B2;margin-bottom:14px">Indicative only. Final valuation by merchant banker at DRHP filing.</p>';
   }
 
   // AI REPORT
