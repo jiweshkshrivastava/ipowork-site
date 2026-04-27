@@ -339,6 +339,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 
   </div>
 
+  <!-- ADMIN DASHBOARD -->
+  <div class="tier-content" id="content-admin">
+    <div class="form-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div style="font-size:16px;font-weight:800;color:var(--tl)">&#128202; Admin Dashboard</div>
+        <button onclick="loadAdmin()" class="btn-ghost">&#8635; Refresh</button>
+      </div>
+      <div id="admin-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px"></div>
+      <div class="sec-hd">Reports</div>
+      <div id="admin-reports" style="overflow-x:auto"></div>
+      <div class="sec-hd" style="margin-top:16px">Leads / Users</div>
+      <div id="admin-users" style="overflow-x:auto"></div>
+    </div>
+  </div>
+
   <!-- hidden admin -->
   <button class="tier-tab" id="tab-admin" onclick="switchTier('admin')" style="display:none;width:fit-content;margin-top:6px">📊 Admin <span class="tb">INTERNAL</span></button>
 </div>
@@ -1113,21 +1128,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
       <!-- Watchlist -->
       <div style="padding:12px 14px;background:var(--card);border-radius:9px;border:1px solid rgba(201,147,42,.12);margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--go);margin-bottom:6px">📋 Current Watchlist: <span id="alert-watchlist-count">0 companies</span></div>
-        <div id="alert-watchlist" style="font-size:12px;color:var(--mu)">No companies added yet. Use the search above to add companies to monitor.</div>
-      </div>
-
-      <div class="run-section">
-        <button class="btn-run btn-amber" id="btn-al-run" onclick="requireLoginThen(activateAIRAAlert)">
-          <svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5.5a7 7 0 100 14A7 7 0 007.5.5zM7 3.5h1V8H7V3.5zm.5 6.5a.75.75 0 110-1.5.75.75 0 010 1.5z" fill="white"/></svg>
-          Activate AIRA Alert →
-        </button>
-        <div>
-          <div style="font-size:12px;color:var(--mu)">₹4,999/year · Daily 46-regulator monitoring · WhatsApp + email</div>
-          <div style="font-size:11px;color:var(--ok);font-weight:600;margin-top:2px">✓ Free until payment live</div>
-        </div>
-      </div>
-    </div>
-    <div id="re<script>
+        <div id="alert-watchlist" style="font-size:12px;color:var(--mu)
+<script>
 var AIRA_RESULTS={};
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
@@ -2404,7 +2406,27 @@ async function activateAIRAAlert(){
 var ADMIN_UNLOCKED=false,ADMIN_PWD='ipowork@admin2026';
 function openAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='flex';setTimeout(function(){document.getElementById('admin-pwd-input').focus();},100);}}
 function closeAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='none';document.getElementById('admin-pwd-input').value='';document.getElementById('admin-pwd-err').textContent='';}}
-function checkAdminPwd(){var p=document.getElementById('admin-pwd-input').value;if(p===ADMIN_PWD){ADMIN_UNLOCKED=true;closeAdminAuth();var t=document.getElementById('tab-admin');if(t)t.style.display='';switchTier('admin');}else{document.getElementById('admin-pwd-err').textContent='Incorrect password.';document.getElementById('admin-pwd-input').value='';}}
+function checkAdminPwd(){
+  var pw=document.getElementById('admin-pwd-input').value;
+  if(pw===ADMIN_PWD){
+    ADMIN_UNLOCKED=true;
+    closeAdminAuth();
+    var t=document.getElementById('tab-admin');
+    if(t) t.style.display='inline-flex';
+    ['free','paid','mainboard','ca','clearchit','dirscan','ddbundle','alert','admin'].forEach(function(id){
+      var c=document.getElementById('content-'+id);
+      var tb=document.getElementById('tab-'+id);
+      if(c) c.classList.toggle('active',id==='admin');
+      if(tb) tb.classList.toggle('active',id==='admin');
+    });
+    setTimeout(loadAdmin,100);
+  }else{
+    var err=document.getElementById('admin-pwd-err');
+    if(err) err.textContent='Incorrect password';
+    var inp=document.getElementById('admin-pwd-input');
+    if(inp){inp.value='';inp.focus();}
+  }
+}
 // Admin shortcut: Ctrl+Shift+9 OR triple-click ipowork logo
 document.addEventListener('keydown',function(e){
   if(e.ctrlKey&&e.shiftKey&&(e.key==='9'||e.key==='(')){
@@ -2821,6 +2843,14 @@ function buildReport(tier){
   return {htm:htm, company:cname, score:score};
 }
 
+
+
+
+
+
+
+
+
 function previewReport(tier){
   var r=buildReport(tier);
   if(!r){alert('Run AIRA first to generate the report.');return;}
@@ -2828,7 +2858,7 @@ function previewReport(tier){
   if(w&&w.document){
     var bar='<div class="no-print" style="position:sticky;top:0;z-index:9999;background:#07232A;padding:10px 24px;display:flex;align-items:center;gap:12px;font-family:sans-serif">'
       +'<span style="font-size:16px;font-weight:900;color:#fff;font-family:Georgia,serif">ipowork<sup style="font-size:10px;color:#E88A2E">AI</sup></span>'
-      +'<span style="flex:1;font-size:12px;color:rgba(255,255,255,.5)">'+escR(r.company)+' &mdash; Score: '+r.score+'</span>'
+      +'<span style="flex:1;font-size:12px;color:rgba(255,255,255,.5)">'+esc(r.company)+' &mdash; Score: '+r.score+'</span>'
       +'<button onclick="window.print()" style="padding:8px 20px;background:#E88A2E;color:#fff;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">Print / Save PDF</button>'
       +'<button onclick="window.close()" style="padding:8px 14px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit;margin-left:6px">Close</button>'
       +'</div>';
@@ -2845,10 +2875,10 @@ function downloadReport(tier){
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url;
-    a.download='AIRA-'+(r.company||tier).replace(/[^a-zA-Z0-9\u0900-\u097F]/g,'-').substring(0,40)+'-'+new Date().toISOString().slice(0,10)+'.html';
+    a.download='AIRA-'+(r.company||tier).replace(/[^a-zA-Z0-9]/g,'-').substring(0,40)+'-'+new Date().toISOString().slice(0,10)+'.html';
     document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(url);a.remove();},3000);
-  }catch(e2){alert('Download failed. Please use Preview and Print to PDF instead.');}
+  }catch(e){alert('Download failed. Use Preview then Print to PDF instead.');}
 }
 </script>
 </body>
