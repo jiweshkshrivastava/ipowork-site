@@ -2700,11 +2700,29 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
     html+='</div>';
 
     // Credit ratings
-    if(cr2.length){
-      html+='<div style="padding:10px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:9px;margin:10px 0;font-size:12px">';
-      html+='<span style="font-weight:700;color:var(--tl)">Credit Ratings: </span>';
-      html+=cr2.map(function(r){return esc(r.agency)+': <strong>'+esc(r.rating)+'</strong>'+(r.outlook?' ('+esc(r.outlook)+')':'');}).join('&nbsp;&nbsp;|&nbsp;&nbsp;');
-      html+='</div>';
+    // Deduplicate ratings client-side (safety net)
+    var crDedup=(function(){
+      var seen={},out=[];
+      (cr2||[]).forEach(function(r){
+        var key=(r.agency||'')+'|'+(r.instrument||'');
+        if(!seen[key]){seen[key]=true;out.push(r);}
+      });
+      return out.slice(0,6);
+    })();
+    if(crDedup.length){
+      html+='<div style="padding:10px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:9px;margin:10px 0">';
+      html+='<div style="font-size:11px;font-weight:700;color:var(--tl);margin-bottom:6px">Credit Ratings</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+      crDedup.forEach(function(r){
+        var rc=r.rating&&r.rating.startsWith('A')?'var(--ok)':r.rating&&r.rating.startsWith('B')?'var(--wn)':'var(--mu)';
+        html+='<div style="padding:6px 12px;background:#fff;border-radius:7px;border:1px solid var(--bd);font-size:12px">'
+          +'<span style="color:var(--mu);font-size:10px">'+esc(r.agency)+'</span> '
+          +'<span style="font-weight:800;color:'+rc+'">'+esc(r.rating)+'</span>'
+          +(r.instrument?'<span style="font-size:10px;color:var(--mu)"> · '+esc(r.instrument)+'</span>':'')
+          +(r.outlook&&r.outlook!=='Withdrawn'?'<span style="font-size:10px;color:var(--mu)"> ('+esc(r.outlook)+')</span>':'')
+          +'</div>';
+      });
+      html+='</div></div>';
     }
   }
 
