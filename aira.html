@@ -1462,7 +1462,19 @@ function renderValuation(sector,revenue,pat,ebitda,ebitdaM){
   var avgPE=peers.reduce(function(s,p){return s+parseFloat(p.pe);},0)/peers.length;
   var avgEV=peers.reduce(function(s,p){return s+parseFloat(p.ev);},0)/peers.length;
   // Clean currency strings like "₹45 Cr" or "45.2" 
-  function cleanNum(s){ return parseFloat(String(s||'').replace(/[₹,\s]/g,'').replace(/\s*Cr.*/i,'').replace(/\s*Lakhs?.*/i,function(m){return m.toLowerCase().includes('lakh')?'0.01':''})) || 0; }
+  function cleanNum(s){
+    if(s===null||s===undefined||s==='')return 0;
+    var str=String(s);
+    // If numeric value > 10000, assume it's in absolute units (rupees) → convert to Cr
+    var raw=parseFloat(str.replace(/[^\d.-]/g,''));
+    if(!isNaN(raw)&&raw>100000) return raw/10000000; // absolute rupees → Cr
+    if(!isNaN(raw)&&raw>1000)   return raw/100;      // lakhs → Cr
+    // Has 'Cr' suffix — already in Crores
+    if(/cr/i.test(str)) return parseFloat(str.replace(/[^\d.]/g,''))||0;
+    // Has 'L' or 'Lakh' — convert to Cr
+    if(/l\b|lakh/i.test(str)) return (parseFloat(str.replace(/[^\d.]/g,''))||0)/100;
+    return parseFloat(str.replace(/[^\d.-]/g,''))||0;
+  }
   var pat_n   = cleanNum(pat);
   var ebitda_n = cleanNum(ebitda);
   var rev_n   = cleanNum(revenue);
@@ -2097,8 +2109,20 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   }
 
   // ── 9c. Valuation Matrix ─────────────────────────────────────────────
-  html+='<div class="sec-hd">Valuation Matrix — '+esc(sector)+' Sector</div>';
-  try{ html+=renderValuation(sector, fin2.revenue_fy24||'', fin2.pat_fy24||'', '', fin2.ebitda_margin||''); }catch(e){}
+  try{
+    // Try to extract revenue from AI report text if Probe42 didn't return it
+    var rv=fin2.revenue_fy24, pt=fin2.pat_fy24, em=fin2.ebitda_margin;
+    if(!rv){
+      var rmatch=clean.match(/revenue[:\s]+(?:₹|Rs\.?)?\s*([\d,\.]+)\s*(?:Cr|cr|crore)/i);
+      if(rmatch)rv=rmatch[1].replace(/,/g,'');
+    }
+    if(!pt){
+      var pmatch=clean.match(/PAT[:\s]+(?:₹|Rs\.?)?\s*([\d,\.]+)\s*(?:Cr|cr|crore)/i)||
+                 clean.match(/profit after tax[:\s]+(?:₹|Rs\.?)?\s*([\d,\.]+)\s*(?:Cr|cr|crore)/i);
+      if(pmatch)pt=pmatch[1].replace(/,/g,'');
+    }
+    html+=renderValuation(sector, rv||'', pt||'', '', em||'');
+  }catch(e){}
 
   // ── 10. Industry benchmark ────────────────────────────────────────────
   try{ html+=renderBenchmark(score,sector); }catch(e){}
