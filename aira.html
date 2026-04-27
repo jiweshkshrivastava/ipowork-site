@@ -1441,122 +1441,135 @@ var PEERS={
 function renderValuation(sector, revenue, pat, ebitda, ebitdaM){
   var peers = PEERS[sector] || PEERS['Other'];
 
-  function cn(s){
+  // Convert any numeric format to Crores
+  function toCr(s){
     if(s===null||s===undefined||s==='')return 0;
     var str=String(s).toLowerCase().trim();
     var n=parseFloat(str.replace(/[^0-9.-]/g,''))||0;
-    if(str.indexOf('cr')>=0)  return n;
-    if(/lakh|\ l$|l\./.test(str)) return n/100;
-    if(n>10000000) return n/10000000;
-    if(n>100000)   return n/100;
-    return n;
+    if(n===0) return 0;
+    if(str.indexOf('cr')>=0)     return n;
+    if(/l(akh)?s?\b/.test(str))  return n/100;
+    if(n>10000000) return n/10000000;   // absolute rupees
+    if(n>10000)    return n/100;        // likely lakhs
+    return n; // already Cr
   }
 
-  var rev_n  = cn(revenue);
-  var pat_n  = cn(pat);
-  var em_raw = parseFloat(String(ebitdaM||'').replace(/[^0-9.-]/g,''))||0;
-  // negative margin = loss making, treat as 0 for valuation
-  var em_n   = em_raw > 0 ? em_raw : 0;
+  var rev_n = toCr(revenue);
+  var pat_n = toCr(pat);
 
-  var avgPE  = peers.reduce(function(s,p){return s+(parseFloat(p.pe)||0);},0)/peers.length;
-  var avgEV  = peers.reduce(function(s,p){return s+(parseFloat(p.ev)||0);},0)/peers.length;
-  var avgPS  = 0.8; // conservative P/Sales default
-  var mcArr  = peers.map(function(p){return (parseFloat(p.mc)||0)/(parseFloat(p.rev)||1);});
-  if(mcArr.length) avgPS = mcArr.reduce(function(a,b){return a+b;},0)/mcArr.length;
+  // ebitdaM must be a % between -100 and +100
+  // if Probe42 returns absolute EBITDA as "margin" field, sanitize it
+  var em_raw = 0;
+  if(ebitdaM !== null && ebitdaM !== undefined && ebitdaM !== '') {
+    var em_parsed = parseFloat(String(ebitdaM).replace(/[^0-9.-]/g,''))||0;
+    // Valid margin is between -100% and +100%
+    // If outside that range, it's an absolute value — recalculate from rev
+    if(Math.abs(em_parsed) <= 100) {
+      em_raw = em_parsed;
+    } else if(rev_n > 0) {
+      // em_parsed is absolute EBITDA in same units as revenue
+      var em_abs = toCr(ebitdaM);
+      em_raw = (em_abs / rev_n) * 100;
+      if(Math.abs(em_raw) > 100) em_raw = 0; // still bad, discard
+    }
+  }
+  var em_n = em_raw > 0 ? em_raw : 0;
+
+  // Have real data?
+  var hasRevenue = rev_n > 0;
+  var hasPAT     = pat_n > 0;
+  var hasEBITDA  = em_n  > 0;
+  var isLoss     = em_raw < -0.1; // genuinely loss-making
+  var hasAnyData = hasRevenue || hasPAT;
+
+  var avgPE = peers.reduce(function(s,p){return s+(parseFloat(p.pe)||0);},0)/peers.length;
+  var avgEV = peers.reduce(function(s,p){return s+(parseFloat(p.ev)||0);},0)/peers.length;
+  var avgPS = peers.reduce(function(s,p){
+    var mc=parseFloat(p.mc)||0,rv=parseFloat(p.rev)||1;return s+(mc/rv);
+  },0)/peers.length;
 
   var valMethod='', valL=0, valB=0, valH=0, hasVal=false;
-  if(pat_n > 0){
-    valMethod = 'P/E '+avgPE.toFixed(0)+'x';
-    valL = Math.round(pat_n * avgPE * 0.6);
-    valB = Math.round(pat_n * avgPE * 0.8);
-    valH = Math.round(pat_n * avgPE * 1.0);
-    hasVal = (valB > 0);
-  } else if(rev_n > 0 && em_n > 0){
-    var ebitda_cr = rev_n * em_n / 100;
-    valMethod = 'EV/EBITDA '+avgEV.toFixed(0)+'x';
-    valL = Math.round(ebitda_cr * avgEV * 0.6);
-    valB = Math.round(ebitda_cr * avgEV * 0.8);
-    valH = Math.round(ebitda_cr * avgEV * 1.0);
-    hasVal = (valB > 0);
-  } else if(rev_n > 0){
-    valMethod = 'P/Sales '+avgPS.toFixed(1)+'x';
-    valL = Math.round(rev_n * avgPS * 0.5);
-    valB = Math.round(rev_n * avgPS * 0.7);
-    valH = Math.round(rev_n * avgPS * 1.0);
-    hasVal = (valB > 0);
+  if(hasPAT){
+    valMethod='P/E '+avgPE.toFixed(0)+'x';
+    valL=Math.round(pat_n*avgPE*0.6);
+    valB=Math.round(pat_n*avgPE*0.8);
+    valH=Math.round(pat_n*avgPE);
+    hasVal=(valB>0);
+  } else if(hasRevenue&&hasEBITDA){
+    var eb=rev_n*em_n/100;
+    valMethod='EV/EBITDA '+avgEV.toFixed(0)+'x';
+    valL=Math.round(eb*avgEV*0.6);
+    valB=Math.round(eb*avgEV*0.8);
+    valH=Math.round(eb*avgEV);
+    hasVal=(valB>0);
+  } else if(hasRevenue){
+    valMethod='P/Sales '+avgPS.toFixed(1)+'x';
+    valL=Math.round(rev_n*avgPS*0.5);
+    valB=Math.round(rev_n*avgPS*0.7);
+    valH=Math.round(rev_n*avgPS);
+    hasVal=(valB>0);
   }
 
-  function fmtCr(n){
-    if(!n||n<=0) return 'N/A';
-    return '\u20b9'+n.toLocaleString('en-IN')+' Cr';
-  }
+  function fmtC(n){return n>0?'\u20b9'+n.toLocaleString('en-IN')+' Cr':'N/A';}
 
-  var h = '<div class="fin-card" style="margin-top:4px">';
-  h += '<div class="card-hd"><div class="card-ttl">Valuation Matrix &mdash; '+esc(sector)+' Sector Peers</div>';
-  h += '<div class="card-sub">Sector benchmarks &middot; FY2024 &middot; indicative only</div></div>';
+  var h='<div class="fin-card" style="margin-top:4px">';
+  h+='<div class="card-hd"><div class="card-ttl">Valuation Matrix &mdash; '+esc(sector)+' Sector Peers</div>';
+  h+='<div class="card-sub">Sector benchmarks &middot; FY2024 &middot; indicative only</div></div>';
 
-  // Peer comparison table — always shown
-  h += '<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:500px">';
-  h += '<thead><tr><th>Company</th><th>Revenue (\u20b9Cr)</th><th>EBITDA%</th><th>P/E</th><th>EV/EBITDA</th><th>Mkt Cap (\u20b9Cr)</th></tr></thead><tbody>';
+  // Peer table — always shown
+  h+='<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:480px">';
+  h+='<thead><tr><th>Company</th><th>Revenue (\u20b9Cr)</th><th>EBITDA%</th><th>P/E</th><th>EV/EBITDA</th><th>Mkt Cap (\u20b9Cr)</th></tr></thead><tbody>';
   peers.forEach(function(p){
-    h += '<tr>'
-      + '<td style="font-weight:600">'+esc(p.name)+'</td>'
-      + '<td>'+esc(p.rev)+'</td>'
-      + '<td style="color:var(--ok)">'+esc(p.em)+'%</td>'
-      + '<td>'+esc(p.pe)+'x</td>'
-      + '<td>'+esc(p.ev)+'x</td>'
-      + '<td>'+esc(p.mc)+'</td>'
-      + '</tr>';
+    h+='<tr><td style="font-weight:600">'+esc(p.name)+'</td><td>'+esc(p.rev)+'</td>'
+      +'<td style="color:var(--ok)">'+esc(p.em)+'%</td><td>'+esc(p.pe)+'x</td>'
+      +'<td>'+esc(p.ev)+'x</td><td>'+esc(p.mc)+'</td></tr>';
   });
 
-  // Your company row
-  var revDisp = rev_n > 0 ? '\u20b9'+rev_n.toFixed(0)+' Cr' : 'N/A';
-  var emDisp  = em_raw !== 0 ? em_raw.toFixed(1)+'%' : 'N/A';
-  var valDisp = hasVal ? '\u20b9'+valB.toLocaleString('en-IN')+' Cr est.' : 'Needs data';
-  var valColor = hasVal ? 'var(--tl)' : 'var(--mu)';
-  h += '<tr style="background:rgba(13,92,107,.05);border-top:2px solid var(--tl)">'
-     + '<td style="font-weight:800;color:var(--tl)">\u2605 Your Company</td>'
-     + '<td style="font-weight:700">'+revDisp+'</td>'
-     + '<td style="font-weight:700;color:'+(em_raw<0?'var(--er)':'var(--ok)')+'">'+emDisp+'</td>'
-     + '<td style="color:var(--mu)">?</td><td style="color:var(--mu)">?</td>'
-     + '<td style="font-weight:800;color:'+valColor+'">'+valDisp+'</td>'
-     + '</tr></tbody></table></div>';
+  // Your company row — only show if we have real data
+  if(hasAnyData){
+    var revD=hasRevenue?'\u20b9'+rev_n.toFixed(0)+' Cr':'—';
+    var emD=em_raw!==0?em_raw.toFixed(1)+'%':'—';
+    var valD=hasVal?'\u20b9'+valB.toLocaleString('en-IN')+' Cr est.':'TBD';
+    var emC=em_raw<0?'var(--er)':em_raw>0?'var(--ok)':'var(--mu)';
+    h+='<tr style="background:rgba(13,92,107,.05);border-top:2px solid var(--tl);font-weight:700">'
+      +'<td style="color:var(--tl)">\u2605 Your Company</td>'
+      +'<td>'+revD+'</td><td style="color:'+emC+'">'+emD+'</td>'
+      +'<td style="color:var(--mu)">?</td><td style="color:var(--mu)">?</td>'
+      +'<td style="color:var(--tl)">'+valD+'</td></tr>';
+  }
+  h+='</tbody></table></div>';
 
-  // Valuation range — only when meaningful
+  // Valuation ranges
   if(hasVal){
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0 8px">';
-    [
-      {lbl:'Conservative',val:valL,note:'0.6x peers'},
-      {lbl:'Base Case',val:valB,note:'0.8x peers',highlight:true},
-      {lbl:'Optimistic',val:valH,note:'1.0x peers'},
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0 8px">';
+    [{lbl:'Conservative',v:valL,note:'0.6x',hi:false},
+     {lbl:'Base Case',v:valB,note:'0.8x',hi:true},
+     {lbl:'Optimistic',v:valH,note:'1.0x',hi:false}
     ].forEach(function(c){
-      var bg = c.highlight ? 'rgba(13,92,107,.08)' : 'rgba(13,92,107,.04)';
-      var bdr = c.highlight ? '1.5px solid var(--tl)' : '1px solid var(--bd)';
-      var tc = c.highlight ? 'var(--tl)' : 'var(--sl)';
-      h += '<div style="text-align:center;padding:12px;background:'+bg+';border-radius:9px;border:'+bdr+'">'
-         + '<div style="font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">'+c.lbl+'</div>'
-         + '<div style="font-size:18px;font-weight:900;color:'+tc+';font-family:var(--serif)">'+fmtCr(c.val)+'</div>'
-         + '<div style="font-size:10px;color:var(--mu);margin-top:2px">'+c.note+' &middot; '+valMethod+'</div>'
-         + '</div>';
+      var bg=c.hi?'rgba(13,92,107,.08)':'rgba(13,92,107,.04)';
+      var bd=c.hi?'1.5px solid var(--tl)':'1px solid var(--bd)';
+      var tc=c.hi?'var(--tl)':'var(--sl)';
+      h+='<div style="text-align:center;padding:12px;background:'+bg+';border-radius:9px;border:'+bd+'">'
+        +'<div style="font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">'+c.lbl+'</div>'
+        +'<div style="font-size:18px;font-weight:900;color:'+tc+';font-family:var(--serif)">'+fmtC(c.v)+'</div>'
+        +'<div style="font-size:10px;color:var(--mu);margin-top:2px">'+c.note+' &middot; '+valMethod+'</div>'
+        +'</div>';
     });
-    h += '</div>';
+    h+='</div>';
+  } else if(hasAnyData&&isLoss){
+    h+='<div style="padding:10px 14px;background:rgba(232,138,46,.06);border:1px solid rgba(232,138,46,.2);border-radius:8px;margin:10px 0;font-size:12px;color:var(--go)">'
+      +'<strong>Loss-making company.</strong> P/E and EV/EBITDA methods not applicable. '
+      +'Merchant banker will use DCF or asset-based valuation at DRHP filing.</div>';
   } else {
-    // No valuation possible — explain why and what to do
-    var reason = '';
-    if(em_raw < 0) reason = 'Company is currently loss-making (EBITDA ' + em_raw.toFixed(1) + '%). ';
-    else if(!rev_n) reason = 'Revenue data not available from Probe42 for this company. ';
-    else reason = 'Insufficient financial data. ';
-
-    h += '<div style="padding:12px 16px;background:rgba(232,138,46,.06);border:1px solid rgba(232,138,46,.2);border-radius:9px;margin:12px 0 8px;font-size:12px;color:var(--go)">'
-       + '<strong>Valuation range not estimated.</strong> '+reason
-       + 'For pre-revenue or loss-making companies, valuation is determined by merchant banker based on growth potential, asset value, and sector comparables at DRHP filing.'
-       + '</div>';
+    h+='<div style="padding:10px 14px;background:rgba(13,92,107,.04);border:1px solid var(--bd);border-radius:8px;margin:10px 0;font-size:12px;color:var(--mu)">'
+      +'Sector peer benchmarks shown above. Add company financials in the Intelligence tab for a valuation estimate.</div>';
   }
 
-  h += '<div style="font-size:11px;color:var(--mu);margin-top:4px">\u26a0 Indicative only. Not investment advice. Final valuation by SEBI-registered merchant banker.</div>';
-  h += '</div>';
+  h+='<div style="font-size:11px;color:var(--mu);margin-top:4px">\u26a0 Indicative only. Not investment advice. Final valuation by SEBI-registered merchant banker.</div>';
+  h+='</div>';
   return h;
 }
+
 
 
 
