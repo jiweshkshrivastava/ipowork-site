@@ -1135,7 +1135,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
       <div class="fsec-lbl">Admin Dashboard — Supabase Live Da
 
 
-<script>
+<script>var AIRA_RESULTS={};
+
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 var SB_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
@@ -2255,6 +2256,8 @@ function stepDone(id) {
    ═══════════════════════════════════════════════════════════════ */
 function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   if(!out) return;
+  // Store result for download
+  AIRA_RESULTS[tier] = {result:result, cname:cname, sector:sector, exchange:exchange, tier:tier};
 
   var report  = result._report || result.report || '';
   var score   = result.score || 0;
@@ -2855,250 +2858,323 @@ function dualScoreBanner(score,v,col,cname,sector,exchange,dims,cc){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+/* ═══════════════════════════════════════════════════════════════
+   AIRA REPORT DOWNLOAD SYSTEM
+   Builds from stored raw result data — not DOM scraping
+   ═══════════════════════════════════════════════════════════════ */
+
+function fmtR(v){
+  if(v==null||v===''||v===undefined)return '—';
+  var n=parseFloat(String(v).replace(/[^\d.-]/g,''));
+  if(isNaN(n))return String(v);
+  if(n>=10000000)return '\u20B9'+(n/10000000).toFixed(1)+' Cr';
+  if(n>=100000)return '\u20B9'+(n/100000).toFixed(1)+' L';
+  if(n>=1000)return '\u20B9'+(n/1000).toFixed(0)+' K';
+  return '\u20B9'+n.toFixed(0);
+}
+function pctR(v){return(v!=null&&v!==''&&!isNaN(parseFloat(v)))?parseFloat(v).toFixed(1)+'%':'—';}
+function numR(v,dec){return(v!=null&&!isNaN(parseFloat(v)))?parseFloat(v).toFixed(dec||1):'—';}
+function strR(v){return(v!=null&&v!==''&&v!=='null')?String(v):'—';}
+function escR(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function rowR(k,v,ok){
+  if(!v||v==='—')return '';
+  return '<tr><td class="k">'+escR(k)+'</td><td class="v'+(ok?' ok':'')+'">'+escR(String(v))+'</td></tr>';
+}
+function secR(t){return '<div class="sec">'+escR(t)+'</div>';}
+function tblR(cols,rows){
+  if(!rows||!rows.length)return '';
+  var h='<table><thead><tr>'+cols.map(function(c){return '<th>'+escR(c)+'</th>';}).join('')+'</tr></thead><tbody>';
+  rows.forEach(function(r){h+='<tr>'+r.map(function(c){return '<td>'+escR(String(c||'—'))+'</td>';}).join('')+'</tr>';});
+  return h+'</tbody></table>';
+}
+
+function buildReport(tier){
+  var stored=AIRA_RESULTS[tier];
+  if(!stored){
+    // fallback: check if any result is stored
+    var keys=Object.keys(AIRA_RESULTS);
+    if(!keys.length)return null;
+    stored=AIRA_RESULTS[keys[keys.length-1]];
+  }
+  var result=stored.result||{};
+  var cname=stored.cname||result.company_name||'';
+  var sector=stored.sector||'';
+  var exchange=stored.exchange||'';
+  var report=result._report||result.report||'';
+  var tierLabel={paid:'AIRA Intelligence',doc:'AIRA Score',mainboard:'Mainboard Intelligence',
+    ca:'CA/CS Bundle',clearchit:'Clean Chit',ddbundle:'DD Bundle',
+    free:'Free Analysis',dirscan:'Director Risk Scan'}[tier]||tier;
+
+  // Score
+  var score=result.score||0;
+  if(!score){var sm=report.match(/AIRA Score:\s*(\d+)/i);score=sm?parseInt(sm[1]):65;}
+  var scoreCol=score>=78?'#1A9E6B':score>=65?'#D4860C':'#C0392B';
+  var scoreLbl=score>=78?'Main Board Eligible':score>=65?'SME IPO Ready':score>=50?'Needs Preparation':'Not Ready';
+
+  // Dims
+  var dims={};
+  var jm=report.match(/---JSON---\s*([\s\S]*?)---END---/);
+  if(jm){try{dims=JSON.parse(jm[1].trim());}catch(e){}}
+
+  // Probe42 data
+  var fin=result.financials||{};
+  var com=result.compliance||{};
+  var prom=result.promoters||{};
+  var dirs=Array.isArray(result.directors)?result.directors:[];
+  var chgs=Array.isArray(result.charges)?result.charges:[];
+  var peers=Array.isArray(result.peer_comparison)?result.peer_comparison.filter(function(p){return p.name&&p.name!=='N/A';}):[];
+  var cr=Array.isArray(result.credit_ratings)?result.credit_ratings:[];
+
+  // Clean report text
+  var cleanReport=report
+    .replace(/AIRA Score:\s*\d+\n?/gi,'')
+    .replace(/---JSON---[\s\S]*?---END---/g,'')
+    .replace(/RESEARCH_JSON_START[\s\S]*?RESEARCH_JSON_END/g,'')
+    .replace(/REPORT_START\s*/,'').replace(/\s*REPORT_END/,'').trim();
+
+  // Convert markdown to HTML for report
+  function md2html(t){
+    return t
+      .replace(/^### (.*$)/gm,'<h3>$1</h3>')
+      .replace(/^## (.*$)/gm,'<h2>$1</h2>')
+      .replace(/^# (.*$)/gm,'<h1>$1</h1>')
+      .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g,'<em>$1</em>')
+      .replace(/^[\-\*] (.+)$/gm,'<li>$1</li>')
+      .replace(/(<li>[\s\S]*?<\/li>)/g,'<ul>$1</ul>')
+      .replace(/\n{2,}/g,'</p><p>')
+      .replace(/^([^<\n].+)$/gm,'<p>$1</p>')
+      .replace(/<p><\/p>/g,'')
+      .replace(/<p>(<[hul])/g,'$1')
+      .replace(/(<\/[hul][^>]*>)<\/p>/g,'$1');
+  }
+
+  var now=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  var caFirm=(document.getElementById('ca-firm')||{}).value||'';
+
+  var css=
+    '*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2B35;font-size:12px;line-height:1.65;background:#fff}'
+    +'.page{max-width:940px;margin:0 auto;padding:32px}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:3px solid #07232A;margin-bottom:22px}'
+    +'.brand{font-size:26px;font-weight:900;color:#07232A;font-family:Georgia,serif}'
+    +'.brand sup{font-size:12px;color:#E88A2E;font-family:sans-serif;font-weight:700}'
+    +'.tier-tag{display:inline-block;padding:4px 12px;background:#EAF4F5;border-radius:5px;font-size:10px;font-weight:800;color:#0D5C6B;text-transform:uppercase;letter-spacing:.6px}'
+    +'.score-hero{background:linear-gradient(135deg,#07232A,#0D5C6B);border-radius:14px;padding:24px 30px;margin-bottom:20px;display:flex;align-items:center;gap:28px}'
+    +'.big-num{font-size:64px;font-weight:900;color:'+scoreCol+';line-height:1;font-family:Georgia,serif;flex-shrink:0}'
+    +'.score-right{flex:1}'
+    +'.score-label{font-size:22px;font-weight:700;color:#fff;margin-bottom:5px}'
+    +'.score-co{font-size:14px;color:rgba(255,255,255,.75);margin-bottom:3px}'
+    +'.score-meta{font-size:11px;color:rgba(255,255,255,.45)}'
+    +'.sec{font-size:10px;font-weight:800;color:#0D5C6B;text-transform:uppercase;letter-spacing:.9px;padding:8px 0 5px;border-bottom:1.5px solid #E0EEF0;margin:20px 0 10px}'
+    +'.dim-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px}'
+    +'.dim-box{background:#F4F9FA;border-radius:8px;padding:10px 8px;text-align:center;border-top:3px solid #E0EEF0}'
+    +'.dv{font-size:20px;font-weight:800;font-family:Georgia,serif}'
+    +'.dl{font-size:9px;color:#6B8A94;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}'
+    +'.dd{font-size:10px;color:#8FA8B2;margin-top:1px}'
+    +'table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11.5px}'
+    +'th{background:#EAF4F5;font-size:9.5px;font-weight:800;color:#4A7A80;text-transform:uppercase;letter-spacing:.4px;padding:7px 12px;text-align:left}'
+    +'td{padding:7px 12px;border-bottom:1px solid #EEF4F6;vertical-align:top}'
+    +'tr:nth-child(even) td{background:#FAFCFD}'
+    +'.kvg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}'
+    +'.kvc{background:#F4F9FA;border-radius:7px;padding:9px 10px;text-align:center;border:1px solid #E0EEF0}'
+    +'.kvv{font-size:14px;font-weight:800;color:#07232A;font-family:Georgia,serif}'
+    +'.kvv.g{color:#1A9E6B}.kvv.a{color:#D4860C}.kvv.r{color:#C0392B}'
+    +'.kvl{font-size:9px;color:#6B8A94;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}'
+    +'.ds{border:1px solid #E0EEF0;border-radius:9px;margin-bottom:12px;overflow:hidden}'
+    +'.dsh{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#EAF4F5}'
+    +'.dsn{font-size:10px;font-weight:800;color:#07232A;text-transform:uppercase;letter-spacing:.5px}'
+    +'.dsb{font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;background:#1A9E6B;color:#fff}'
+    +'.dsr{display:flex;align-items:baseline;padding:6px 14px;border-top:1px solid #EEF4F6}'
+    +'.k{color:#6B8A94;font-size:10.5px;min-width:160px}'
+    +'.v{font-weight:600;font-size:11.5px}.ok{color:#1A9E6B}.bad{color:#C0392B;font-weight:700}'
+    +'.ai{font-size:12.5px;line-height:1.75;color:#1A2B35}'
+    +'.ai h1,.ai h2,.ai h3{color:#07232A;margin:14px 0 6px;font-weight:800}'
+    +'.ai h1{font-size:14px;border-bottom:1px solid #E0EEF0;padding-bottom:4px}'
+    +'.ai h2{font-size:13px}.ai h3{font-size:12.5px;color:#0D5C6B}'
+    +'.ai p{margin-bottom:8px}.ai ul,.ai ol{padding-left:20px;margin-bottom:8px}'
+    +'.ai li{margin-bottom:3px}.ai strong{color:#07232A}'
+    +'.ai table{width:100%;font-size:11.5px;margin:10px 0}'
+    +'.ai th{background:#EAF4F5}.ai td{border-bottom:1px solid #EEF4F6;padding:6px 10px}'
+    +'.footer{margin-top:28px;padding-top:12px;border-top:1px solid #E0EEF0;display:flex;justify-content:space-between;font-size:9.5px;color:#8FA8B2}'
+    +'@media print{.page{padding:18px 22px}body{font-size:11px}.score-hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}.sec{page-break-before:auto}.ds{break-inside:avoid}}';
+
+  var htm='<!DOCTYPE html><html lang="en"><head>'
+    +'<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>'
+    +'<title>AIRA '+escR(tierLabel)+' — '+escR(cname)+'</title>'
+    +'<style>'+css+'</style></head><body><div class="page">';
+
+  // HEADER
+  htm+='<div class="hdr">'
+    +'<div><div class="brand">ipowork<sup>AI</sup></div>'
+    +'<div style="font-size:11px;color:#6B8A94;margin-top:3px">IPO Readiness Platform &middot; ipowork.com</div></div>'
+    +'<div style="text-align:right">'
+    +'<div class="tier-tag">'+escR(tierLabel)+'</div>'
+    +'<div style="font-size:10px;color:#8FA8B2;margin-top:5px">'+now+'</div>'
+    +(caFirm?'<div style="font-size:10px;color:#0D5C6B;font-weight:700;margin-top:2px">'+escR(caFirm)+'</div>':'')
+    +'</div></div>';
+
+  // SCORE HERO
+  htm+='<div class="score-hero">'
+    +'<div class="big-num">'+score+'</div>'
+    +'<div class="score-right">'
+    +'<div class="score-label">'+escR(scoreLbl)+'</div>'
+    +'<div class="score-co">'+escR(cname)+(result.cin?' &nbsp;<span style="font-family:monospace;font-size:10px;color:rgba(255,255,255,.5)">'+escR(result.cin)+'</span>':'')+'</div>'
+    +'<div class="score-meta">'+escR(sector||'')+(exchange?' &middot; '+escR(exchange):'')+'</div>'
+    +'<div class="score-meta" style="margin-top:5px">SEBI ICDR 2018 &middot; '+escR(tierLabel)+'</div>'
+    +'</div></div>';
+
+  // DIMENSION SCORES
+  var dimKeys=['financial','governance','compliance','promoter','legal','readiness'];
+  var dimNames={financial:'Financial',governance:'Governance',compliance:'Compliance',promoter:'Promoter',legal:'Legal',readiness:'Readiness'};
+  var hasDims=dimKeys.some(function(k){return dims[k]>0;});
+  if(hasDims){
+    htm+=secR('Dimension Scores');
+    htm+='<div class="dim-row">';
+    dimKeys.forEach(function(k){
+      var v=dims[k]||0;if(!v)return;
+      var c=v>=78?'#1A9E6B':v>=65?'#D4860C':'#C0392B';
+      var lbl=v>=78?'Strong':v>=65?'Good':v>=50?'Fair':'Weak';
+      htm+='<div class="dim-box" style="border-top-color:'+c+'">'
+        +'<div class="dv" style="color:'+c+'">'+v+'</div>'
+        +'<div class="dl">'+dimNames[k]+'</div>'
+        +'<div class="dd">'+lbl+'</div>'
+        +'</div>';
+    });
+    htm+='</div>';
+  }
+
+  // MCA MASTER
+  if(result.status||result.date_of_incorporation||result.paid_up_capital){
+    htm+=secR('Company Master — MCA / Probe42');
+    htm+='<div class="ds"><div class="dsh"><div class="dsn">MCA Master</div><div class="dsb">VERIFIED</div></div>';
+    var mf=[
+      ['Status',strR(result.status)],
+      ['Company Type',strR(result.company_type)],
+      ['Incorporated',strR(result.date_of_incorporation)],
+      ['State',strR(result.registered_state)],
+      ['Paid-up Capital',fmtR(result.paid_up_capital)],
+      ['Authorised Capital',fmtR(result.authorised_capital)],
+      ['Last AGM',strR(result.last_agm_date)],
+      ['Last Filing',strR(result.last_filing_date)],
+      ['Compliance Status',strR(result.active_compliance)],
+      ['CIRP Status',strR(result.cirp_status||'None')],
+    ];
+    mf.forEach(function(f){if(f[1]&&f[1]!=='—')htm+='<div class="dsr"><span class="k">'+escR(f[0])+'</span><span class="v">'+escR(f[1])+'</span></div>';});
+    htm+='</div>';
+  }
+
+  // COMPLIANCE
+  if(com.gst_status||com.roc_filing_status){
+    htm+='<div class="ds"><div class="dsh"><div class="dsn">Compliance</div><div class="dsb">PROBE42</div></div>';
+    var cf=[
+      ['GST Status',strR(com.gst_status)],['GST Registrations',strR(com.gst_count)],
+      ['EPFO',com.epfo_registered?'Registered ('+com.epfo_count+' estbl.)':'Not found'],
+      ['ROC Filing Status',strR(com.roc_filing_status)],['MSME Delays',strR(com.msme_delays||0)],
+      ['Defaulter List',com.defaulter?'YES — FLAGGED':'No'],
+      ['Promoter Holding',pctR(prom.promoter_holding_pct)],
+    ];
+    cf.forEach(function(f){if(f[1]&&f[1]!=='—')htm+='<div class="dsr"><span class="k">'+escR(f[0])+'</span><span class="v'+(f[0]==='Defaulter List'&&com.defaulter?' bad':'')+'">'+escR(f[1])+'</span></div>';});
+    htm+='</div>';
+  }
+
+  // FINANCIALS KPI
+  if(fin.revenue_fy24||fin.pat_fy24||fin.net_worth){
+    htm+=secR('Financial Indicators — Probe42 (FY'+strR(fin.fy_year)+')');
+    htm+='<div class="kvg">';
+    var kv=[
+      {l:'Revenue',v:fmtR(fin.revenue_fy24),g:'g'},{l:'PAT',v:fmtR(fin.pat_fy24),g:parseFloat(fin.pat_fy24||0)>0?'g':'r'},
+      {l:'EBITDA Margin',v:pctR(fin.ebitda_margin),g:parseFloat(fin.ebitda_margin||0)>=12?'g':'a'},
+      {l:'Net Margin',v:pctR(fin.net_margin),g:parseFloat(fin.net_margin||0)>=8?'g':'a'},
+      {l:'Net Worth',v:fmtR(fin.net_worth),g:'g'},{l:'Total Assets',v:fmtR(fin.total_assets),g:'g'},
+      {l:'D/E Ratio',v:numR(fin.debt_equity_ratio)+'x',g:parseFloat(fin.debt_equity_ratio||99)<=1.5?'g':'r'},
+      {l:'ROE',v:pctR(fin.roe),g:parseFloat(fin.roe||0)>=15?'g':'a'},
+      {l:'ROCE',v:pctR(fin.roce),g:parseFloat(fin.roce||0)>=15?'g':'a'},
+      {l:'Revenue Growth',v:pctR(fin.revenue_growth),g:parseFloat(fin.revenue_growth||0)>=10?'g':'a'},
+      {l:'Current Ratio',v:numR(fin.current_ratio)+'x',g:parseFloat(fin.current_ratio||0)>=1.5?'g':'a'},
+      {l:'Int. Coverage',v:numR(fin.interest_coverage)+'x',g:parseFloat(fin.interest_coverage||0)>=3?'g':'a'},
+    ];
+    kv.forEach(function(k){if(!k.v||k.v==='—'||k.v==='null')return;htm+='<div class="kvc"><div class="kvv '+k.g+'">'+escR(k.v)+'</div><div class="kvl">'+escR(k.l)+'</div></div>';});
+    htm+='</div>';
+    if(fin.auditor)htm+='<p style="font-size:11px;color:#6B8A94;margin-bottom:12px">Auditor: <strong>'+escR(fin.auditor)+'</strong>'+( fin.filing_standard?' &middot; '+escR(fin.filing_standard):'')+'</p>';
+    if(cr.length){htm+='<p style="font-size:11px;color:#0D5C6B;margin-bottom:12px;font-weight:600">Credit Ratings: '+cr.map(function(r){return escR(r.agency)+': <strong>'+escR(r.rating)+'</strong>'+(r.outlook?' ('+escR(r.outlook)+')':'');}).join(' &nbsp;|&nbsp; ')+'</p>';}
+  }
+
+  // DIRECTORS
+  if(dirs.length){
+    htm+=secR('Board of Directors ('+dirs.length+' total, '+dirs.filter(function(d){return !d.cessation;}).length+' active)');
+    htm+=tblR(['Name','DIN','Designation','Gender','Status','Appointed'],
+      dirs.map(function(d){return [d.name||'N/A',d.din||'N/A',d.designation||'Director',d.gender||'—',d.cessation?'Ceased':'Active',d.appointed||'—'];}));
+  }
+
+  // CHARGES
+  if(chgs.length){
+    htm+=secR('Charges & Liens ('+chgs.length+' open)');
+    htm+=tblR(['Lender / Holder','Amount','Type','Status','Date'],
+      chgs.map(function(c){return [c.holder||'N/A',fmtR(c.amount),c.type||'N/A',c.status||'Open',c.date||'N/A'];}));
+  }
+
+  // PEERS
+  if(peers.length){
+    htm+=secR('Peer Comparison — Probe42');
+    htm+=tblR(['Company','Revenue','PAT','City'],
+      peers.map(function(p){return [p.name+(p.cin===result.cin?' ★':''),fmtR(p.revenue),fmtR(p.pat),p.city||'—'];}));
+  }
+
+  // AI REPORT
+  if(cleanReport){
+    htm+=secR('AI Intelligence Report');
+    htm+='<div class="ai">'+md2html(cleanReport)+'</div>';
+  }
+
+  // FOOTER
+  htm+='<div class="footer">'
+    +'<div>ipowork.com &middot; partners@ipowork.com &middot; WhatsApp +91 88510 59588</div>'
+    +'<div>Indicative only. Not SEBI-registered research. For professional advisory use.</div>'
+    +'</div></div></body></html>';
+
+  return {htm:htm, company:cname, score:score};
+}
+
 function previewReport(tier){
-  var r=buildReportHtml(tier);
-  if(!r){alert('Report not ready yet. Please run AIRA first.');return;}
+  var r=buildReport(tier);
+  if(!r){alert('Run AIRA first to generate the report.');return;}
   var w=window.open('','_blank');
   if(w&&w.document){
-    var toolbar='<div style="position:sticky;top:0;z-index:999;background:#08404D;padding:10px 20px;display:flex;align-items:center;gap:10px;font-family:system-ui,sans-serif">'
-      +'<span style="font-size:16px;font-weight:900;color:#fff;font-family:Georgia,serif">ipowork</span>'
-      +'<span style="flex:1"></span>'
-      +'<button onclick="window.print()" style="padding:8px 18px;background:#E88A2E;color:#fff;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer">Print / Save PDF</button>'
-      +'<button onclick="window.close()" style="padding:8px 14px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:7px;font-size:13px;cursor:pointer;margin-left:6px">Close</button>'
+    var bar='<div class="no-print" style="position:sticky;top:0;z-index:9999;background:#07232A;padding:10px 24px;display:flex;align-items:center;gap:12px;font-family:sans-serif">'
+      +'<span style="font-size:16px;font-weight:900;color:#fff;font-family:Georgia,serif">ipowork<sup style="font-size:10px;color:#E88A2E">AI</sup></span>'
+      +'<span style="flex:1;font-size:12px;color:rgba(255,255,255,.5)">'+escR(r.company)+' &mdash; Score: '+r.score+'</span>'
+      +'<button onclick="window.print()" style="padding:8px 20px;background:#E88A2E;color:#fff;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">Print / Save PDF</button>'
+      +'<button onclick="window.close()" style="padding:8px 14px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit;margin-left:6px">Close</button>'
       +'</div>';
-    var finalHtml=r.htm.replace('<body>','<body>'+toolbar);
-    w.document.write(finalHtml);w.document.close();w.focus();
+    w.document.write(r.htm.replace('<body>','<body>'+bar));
+    w.document.close();w.focus();
   }else{alert('Please allow popups for this site.');}
 }
 
 function downloadReport(tier){
-  var r=buildReportHtml(tier);
-  if(!r){alert('Report not ready yet. Please run AIRA first.');return;}
+  var r=buildReport(tier);
+  if(!r){alert('Run AIRA first to generate the report.');return;}
   try{
-    var blob=new Blob([r.htm],{type:'text/html'});
+    var blob=new Blob([r.htm],{type:'text/html;charset=utf-8'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
     a.href=url;
-    a.download='AIRA-Report-'+(r.company||tier).replace(/[^a-zA-Z0-9]/g,'-')+'.html';
+    a.download='AIRA-'+(r.company||tier).replace(/[^a-zA-Z0-9\u0900-\u097F]/g,'-').substring(0,40)+'-'+new Date().toISOString().slice(0,10)+'.html';
     document.body.appendChild(a);a.click();
-    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},2000);
-  }catch(e){alert('Download failed: '+e.message);}
-}
-
-
-
-
-
-function buildReportHtml(tier){
-  var container=document.getElementById('result-'+tier);
-  if(!container||!container.innerHTML.trim())return null;
-
-  /* Collect metadata */
-  var company='',cin='',sector='',exchange='',firmName='';
-  var fieldSets=[
-    ['p-cname','p-cin','p-sector','p-exchange'],
-    ['d-cname','d-cin','d-sector','d-exchange'],
-    ['mb-cname','mb-cin','mb-sector','mb-exchange'],
-    ['ca-cname','ca-cin','ca-sector','ca-exchange'],
-    ['cc-cname','cc-cin','cc-sector','cc-exchange'],
-    ['dd-cname','dd-cin','dd-sector','dd-exchange'],
-    ['f-cname','f-cin','f-sector','f-exchange']
-  ];
-  fieldSets.forEach(function(ids){
-    var nm=document.getElementById(ids[0]);
-    if(nm&&nm.value.trim()&&!company){
-      company=nm.value.trim();
-      var c=document.getElementById(ids[1]);if(c)cin=c.value.trim();
-      var s=document.getElementById(ids[2]);if(s)sector=s.value;
-      var x=document.getElementById(ids[3]);if(x)exchange=x.value;
-    }
-  });
-  var caFirm=document.getElementById('ca-firm');
-  if(caFirm)firmName=caFirm.value.trim();
-
-  /* Score */
-  var scoreEl=container.querySelector('.sdn-big');
-  var score=scoreEl?parseInt(scoreEl.textContent.trim())||0:0;
-  var scoreCol=score>=78?'#1A9E6B':score>=65?'#D4860C':'#C0392B';
-  var scoreLbl=score>=78?'Main Board Eligible':score>=65?'SME IPO Ready':score>=50?'Needs Preparation':'Not Ready';
-
-  /* Tier label */
-  var tierLabel={paid:'AIRA Intelligence',doc:'AIRA Score',mainboard:'Mainboard Intelligence',
-    ca:'CA/CS Bundle',clearchit:'Clean Chit',ddbundle:'DD Bundle',
-    free:'Free Analysis',dirscan:'Director Risk'}[tier]||tier;
-  var now=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-
-  /* Extract AI report text cleanly */
-  var aiEl=container.querySelector('[id^="ai-report-body"]');
-  var aiHtml=aiEl?aiEl.innerHTML:'';
-
-  /* Extract dimension scores */
-  var dimCards=container.querySelectorAll('.dim-card');
-  var dimsHtml='';
-  if(dimCards.length){
-    dimsHtml='<table class="dim-tbl"><thead><tr>';
-    dimCards.forEach(function(d){
-      var lbl=d.querySelector('.dim-lbl');
-      if(lbl)dimsHtml+='<th>'+lbl.textContent.trim()+'</th>';
-    });
-    dimsHtml+='</tr></thead><tbody><tr>';
-    dimCards.forEach(function(d){
-      var val=d.querySelector('.dim-val');
-      var verd=d.querySelector('.dim-verd');
-      if(val){
-        var v=parseInt(val.textContent)||0;
-        var c=v>=78?'#1A9E6B':v>=65?'#D4860C':'#C0392B';
-        dimsHtml+='<td style="text-align:center"><span style="font-size:20px;font-weight:800;color:'+c+'">'+v+'</span>'+(verd?'<br/><span style="font-size:10px;color:#6B7E85">'+verd.textContent.trim()+'</span>':'')+'</td>';
-      }
-    });
-    dimsHtml+='</tr></tbody></table>';
-  }
-
-  /* Extract directors table */
-  var dtbl=container.querySelector('.dtable');
-  var dirsHtml=dtbl?dtbl.outerHTML:'';
-
-  /* Extract data cards (ds-card) */
-  var dsCards=container.querySelectorAll('.ds-card');
-  var dsHtml='';
-  dsCards.forEach(function(card){
-    dsHtml+=card.outerHTML;
-  });
-
-  /* Extract KV grid */
-  var kvGrid=container.querySelector('.kv-grid');
-  var kvHtml=kvGrid?kvGrid.outerHTML:'';
-
-  /* Extract charges table */
-  var allTables=container.querySelectorAll('.fin-tbl');
-  var tablesHtml='';
-  allTables.forEach(function(t){tablesHtml+=t.outerHTML;});
-
-  /* Build PDF */
-  var css=
-    '*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2B35;font-size:12px;line-height:1.65;background:#fff}'
-    +'.page{max-width:960px;margin:0 auto;padding:28px 32px}'
-    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2.5px solid #07232A}'
-    +'.brand{font-size:26px;font-weight:900;color:#07232A;font-family:Georgia,serif;letter-spacing:-0.5px}'
-    +'.brand sup{font-size:13px;color:#E88A2E;font-family:sans-serif}'
-    +'.tag{display:inline-block;padding:4px 12px;background:#EAF4F5;border-radius:5px;font-size:11px;font-weight:700;color:#0D5C6B;text-transform:uppercase;letter-spacing:.5px}'
-    +'.score-box{background:linear-gradient(135deg,#07232A 0%,#0D5C6B 100%);border-radius:14px;padding:22px 28px;margin-bottom:18px;display:flex;align-items:center;gap:24px}'
-    +'.big-score{font-size:60px;font-weight:900;color:'+scoreCol+';line-height:1;font-family:Georgia,serif}'
-    +'.score-info{flex:1}'
-    +'.score-lbl{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}'
-    +'.score-meta{font-size:12px;color:rgba(255,255,255,.55)}'
-    +'.sec{margin:18px 0 10px;font-size:11px;font-weight:800;color:#0D5C6B;text-transform:uppercase;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EEF0}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}'
-    +'th{background:#EAF4F5;font-size:10px;font-weight:700;color:#4A6670;text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;text-align:left}'
-    +'td{padding:8px 12px;border-bottom:1px solid #EEF4F6;vertical-align:top}'
-    +'tr:last-child td{border-bottom:none}'
-    +'.dim-tbl th,.dim-tbl td{text-align:center}'
-    +'.kv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}'
-    +'.kv-card{background:#F4F9FA;border-radius:7px;padding:10px 12px;text-align:center;border:1px solid #E0EEF0}'
-    +'.kv-val{font-size:15px;font-weight:800;color:#07232A}'
-    +'.kv-val.g{color:#1A9E6B}'
-    +'.kv-val.a{color:#D4860C}'
-    +'.kv-lbl{font-size:9px;color:#6B8A94;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}'
-    +'.ds-card{border:1px solid #E0EEF0;border-radius:9px;margin-bottom:12px;overflow:hidden}'
-    +'.ds-hd{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#EAF4F5}'
-    +'.ds-name{font-size:11px;font-weight:800;color:#07232A;text-transform:uppercase;letter-spacing:.5px}'
-    +'.ds-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:#1A9E6B;color:#fff}'
-    +'.ds-rows{padding:0}'
-    +'.ds-row{display:flex;align-items:center;padding:7px 14px;border-top:1px solid #EEF4F6;font-size:12px}'
-    +'.ds-row .k{color:#6B8A94;min-width:140px;font-size:11px}'
-    +'.ds-row .v{font-weight:600;color:#1A2B35}'
-    +'.ds-row .v-ok{color:#1A9E6B}'
-    +'.ds-row .v-bad{color:#C0392B;font-weight:700}'
-    +'.ai-body{font-size:12.5px;line-height:1.75;color:#1A2B35}'
-    +'.ai-body h1,.ai-body h2,.ai-body h3{color:#07232A;margin:14px 0 6px;font-size:13px;font-weight:800;border-bottom:1px solid #EEF4F6;padding-bottom:4px}'
-    +'.ai-body p{margin-bottom:9px}'
-    +'.ai-body ul,.ai-body ol{padding-left:22px;margin-bottom:9px}'
-    +'.ai-body li{margin-bottom:3px}'
-    +'.ai-body strong,.ai-body b{color:#07232A}'
-    +'.ai-body table{width:100%;border-collapse:collapse;margin:10px 0}'
-    +'.ai-body th{background:#EAF4F5;padding:7px 10px;font-size:10px;text-align:left}'
-    +'.ai-body td{padding:7px 10px;border-bottom:1px solid #EEF4F6}'
-    +'.footer{margin-top:28px;padding-top:12px;border-top:1px solid #E0EEF0;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#8FA8B2}'
-    +'@media print{'
-    +'  body{font-size:11px}'
-    +'  .page{padding:16px 20px}'
-    +'  .score-box{break-inside:avoid}'
-    +'  .ds-card{break-inside:avoid}'
-    +'  .no-print{display:none!important}'
-    +'}';
-
-  var htm='<!DOCTYPE html><html lang="en"><head>'
-    +'<meta charset="UTF-8"/>'
-    +'<meta name="viewport" content="width=device-width,initial-scale=1"/>'
-    +'<title>AIRA '+tierLabel+' Report — '+esc(company)+'</title>'
-    +'<style>'+css+'</style>'
-    +'</head><body><div class="page">';
-
-  /* ── HEADER ─────────────────────────────────────────────────────── */
-  htm+='<div class="hdr">'
-    +'<div>'
-    +'<div class="brand">ipowork<sup>AI</sup></div>'
-    +'<div style="font-size:11px;color:#6B8A94;margin-top:3px">IPO Readiness Platform &middot; ipowork.com</div>'
-    +'</div>'
-    +'<div style="text-align:right">'
-    +'<div class="tag">'+esc(tierLabel)+'</div>'
-    +'<div style="font-size:11px;color:#8FA8B2;margin-top:5px">Generated: '+now+'</div>'
-    +(firmName?'<div style="font-size:11px;color:#0D5C6B;font-weight:600;margin-top:2px">Prepared by: '+esc(firmName)+'</div>':'')
-    +'</div></div>';
-
-  /* ── SCORE BOX ──────────────────────────────────────────────────── */
-  htm+='<div class="score-box">'
-    +'<div class="big-score">'+score+'</div>'
-    +'<div class="score-info">'
-    +'<div class="score-lbl">'+esc(scoreLbl)+'</div>'
-    +'<div class="score-meta" style="font-size:14px;color:rgba(255,255,255,.75);margin-bottom:6px">'+esc(company)+(cin?' &nbsp;<span style="font-family:monospace;font-size:11px">'+esc(cin)+'</span>':'')+'</div>'
-    +'<div class="score-meta">'+esc(sector||'')+(exchange?' &middot; '+esc(exchange):'')+'</div>'
-    +'<div class="score-meta" style="margin-top:6px;font-size:10px">SEBI ICDR 2018 Compliance Score &middot; '+esc(tierLabel)+'</div>'
-    +'</div></div>';
-
-  /* ── DIMENSION SCORES ───────────────────────────────────────────── */
-  if(dimsHtml){
-    htm+='<div class="sec">Dimension Scores</div>';
-    htm+=dimsHtml;
-  }
-
-  /* ── DATA CARDS (MCA + Compliance) ─────────────────────────────── */
-  if(dsHtml){
-    htm+='<div class="sec">Company Data &mdash; Probe42 Verified</div>';
-    htm+=dsHtml;
-  }
-
-  /* ── FINANCIAL KPIs ─────────────────────────────────────────────── */
-  if(kvHtml){
-    htm+='<div class="sec">Financial Indicators</div>';
-    htm+=kvHtml;
-  }
-
-  /* ── DIRECTORS + CHARGES ─────────────────────────────────────────── */
-  if(dirsHtml){
-    htm+='<div class="sec">Board of Directors</div>';
-    htm+=dirsHtml;
-  }
-  if(tablesHtml){
-    htm+='<div class="sec">Additional Data</div>';
-    htm+=tablesHtml;
-  }
-
-  /* ── AI REPORT ─────────────────────────────────────────────────── */
-  if(aiHtml){
-    htm+='<div class="sec">AI Analysis Report</div>';
-    htm+='<div class="ai-body">'+aiHtml+'</div>';
-  }
-
-  /* ── FOOTER ─────────────────────────────────────────────────────── */
-  htm+='<div class="footer">'
-    +'<div>ipowork.com &middot; partners@ipowork.com &middot; WhatsApp: +91 88510 59588</div>'
-    +'<div>Indicative only. Not SEBI registered research. For professional use.</div>'
-    +'</div>';
-
-  htm+='</div></body></html>';
-  return {htm:htm, company:company, score:score};
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},3000);
+  }catch(e2){alert('Download failed. Please use Preview and Print to PDF instead.');}
 }
 </script>
 </body>
