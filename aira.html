@@ -1960,14 +1960,25 @@ async function loadAdmin(){
   var statsEl=document.getElementById('admin-stats');
   var repEl=document.getElementById('admin-reports');
   var usrEl=document.getElementById('admin-users');
-  if(statsEl)statsEl.innerHTML='<div style="grid-column:1/-1;color:var(--mu);font-size:13px;padding:8px">Loading admin data...</div>';
+
+  if(statsEl) statsEl.innerHTML='<div style="grid-column:1/-1;color:var(--mu);font-size:13px;padding:8px">Loading...</div>';
+  if(repEl)   repEl.innerHTML='';
 
   try{
+    // Fetch reports
     var rr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({type:'admin_data',table:'reports',limit:200,order:'created_at.desc'})});
     var rj=await rr.json();
+
+    // Debug: show raw response if empty
+    if(!rj.data){
+      if(repEl) repEl.innerHTML='<div style="padding:16px;color:var(--er);font-size:12px"><b>Error:</b> '+esc(JSON.stringify(rj).slice(0,200))+'</div>';
+      return;
+    }
+
     var reports=rj.data||[];
 
+    // Fetch users
     var ur=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({type:'admin_data',table:'users',limit:300,order:'created_at.desc'})});
     var uj=await ur.json();
@@ -1986,20 +1997,20 @@ async function loadAdmin(){
     if(statsEl){
       var stats=[
         {l:'Total Reports',v:totalRep,c:'var(--tl)'},
-        {l:'Avg Score',v:avgScore,c:avgScore>=65?'var(--ok)':'var(--wn)'},
-        {l:'Score >=65',v:ready65,c:'var(--ok)'},
-        {l:'With Report',v:withText,c:'var(--tl)'},
-        {l:'Intelligence',v:byTier['paid']||0,c:'var(--sf)'},
-        {l:'AIRA Score',v:byTier['doc']||0,c:'var(--tl)'},
-        {l:'Clean Chit',v:byTier['clearchit']||0,c:'var(--ok)'},
-        {l:'Free Tier',v:byTier['free']||0,c:'var(--mu)'},
+        {l:'Avg Score',v:avgScore||'—',c:avgScore>=65?'var(--ok)':'var(--wn)'},
+        {l:'Score ≥65',v:ready65,c:'var(--ok)'},
+        {l:'With Report Text',v:withText,c:'var(--tl)'},
+        {l:'SME Intel',v:byTier['paid']||0,c:'var(--sf)'},
+        {l:'AIRA Score',v:(byTier['doc']||0)+(byTier['doc_paid']||0),c:'var(--tl)'},
+        {l:'Mainboard',v:byTier['mainboard']||0,c:'#1864B4'},
+        {l:'CA Bundle',v:byTier['ca']||0,c:'var(--ok)'},
         {l:'Total Leads',v:users.length,c:'var(--tl)'},
       ];
-      statsEl.style.gridTemplateColumns='repeat(4,1fr)';
+      statsEl.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px';
       statsEl.innerHTML=stats.map(function(s){
-        return '<div style="background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:14px;text-align:center;box-shadow:var(--sh)">'
+        return '<div style="background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;text-align:center;box-shadow:var(--sh)">'
           +'<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+s.c+'">'+s.v+'</div>'
-          +'<div style="font-size:11px;color:var(--mu);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">'+s.l+'</div>'
+          +'<div style="font-size:10px;color:var(--mu);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">'+s.l+'</div>'
           +'</div>';
       }).join('');
     }
@@ -2007,41 +2018,45 @@ async function loadAdmin(){
     // Reports table
     if(repEl){
       if(!reports.length){
-        repEl.innerHTML='<div style="padding:16px;color:var(--mu)">No reports yet.</div>';
+        repEl.innerHTML='<div style="padding:20px;text-align:center;color:var(--mu)">'
+          +'<div style="font-size:32px;margin-bottom:8px">📭</div>'
+          +'<div style="font-size:14px;font-weight:700">No reports yet</div>'
+          +'<div style="font-size:12px;margin-top:4px">Run AIRA on any company to see data here</div>'
+          +'<div style="font-size:11px;color:var(--mu);margin-top:8px">Supabase: '+esc(SB_URL.replace('https://','').split('.')[0])+'</div>'
+          +'</div>';
       } else {
-        var tierBadge=function(tier){
-          var colors={paid:'rgba(232,138,46,.1)',doc:'rgba(13,92,107,.08)',
-            mainboard:'rgba(24,95,165,.1)',ca:'rgba(26,158,107,.1)',
-            clearchit:'rgba(26,158,107,.1)',ddbundle:'rgba(91,78,212,.1)',free:'rgba(107,126,133,.08)'};
-          var tc={paid:'#E88A2E',doc:'var(--tl)',mainboard:'#1864B4',
-            ca:'#0F6E4A',clearchit:'#0F6E4A',ddbundle:'#5B4ED4',free:'var(--mu)'};
-          var bg=colors[tier]||colors.free;
-          var c=tc[tier]||tc.free;
-          var label={paid:'Intel',doc:'Score',mainboard:'Main',ca:'CA',
-            clearchit:'Chit',ddbundle:'DD',free:'Free'}[tier]||tier;
-          return '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:'+bg+';color:'+c+'">'+label+'</span>';
-        };
-
+        function tierBadge(tier){
+          var cfg={paid:{bg:'rgba(232,138,46,.1)',c:'#E88A2E',lbl:'Intel'},
+            doc:{bg:'rgba(13,92,107,.08)',c:'var(--tl)',lbl:'Score'},
+            doc_paid:{bg:'rgba(13,92,107,.08)',c:'var(--tl)',lbl:'Score'},
+            mainboard:{bg:'rgba(24,95,165,.1)',c:'#1864B4',lbl:'Main'},
+            ca:{bg:'rgba(26,158,107,.1)',c:'#0F6E4A',lbl:'CA'},
+            clearchit:{bg:'rgba(26,158,107,.1)',c:'#0F6E4A',lbl:'Chit'},
+            clean_chit:{bg:'rgba(26,158,107,.1)',c:'#0F6E4A',lbl:'Chit'},
+            ddbundle:{bg:'rgba(91,78,212,.1)',c:'#5B4ED4',lbl:'DD'},
+            free:{bg:'rgba(107,126,133,.08)',c:'var(--mu)',lbl:'Free'}};
+          var t=cfg[tier]||cfg.free;
+          return '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:'+t.bg+';color:'+t.c+'">'+t.lbl+'</span>';
+        }
         repEl.innerHTML='<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:820px">'
-          +'<thead><tr><th>Date</th><th>CIN</th><th>Company</th><th>Tier</th>'
-          +'<th>Score</th><th>Sector</th><th>Phone</th><th>Report</th></tr></thead><tbody>'
+          +'<thead><tr><th>Date</th><th>CIN</th><th>Company</th><th>Tier</th><th>Score</th>'
+          +'<th>Sector</th><th>Phone</th><th>Report</th></tr></thead><tbody>'
           +reports.map(function(r,idx){
             var d=new Date(r.created_at);
-            var ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()
-              +' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+            var ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
             var sc=r.score||0;
             var col=sc>=78?'var(--ok)':sc>=65?'var(--wn)':'var(--er)';
-            var hasReport=(r.report_text||'').length>100;
+            var hasReport=(r.report_text||'').length>50;
             return '<tr>'
               +'<td style="color:var(--mu);font-size:11px;white-space:nowrap">'+ds+'</td>'
-              +'<td style="font-family:var(--mono);font-size:10px">'+esc(r.cin||'—')+'</td>'
-              +'<td style="font-weight:600;max-width:180px">'+esc((r.company_name||'—').substring(0,28))+'</td>'
+              +'<td style="font-family:monospace;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+esc(r.cin||'—')+'</td>'
+              +'<td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((r.company_name||'—').slice(0,28))+'</td>'
               +'<td>'+tierBadge(r.tier||'free')+'</td>'
-              +'<td style="font-weight:800;color:'+col+';font-family:var(--mono)">'+sc+'</td>'
-              +'<td style="font-size:11px;color:var(--mu)">'+esc(r.sector||'—')+'</td>'
-              +'<td style="font-family:var(--mono);font-size:11px">'+esc(r.phone||'—')+'</td>'
+              +'<td style="font-weight:800;color:'+col+';font-family:monospace">'+(sc||'—')+'</td>'
+              +'<td style="font-size:11px;color:var(--mu);max-width:100px;overflow:hidden">'+esc((r.sector||'—').slice(0,15))+'</td>'
+              +'<td style="font-family:monospace;font-size:11px">'+esc(r.phone||'—')+'</td>'
               +'<td>'+(hasReport
-                ?'<button onclick="viewAdminReport('+idx+')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--tl);background:#fff;color:var(--tl);cursor:pointer;font-family:var(--sans);font-weight:600">View</button>'
+                ?'<button onclick="viewAdminReport('+idx+')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--tl);background:#fff;color:var(--tl);cursor:pointer;font-weight:600">View</button>'
                 :'<span style="font-size:11px;color:var(--mu)">—</span>')
               +'</td></tr>';
           }).join('')
@@ -2052,7 +2067,7 @@ async function loadAdmin(){
     // Users table
     if(usrEl){
       if(!users.length){
-        usrEl.innerHTML='<div style="padding:16px;color:var(--mu)">No users yet.</div>';
+        usrEl.innerHTML='<div style="padding:12px;color:var(--mu);font-size:12px">No users yet.</div>';
       } else {
         usrEl.innerHTML='<div style="overflow-x:auto"><table class="fin-tbl">'
           +'<thead><tr><th>Phone</th><th>Email</th><th>Reports</th><th>Joined</th></tr></thead><tbody>'
@@ -2060,7 +2075,7 @@ async function loadAdmin(){
             var d=new Date(u.created_at);
             var ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
             return '<tr>'
-              +'<td style="font-family:var(--mono);font-weight:600">+91 '+esc(u.phone||'')+'</td>'
+              +'<td style="font-family:monospace;font-weight:600">+91 '+esc(u.phone||'')+'</td>'
               +'<td>'+esc(u.email||'—')+'</td>'
               +'<td style="font-weight:700;color:var(--tl);text-align:center">'+esc(String(u.total_reports||0))+'</td>'
               +'<td style="color:var(--mu);font-size:12px">'+ds+'</td>'
@@ -2069,10 +2084,12 @@ async function loadAdmin(){
           +'</tbody></table></div>';
       }
     }
-  }catch(e){
-    if(statsEl)statsEl.innerHTML='<div style="color:var(--er);padding:16px">Error loading admin data: '+esc(e.message)+'</div>';
+  }catch(e2){
+    if(statsEl) statsEl.innerHTML='<div style="grid-column:1/-1;color:var(--er);padding:16px;font-size:13px"><b>Admin load error:</b> '+esc(e2.message)+'</div>';
+    if(repEl) repEl.innerHTML='<div style="padding:12px;color:var(--er);font-size:12px">Error: '+esc(e2.message)+'</div>';
   }
 }
+
 
 function viewAdminReport(idx){
   var reports=(window._adminData||{}).reports||[];
@@ -3645,23 +3662,8 @@ document.addEventListener('DOMContentLoaded', function(){
   // Re-attach keyboard shortcuts after DOM loads (insurance)
   document.addEventListener('keydown', function(ev){
     if(ev.key==='F9'){ev.preventDefault();toggleDevGroups();}
-  }, true); // capture phase — fires before anything else
-});ting\u2026';
-  try{
-    await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'email',to:'partners@ipowork.com',
-        subject:'AIRA Alert Request: '+phone,
-        html:'<p>Phone: +91 '+phone+'</p><p>Email: '+email+'</p>'})});
-    btn.disabled=false;btn.innerHTML='Activate AIRA Alert \u2192';
-    var out=document.getElementById('result-alert');
-    if(out)out.innerHTML='<div style="padding:20px;background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.25);border-radius:10px;text-align:center">'
-      +'<b style="color:var(--ok)">AIRA Alert Requested!</b><br/>'
-      +'<span style="font-size:12px;color:var(--mu)">We will activate monitoring within 24 hours.</span></div>';
-  }catch(e){
-    btn.disabled=false;btn.innerHTML='Activate AIRA Alert \u2192';
-  }
-}
-
+  }, true);
+});
 // Initialise first tab
 document.addEventListener('DOMContentLoaded', function(){
   switchTier('free');
