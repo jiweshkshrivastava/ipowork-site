@@ -2185,501 +2185,9 @@ async function runDocCore(){
 /* ═══════════════════════════════════════════════════════════════
    COMPLETE REPORT BUILDER — all data, print-ready PDF quality
    ═══════════════════════════════════════════════════════════════ */
-function buildReport(tier){
-  var stored = AIRA_RESULTS[tier];
-  if(!stored){
-    var keys = Object.keys(AIRA_RESULTS);
-    if(!keys.length) return null;
-    stored = AIRA_RESULTS[keys[keys.length-1]];
-  }
-  var result   = stored.result   || {};
-  var cname    = stored.cname    || result.company_name || '';
-  var sector   = stored.sector   || '';
-  var exchange = stored.exchange || '';
-  var report   = result._report  || result.report || '';
-  var isValuation = (tier === 'valdoc' || tier === 'valintel');
-
-  /* ── helpers ─────────────────────────────────────────────── */
-  function e(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function fC(n,d){ if(n==null||isNaN(parseFloat(n)))return '—'; return '₹'+parseFloat(n).toFixed(d!=null?d:1)+' Cr'; }
-  function fN(n,d){ if(n==null||isNaN(parseFloat(n)))return '—'; return parseFloat(n).toFixed(d!=null?d:1); }
-  function pct(n){ if(n==null||isNaN(parseFloat(n)))return '—'; return parseFloat(n).toFixed(1)+'%'; }
-  function fX(n,d){ if(n==null||isNaN(parseFloat(n)))return '—'; return parseFloat(n).toFixed(d!=null?d:1)+'x'; }
-
-  var score = result.score || 0;
-  if(!score && report){ var sm=report.match(/AIRA Score:\s*(\d+)/i); if(sm) score=parseInt(sm[1]); }
-  var scoreCol = score>=78?'#1A9E6B':score>=65?'#D4860C':'#C0392B';
-
-  /* Tier label */
-  var tierLabel = {paid:'SME Intelligence',doc:'AIRA Score',mainboard:'Mainboard',
-    ca:'CA/CS Bundle',clearchit:'Clean Chit',ddbundle:'DD Bundle',free:'Free Analysis',
-    dirscan:'Director Risk',valdoc:'Valuation — Document Based',valintel:'Valuation — Intelligence'}[tier]||tier;
-
-  var now = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-  var caFirm = (document.getElementById('ca-firm')||{}).value||'';
-
-  /* Clean report text */
-  var cleanR = report
-    .replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'')
-    .replace(/---JSON---[\s\S]*?---END---/g,'')
-    .replace(/AIRA Score:\s*\d+\n?/gi,'')
-    .replace(/VALUATION REPORT (START|END)/g,'')
-    .replace(/REPORT_(START|END)/g,'')
-    .trim();
-
-  /* Markdown → HTML for report body */
-  function md2html(t){
-    if(!t) return '';
-    t = t
-      .replace(/^(#{1,4}) (.+)$/gm, function(m,h,tx){ return '<h'+h.length+'>'+e(tx)+'</h'+h.length+'>'; })
-      .replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')
-      .replace(/\*([^*\n]+)\*/g,'<em>$1</em>')
-      .replace(/^---+$/gm,'<hr/>')
-      .replace(/^- (.+)$/gm,'<li>$1</li>')
-      .replace(/\n(<li>[\s\S]+?<\/li>)+\n/g,function(m){ return '<ul>'+m.trim()+'</ul>'; });
-
-    // Tables
-    var lines = t.split('\n'), out = [], inTable = false, tableRows = [];
-    for(var i=0;i<lines.length;i++){
-      var l = lines[i];
-      if(/^\|.+\|$/.test(l)){
-        var cells = l.replace(/^\||\|$/g,'').split('|').map(function(c){return c.trim();});
-        var isSep = cells.every(function(c){return /^[-: ]+$/.test(c);});
-        if(!inTable){ inTable=true; tableRows=[]; }
-        if(!isSep) tableRows.push(cells);
-      } else {
-        if(inTable){
-          var thtml = '<div class="tbl-wrap"><table>';
-          tableRows.forEach(function(row,ri){
-            var tag = ri===0?'th':'td';
-            thtml += '<tr>'+row.map(function(c){return '<'+tag+'>'+c+'</'+tag+'>';}).join('')+'</tr>';
-          });
-          out.push(thtml+'</table></div>');
-          inTable=false; tableRows=[];
-        }
-        out.push(l);
-      }
-    }
-    if(inTable){
-      var thtml='<div class="tbl-wrap"><table>';
-      tableRows.forEach(function(row,ri){var tag=ri===0?'th':'td';thtml+='<tr>'+row.map(function(c){return '<'+tag+'>'+c+'</'+tag+'>';}).join('')+'</tr>';});
-      out.push(thtml+'</table></div>');
-    }
-    t = out.join('\n')
-      .replace(/\n{2,}/g,'</p><p>').replace(/^([^<\n].+)$/gm,'<p>$1</p>')
-      .replace(/<p><\/p>/g,'').replace(/<p>(<[hut])/g,'$1').replace(/(<\/[hut][^>]*>)<\/p>/g,'$1');
-    return t;
-  }
-
-  /* ── CSS ──────────────────────────────────────────────────── */
-  var accentCol = isValuation ? '#3B30B0' : '#07232A';
-  var accentLight = isValuation ? 'rgba(91,78,212,.08)' : 'rgba(13,92,107,.08)';
-  var accentBdr   = isValuation ? 'rgba(91,78,212,.3)'  : 'rgba(13,92,107,.3)';
-  var heroBg      = isValuation ? 'linear-gradient(135deg,#1A1560,#5B4ED4)' : 'linear-gradient(135deg,#07232A,#0D5C6B)';
-
-  var css =
-    '*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;color:#1A2B35;font-size:12px;line-height:1.65;background:#fff}'
-    +'.page{max-width:960px;margin:0 auto;padding:32px 36px}'
-    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:3px solid '+accentCol+';margin-bottom:24px}'
-    +'.brand{font-size:26px;font-weight:900;color:'+accentCol+';font-family:Georgia,serif}'
-    +'.brand sup{font-size:12px;color:#E88A2E;font-family:sans-serif;font-weight:700}'
-    +'.tier-tag{font-size:9.5px;font-weight:800;padding:4px 12px;border-radius:4px;background:'+accentLight+';color:'+accentCol+';text-transform:uppercase;letter-spacing:.6px;display:inline-block}'
-    +'.score-hero{background:'+heroBg+';border-radius:14px;padding:24px 30px;margin-bottom:20px;display:flex;align-items:center;gap:28px}'
-    +'.big-num{font-size:64px;font-weight:900;color:'+scoreCol+';line-height:1;font-family:Georgia,serif;flex-shrink:0}'
-    +'.val-hero{background:'+heroBg+';border-radius:14px;padding:22px 28px;margin-bottom:20px}'
-    +'.sec{font-size:10px;font-weight:800;color:'+accentCol+';text-transform:uppercase;letter-spacing:.9px;padding:8px 0 5px;border-bottom:1.5px solid #E0EEF0;margin:22px 0 10px}'
-    +'table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11.5px}'
-    +'th{background:'+accentLight+';font-size:9.5px;font-weight:800;color:#4A7A80;text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;text-align:left}'
-    +'td{padding:8px 12px;border-bottom:1px solid #EEF4F6;vertical-align:top}'
-    +'tr:nth-child(even) td{background:#FAFCFD}'
-    +'.tbl-wrap{overflow-x:auto;margin-bottom:14px}'
-    +'.highlight-row td{background:'+accentLight+'!important;font-weight:700;border-top:2px solid '+accentCol+';color:'+accentCol+'}'
-    +'.kv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}'
-    +'.kv-card{background:#F4F9FA;border-radius:7px;padding:9px 10px;text-align:center;border:1px solid #E0EEF0}'
-    +'.kv-val{font-size:14px;font-weight:800;color:#07232A;font-family:Georgia,serif}'
-    +'.kv-val.g{color:#1A9E6B}.kv-val.a{color:#D4860C}.kv-val.r{color:#C0392B}'
-    +'.kv-lbl{font-size:9px;color:#6B8A94;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}'
-    +'.val-range{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}'
-    +'.val-box{text-align:center;padding:14px;background:rgba(91,78,212,.04);border-radius:10px;border:1px solid #E0EEF0}'
-    +'.val-box.hi{background:rgba(91,78,212,.08);border:1.5px solid #5B4ED4}'
-    +'.val-box .lbl{font-size:9px;color:#6B8A94;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}'
-    +'.val-box .num{font-size:20px;font-weight:900;color:#3B30B0;font-family:Georgia,serif}'
-    +'.wacc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}'
-    +'.wacc-card{background:#F4F9FA;border-radius:8px;padding:12px 14px;border:1px solid #E0EEF0}'
-    +'.wacc-center{background:rgba(91,78,212,.06);border:1.5px solid rgba(91,78,212,.3);border-radius:10px;padding:16px;text-align:center}'
-    +'.driver-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}'
-    +'.driver-card{border-radius:9px;padding:12px 14px}'
-    +'.price-band{padding:14px 20px;background:rgba(91,78,212,.06);border:1.5px solid rgba(91,78,212,.25);border-radius:10px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}'
-    +'.compliance-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10.5px;color:#6B8A94;margin-top:6px}'
-    +'.ai-body{font-size:12.5px;line-height:1.78;color:#1A2B35}'
-    +'.ai-body h1{font-size:15px;font-weight:800;color:'+accentCol+';margin:20px 0 8px;border-bottom:1.5px solid #E0EEF0;padding-bottom:5px}'
-    +'.ai-body h2{font-size:13.5px;font-weight:800;color:'+accentCol+';margin:16px 0 7px}'
-    +'.ai-body h3{font-size:12.5px;font-weight:700;color:#2A4A55;margin:12px 0 5px}'
-    +'.ai-body h4{font-size:12px;font-weight:700;color:#4A7A80;margin:10px 0 4px}'
-    +'.ai-body p{margin-bottom:8px}'
-    +'.ai-body ul,.ai-body ol{padding-left:20px;margin-bottom:8px}'
-    +'.ai-body li{margin-bottom:3px}'
-    +'.ai-body strong{color:'+accentCol+'}'
-    +'.ai-body hr{border:none;border-top:1px solid #E0EEF0;margin:16px 0}'
-    +'.footer{margin-top:28px;padding-top:12px;border-top:1px solid #E0EEF0;display:flex;justify-content:space-between;font-size:10px;color:#8FA8B2}'
-    +'@media print{'
-    +'  .page{padding:16px 20px}'
-    +'  body{font-size:11px}'
-    +'  .score-hero,.val-hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-    +'  .sec{page-break-before:auto}'
-    +'  .kv-grid,.wacc-grid,.val-range,.driver-grid{break-inside:avoid}'
-    +'  table{break-inside:avoid}'
-    +'}';
-
-  var htm = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>'
-    +'<meta name="viewport" content="width=device-width,initial-scale=1"/>'
-    +'<title>'+e(tierLabel)+' Report — '+e(cname)+'</title>'
-    +'<style>'+css+'</style></head><body><div class="page">';
-
-  /* ── HEADER ─────────────────────────────────────────────── */
-  htm += '<div class="hdr">'
-    +'<div><div class="brand">ipowork<sup>AI</sup></div>'
-    +'<div style="font-size:11px;color:#6B8A94;margin-top:3px">IPO Readiness Platform &middot; ipowork.com</div></div>'
-    +'<div style="text-align:right">'
-    +'<div class="tier-tag">'+e(tierLabel)+'</div>'
-    +'<div style="font-size:10px;color:#8FA8B2;margin-top:5px">Generated: '+now+'</div>'
-    +(caFirm?'<div style="font-size:10px;color:'+accentCol+';font-weight:700;margin-top:2px">Prepared by: '+e(caFirm)+'</div>':'')
-    +'</div></div>';
-
-  /* ── VALUATION REPORT ──────────────────────────────────── */
-  if(isValuation){
-    var v = result;
-    var hasVal = v.val_base_cr > 0;
-    var hasProj = v.projection_yr1_rev > 0;
-    var hasDCF  = v.enterprise_value_dcf > 0;
-
-    /* Hero */
-    htm += '<div class="val-hero">';
-    htm += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap">';
-    htm += '<div><div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px">'+(v._source==='probe42_verified'?'Probe42 Verified — ':'')+'Valuation Report</div>';
-    htm += '<div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:4px">'+e(cname)+'</div>';
-    htm += '<div style="font-size:12px;color:rgba(255,255,255,.6)">'+e(sector)+(exchange?' &middot; '+e(exchange):'')+'</div>';
-    htm += '<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:5px">SEBI ICDR 2018 &middot; ICAI Valuation Standards 2018 &middot; IndAS 113 &middot; CA 2013</div></div>';
-    if(hasVal){
-      htm += '<div style="text-align:right">';
-      htm += '<div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:4px">Base Case Valuation</div>';
-      htm += '<div style="font-size:34px;font-weight:900;color:#C5BFFF;font-family:Georgia,serif">'+fC(v.val_base_cr,0)+'</div>';
-      htm += '<div style="font-size:10px;color:rgba(255,255,255,.4)">'+e(v.primary_method||'')+'</div></div>';
-    }
-    htm += '</div>';
-    /* Price band */
-    if(v.price_band_low && v.price_band_high){
-      htm += '<div style="margin-top:14px;padding:10px 16px;background:rgba(255,255,255,.1);border-radius:8px;display:inline-block">';
-      htm += '<span style="font-size:10px;color:rgba(255,255,255,.6);margin-right:10px">IPO Price Band:</span>';
-      htm += '<span style="font-size:18px;font-weight:900;color:#fff;font-family:Georgia,serif">₹'+fN(v.price_band_low,0)+' — ₹'+fN(v.price_band_high,0)+'</span>';
-      htm += '<span style="font-size:10px;color:rgba(255,255,255,.5);margin-left:10px">FV ₹'+(v.face_value||10)+' per share &middot; Indicative</span>';
-      htm += '</div>';
-    }
-    htm += '</div>';
-
-    /* Valuation range */
-    if(hasVal){
-      htm += '<div class="val-range">';
-      [{l:'Conservative',v:v.val_conservative_cr,hi:false},{l:'Base Case',v:v.val_base_cr,hi:true},{l:'Optimistic',v:v.val_optimistic_cr,hi:false}].forEach(function(c){
-        htm += '<div class="val-box'+(c.hi?' hi':'')+'"><div class="lbl">'+c.l+'</div><div class="num">'+fC(c.v,0)+'</div></div>';
-      });
-      htm += '</div>';
-    }
-
-    /* Financial snapshot */
-    htm += '<div class="sec">Financial Snapshot — Base Year</div>';
-    htm += '<div class="kv-grid">';
-    var fin_kpis = [
-      {l:'Revenue',v:fC(v.revenue_cr),g:true},{l:'PAT',v:fC(v.pat_cr),g:(v.pat_cr>0)},
-      {l:'EBITDA',v:fC(v.ebitda_cr),g:true},{l:'EBITDA%',v:pct(v.ebitda_margin_pct),g:(v.ebitda_margin_pct>12)},
-      {l:'PAT Margin',v:pct(v.pat_margin_pct),g:(v.pat_margin_pct>8)},
-      {l:'Net Worth',v:fC(v.net_worth_cr),g:true},{l:'Total Debt',v:fC(v.total_debt_cr),g:false},
-      {l:'D/E Ratio',v:fX(v.debt_equity),g:(v.debt_equity<1.5)},
-      {l:'ROE',v:pct(v.roe),g:(v.roe>15)},{l:'ROCE',v:pct(v.roce),g:(v.roce>15)},
-      {l:'Int. Coverage',v:fX(v.interest_coverage),g:(v.interest_coverage>3)},
-      {l:'Rev CAGR',v:pct(v.revenue_3yr_cagr),g:(v.revenue_3yr_cagr>12)},
-    ];
-    fin_kpis.forEach(function(k){
-      if(!k.v||k.v==='—') return;
-      htm += '<div class="kv-card"><div class="kv-val '+(k.g?'g':'a')+'">'+e(k.v)+'</div><div class="kv-lbl">'+e(k.l)+'</div></div>';
-    });
-    htm += '</div>';
-
-    /* Peer comparison */
-    var peers = [];
-    if(v.peer1_name) peers.push(v.peer1_name,v.peer1_rev,v.peer1_pat,v.peer1_ebitda_margin,v.peer1_pe,v.peer1_ev,v.peer1_mc);
-    var peerRows = [];
-    ['peer1','peer2','peer3'].forEach(function(p){
-      if(v[p+'_name']) peerRows.push([v[p+'_name'],fN(v[p+'_rev'],0),fN(v[p+'_pat'],1),pct(v[p+'_ebitda_margin']),fX(v[p+'_pe'],1),fX(v[p+'_ev'],1),fN(v[p+'_mc'],0)]);
-    });
-    if(peerRows.length){
-      htm += '<div class="sec">Listed Peer Comparable Analysis</div>';
-      htm += '<div class="tbl-wrap"><table><thead><tr><th>Company</th><th>Revenue (₹Cr)</th><th>PAT (₹Cr)</th><th>EBITDA%</th><th>P/E (TTM)</th><th>EV/EBITDA</th><th>Mkt Cap (₹Cr)</th></tr></thead><tbody>';
-      peerRows.forEach(function(r){ htm += '<tr>'+r.map(function(c,i){return '<td'+(i===0?' style="font-weight:600"':'')+'>'+e(String(c))+'</td>';}).join('')+'</tr>'; });
-      htm += '<tr class="highlight-row"><td>★ '+e(cname)+'</td><td>'+fC(v.revenue_cr,1)+'</td><td>'+fC(v.pat_cr,1)+'</td><td>'+pct(v.ebitda_margin_pct)+'</td><td>—</td><td>—</td><td>'+(hasVal?fC(v.val_base_cr,0)+' est.':'—')+'</td></tr>';
-      htm += '</tbody></table></div>';
-      htm += '<p style="font-size:10.5px;color:#8FA8B2;margin-bottom:12px">Sector avg P/E: '+fX(v.sector_pe_avg,1)+' &nbsp;|&nbsp; EV/EBITDA: '+fX(v.sector_ev_avg,1)+' &nbsp;|&nbsp; SME discount applied: '+fN(v.sme_discount,0)+'%</p>';
-    }
-
-    /* WACC */
-    if(v.wacc){
-      htm += '<div class="sec">WACC Calculation</div>';
-      htm += '<div class="wacc-grid">';
-      htm += '<div class="wacc-card"><table style="font-size:11.5px;margin:0"><tbody>';
-      [['Risk-Free Rate (Rf)','7.2%','10-yr G-Sec yield'],
-       ['Equity Risk Premium (ERP)','6.5%','India market premium'],
-       ['Beta (β)','1.10–1.30','Sector relevered beta'],
-       ['Cost of Equity (Ke)','~'+(parseFloat(v.wacc)+2).toFixed(1)+'%','Rf + β × ERP (CAPM)'],
-       ['Cost of Debt (Kd)','10–11%','Avg bank borrowing rate'],
-       ['Tax Rate','25%','Effective corporate tax'],
-       ['D/(D+E)',''+fN(v.debt_equity>0?(v.debt_equity/(1+v.debt_equity)*100):30,0)+'%','Current capital structure'],
-      ].forEach(function(r){
-        htm += '<tr><td style="padding:5px 8px;color:#6B8A94;width:50%">'+r[0]+'</td><td style="padding:5px 8px;font-weight:700">'+r[1]+'</td><td style="padding:5px 8px;font-size:10px;color:#8FA8B2">'+r[2]+'</td></tr>';
-      });
-      htm += '</tbody></table></div>';
-      htm += '<div class="wacc-center">';
-      htm += '<div style="font-size:10px;color:#5B4ED4;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">WACC</div>';
-      htm += '<div style="font-size:42px;font-weight:900;color:#3B30B0;font-family:Georgia,serif">'+pct(v.wacc)+'</div>';
-      htm += '<div style="font-size:10px;color:#6B8A94;margin-top:8px">Ke×E/(D+E) + Kd×(1−t)×D/(D+E)</div>';
-      if(v.wacc_basis) htm += '<div style="font-size:10px;color:#6B8A94;margin-top:4px">'+e(v.wacc_basis)+'</div>';
-      htm += '<div style="font-size:10px;color:#8FA8B2;margin-top:6px">Terminal growth rate: '+fN(v.terminal_growth_rate,1)+'%</div>';
-      htm += '</div></div>';
-    }
-
-    /* 5-year projections */
-    if(hasProj){
-      htm += '<div class="sec">5-Year Financial Projections (₹ Crore)</div>';
-      htm += '<div class="tbl-wrap"><table><thead><tr><th>Metric</th><th>FY25 (P)</th><th>FY26 (P)</th><th>FY27 (P)</th><th>FY28 (P)</th><th>FY29 (P)</th></tr></thead><tbody>';
-      [['Revenue','_rev'],['EBITDA','_ebitda'],['PAT','_pat'],['Free Cash Flow (FCFF)','_fcff']].forEach(function(row){
-        htm += '<tr><td style="font-weight:600">'+row[0]+'</td>';
-        for(var i=1;i<=5;i++) htm += '<td>'+fC(v['projection_yr'+i+row[1]],1)+'</td>';
-        htm += '</tr>';
-      });
-      // Growth %
-      htm += '<tr style="background:#F8FDFC"><td style="font-weight:600;color:#1A9E6B">Revenue Growth</td>';
-      for(var i=1;i<=5;i++){
-        var prev = i===1?v.revenue_cr:v['projection_yr'+(i-1)+'_rev'];
-        var curr = v['projection_yr'+i+'_rev'];
-        var g = (prev&&curr&&prev>0)?(((curr-prev)/prev)*100).toFixed(1)+'%':'—';
-        htm += '<td style="color:#1A9E6B">'+g+'</td>';
-      }
-      htm += '</tr></tbody></table></div>';
-
-      /* DCF bridge */
-      if(hasDCF){
-        htm += '<div class="wacc-grid" style="margin-top:12px">';
-        htm += '<div class="wacc-card">';
-        htm += '<div style="font-size:11px;font-weight:800;color:#3B30B0;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">DCF Valuation Bridge</div>';
-        htm += '<table style="font-size:11.5px;margin:0"><tbody>';
-        [['PV of FCFF (FY25–FY29)',fC(v.pv_fcff_sum)],
-         ['Terminal Value (TV)',fC(v.terminal_value)],
-         ['PV of Terminal Value',fC(v.terminal_value?v.terminal_value/(1+v.wacc/100/5):null)],
-         ['Enterprise Value (DCF)',fC(v.enterprise_value_dcf)],
-         ['Less: Net Debt','('+fC(v.total_debt_cr)+')'],
-         ['Equity Value (DCF)',fC(v.val_dcf_cr)],
-        ].forEach(function(r,i){
-          var isTotal = i>=5;
-          htm += '<tr style="'+(isTotal?'border-top:2px solid #5B4ED4;font-weight:800;color:#3B30B0':'')+'"><td style="padding:5px 8px">'+r[0]+'</td><td style="padding:5px 8px;text-align:right">'+r[1]+'</td></tr>';
-        });
-        htm += '</tbody></table></div>';
-
-        /* Method reconciliation */
-        htm += '<div class="wacc-card">';
-        htm += '<div style="font-size:11px;font-weight:800;color:#3B30B0;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Valuation Reconciliation</div>';
-        htm += '<table style="font-size:11.5px;margin:0"><thead><tr><th style="background:rgba(91,78,212,.08)">Method</th><th style="background:rgba(91,78,212,.08)">Value (₹Cr)</th><th style="background:rgba(91,78,212,.08)">Weight</th><th style="background:rgba(91,78,212,.08)">Wtd. (₹Cr)</th></tr></thead><tbody>';
-        var methods = [
-          {n:'DCF',v:v.val_dcf_cr,w:v.weight_dcf||0.35},
-          {n:'P/E Comparable',v:v.val_pe_cr,w:v.weight_pe||0.30},
-          {n:'EV/EBITDA',v:v.val_ev_cr,w:v.weight_ev||0.25},
-          {n:'NAV/Book',v:v.val_nav_cr,w:v.weight_nav||0.10},
-        ];
-        var wtdSum = 0;
-        methods.forEach(function(m){
-          var wtd = (m.v||0)*(m.w||0);
-          wtdSum += wtd;
-          htm += '<tr><td style="padding:5px 8px">'+m.n+'</td><td style="padding:5px 8px">'+fC(m.v,1)+'</td>';
-          htm += '<td style="padding:5px 8px;text-align:center">'+Math.round((m.w||0)*100)+'%</td>';
-          htm += '<td style="padding:5px 8px;font-weight:600">'+fC(wtd,1)+'</td></tr>';
-        });
-        htm += '<tr style="border-top:2px solid #5B4ED4;font-weight:800"><td colspan="3" style="padding:5px 8px">Weighted Average</td><td style="padding:5px 8px;color:#3B30B0">'+fC(wtdSum,1)+'</td></tr>';
-        if(v.sme_discount){
-          var disc = wtdSum*v.sme_discount/100;
-          htm += '<tr style="color:#C0392B"><td colspan="3" style="padding:5px 8px">SME Discount ('+fN(v.sme_discount,0)+'%)</td><td style="padding:5px 8px">('+fC(disc,1)+')</td></tr>';
-        }
-        htm += '<tr style="border-top:2px solid #5B4ED4;font-weight:900;font-size:13px;color:#3B30B0"><td colspan="3" style="padding:6px 8px">Final Base Case</td><td style="padding:6px 8px">'+fC(v.val_base_cr,0)+'</td></tr>';
-        htm += '</tbody></table></div></div>';
-      }
-    }
-
-    /* Risks & Drivers */
-    var drivers = [v.key_driver1,v.key_driver2,v.key_driver3].filter(Boolean);
-    var risks   = [v.key_risk1,v.key_risk2,v.key_risk3].filter(Boolean);
-    if(drivers.length||risks.length){
-      htm += '<div class="sec">Key Value Drivers & Risk Factors</div>';
-      htm += '<div class="driver-grid">';
-      if(drivers.length){
-        htm += '<div class="driver-card" style="background:rgba(26,158,107,.04);border:1px solid rgba(26,158,107,.15)">';
-        htm += '<div style="font-size:10px;font-weight:800;color:#1A9E6B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Value Drivers</div>';
-        drivers.forEach(function(d){ htm += '<div style="font-size:11.5px;margin-bottom:6px;display:flex;gap:6px"><span style="color:#1A9E6B;flex-shrink:0">↑</span>'+e(d)+'</div>'; });
-        htm += '</div>';
-      }
-      if(risks.length){
-        htm += '<div class="driver-card" style="background:rgba(192,57,43,.04);border:1px solid rgba(192,57,43,.15)">';
-        htm += '<div style="font-size:10px;font-weight:800;color:#C0392B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Risk Factors</div>';
-        risks.forEach(function(r){ htm += '<div style="font-size:11.5px;margin-bottom:6px;display:flex;gap:6px"><span style="color:#C0392B;flex-shrink:0">⚠</span>'+e(r)+'</div>'; });
-        htm += '</div>';
-      }
-      htm += '</div>';
-    }
-
-    /* Compliance */
-    htm += '<div style="background:rgba(91,78,212,.04);border:1px solid rgba(91,78,212,.12);border-radius:8px;padding:12px 14px;margin-bottom:14px">';
-    htm += '<div style="font-size:10px;font-weight:800;color:#3B30B0;text-transform:uppercase;margin-bottom:6px">Regulatory Compliance</div>';
-    htm += '<div class="compliance-grid">';
-    ['SEBI ICDR 2018 Reg 26(4): Multiple methods applied','ICAI Valuation Standards 2018: IVS 105 complied','IndAS 113 Fair Value: Market participant assumptions','Companies Act 2013 Sec 62: Pricing basis documented','SEBI ICDR 2018 Reg 32: RPT basis established','FEMA 1999: Applicable if FDI involved'].forEach(function(c){ htm += '<div>✓ '+e(c)+'</div>'; });
-    htm += '</div></div>';
-
-  } else {
-    /* ── AIRA READINESS REPORT ─────────────────────────────── */
-
-    /* Score hero */
-    htm += '<div class="score-hero">'
-      +'<div class="big-num">'+score+'</div>'
-      +'<div style="flex:1">'
-      +'<div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">AIRA Score</div>'
-      +'<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:3px">'+e(cname)+'</div>'
-      +(result.cin?'<div style="font-size:11px;font-family:monospace;color:rgba(255,255,255,.5)">'+e(result.cin)+'</div>':'')
-      +'<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:4px">'+e(sector||'')+(exchange?' &middot; '+e(exchange):'')+'</div>'
-      +'<div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:4px">SEBI ICDR 2018 &middot; '+e(tierLabel)+'</div>'
-      +'</div></div>';
-
-    /* Dimension scores */
-    var dims = {};
-    var jm = report.match(/---JSON---\s*([\s\S]*?)---END---/);
-    if(jm){ try{ dims=JSON.parse(jm[1].trim()); }catch(e2){} }
-    var dimKeys = ['financial','governance','compliance','promoter','legal','readiness'];
-    var dimNames = {financial:'Financial',governance:'Governance',compliance:'Compliance',promoter:'Promoter',legal:'Legal',readiness:'Readiness'};
-    var hasDims = dimKeys.some(function(k){return dims[k]>0;});
-    if(hasDims){
-      htm += '<div class="sec">Dimension Scores</div>';
-      htm += '<div class="tbl-wrap"><table><thead><tr>'+dimKeys.map(function(k){return '<th>'+dimNames[k]+'</th>';}).join('')+'</tr></thead><tbody><tr>';
-      dimKeys.forEach(function(k){
-        var dv=dims[k]||0;
-        var dc=dv>=78?'#1A9E6B':dv>=65?'#D4860C':'#C0392B';
-        htm += '<td style="text-align:center;font-weight:800;font-size:16px;color:'+dc+';font-family:Georgia,serif">'+dv+'</td>';
-      });
-      htm += '</tr><tr>';
-      dimKeys.forEach(function(k){
-        var dv=dims[k]||0; var lbl=dv>=78?'Strong':dv>=65?'Good':dv>=50?'Fair':'Weak';
-        var dc=dv>=78?'#1A9E6B':dv>=65?'#D4860C':'#C0392B';
-        htm += '<td style="text-align:center;font-size:10px;color:'+dc+'">'+lbl+'</td>';
-      });
-      htm += '</tr></tbody></table></div>';
-    }
-
-    /* MCA data */
-    if(result.status||result.date_of_incorporation){
-      htm += '<div class="sec">Company Master — MCA / Probe42 Verified</div>';
-      htm += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:14px">';
-      var mca_fields = [
-        ['Status',result.status],['Company Type',result.company_type],
-        ['Incorporated',result.date_of_incorporation],['Registered State',result.registered_state],
-        ['Paid-up Capital',result.paid_up_capital?fC(result.paid_up_capital):null],
-        ['Authorised Capital',result.authorised_capital?fC(result.authorised_capital):null],
-        ['Last AGM',result.last_agm_date],['Last Filing',result.last_filing_date],
-        ['Compliance',result.active_compliance],['CIRP Status',result.cirp_status||'None'],
-      ];
-      mca_fields.forEach(function(f){
-        if(!f[1]||f[1]==='—'||f[1]==='null') return;
-        htm += '<div style="padding:6px 10px;background:#F4F9FA;border-radius:5px;font-size:11.5px"><span style="color:#6B8A94;font-size:10.5px">'+e(f[0])+':</span> <span style="font-weight:600">'+e(String(f[1]))+'</span></div>';
-      });
-      htm += '</div>';
-    }
-
-    /* Financial KPIs */
-    var fin = result.financials || {};
-    if(fin.revenue_fy24||fin.pat_fy24||fin.net_worth){
-      htm += '<div class="sec">Financial Indicators — Probe42 Verified</div>';
-      htm += '<div class="kv-grid">';
-      [{l:'Revenue',v:fC(fin.revenue_fy24),g:true},{l:'PAT',v:fC(fin.pat_fy24),g:(fin.pat_fy24>0)},
-       {l:'EBITDA%',v:pct(fin.ebitda_margin),g:(fin.ebitda_margin>12)},
-       {l:'Net Margin',v:pct(fin.net_margin),g:(fin.net_margin>8)},
-       {l:'Net Worth',v:fC(fin.net_worth),g:true},{l:'Total Assets',v:fC(fin.total_assets),g:true},
-       {l:'D/E',v:fX(fin.debt_equity_ratio),g:(fin.debt_equity_ratio<1.5)},
-       {l:'ROE',v:pct(fin.roe),g:(fin.roe>15)},{l:'ROCE',v:pct(fin.roce),g:(fin.roce>15)},
-       {l:'Rev Growth',v:pct(fin.revenue_growth),g:(fin.revenue_growth>12)},
-       {l:'Current Ratio',v:fX(fin.current_ratio),g:(fin.current_ratio>1.5)},
-       {l:'Int. Coverage',v:fX(fin.interest_coverage),g:(fin.interest_coverage>3)},
-      ].forEach(function(k){
-        if(!k.v||k.v==='—') return;
-        htm += '<div class="kv-card"><div class="kv-val '+(k.g?'g':'a')+'">'+e(k.v)+'</div><div class="kv-lbl">'+e(k.l)+'</div></div>';
-      });
-      htm += '</div>';
-      if(fin.auditor) htm += '<p style="font-size:10.5px;color:#6B8A94;margin-bottom:12px">Auditor: <strong>'+e(fin.auditor)+'</strong></p>';
-    }
-
-    /* Directors */
-    var dirs = Array.isArray(result.directors)?result.directors:[];
-    if(dirs.length){
-      htm += '<div class="sec">Board of Directors ('+dirs.length+' total, '+dirs.filter(function(d){return !d.cessation;}).length+' active)</div>';
-      htm += '<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Gender</th><th>Status</th><th>Appointed</th></tr></thead><tbody>';
-      dirs.forEach(function(d){
-        htm += '<tr><td style="font-weight:600">'+e(d.name||'N/A')+'</td><td style="font-family:monospace;font-size:10.5px">'+e(d.din||'N/A')+'</td>';
-        htm += '<td>'+e(d.designation||'Director')+'</td><td>'+e(d.gender||'—')+'</td>';
-        htm += '<td style="color:'+(d.cessation?'#8FA8B2':'#1A9E6B')+';font-weight:600">'+(d.cessation?'Ceased':'Active')+'</td>';
-        htm += '<td>'+e(d.appointed||'—')+'</td></tr>';
-      });
-      htm += '</tbody></table></div>';
-    }
-
-    /* Charges */
-    var chgs = Array.isArray(result.charges)?result.charges:[];
-    if(chgs.length){
-      htm += '<div class="sec">Charges & Liens ('+chgs.length+' open)</div>';
-      htm += '<div class="tbl-wrap"><table><thead><tr><th>Lender</th><th>Amount</th><th>Type</th><th>Status</th><th>Date</th></tr></thead><tbody>';
-      chgs.forEach(function(c){ htm += '<tr><td>'+e(c.holder||'N/A')+'</td><td>'+fC(c.amount)+'</td><td>'+e(c.type||'N/A')+'</td><td style="color:#D4860C;font-weight:600">'+e(c.status||'Open')+'</td><td>'+e(c.date||'N/A')+'</td></tr>'; });
-      htm += '</tbody></table></div>';
-    }
-  }
-
-  /* ── FULL AI REPORT (both types) ─────────────────────────── */
-  if(cleanR){
-    htm += '<div class="sec">'+(isValuation?'Detailed Valuation Analysis':'AI Intelligence Report')+'</div>';
-    htm += '<div class="ai-body">'+md2html(cleanR)+'</div>';
-  }
-
-  /* ── FOOTER ─────────────────────────────────────────────── */
-  htm += '<div class="footer">'
-    +'<div>ipowork.com &middot; partners@ipowork.com &middot; WhatsApp: +91 88510 59588</div>'
-    +'<div>Indicative only. Not SEBI-registered research. For professional advisory use. &middot; '+e(tierLabel)+'</div>'
-    +'</div>';
-  htm += '</div></body></html>';
-
-  return {htm:htm, company:cname, score:score};
-}
 
 
-function previewReport(tier){
-  var r=buildReport(tier);if(!r){alert('Run AIRA first.');return;}
-  var w=window.open('','_blank');
-  if(w&&w.document){
-    var bar='<div style="position:sticky;top:0;z-index:9;background:#07232A;padding:10px 20px;display:flex;align-items:center;gap:10px;font-family:sans-serif"><span style="font-size:15px;font-weight:900;color:#fff;font-family:Georgia,serif">ipowork<sup style="font-size:10px;color:#E88A2E">AI</sup></span><span style="flex:1;font-size:11px;color:rgba(255,255,255,.5)">'+r.company+' \u2014 Score: '+r.score+'</span><button onclick="window.print()" style="padding:7px 16px;background:#E88A2E;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">Print / PDF</button><button onclick="window.close()" style="padding:7px 12px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:12px;cursor:pointer;margin-left:6px">Close</button></div>';
-    w.document.write(r.htm.replace('<body>','<body>'+bar));w.document.close();w.focus();
-  }else{alert('Allow popups for this site.');}
-}
 
-function downloadReport(tier){
-  var r=buildReport(tier);if(!r){alert('Run AIRA first.');return;}
-  try{
-    var blob=new Blob([r.htm],{type:'text/html;charset=utf-8'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;
-    a.download='AIRA-'+(r.company||tier).replace(/[^a-zA-Z0-9]/g,'-').substring(0,40)+'-'+new Date().toISOString().slice(0,10)+'.html';
-    document.body.appendChild(a);a.click();
-    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},3000);
-  }catch(e2){alert('Download failed. Use Preview and Print to PDF instead.');}
-}
 
 
 function renderValuationReport(result, cname, sector, out, tier) {
@@ -2934,6 +2442,646 @@ function renderValuationReport(result, cname, sector, out, tier) {
   out.innerHTML = html;
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   REPORT SYSTEM — Complete professional PDF-quality download
+   ═══════════════════════════════════════════════════════════════ */
+function buildReportHTML(tier) {
+  var stored = AIRA_RESULTS[tier];
+  if (!stored) {
+    var keys = Object.keys(AIRA_RESULTS);
+    if (!keys.length) return null;
+    stored = AIRA_RESULTS[keys[keys.length-1]];
+  }
+  var result   = stored.result   || {};
+  var cname    = stored.cname    || result.company_name || 'Company';
+  var sector   = stored.sector   || '';
+  var exchange = stored.exchange || '';
+  var report   = result._report  || result.report || '';
+  var isVal    = (tier==='valdoc'||tier==='valintel');
+  var v        = result;
+
+  /* ── micro helpers ── */
+  function xe(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function fC(n,d){ var p=parseFloat(n); return isNaN(p)?'—':'₹'+p.toFixed(d!=null?d:1)+' Cr'; }
+  function fN(n,d){ var p=parseFloat(n); return isNaN(p)?'—':p.toFixed(d!=null?d:1); }
+  function fPct(n){ var p=parseFloat(n); return isNaN(p)?'—':p.toFixed(1)+'%'; }
+  function fX(n){ var p=parseFloat(n); return isNaN(p)?'—':p.toFixed(1)+'x'; }
+  function g(n,t){ return parseFloat(n)>=t; }
+
+  var score    = result.score || 0;
+  if (!score && report){ var sm=report.match(/AIRA Score:\s*(\d+)/i); if(sm) score=parseInt(sm[1]); }
+  var scoreCol = score>=78?'#1A9E6B':score>=65?'#C8820A':'#C0392B';
+
+  var TIER_LABELS = {paid:'SME Intelligence',doc:'AIRA Score',mainboard:'Mainboard',
+    ca:'CA/CS Bundle',clearchit:'Clean Chit',ddbundle:'DD Bundle',free:'Free Analysis',
+    dirscan:'Director Scan',valdoc:'Valuation — Document Based',valintel:'Valuation — Intelligence'};
+  var tierLabel = TIER_LABELS[tier]||tier;
+  var today     = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  var caFirm    = (document.getElementById('ca-firm')||{}).value||'';
+
+  /* Clean AI report text */
+  var cleanR = report
+    .replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'')
+    .replace(/---JSON---[\s\S]*?---END---/g,'')
+    .replace(/VALUATION REPORT (START|END)/g,'').replace(/REPORT_(START|END)/g,'')
+    .replace(/AIRA Score:\s*\d+\n?/gi,'').trim();
+
+  /* ── markdown → rich HTML ── */
+  function md2html(raw) {
+    if (!raw) return '';
+    var lines = raw.split('\n'), out = [], inTable=false, tableRows=[], inList=false, listItems=[];
+    function flushTable(){
+      if(!tableRows.length){inTable=false;return;}
+      var h2='<div class="tbl-wrap"><table>';
+      tableRows.forEach(function(row,ri){
+        var tag=ri===0?'th':'td';
+        h2+='<tr>'+row.map(function(c){
+          var cs=c.trim();
+          var bold = /^\*\*/.test(cs)&&/\*\*$/.test(cs);
+          cs=cs.replace(/^\*\*|\*\*$/g,'').replace(/\*\*/g,'').trim();
+          return '<'+tag+(bold?' style="font-weight:800"':'')+'>'+xe(cs)+'</'+tag+'>';
+        }).join('')+'</tr>';
+      });
+      out.push(h2+'</table></div>');
+      inTable=false; tableRows=[];
+    }
+    function flushList(){
+      if(!listItems.length){inList=false;return;}
+      out.push('<ul>'+listItems.map(function(li){return '<li>'+li+'</li>';}).join('')+'</ul>');
+      inList=false; listItems=[];
+    }
+    for(var i=0;i<lines.length;i++){
+      var l=lines[i];
+      var stripped=l.trim();
+      // Tables
+      if(/^\|.+\|$/.test(stripped)){
+        if(inList) flushList();
+        inTable=true;
+        var cells=stripped.replace(/^\||\|$/g,'').split('|');
+        var isSep=cells.every(function(c){return /^[\-: ]+$/.test(c.trim());});
+        if(!isSep) tableRows.push(cells);
+        continue;
+      }
+      if(inTable) flushTable();
+      // List items
+      if(/^[-*] /.test(stripped)){
+        if(inTable) flushTable();
+        inList=true;
+        var li=stripped.replace(/^[-*] /,'').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
+        listItems.push(li); continue;
+      }
+      if(inList&&stripped==='') { flushList(); out.push(''); continue; }
+      if(inList&&!/^[-*]/.test(stripped)) flushList();
+      // Headings
+      var hm=stripped.match(/^(#{1,4}) (.+)$/);
+      if(hm){ out.push('<h'+hm[1].length+'>'+xe(hm[2])+'</h'+hm[1].length+'>'); continue; }
+      // HR
+      if(/^---+$/.test(stripped)){ out.push('<hr/>'); continue; }
+      // Numbered
+      var nm=stripped.match(/^(\d+)\. (.+)/);
+      if(nm){ out.push('<p class="numbered"><span class="num-badge">'+nm[1]+'</span>'+nm[2].replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>')+'</p>'); continue; }
+      // Normal
+      if(stripped){
+        var tx=stripped.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
+        out.push('<p>'+tx+'</p>');
+      } else { out.push(''); }
+    }
+    if(inTable) flushTable();
+    if(inList) flushList();
+    return out.join('\n');
+  }
+
+  /* ── colors per type ── */
+  var AC  = isVal?'#3B30B0':'#063D47';
+  var ACD = isVal?'#1A1560':'#021F27';
+  var ACL = isVal?'rgba(91,78,212,.07)':'rgba(13,92,107,.07)';
+  var ACB = isVal?'rgba(91,78,212,.25)':'rgba(13,92,107,.25)';
+  var HBG = isVal?'linear-gradient(135deg,#1A1560 0%,#4A40C0 100%)':'linear-gradient(135deg,#052028 0%,#0D5C6B 100%)';
+
+  /* ══════════════════════════════════════════════════════════
+     CSS
+     ══════════════════════════════════════════════════════════ */
+  var CSS = [
+    '@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=JetBrains+Mono:wght@400;600&display=swap");',
+    '*{box-sizing:border-box;margin:0;padding:0}',
+    'html{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    'body{font-family:"Inter",-apple-system,sans-serif;color:#0F1E25;font-size:11.5px;line-height:1.7;background:#fff}',
+    '.page{max-width:1000px;margin:0 auto;padding:40px 44px}',
+    /* Header */
+    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid '+ACD+';margin-bottom:30px}',
+    '.brand{font-family:"Playfair Display",Georgia,serif;font-size:30px;font-weight:900;color:'+ACD+';letter-spacing:-0.5px}',
+    '.brand-sup{font-size:13px;color:#E88A2E;font-family:"Inter",sans-serif;font-weight:800;vertical-align:super}',
+    '.brand-sub{font-size:10.5px;color:#8FA8B2;margin-top:4px;font-weight:400}',
+    '.hdr-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px}',
+    '.tier-badge{font-size:8.5px;font-weight:800;padding:4px 14px;border-radius:20px;background:'+ACL+';color:'+AC+';text-transform:uppercase;letter-spacing:.8px;border:1px solid '+ACB+'}',
+    '.gen-date{font-size:10px;color:#8FA8B2}',
+    '.ca-firm{font-size:11px;font-weight:700;color:'+AC+';margin-top:1px}',
+    /* Hero */
+    '.hero{border-radius:18px;padding:28px 34px;margin-bottom:24px;background:'+HBG+'}',
+    '.hero-inner{display:flex;align-items:center;gap:30px}',
+    '.score-circle{background:rgba(255,255,255,.08);border:3px solid rgba(255,255,255,.2);border-radius:50%;width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}',
+    '.score-num{font-family:"Playfair Display",Georgia,serif;font-size:40px;font-weight:900;color:'+scoreCol+';line-height:1}',
+    '.score-denom{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}',
+    '.val-main-num{font-family:"Playfair Display",Georgia,serif;font-size:42px;font-weight:900;color:#C5BFFF;line-height:1}',
+    '.hero-co{font-size:19px;font-weight:700;color:#fff;margin-bottom:4px}',
+    '.hero-cin{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:rgba(255,255,255,.45);margin-bottom:6px}',
+    '.hero-meta{font-size:10.5px;color:rgba(255,255,255,.5)}',
+    '.hero-tag{font-size:9px;font-weight:700;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);display:inline-block;margin-top:6px}',
+    /* Section heading */
+    '.sec-head{margin:28px 0 12px;display:flex;align-items:center;gap:10px;page-break-after:avoid}',
+    '.sec-bar{width:4px;border-radius:3px;background:'+AC+';flex-shrink:0;align-self:stretch;min-height:16px}',
+    '.sec-label{font-size:9.5px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:1.1px}',
+    '.sec-sub{font-size:9px;color:#8FA8B2;margin-left:auto;font-weight:500}',
+    /* KPI grid */
+    '.kv4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}',
+    '.kv6{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:16px}',
+    '.kv{background:#F4FAFB;border:1px solid #DFF0F3;border-radius:9px;padding:11px 10px;text-align:center}',
+    '.kv-v{font-family:"Playfair Display",Georgia,serif;font-size:15px;font-weight:700;color:#0F1E25;line-height:1.2}',
+    '.kv-v.g{color:#1A9E6B}.kv-v.a{color:#C8820A}.kv-v.r{color:#C0392B}',
+    '.kv-l{font-size:8.5px;color:#6B8A94;text-transform:uppercase;letter-spacing:.4px;margin-top:4px;font-weight:600}',
+    /* Valuation range */
+    '.vr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}',
+    '.vr-box{text-align:center;padding:18px 12px;border-radius:12px;border:1px solid #DFF0F3;background:#F8FDFE}',
+    '.vr-box.hi{background:linear-gradient(135deg,rgba(91,78,212,.1),rgba(91,78,212,.04));border:2px solid rgba(91,78,212,.35);box-shadow:0 4px 20px rgba(91,78,212,.12)}',
+    '.vr-lbl{font-size:8.5px;color:#6B8A94;text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px;font-weight:700}',
+    '.vr-num{font-family:"Playfair Display",Georgia,serif;font-size:22px;font-weight:900;color:#3B30B0;line-height:1}',
+    '.vr-box.hi .vr-num{font-size:28px;color:#1A1560}',
+    '.vr-note{font-size:9px;color:#8FA8B2;margin-top:5px}',
+    /* Price band */
+    '.pb-card{padding:18px 24px;background:linear-gradient(135deg,rgba(91,78,212,.06),rgba(91,78,212,.02));border:1.5px solid rgba(91,78,212,.25);border-radius:14px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}',
+    '.pb-num{font-family:"Playfair Display",Georgia,serif;font-size:30px;font-weight:900;color:#1A1560;line-height:1}',
+    '.pb-label{font-size:9.5px;font-weight:800;color:#5B4ED4;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}',
+    '.pb-note{font-size:10px;color:#8FA8B2;margin-top:5px}',
+    /* Tables */
+    '.tbl-wrap{overflow:hidden;margin-bottom:16px;border-radius:10px;border:1px solid #DFF0F3;box-shadow:0 2px 8px rgba(0,0,0,.04)}',
+    '.tbl-wrap table{width:100%;border-collapse:collapse;font-size:11px}',
+    '.tbl-wrap th{background:'+ACL+';font-size:9px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:.5px;padding:9px 13px;text-align:left;white-space:nowrap;border-bottom:1.5px solid '+ACB+'}',
+    '.tbl-wrap td{padding:9px 13px;border-bottom:1px solid #EEF5F7;vertical-align:top}',
+    '.tbl-wrap tbody tr:last-child td{border-bottom:none}',
+    '.tbl-wrap tbody tr:nth-child(even) td{background:#FAFCFD}',
+    '.tbl-wrap .hl-row td{background:'+ACL+'!important;font-weight:700;color:'+AC+';border-top:2px solid '+AC+'}',
+    /* WACC */
+    '.wacc2{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:18px}',
+    '.wacc-tbl-card{background:#F4FAFB;border:1px solid #DFF0F3;border-radius:10px;padding:14px}',
+    '.wacc-val-card{background:linear-gradient(135deg,rgba(91,78,212,.08),rgba(91,78,212,.03));border:2px solid rgba(91,78,212,.3);border-radius:12px;padding:22px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}',
+    '.wacc-big{font-family:"Playfair Display",Georgia,serif;font-size:54px;font-weight:900;color:#3B30B0;line-height:1}',
+    '.wacc-formula{font-family:"JetBrains Mono",monospace;font-size:9px;color:#6B8A94;margin-top:10px;line-height:1.5}',
+    /* Projections */
+    '.proj-note{font-size:10px;color:#8FA8B2;margin-top:-10px;margin-bottom:14px;font-style:italic}',
+    /* DCF bridge */
+    '.dcf2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}',
+    '.dcf-card{background:#F4FAFB;border:1px solid #DFF0F3;border-radius:10px;padding:14px}',
+    '.dcf-row{display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #EEF5F7;font-size:11.5px}',
+    '.dcf-row:last-child{border-bottom:none}',
+    '.dcf-row.total{border-top:2px solid '+AC+';font-weight:800;color:'+AC+';font-size:12.5px}',
+    '.dcf-row.sub{color:#C0392B}',
+    /* Drivers/Risks */
+    '.dr2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}',
+    '.dr-card{border-radius:10px;padding:14px 16px}',
+    '.dr-head{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}',
+    '.dr-item{display:flex;gap:8px;margin-bottom:8px;font-size:11.5px;line-height:1.6;align-items:flex-start}',
+    '.dr-icon{flex-shrink:0;font-size:12px;margin-top:1px}',
+    /* Compliance */
+    '.comp-box{background:'+ACL+';border:1px solid '+ACB+';border-radius:10px;padding:14px 16px;margin-bottom:16px}',
+    '.comp-head{font-size:9.5px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}',
+    '.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}',
+    '.comp-item{display:flex;gap:6px;font-size:10.5px;color:#4A6A75;align-items:flex-start}',
+    '.comp-check{color:'+AC+';font-weight:800;flex-shrink:0}',
+    /* MCA data */
+    '.mca-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px}',
+    '.mca-item{background:#F4FAFB;border:1px solid #DFF0F3;border-radius:8px;padding:8px 12px}',
+    '.mca-l{font-size:9px;font-weight:700;color:#6B8A94;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}',
+    '.mca-v{font-size:11.5px;font-weight:600;color:#0F1E25}',
+    /* AI report body */
+    '.ai{font-size:12px;line-height:1.82;color:#0F1E25}',
+    '.ai h1{font-family:"Playfair Display",Georgia,serif;font-size:20px;font-weight:700;color:'+ACD+';margin:32px 0 12px;padding-bottom:8px;border-bottom:2px solid '+ACL+';page-break-before:always}',
+    '.ai h1:first-child{page-break-before:avoid}',
+    '.ai h2{font-size:14px;font-weight:800;color:'+AC+';margin:22px 0 9px;padding:8px 12px;background:'+ACL+';border-left:4px solid '+AC+';border-radius:0 5px 5px 0}',
+    '.ai h3{font-size:12.5px;font-weight:700;color:#2A4A55;margin:16px 0 6px;border-bottom:1px dashed #DFF0F3;padding-bottom:4px}',
+    '.ai h4{font-size:11.5px;font-weight:700;color:#4A7A80;margin:12px 0 5px}',
+    '.ai p{margin-bottom:10px}',
+    '.ai ul{padding-left:20px;margin-bottom:10px}',
+    '.ai ol{padding-left:20px;margin-bottom:10px}',
+    '.ai li{margin-bottom:5px}',
+    '.ai strong{color:'+ACD+';font-weight:700}',
+    '.ai em{font-style:italic;color:#4A6A75}',
+    '.ai hr{border:none;border-top:2px solid '+ACL+';margin:24px 0}',
+    '.ai .tbl-wrap{margin-bottom:14px}',
+    '.ai .numbered{display:flex;gap:10px;align-items:baseline;margin-bottom:8px}',
+    '.ai .num-badge{background:'+ACL+';color:'+AC+';font-weight:800;font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0}',
+    /* Disclaimer */
+    '.disclaimer{background:#F8FAFB;border:1px solid #DFF0F3;border-radius:10px;padding:14px 16px;margin-top:20px;font-size:10.5px;color:#6B8A94;line-height:1.7}',
+    '.disclaimer strong{color:#0F1E25}',
+    /* Footer */
+    '.footer{margin-top:30px;padding-top:14px;border-top:1.5px solid #E0EEF0;display:flex;justify-content:space-between;font-size:10px;color:#8FA8B2;flex-wrap:wrap;gap:6px}',
+    /* Print */
+    '@media print{',
+    '  @page{size:A4;margin:14mm 12mm}',
+    '  body{font-size:10.5px}',
+    '  .page{padding:0;max-width:100%}',
+    '  .hero,.vr-box,.vr-box.hi,.wacc-val-card,.kv,.comp-box{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    '  .sec-head{break-after:avoid;page-break-after:avoid}',
+    '  .kv4,.kv6,.vr3,.dr2,.dcf2,.wacc2{break-inside:avoid;page-break-inside:avoid}',
+    '  table{break-inside:auto}',
+    '  thead{display:table-header-group}',
+    '  tr{break-inside:avoid;page-break-inside:avoid}',
+    '  .ai h1{break-before:page;page-break-before:page}',
+    '  .ai h1:first-child,.ai h2{break-before:avoid;page-break-before:avoid}',
+    '}'
+  ].join('\n');
+
+  /* ══════════════════════════════════════════════════════════
+     BUILD HTML
+     ══════════════════════════════════════════════════════════ */
+  function section(label, sub) {
+    return '<div class="sec-head"><div class="sec-bar"></div>'
+      +'<div class="sec-label">'+xe(label)+'</div>'
+      +(sub?'<div class="sec-sub">'+xe(sub)+'</div>':'')
+      +'</div>\n';
+  }
+  function kvGrid(items, cols) {
+    var cls = cols===6?'kv6':'kv4';
+    var html = '<div class="'+cls+'">';
+    items.forEach(function(k){
+      if(!k.v||k.v==='—') return;
+      html += '<div class="kv"><div class="kv-v '+(k.g?'g':k.r?'r':'a')+'">'+xe(k.v)+'</div><div class="kv-l">'+xe(k.l)+'</div></div>';
+    });
+    return html+'</div>\n';
+  }
+  function table(headers, rows, hlLast) {
+    var html = '<div class="tbl-wrap"><table><thead><tr>'+headers.map(function(h){return '<th>'+xe(h)+'</th>';}).join('')+'</tr></thead><tbody>';
+    rows.forEach(function(row, ri){
+      var isLast = hlLast && ri===rows.length-1;
+      html += '<tr'+(isLast?' class="hl-row"':'')+'>';
+      row.forEach(function(cell,ci){
+        var style = ci===0?' style="font-weight:600"':'';
+        html += '<td'+style+'>'+xe(String(cell||'—'))+'</td>';
+      });
+      html += '</tr>';
+    });
+    return html+'</tbody></table></div>\n';
+  }
+
+  var htm = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>'
+    +'<meta name="viewport" content="width=device-width,initial-scale=1"/>'
+    +'<title>'+xe(tierLabel)+' — '+xe(cname)+'</title>'
+    +'<style>'+CSS+'</style></head><body><div class="page">\n';
+
+  /* ── HEADER ─────────────────────────────────────────────── */
+  htm += '<div class="hdr">'
+    +'<div><div class="brand">ipowork<span class="brand-sup">AI</span></div>'
+    +'<div class="brand-sub">IPO Readiness Platform &middot; ipowork.com</div></div>'
+    +'<div class="hdr-right">'
+    +'<div class="tier-badge">'+xe(tierLabel)+'</div>'
+    +'<div class="gen-date">Generated: '+today+'</div>'
+    +(caFirm?'<div class="ca-firm">Prepared by: '+xe(caFirm)+'</div>':'')
+    +'</div></div>\n';
+
+  /* ── VALUATION OR AIRA ──────────────────────────────────── */
+  if (isVal) {
+    var hasVal  = v.val_base_cr > 0;
+    var hasProj = v.projection_yr1_rev > 0;
+    var hasDCF  = v.enterprise_value_dcf > 0;
+
+    /* Hero */
+    htm += '<div class="hero">\n'
+      +'<div class="hero-inner">\n'
+      +'<div style="flex:1">'
+      +'<div style="font-size:9.5px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px">'+(v._source==='probe42_verified'?'Probe42 Verified — ':'')+'Valuation Report</div>'
+      +'<div class="hero-co">'+xe(cname)+'</div>'
+      +(v.cin?'<div class="hero-cin">'+xe(v.cin||result.cin||'')+'</div>':'')
+      +'<div class="hero-meta">'+xe(sector||'')+(exchange?' &middot; '+xe(exchange):'')+'</div>'
+      +'<div class="hero-tag">SEBI ICDR 2018 &middot; ICAI Valuation Standards 2018 &middot; IndAS 113 &middot; CA 2013 Sec 62</div>'
+      +'</div>'
+      +(hasVal?'<div style="text-align:right">'
+        +'<div style="font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Base Case Valuation</div>'
+        +'<div class="val-main-num">'+fC(v.val_base_cr,0)+'</div>'
+        +'<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:5px">'+xe(v.primary_method||'')+'</div>'
+        +'</div>':'')
+      +'</div>\n';
+
+    /* Price band inside hero */
+    if(v.price_band_low && v.price_band_high){
+      htm += '<div style="margin-top:16px;padding:12px 18px;background:rgba(255,255,255,.1);border-radius:10px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">'
+        +'<div><div style="font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">IPO Price Band (Indicative)</div>'
+        +'<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:26px;font-weight:900;color:#fff">₹'+fN(v.price_band_low,0)+' — ₹'+fN(v.price_band_high,0)+'</div></div>'
+        +'<div style="font-size:10px;color:rgba(255,255,255,.45)">Face value ₹'+(v.face_value||10)+' per share<br/>P/E range: '+fX(v.pe_low)+' — '+fX(v.pe_high)+'<br/>Indicative &middot; Subject to merchant banker</div>'
+        +'</div>\n';
+    }
+    htm += '</div>\n';
+
+    /* Valuation range */
+    if(hasVal){
+      htm += '<div class="vr3">';
+      [{l:'Conservative Estimate',v:v.val_conservative_cr,n:'Low multiples + higher discount',hi:false},
+       {l:'Base Case (Most Likely)',v:v.val_base_cr,n:'Sector avg + 15% SME discount',hi:true},
+       {l:'Optimistic Scenario',v:v.val_optimistic_cr,n:'High multiples + 10% discount',hi:false}
+      ].forEach(function(c){
+        htm += '<div class="vr-box'+(c.hi?' hi':'')+'">'
+          +'<div class="vr-lbl">'+c.l+'</div>'
+          +'<div class="vr-num">'+fC(c.v,0)+'</div>'
+          +'<div class="vr-note">'+xe(c.n)+'</div></div>';
+      });
+      htm += '</div>\n';
+    }
+
+    /* Financial snapshot */
+    htm += section('Financial Snapshot — Base Year', v.valuation_date||today);
+    htm += kvGrid([
+      {l:'Revenue',v:fC(v.revenue_cr),g:true},
+      {l:'EBITDA',v:fC(v.ebitda_cr),g:true},
+      {l:'PAT',v:fC(v.pat_cr),g:g(v.pat_cr,0)},
+      {l:'Net Worth',v:fC(v.net_worth_cr),g:true},
+      {l:'EBITDA Margin',v:fPct(v.ebitda_margin_pct),g:g(v.ebitda_margin_pct,12)},
+      {l:'PAT Margin',v:fPct(v.pat_margin_pct),g:g(v.pat_margin_pct,8)},
+      {l:'ROE',v:fPct(v.roe),g:g(v.roe,15)},
+      {l:'ROCE',v:fPct(v.roce),g:g(v.roce,15)},
+      {l:'Total Assets',v:fC(v.total_assets_cr),g:true},
+      {l:'Total Debt',v:fC(v.total_debt_cr),g:false,r:g(v.total_debt_cr,20)},
+      {l:'D/E Ratio',v:fX(v.debt_equity),g:parseFloat(v.debt_equity)<1.5,r:parseFloat(v.debt_equity)>=2},
+      {l:'Revenue CAGR',v:fPct(v.revenue_3yr_cagr),g:g(v.revenue_3yr_cagr,12)},
+    ], 4);
+
+    /* Peer comparison */
+    var peerRows = [];
+    ['peer1','peer2','peer3'].forEach(function(p){
+      if(v[p+'_name']) peerRows.push([v[p+'_name'],fN(v[p+'_rev'],0),fN(v[p+'_pat'],1),fPct(v[p+'_ebitda_margin']),fX(v[p+'_pe']),fX(v[p+'_ev']),fN(v[p+'_mc'],0)]);
+    });
+    if(peerRows.length){
+      htm += section('Listed Peer Comparable Analysis', 'NSE/BSE · FY24 actuals');
+      peerRows.push(['★ '+cname,fC(v.revenue_cr,1),fC(v.pat_cr,1),fPct(v.ebitda_margin_pct),'—','—',hasVal?fC(v.val_base_cr,0)+' est.':'—']);
+      htm += table(['Company','Revenue (₹Cr)','PAT (₹Cr)','EBITDA%','P/E (TTM)','EV/EBITDA','Mkt Cap (₹Cr)'], peerRows, true);
+      htm += '<p class="proj-note">Sector avg P/E: '+fX(v.sector_pe_avg)+' &nbsp;|&nbsp; EV/EBITDA: '+fX(v.sector_ev_avg)+' &nbsp;|&nbsp; SME illiquidity discount applied: '+fN(v.sme_discount,0)+'%</p>\n';
+    }
+
+    /* WACC */
+    if(v.wacc){
+      htm += section('WACC Calculation', 'Cost of Capital — Ke×E/(D+E) + Kd×(1−t)×D/(D+E)');
+      htm += '<div class="wacc2">';
+      htm += '<div class="wacc-tbl-card">';
+      htm += '<div class="tbl-wrap"><table><thead><tr><th>Component</th><th>Value</th><th>Basis</th></tr></thead><tbody>';
+      var kd = 10.5, tax=25, ke=parseFloat(v.wacc)+2;
+      var de = parseFloat(v.debt_equity)||0.5, dde=de/(1+de)*100;
+      [['Risk-Free Rate (Rf)','7.2%','10-yr Government Securities yield'],
+       ['Equity Risk Premium (ERP)','6.5%','India market premium over Rf'],
+       ['Beta (β)','1.10–1.30','Sector beta, unleveraged & relevered'],
+       ['Cost of Equity (Ke = Rf + β×ERP)',ke.toFixed(1)+'%','CAPM model'],
+       ['Cost of Debt (Kd)','10.5%','Avg weighted bank borrowing rate'],
+       ['Tax Rate','25%','Effective corporate tax rate'],
+       ['Debt/(D+E)',dde.toFixed(0)+'%','Current capital structure'],
+      ].forEach(function(r){
+        htm += '<tr><td>'+r[0]+'</td><td style="font-weight:700">'+r[1]+'</td><td style="color:#6B8A94;font-size:10.5px">'+r[2]+'</td></tr>';
+      });
+      htm += '</tbody></table></div></div>';
+      htm += '<div class="wacc-val-card">'
+        +'<div style="font-size:9px;color:#5B4ED4;font-weight:800;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">WACC</div>'
+        +'<div class="wacc-big">'+fPct(v.wacc)+'</div>'
+        +'<div class="wacc-formula">Ke × E/(D+E) + Kd × (1−t) × D/(D+E)<br/>= '+ke.toFixed(1)+'% × '+(100-dde).toFixed(0)+'% + '+kd+'% × '+((100-tax)/100).toFixed(2)+' × '+dde.toFixed(0)+'%</div>'
+        +(v.terminal_growth_rate?'<div style="font-size:10px;color:#6B8A94;margin-top:10px">Terminal growth rate (g): '+fN(v.terminal_growth_rate,1)+'%</div>':'')
+        +(v.wacc_basis?'<div style="font-size:9.5px;color:#8FA8B2;margin-top:6px;font-style:italic">'+xe(v.wacc_basis)+'</div>':'')
+        +'</div></div>\n';
+    }
+
+    /* 5-Year projections */
+    if(hasProj){
+      htm += section('5-Year Financial Projections', 'FY25–FY29 · ₹ Crore · P = Projected');
+      var projHeaders = ['Metric','FY25 (P)','FY26 (P)','FY27 (P)','FY28 (P)','FY29 (P)'];
+      var projRows = [['Revenue']];
+      [['Revenue','_rev'],['Revenue Growth %','_rev_growth'],['EBITDA','_ebitda'],['EBITDA Margin %','_ebitda_m'],['PAT','_pat'],['Free Cash Flow (FCFF)','_fcff']].forEach(function(row){
+        var r = [row[0]];
+        for(var i=1;i<=5;i++){
+          var key='projection_yr'+i+(row[1]==='_rev_growth'?'_rev':row[1]==='_ebitda_m'?'_ebitda':row[1]);
+          var val=v['projection_yr'+i+(row[1]==='_rev_growth'||row[1]==='_ebitda_m'?row[1].replace('_rev_growth','_rev').replace('_ebitda_m','_ebitda'):row[1])];
+          if(row[1]==='_rev_growth'){
+            var prev=i===1?v.revenue_cr:v['projection_yr'+(i-1)+'_rev'];
+            var curr=v['projection_yr'+i+'_rev'];
+            r.push((prev&&curr&&prev>0)?(((curr-prev)/prev)*100).toFixed(1)+'%':'—');
+          } else if(row[1]==='_ebitda_m'){
+            var rev2=v['projection_yr'+i+'_rev'],eb=v['projection_yr'+i+'_ebitda'];
+            r.push((rev2&&eb&&rev2>0)?((eb/rev2)*100).toFixed(1)+'%':'—');
+          } else {
+            r.push(fC(v['projection_yr'+i+row[1]]));
+          }
+        }
+        if(r.length>1) projRows.push(r);
+      });
+      htm += table(projHeaders, projRows, false);
+      htm += '<p class="proj-note">Projections based on historical CAGR, sector growth trends, management guidance, and capacity utilisation targets. See methodology section for detailed assumptions.</p>\n';
+    }
+
+    /* DCF Bridge + Reconciliation */
+    if(hasDCF){
+      htm += section('DCF Valuation & Method Reconciliation', 'Per SEBI ICDR 2018 Reg 26(4)');
+      htm += '<div class="dcf2">';
+      /* DCF bridge */
+      htm += '<div class="dcf-card">';
+      htm += '<div style="font-size:10px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">DCF Valuation Bridge</div>';
+      [['PV of FCFF (FY25–FY29)',fC(v.pv_fcff_sum),false,false],
+       ['Terminal Value (FCFF₅×(1+g)/(WACC−g))',fC(v.terminal_value),false,false],
+       ['PV of Terminal Value',fC(v.terminal_value?v.terminal_value/Math.pow(1+parseFloat(v.wacc||13)/100,5):null),false,false],
+       ['Enterprise Value (DCF)',fC(v.enterprise_value_dcf),false,true],
+       ['Less: Net Debt (Total Debt − Cash)','('+fC(v.total_debt_cr)+')',true,false],
+       ['Equity Value (DCF)',fC(v.val_dcf_cr),false,true],
+      ].forEach(function(r){
+        htm += '<div class="dcf-row'+(r[3]?' total':'')+(r[2]?' sub':'')+'"><span>'+r[0]+'</span><span>'+r[1]+'</span></div>';
+      });
+      htm += '</div>';
+      /* Reconciliation */
+      htm += '<div class="dcf-card">';
+      htm += '<div style="font-size:10px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px">Valuation Reconciliation</div>';
+      htm += '<div class="tbl-wrap" style="border:none;box-shadow:none;border-radius:0"><table style="font-size:11px"><thead><tr><th>Method</th><th>Value</th><th>Weight</th><th>Weighted</th></tr></thead><tbody>';
+      var wtdSum=0;
+      [{n:'DCF',v:v.val_dcf_cr,w:v.weight_dcf||0.35},
+       {n:'P/E Comparable',v:v.val_pe_cr,w:v.weight_pe||0.30},
+       {n:'EV/EBITDA',v:v.val_ev_cr,w:v.weight_ev||0.25},
+       {n:'NAV / Book Value',v:v.val_nav_cr,w:v.weight_nav||0.10}
+      ].forEach(function(m){
+        var w2=(m.v||0)*(m.w||0); wtdSum+=w2;
+        htm += '<tr><td>'+xe(m.n)+'</td><td>'+fC(m.v,1)+'</td>'
+          +'<td style="text-align:center">'+Math.round((m.w||0)*100)+'%</td>'
+          +'<td style="font-weight:600">'+fC(w2,1)+'</td></tr>';
+      });
+      htm += '<tr class="hl-row"><td colspan="3">Weighted Average</td><td>'+fC(wtdSum,1)+'</td></tr>';
+      if(v.sme_discount){
+        var disc=wtdSum*v.sme_discount/100;
+        htm += '<tr style="color:#C0392B;font-size:10.5px"><td colspan="3">SME Illiquidity Discount ('+fN(v.sme_discount,0)+'%)</td><td>('+fC(disc,1)+')</td></tr>';
+      }
+      htm += '<tr style="border-top:2px solid '+AC+';font-weight:900;color:'+AC+';font-size:12.5px"><td colspan="3">Final Base Case</td><td>'+fC(v.val_base_cr,0)+'</td></tr>';
+      htm += '</tbody></table></div></div></div>\n';
+    }
+
+    /* Value Drivers & Risks */
+    var drivers=[v.key_driver1,v.key_driver2,v.key_driver3].filter(Boolean);
+    var risks=[v.key_risk1,v.key_risk2,v.key_risk3].filter(Boolean);
+    if(drivers.length||risks.length){
+      htm += section('Key Value Drivers & Risk Factors');
+      htm += '<div class="dr2">';
+      if(drivers.length){
+        htm += '<div class="dr-card" style="background:rgba(26,158,107,.05);border:1px solid rgba(26,158,107,.18)">'
+          +'<div class="dr-head" style="color:#1A9E6B">Value Drivers</div>';
+        drivers.forEach(function(d,i){ htm += '<div class="dr-item"><div class="dr-icon" style="color:#1A9E6B">↑'+(i+1)+'</div><div>'+xe(d)+'</div></div>'; });
+        htm += '</div>';
+      }
+      if(risks.length){
+        htm += '<div class="dr-card" style="background:rgba(192,57,43,.04);border:1px solid rgba(192,57,43,.18)">'
+          +'<div class="dr-head" style="color:#C0392B">Risk Factors & Mitigants</div>';
+        risks.forEach(function(r,i){ htm += '<div class="dr-item"><div class="dr-icon" style="color:#C0392B">⚠'+(i+1)+'</div><div>'+xe(r)+'</div></div>'; });
+        htm += '</div>';
+      }
+      htm += '</div>\n';
+    }
+
+    /* Compliance */
+    htm += '<div class="comp-box"><div class="comp-head">Regulatory Compliance Checklist</div><div class="comp-grid">';
+    ['SEBI ICDR 2018 Reg 26(4): Multiple valuation methods applied and reconciled',
+     'ICAI Valuation Standards 2018 (IVS 105): Standards complied with',
+     'IndAS 113 (Fair Value Measurement): Market participant assumptions used',
+     'Companies Act 2013 Sec 62: Fresh issue pricing basis documented',
+     'SEBI ICDR 2018 Reg 32: RPT disclosure basis established',
+     'FEMA 1999 FIPB/RBI: Applicable if FDI or foreign investment involved'
+    ].forEach(function(c){ htm += '<div class="comp-item"><span class="comp-check">✓</span>'+c+'</div>'; });
+    htm += '</div></div>\n';
+
+  } else {
+    /* AIRA READINESS REPORT */
+    htm += '<div class="hero"><div class="hero-inner">'
+      +'<div class="score-circle"><div class="score-num">'+score+'</div><div class="score-denom">/100</div></div>'
+      +'<div style="flex:1">'
+      +'<div style="font-size:9.5px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.9px;margin-bottom:5px">AIRA Score</div>'
+      +'<div class="hero-co">'+xe(cname)+'</div>'
+      +(result.cin?'<div class="hero-cin">'+xe(result.cin)+'</div>':'')
+      +'<div class="hero-meta">'+xe(sector||'')+(exchange?' &middot; '+xe(exchange):'')+'</div>'
+      +'<div class="hero-tag">SEBI ICDR 2018 &middot; '+xe(tierLabel)+'</div>'
+      +'</div></div></div>\n';
+
+    /* Dims */
+    var fin2=result.financials||{};
+    var mca = {status:result.status,company_type:result.company_type,doi:result.date_of_incorporation,state:result.registered_state};
+    var hasMCA = Object.values(mca).some(Boolean);
+    if(hasMCA){
+      htm += section('Company Master — MCA / Probe42 Verified');
+      htm += '<div class="mca-grid">';
+      [['CIN',result.cin||result.llpin],['Status',result.status],['Type',result.company_type],
+       ['Incorporated',result.date_of_incorporation],['State',result.registered_state],
+       ['Paid-up Capital',result.paid_up_capital?fC(result.paid_up_capital):null],
+       ['Authorised Capital',result.authorised_capital?fC(result.authorised_capital):null],
+       ['Last AGM',result.last_agm_date],['Last Filing',result.last_filing_date],
+       ['CIRP Status',result.cirp_status||'None'],['Listing Status',result.listing_status],
+       ['Website',result.website],
+      ].forEach(function(f){
+        if(!f[1]||f[1]==='—'||f[1]==='null'||f[1]==='undefined') return;
+        htm += '<div class="mca-item"><div class="mca-l">'+xe(f[0])+'</div><div class="mca-v">'+xe(String(f[1]))+'</div></div>';
+      });
+      htm += '</div>\n';
+    }
+
+    /* Financial KPIs */
+    if(fin2.revenue_fy24||fin2.pat_fy24||fin2.net_worth){
+      htm += section('Financial Indicators', 'Probe42 Verified · FY24');
+      htm += kvGrid([
+        {l:'Revenue',v:fC(fin2.revenue_fy24),g:true},
+        {l:'PAT',v:fC(fin2.pat_fy24),g:g(fin2.pat_fy24,0)},
+        {l:'EBITDA%',v:fPct(fin2.ebitda_margin),g:g(fin2.ebitda_margin,12)},
+        {l:'Net Margin',v:fPct(fin2.net_margin),g:g(fin2.net_margin,8)},
+        {l:'Net Worth',v:fC(fin2.net_worth),g:true},
+        {l:'Total Assets',v:fC(fin2.total_assets),g:true},
+        {l:'D/E Ratio',v:fX(fin2.debt_equity_ratio),g:parseFloat(fin2.debt_equity_ratio)<1.5},
+        {l:'ROE',v:fPct(fin2.roe),g:g(fin2.roe,15)},
+        {l:'ROCE',v:fPct(fin2.roce),g:g(fin2.roce,15)},
+        {l:'Rev Growth',v:fPct(fin2.revenue_growth),g:g(fin2.revenue_growth,12)},
+        {l:'Current Ratio',v:fX(fin2.current_ratio),g:g(fin2.current_ratio,1.5)},
+        {l:'Int. Coverage',v:fX(fin2.interest_coverage),g:g(fin2.interest_coverage,3)},
+      ], 4);
+      if(fin2.auditor) htm += '<p style="font-size:10.5px;color:#6B8A94;margin-bottom:12px">Statutory Auditor: <strong style="color:#0F1E25">'+xe(fin2.auditor)+'</strong></p>\n';
+    }
+
+    /* Directors */
+    var dirs = Array.isArray(result.directors)?result.directors:[];
+    if(dirs.length){
+      htm += section('Board of Directors', dirs.length+' total · '+dirs.filter(function(d){return !d.cessation;}).length+' active');
+      htm += table(
+        ['Name','DIN','Designation','Gender','Status','Appointed'],
+        dirs.map(function(d){ return [d.name||'N/A',d.din||'N/A',d.designation||'Director',d.gender||'—',d.cessation?'Ceased':'Active',d.appointed||'—']; })
+      );
+    }
+
+    /* Charges */
+    var chgs = Array.isArray(result.charges)?result.charges:[];
+    if(chgs.length){
+      htm += section('Charges & Liens', chgs.length+' open charges');
+      htm += table(['Lender/Holder','Amount (₹Cr)','Type','Status','Date of Creation'],
+        chgs.map(function(c){return [c.holder||'N/A',fC(c.amount),c.type||'N/A',c.status||'Open',c.date||'N/A'];}));
+    }
+
+    /* Credit Ratings */
+    var cr = Array.isArray(result.credit_ratings)?result.credit_ratings:[];
+    if(cr.length){
+      htm += section('Credit Ratings', 'Latest per agency per instrument');
+      htm += table(['Agency','Rating','Instrument','Outlook'],
+        cr.map(function(r){return [r.agency||'N/A',r.rating||'N/A',r.instrument||'—',r.outlook||'—'];}));
+    }
+  }
+
+  /* ── FULL AI REPORT ────────────────────────────────────── */
+  if(cleanR){
+    htm += section(isVal?'Detailed Valuation Analysis':'AIRA Intelligence Report','Prepared by AI · Confidential');
+    htm += '<div class="ai">'+md2html(cleanR)+'</div>\n';
+  }
+
+  /* ── DISCLAIMER ─────────────────────────────────────── */
+  htm += '<div class="disclaimer"><strong>Disclaimer:</strong> '
+    +(isVal?'This valuation report is indicative and prepared for advisory purposes only using AI analysis and publicly available data. It is NOT a fairness opinion, NOT a SEBI-registered research report, and does NOT constitute investment advice. Final IPO pricing must be determined by a SEBI-registered Category-I Merchant Banker via book-building per SEBI ICDR 2018. Confidential — for management and authorized advisors only.'
+           :'This AIRA report is an AI-generated readiness assessment for advisory purposes only. It does not constitute legal, financial, or regulatory advice. SEBI ICDR 2018 compliance must be verified by a qualified CA/CS/Merchant Banker before IPO filing. Confidential — for internal use only.')
+    +'</div>\n';
+
+  /* ── FOOTER ──────────────────────────────────────────── */
+  htm += '<div class="footer">'
+    +'<div>ipowork.com &middot; partners@ipowork.com &middot; WhatsApp: +91 88510 59588</div>'
+    +'<div>'+xe(tierLabel)+' &middot; '+today+' &middot; Not SEBI-registered research</div>'
+    +'</div>';
+
+  htm += '</div></body></html>';
+  return {htm:htm, company:cname, score:score, tier:tier};
+}
+
+function buildReport(tier){ return buildReportHTML(tier); }
+
+function previewReport(tier){
+  var r = buildReportHTML(tier);
+  if(!r){ alert('Run AIRA first to generate a report.'); return; }
+  var w = window.open('','_blank');
+  if(w&&w.document){
+    var bar='<div style="position:sticky;top:0;z-index:999;background:'+
+      (tier==='valdoc'||tier==='valintel'?'#1A1560':'#052028')+
+      ';padding:10px 22px;display:flex;align-items:center;gap:14px;font-family:-apple-system,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.3)">'
+      +'<span style="font-size:16px;font-weight:900;color:#fff;font-family:Georgia,serif">ipowork<sup style="font-size:10px;color:#E88A2E">AI</sup></span>'
+      +'<span style="flex:1;font-size:11px;color:rgba(255,255,255,.5)">'+r.company+(r.score?' &mdash; Score: '+r.score:'')+'</span>'
+      +'<button onclick="window.print()" style="padding:8px 20px;background:#E88A2E;color:#fff;border:none;border-radius:7px;font-weight:800;font-size:12px;cursor:pointer;font-family:-apple-system,sans-serif">Print / Save PDF</button>'
+      +'<button onclick="window.close()" style="padding:8px 14px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:7px;font-size:12px;cursor:pointer;margin-left:4px">Close</button>'
+      +'</div>';
+    w.document.write(r.htm.replace('<body>','<body>'+bar));
+    w.document.close(); w.focus();
+  } else { alert('Please allow popups for this site.'); }
+}
+
+function downloadReport(tier){
+  var r = buildReportHTML(tier);
+  if(!r){ alert('Run AIRA first to generate a report.'); return; }
+  try{
+    var blob = new Blob([r.htm], {type:'text/html;charset=utf-8'});
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href   = url;
+    a.download = 'ipowork-'+(r.company||tier).replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').substring(0,40)
+      +'-'+r.tier+'-'+new Date().toISOString().slice(0,10)+'.html';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 3000);
+  } catch(e2){
+    alert('Download failed. Please use Preview → Print to PDF instead.');
+  }
+}
 </script>
 
 <div id="content-valdoc" class="tier-content"><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128196; Document-Based Valuation &middot; &#8377;2,999</p><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Company Name <span class="req">*</span></label><input id="vd-cname" class="fi" placeholder="e.g. Sharma Textiles Pvt Ltd"/></div><div class="fg"><label class="fl">CIN (optional)</label><input id="vd-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN"/></div><div class="fg"><label class="fl">Sector</label><select id="vd-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vd-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Revenue (&#8377; Cr)</label><input id="vd-revenue" class="fi" placeholder="45.8"/></div><div class="fg"><label class="fl">PAT (&#8377; Cr)</label><input id="vd-pat" class="fi" placeholder="3.2"/></div><div class="fg"><label class="fl">EBITDA (&#8377; Cr)</label><input id="vd-ebitda" class="fi" placeholder="6.5"/></div><div class="fg"><label class="fl">Net Worth (&#8377; Cr)</label><input id="vd-networth" class="fi" placeholder="18.4"/></div></div><button class="btn-run btn-primary" id="btn-vd-run" style="background:linear-gradient(135deg,#5B4ED4,#7F77DD)" onclick="requireLoginThen(runValuationDoc)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg> Generate Valuation &middot; &#8377;2,999 &rarr;</button></div><div class="prog-wrap" id="prog-valdoc" style="display:none"><div class="prog-step" id="vd1"><div class="ps-dot"></div><div class="ps-lbl">Extracting financial data</div></div><div class="prog-step" id="vd2"><div class="ps-dot"></div><div class="ps-lbl">Peer comparable analysis</div></div><div class="prog-step" id="vd3"><div class="ps-dot"></div><div class="ps-lbl">DCF model (5-year)</div></div><div class="prog-step" id="vd4"><div class="ps-dot"></div><div class="ps-lbl">SEBI ICDR Reg 26 checks</div></div><div class="prog-step" id="vd5"><div class="ps-dot"></div><div class="ps-lbl">Price band recommendation</div></div></div><div id="result-valdoc"></div></div><div id="content-valintel" class="tier-content"><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128200; Intelligence Valuation &middot; &#8377;7,999 &nbsp;<span style="font-size:11px;padding:3px 8px;background:rgba(26,158,107,.08);border-radius:5px;color:var(--ok)">Probe42 Verified</span></p><div class="form-grid" style="margin-bottom:14px"><div class="fg"><label class="fl">CIN / LLPIN <span class="req">*</span></label><div style="position:relative"><input id="vi-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN" oninput="this.value=this.value.toUpperCase();viSearch(this.value)"/><div id="vi-results" class="search-drop" style="display:none"></div></div></div><div class="fg"><label class="fl">Sector</label><select id="vi-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vi-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><button class="btn-run btn-primary" id="btn-vi-run" style="background:linear-gradient(135deg,#3B30B0,#5B4ED4)" onclick="requireLoginThen(runValuationIntel)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Generate Intelligence Valuation &middot; &#8377;7,999 &rarr;</button></div><div class="prog-wrap" id="prog-valintel" style="display:none"><div class="prog-step" id="vi1"><div class="ps-dot"></div><div class="ps-lbl">Fetching Probe42 data</div></div><div class="prog-step" id="vi2"><div class="ps-dot"></div><div class="ps-lbl">Sector peer identification</div></div><div class="prog-step" id="vi3"><div class="ps-dot"></div><div class="ps-lbl">P/E, EV/EBITDA, P/Sales</div></div><div class="prog-step" id="vi4"><div class="ps-dot"></div><div class="ps-lbl">5-year DCF with WACC</div></div><div class="prog-step" id="vi5"><div class="ps-dot"></div><div class="ps-lbl">SEBI price band</div></div></div><div id="result-valintel"></div></div>
