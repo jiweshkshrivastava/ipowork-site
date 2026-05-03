@@ -1660,8 +1660,8 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
       ['Compliance',   fmtN(result.active_compliance)],
       ['Incorporated', fmtN(result.date_of_incorporation)],
       ['Type',         fmtN(result.company_type)],
-      ['Paid-up Capital', fmtINR(result.paid_up_capital)],
-      ['Auth Capital', fmtINR(result.authorised_capital)],
+      ['Paid-up Capital', (function(v){if(!v)return null;var n=parseFloat(v);if(isNaN(n))return null;if(n>=10000000)return '\u20b9'+(n/10000000).toFixed(2)+' Cr';if(n>=100000)return '\u20b9'+(n/100000).toFixed(1)+' L';return '\u20b9'+n.toLocaleString('en-IN');})(result.paid_up_capital)],
+      ['Auth Capital', (function(v){if(!v)return null;var n=parseFloat(v);if(isNaN(n))return null;if(n>=10000000)return '\u20b9'+(n/10000000).toFixed(2)+' Cr';if(n>=100000)return '\u20b9'+(n/100000).toFixed(1)+' L';return '\u20b9'+n.toLocaleString('en-IN');})(result.authorised_capital)],
       ['State',        fmtN(result.registered_state)],
       ['Last AGM',     fmtN(result.last_agm_date)],
       ['Last Filing',  fmtN(result.last_filing_date)],
@@ -2711,7 +2711,11 @@ function buildReportHTML(tier) {
     stored = AIRA_RESULTS[keys[keys.length-1]];
   }
   var result   = stored.result   || {};
-  var cname    = stored.cname    || result.company_name || 'Company';
+  var cname    = stored.cname    || result.company_name || '';
+  // If cname looks like a CIN (all caps + digits), try harder
+  if(!cname || /^[A-Z][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/.test(cname)) {
+    cname = result.company_name || result.name || stored.cname || cname || 'Company';
+  }
   var sector   = stored.sector   || '';
   var exchange = stored.exchange || '';
   var report   = result._report  || result.report || '';
@@ -2720,6 +2724,15 @@ function buildReportHTML(tier) {
 
   /* ── micro helpers ── */
   function xe(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function pucFmt(v){ // Convert Probe42 rupee values to Cr
+    if(!v||v==='—') return null;
+    var n=parseFloat(String(v).replace(/[^\d.-]/g,''));
+    if(isNaN(n)||n<=0) return null;
+    if(n>=10000000) return '\u20b9'+(n/10000000).toFixed(2)+' Cr';
+    if(n>=100000)   return '\u20b9'+(n/100000).toFixed(1)+' L';
+    if(n>=1000)     return '\u20b9'+(n/1000).toFixed(0)+' K';
+    return '\u20b9'+n.toFixed(0);
+  }
   function fC(n,d){ var p=parseFloat(n); return isNaN(p)?'—':'₹'+p.toFixed(d!=null?d:1)+' Cr'; }
   function fN(n,d){ var p=parseFloat(n); return isNaN(p)?'—':p.toFixed(d!=null?d:1); }
   function fPct(n){ var p=parseFloat(n); return isNaN(p)?'—':p.toFixed(1)+'%'; }
@@ -2846,7 +2859,7 @@ function buildReportHTML(tier) {
     '.hero-meta{font-size:10.5px;color:rgba(255,255,255,.5)}',
     '.hero-tag{font-size:9px;font-weight:700;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);display:inline-block;margin-top:6px}',
     /* Section heading */
-    '.sec-head{margin:28px 0 12px;display:flex;align-items:center;gap:10px;page-break-after:avoid}',
+    '.sec-head{margin:28px 0 12px;display:flex;align-items:center;gap:10px;page-break-after:avoid;break-after:avoid}',
     '.sec-bar{width:4px;border-radius:3px;background:'+AC+';flex-shrink:0;align-self:stretch;min-height:16px}',
     '.sec-label{font-size:9.5px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:1.1px}',
     '.sec-sub{font-size:9px;color:#8FA8B2;margin-left:auto;font-weight:500}',
@@ -2911,7 +2924,7 @@ function buildReportHTML(tier) {
     '.mca-l{font-size:9px;font-weight:700;color:#6B8A94;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}',
     '.mca-v{font-size:11.5px;font-weight:600;color:#0F1E25}',
     /* AI report body */
-    '.ai{font-size:12px;line-height:1.82;color:#0F1E25}',
+    '.ai{font-size:12px;line-height:1.82;color:#0F1E25;word-break:break-word;overflow-wrap:break-word}',
     '.ai h1{font-family:"Playfair Display",Georgia,serif;font-size:20px;font-weight:700;color:'+ACD+';margin:32px 0 12px;padding-bottom:8px;border-bottom:2px solid '+ACL+';page-break-before:always}',
     '.ai h1:first-child{page-break-before:avoid}',
     '.ai h2{font-size:14px;font-weight:800;color:'+AC+';margin:22px 0 9px;padding:8px 12px;background:'+ACL+';border-left:4px solid '+AC+';border-radius:0 5px 5px 0}',
@@ -2920,12 +2933,12 @@ function buildReportHTML(tier) {
     '.ai p{margin-bottom:10px}',
     '.ai ul{padding-left:20px;margin-bottom:10px}',
     '.ai ol{padding-left:20px;margin-bottom:10px}',
-    '.ai li{margin-bottom:5px}',
+    '.ai li{margin-bottom:6px;padding-left:4px}',
     '.ai strong{color:'+ACD+';font-weight:700}',
     '.ai em{font-style:italic;color:#4A6A75}',
     '.ai hr{border:none;border-top:2px solid '+ACL+';margin:24px 0}',
     '.ai .tbl-wrap{margin-bottom:14px}',
-    '.ai .numbered{display:flex;gap:10px;align-items:baseline;margin-bottom:8px}',
+    '.ai .numbered{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;padding:8px 10px;background:rgba(192,57,43,.03);border-radius:6px;border-left:3px solid rgba(192,57,43,.2)}'+'.ai .numbered strong{color:#C0392B}',
     '.ai .num-badge{background:'+ACL+';color:'+AC+';font-weight:800;font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0}',
     /* Disclaimer */
     '.disclaimer{background:#F8FAFB;border:1px solid #DFF0F3;border-radius:10px;padding:14px 16px;margin-top:20px;font-size:10.5px;color:#6B8A94;line-height:1.7}',
