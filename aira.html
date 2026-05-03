@@ -2356,18 +2356,21 @@ function isMainboardEligible(result) {
   // SEBI ICDR 2018: Mainboard = paid-up capital > ₹10 Cr OR post-issue net worth > ₹3 Cr
   // Practical indicators: revenue > ₹250 Cr, PAT > ₹25 Cr, or AIRA score >= 85
   var fin = (result && result.financials) || {};
-  var rev = parseFloat(fin.revenue_fy24 || 0);
-  var pat = parseFloat(fin.pat_fy24 || 0);
-  var nw  = parseFloat(fin.net_worth || 0);
-  var puc = parseFloat(result && result.paid_up_capital || 0);
-  var score = result && result.score || 0;
+  var fin2 = (result && result.financials) || {};
+  var rev = parseFloat(fin2.revenue_fy24 || 0);
+  var pat = parseFloat(fin2.pat_fy24 || 0);
+  var nw  = parseFloat(fin2.net_worth || 0);
+  // paid_up_capital from Probe42 is in RUPEES — convert to Cr
+  var pucRaw = parseFloat((result && result.paid_up_capital) || 0);
+  var puc = pucRaw > 10000 ? pucRaw / 10000000 : pucRaw; // rupees → Cr
+  var score = (result && result.score) || 0;
 
   var reasons = [];
-  if(rev >= 250)  reasons.push('Revenue \u20b9'+rev.toFixed(0)+' Cr (threshold: \u20b9250 Cr)');
-  if(pat >= 25)   reasons.push('PAT \u20b9'+pat.toFixed(0)+' Cr (threshold: \u20b925 Cr)');
-  if(nw  >= 500)  reasons.push('Net worth \u20b9'+nw.toFixed(0)+' Cr');
-  if(puc >= 1000) reasons.push('Paid-up capital \u20b9'+puc.toFixed(0)+' Cr');
-  if(score >= 85) reasons.push('AIRA Score '+score+'/100 (strong mainboard profile)');
+  if(rev >= 250)  reasons.push('Revenue ₹'+rev.toFixed(0)+' Cr ≥ ₹250 Cr threshold');
+  if(pat >= 25)   reasons.push('PAT ₹'+pat.toFixed(0)+' Cr ≥ ₹25 Cr threshold');
+  if(nw  >= 500)  reasons.push('Net Worth ₹'+nw.toFixed(0)+' Cr ≥ ₹500 Cr threshold');
+  if(puc >= 10)   reasons.push('Paid-up Capital ₹'+puc.toFixed(1)+' Cr ≥ ₹10 Cr threshold');
+  if(score >= 82) reasons.push('AIRA Score '+score+'/100 — strong Mainboard profile');
 
   return {eligible: reasons.length > 0, reasons: reasons};
 }
@@ -2376,14 +2379,7 @@ function checkMainboardAlert(result, cname, currentTier) {
   var check = isMainboardEligible(result);
   if(!check.eligible) return false; // not mainboard, proceed normally
 
-  var msg = '\u26a0\ufe0f This company appears to be Mainboard eligible:\n\n'
-    + check.reasons.map(function(r){ return '  \u2022 ' + r; }).join('\n')
-    + '\n\nSME Intelligence (NSE Emerge / BSE SME) is designed for companies with:\n'
-    + '  \u2022 Paid-up capital \u20b91\u202310 Cr\n'
-    + '  \u2022 Revenue up to \u20b9250 Cr\n'
-    + '  \u2022 Pre-IPO phase\n\n'
-    + 'For this company, the \ud83c\udfd7\ufe0f Mainboard tab (SEBI ICDR 2018 Reg 26) is more appropriate.\n\n'
-    + 'Do you still want to run SME Intelligence?';
+  var msg = '\u26a0 MAINBOARD ELIGIBLE COMPANY DETECTED\n\nIndicators:\n' + check.reasons.map(function(r){ return '  \u2022 ' + r; }).join('\n') + '\n\nSME Intelligence is for Paid-up Capital \u20b91-10 Cr / Revenue up to \u20b9250 Cr.\n\nThis company qualifies for MAINBOARD track (SEBI ICDR 2018 Reg 26).\n\nCANCEL = Go to Mainboard | OK = Continue with SME Intel';
 
   if(!confirm(msg)) {
     switchTier('mainboard');
