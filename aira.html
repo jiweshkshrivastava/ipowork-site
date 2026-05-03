@@ -2343,7 +2343,7 @@ async function testWorker(){
 }
 
 var ADMIN_UNLOCKED=false,ADMIN_PWD='ipowork@admin2026';
-function openAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='flex';setTimeout(function(){document.getElementById('admin-pwd-input').focus();},100);}}
+window.openAdminAuth=function openAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='flex';setTimeout(function(){document.getElementById('admin-pwd-input').focus();},100);}}
 function closeAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='none';document.getElementById('admin-pwd-input').value='';document.getElementById('admin-pwd-err').textContent='';}}
 function checkAdminPwd(){var p=document.getElementById('admin-pwd-input').value;if(p===ADMIN_PWD){ADMIN_UNLOCKED=true;closeAdminAuth();var t=document.getElementById('tab-admin');if(t)t.style.display='';switchTier('admin');}else{document.getElementById('admin-pwd-err').textContent='Incorrect password.';document.getElementById('admin-pwd-input').value='';}}
 document.addEventListener('keydown',function(e){
@@ -2351,7 +2351,7 @@ document.addEventListener('keydown',function(e){
   if((e.ctrlKey&&e.shiftKey&&(e.key==='8'||e.key==='*'))||e.key==='F9'){e.preventDefault();toggleDevGroups();}
 });
 
-function toggleDevGroups(){
+window.toggleDevGroups = function toggleDevGroups(){
   var g1=document.getElementById('group-clean-compliance');
   var g2=document.getElementById('group-valuation');
   var show=g1&&g1.style.display==='none';
@@ -3640,7 +3640,36 @@ async function activateAIRAAlert(){
 }
 
 // Initialise first tab
-document.addEventListener('DOMContentLoaded', function(){ switchTier('free'); });</script>
+document.addEventListener('DOMContentLoaded', function(){
+  switchTier('free');
+  // Re-attach keyboard shortcuts after DOM loads (insurance)
+  document.addEventListener('keydown', function(ev){
+    if(ev.key==='F9'){ev.preventDefault();toggleDevGroups();}
+  }, true); // capture phase — fires before anything else
+});ting\u2026';
+  try{
+    await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'email',to:'partners@ipowork.com',
+        subject:'AIRA Alert Request: '+phone,
+        html:'<p>Phone: +91 '+phone+'</p><p>Email: '+email+'</p>'})});
+    btn.disabled=false;btn.innerHTML='Activate AIRA Alert \u2192';
+    var out=document.getElementById('result-alert');
+    if(out)out.innerHTML='<div style="padding:20px;background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.25);border-radius:10px;text-align:center">'
+      +'<b style="color:var(--ok)">AIRA Alert Requested!</b><br/>'
+      +'<span style="font-size:12px;color:var(--mu)">We will activate monitoring within 24 hours.</span></div>';
+  }catch(e){
+    btn.disabled=false;btn.innerHTML='Activate AIRA Alert \u2192';
+  }
+}
+
+// Initialise first tab
+document.addEventListener('DOMContentLoaded', function(){
+  switchTier('free');
+  // Re-attach keyboard shortcuts after DOM loads (insurance)
+  document.addEventListener('keydown', function(ev){
+    if(ev.key==='F9'){ev.preventDefault();toggleDevGroups();}
+  }, true); // capture phase — fires before anything else
+});</script>
 
 <div id="content-valdoc" class="tier-content"><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128196; Document-Based Valuation &middot; &#8377;2,999</p><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Company Name <span class="req">*</span></label><input id="vd-cname" class="fi" placeholder="e.g. Sharma Textiles Pvt Ltd"/></div><div class="fg"><label class="fl">CIN (optional)</label><input id="vd-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN"/></div><div class="fg"><label class="fl">Sector</label><select id="vd-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vd-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Revenue (&#8377; Cr)</label><input id="vd-revenue" class="fi" placeholder="45.8"/></div><div class="fg"><label class="fl">PAT (&#8377; Cr)</label><input id="vd-pat" class="fi" placeholder="3.2"/></div><div class="fg"><label class="fl">EBITDA (&#8377; Cr)</label><input id="vd-ebitda" class="fi" placeholder="6.5"/></div><div class="fg"><label class="fl">Net Worth (&#8377; Cr)</label><input id="vd-networth" class="fi" placeholder="18.4"/></div></div><button class="btn-run btn-primary" id="btn-vd-run" style="background:linear-gradient(135deg,#5B4ED4,#7F77DD)" onclick="requireLoginThen(runValuationDoc)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg> Generate Valuation &middot; &#8377;2,999 &rarr;</button></div><div class="prog-wrap" id="prog-valdoc" style="display:none"><div class="prog-step" id="vd1"><div class="ps-dot"></div><div class="ps-lbl">Extracting financial data</div></div><div class="prog-step" id="vd2"><div class="ps-dot"></div><div class="ps-lbl">Peer comparable analysis</div></div><div class="prog-step" id="vd3"><div class="ps-dot"></div><div class="ps-lbl">DCF model (5-year)</div></div><div class="prog-step" id="vd4"><div class="ps-dot"></div><div class="ps-lbl">SEBI ICDR Reg 26 checks</div></div><div class="prog-step" id="vd5"><div class="ps-dot"></div><div class="ps-lbl">Price band recommendation</div></div></div><div id="result-valdoc"></div></div><div id="content-valintel" class="tier-content"><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128200; Intelligence Valuation &middot; &#8377;7,999 &nbsp;<span style="font-size:11px;padding:3px 8px;background:rgba(26,158,107,.08);border-radius:5px;color:var(--ok)">Probe42 Verified</span></p><div class="form-grid" style="margin-bottom:14px"><div class="fg"><label class="fl">CIN / LLPIN <span class="req">*</span></label><div style="position:relative"><input id="vi-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN" oninput="this.value=this.value.toUpperCase();viSearch(this.value)"/><div id="vi-results" class="search-drop" style="display:none"></div></div></div><div class="fg"><label class="fl">Sector</label><select id="vi-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vi-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><button class="btn-run btn-primary" id="btn-vi-run" style="background:linear-gradient(135deg,#3B30B0,#5B4ED4)" onclick="requireLoginThen(runValuationIntel)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Generate Intelligence Valuation &middot; &#8377;7,999 &rarr;</button></div><div class="prog-wrap" id="prog-valintel" style="display:none"><div class="prog-step" id="vi1"><div class="ps-dot"></div><div class="ps-lbl">Fetching Probe42 data</div></div><div class="prog-step" id="vi2"><div class="ps-dot"></div><div class="ps-lbl">Sector peer identification</div></div><div class="prog-step" id="vi3"><div class="ps-dot"></div><div class="ps-lbl">P/E, EV/EBITDA, P/Sales</div></div><div class="prog-step" id="vi4"><div class="ps-dot"></div><div class="ps-lbl">5-year DCF with WACC</div></div><div class="prog-step" id="vi5"><div class="ps-dot"></div><div class="ps-lbl">SEBI price band</div></div></div><div id="result-valintel"></div></div>
 </body>
