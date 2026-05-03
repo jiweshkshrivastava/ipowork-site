@@ -2223,6 +2223,111 @@ function downloadReport(tier){
     setTimeout(function(){URL.revokeObjectURL(url);a.remove();},3000);
   }catch(e2){alert('Download failed. Use Preview and Print to PDF instead.');}
 }
+
+
+function renderValuationReport(result, cname, sector, out, tier) {
+  if(!out) return;
+  AIRA_RESULTS[tier] = {result:result, cname:cname, sector:sector, tier:tier};
+
+  var vd = result || {};
+  var report = vd._report || '';
+  function fC(n){ if(!n&&n!==0) return '\u2014'; var v=parseFloat(n); return isNaN(v)?String(n):'\u20b9'+v.toFixed(1)+' Cr'; }
+  function pct(n){ if(!n&&n!==0) return '\u2014'; var v=parseFloat(n); return isNaN(v)?'\u2014':v.toFixed(1)+'%'; }
+  function md2h(t){return(t||'').replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]+?<\/li>)/g,'<ul>$1</ul>').replace(/\n{2,}/g,'</p><p>').replace(/^([^<\n].*)$/gm,'<p>$1</p>').replace(/<p><\/p>/g,'');}
+
+  var hasVal = vd.val_base_cr > 0;
+  var cleanR = report.replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'').replace(/VALUATION REPORT START/,'').replace(/VALUATION REPORT END/,'').trim();
+
+  var html = '<div class="result-wrap">';
+
+  // ── Header banner ──
+  html += '<div style="background:linear-gradient(135deg,#2A2070,#5B4ED4);border-radius:14px;padding:22px 28px;margin-bottom:16px;display:flex;align-items:center;gap:24px">';
+  html += '<div style="flex:1"><div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">Valuation Report</div>';
+  html += '<div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:3px">'+esc(cname||vd.company_name||'Company')+'</div>';
+  html += '<div style="font-size:12px;color:rgba(255,255,255,.55)">'+esc(sector||'')+(vd.exchange?' \u00b7 '+esc(vd.exchange):'')+'</div>';
+  html += '<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px">'+(vd._source==='probe42_verified'?'Probe42 Verified \u2014 ':'')+'SEBI ICDR 2018 \u00b7 ICAI Valuation Standards 2018</div></div>';
+  if(hasVal){
+    html += '<div style="text-align:right"><div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:3px">Base Valuation</div>';
+    html += '<div style="font-size:34px;font-weight:900;color:#C5BFFF;font-family:var(--serif)">\u20b9'+parseFloat(vd.val_base_cr||0).toFixed(0)+' Cr</div>';
+    html += '<div style="font-size:10px;color:rgba(255,255,255,.4)">'+esc(vd.primary_method||'')+'</div></div>';
+  }
+  html += '</div>';
+
+  // ── Action buttons ──
+  html += '<div class="dl-row"><button class="dl-btn-filled" style="background:#5B4ED4" onclick="previewReport(\''+tier+'\')">Preview Report</button><button class="dl-btn-outline" onclick="downloadReport(\''+tier+'\')">Download PDF</button></div>';
+
+  // ── Price band ──
+  if(vd.price_band_low && vd.price_band_high){
+    html += '<div style="padding:14px 18px;background:rgba(91,78,212,.06);border:1px solid rgba(91,78,212,.2);border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:16px">';
+    html += '<div><div style="font-size:11px;color:#5B4ED4;font-weight:700;text-transform:uppercase;letter-spacing:.5px">IPO Price Band Indication</div>';
+    html += '<div style="font-size:26px;font-weight:900;color:#3B30B0;font-family:var(--serif)">\u20b9'+parseFloat(vd.price_band_low).toFixed(0)+' \u2014 \u20b9'+parseFloat(vd.price_band_high).toFixed(0)+'</div>';
+    html += '<div style="font-size:11px;color:var(--mu)">Face value \u20b9'+(vd.face_value||10)+' per share \u00b7 Indicative only \u00b7 Subject to merchant banker pricing</div></div>';
+    html += '</div>';
+  }
+
+  // ── Valuation range ──
+  if(hasVal){
+    html += '<div class="sec-hd">Indicative Valuation Range</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">';
+    [{lbl:'Conservative',v:vd.val_conservative_cr,note:'0.6\u00d7 peers'},{lbl:'Base Case',v:vd.val_base_cr,note:'0.8\u00d7 peers',hi:true},{lbl:'Optimistic',v:vd.val_optimistic_cr,note:'1.0\u00d7 peers'}].forEach(function(c){
+      html += '<div style="text-align:center;padding:14px;background:'+(c.hi?'rgba(91,78,212,.08)':'rgba(91,78,212,.04)')+';border-radius:10px;border:'+(c.hi?'1.5px solid #5B4ED4':'1px solid var(--bd)')+'">';
+      html += '<div style="font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">'+c.lbl+'</div>';
+      html += '<div style="font-size:20px;font-weight:900;color:#5B4ED4;font-family:var(--serif)">\u20b9'+parseFloat(c.v||0).toFixed(0)+' Cr</div>';
+      html += '<div style="font-size:10px;color:var(--mu);margin-top:2px">'+c.note+'</div></div>';
+    });
+    html += '</div>';
+  }
+
+  // ── Financial snapshot ──
+  var fin = vd.financials || vd;
+  var hasF = vd.revenue_cr || vd.pat_cr || vd.net_worth_cr;
+  if(hasF){
+    html += '<div class="sec-hd">Financial Snapshot</div><div class="kv-grid">';
+    [{l:'Revenue',v:fC(vd.revenue_cr),g:true},{l:'PAT',v:fC(vd.pat_cr),g:(vd.pat_cr>0)},
+     {l:'EBITDA%',v:pct(vd.ebitda_margin_pct),g:(vd.ebitda_margin_pct>10)},
+     {l:'Net Worth',v:fC(vd.net_worth_cr),g:true},{l:'Total Assets',v:fC(vd.total_assets_cr),g:true},
+     {l:'ROE',v:pct(vd.roe),g:(vd.roe>15)},{l:'D/E',v:vd.debt_equity?parseFloat(vd.debt_equity).toFixed(2)+'x':'\u2014',g:(vd.debt_equity<1.5)}
+    ].forEach(function(k){
+      if(!k.v||k.v==='\u2014') return;
+      html += '<div class="kv-card"><div class="kv-val '+(k.g?'g':'a')+'">'+esc(String(k.v))+'</div><div class="kv-lbl">'+k.l+'</div></div>';
+    });
+    html += '</div>';
+  }
+
+  // ── Peer comparison ──
+  var peers3 = [];
+  if(vd.peer1_name) peers3.push({n:vd.peer1_name,rev:vd.peer1_rev,pe:vd.peer1_pe,ev:vd.peer1_ev,mc:vd.peer1_mc});
+  if(vd.peer2_name) peers3.push({n:vd.peer2_name,rev:vd.peer2_rev,pe:vd.peer2_pe,ev:vd.peer2_ev,mc:vd.peer2_mc});
+  if(vd.peer3_name) peers3.push({n:vd.peer3_name,rev:vd.peer3_rev,pe:vd.peer3_pe,ev:vd.peer3_ev,mc:vd.peer3_mc});
+  if(peers3.length){
+    html += '<div class="sec-hd">Peer Comparable Analysis</div>';
+    html += '<table class="fin-tbl"><thead><tr><th>Company</th><th>Revenue (\u20b9Cr)</th><th>P/E</th><th>EV/EBITDA</th><th>Mkt Cap (\u20b9Cr)</th></tr></thead><tbody>';
+    peers3.forEach(function(p){html += '<tr><td style="font-weight:600">'+esc(p.n)+'</td><td>'+esc(String(p.rev||'\u2014'))+'</td><td>'+esc(String(p.pe||'\u2014'))+'x</td><td>'+esc(String(p.ev||'\u2014'))+'x</td><td>'+esc(String(p.mc||'\u2014'))+'</td></tr>';});
+    html += '<tr style="background:rgba(91,78,212,.05);border-top:2px solid #5B4ED4;font-weight:700"><td style="color:#5B4ED4">\u2605 '+esc(cname)+'</td><td>'+fC(vd.revenue_cr)+'</td><td style="color:var(--mu)">?</td><td style="color:var(--mu)">?</td><td style="color:#5B4ED4">'+(hasVal?'\u20b9'+parseFloat(vd.val_base_cr).toFixed(0)+' Cr est.':'\u2014')+'</td></tr>';
+    html += '</tbody></table>';
+  }
+
+  // ── Methodology ──
+  if(vd.primary_method){
+    html += '<div style="padding:10px 14px;background:rgba(91,78,212,.04);border:1px solid rgba(91,78,212,.15);border-radius:8px;margin-bottom:14px;font-size:12px">';
+    html += '<strong style="color:#5B4ED4">Primary Method:</strong> '+esc(vd.primary_method);
+    html += '<span style="font-size:11px;color:var(--mu)"> &nbsp;&middot;&nbsp; Per SEBI ICDR 2018 Reg 26(4) &middot; ICAI Valuation Standards 2018 &middot; Companies Act 2013 Sec 62 &middot; IndAS 113</span>';
+    html += '</div>';
+  }
+
+  // ── Full AI report ──
+  if(cleanR){
+    html += '<div class="sec-hd">Full Valuation Report</div>';
+    html += '<div class="ai-card" style="padding:0;overflow:hidden">';
+    html += '<div style="padding:10px 16px;background:#2A2070;color:#fff;font-size:11px;font-weight:700">VALUATION REPORT \u2014 '+esc((cname||'').toUpperCase())+' \u2014 CONFIDENTIAL</div>';
+    html += '<div style="padding:18px 20px">'+md2h(cleanR)+'</div></div>';
+  }
+
+  // ── Disclaimer ──
+  html += '<div style="font-size:11px;color:var(--mu);margin-top:12px;padding:10px;background:var(--card);border-radius:8px;line-height:1.6"><strong>Disclaimer:</strong> This valuation is indicative and prepared using AI analysis. It is not a fairness opinion or SEBI-registered research. Final IPO pricing requires a SEBI-registered Category-I Merchant Banker\'s opinion.</div>';
+  html += '</div>';
+  out.innerHTML = html;
+}
 </script>
 
 <div id="content-valdoc" class="tier-content"><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128196; Document-Based Valuation &middot; &#8377;2,999</p><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Company Name <span class="req">*</span></label><input id="vd-cname" class="fi" placeholder="e.g. Sharma Textiles Pvt Ltd"/></div><div class="fg"><label class="fl">CIN (optional)</label><input id="vd-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN"/></div><div class="fg"><label class="fl">Sector</label><select id="vd-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vd-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Revenue (&#8377; Cr)</label><input id="vd-revenue" class="fi" placeholder="45.8"/></div><div class="fg"><label class="fl">PAT (&#8377; Cr)</label><input id="vd-pat" class="fi" placeholder="3.2"/></div><div class="fg"><label class="fl">EBITDA (&#8377; Cr)</label><input id="vd-ebitda" class="fi" placeholder="6.5"/></div><div class="fg"><label class="fl">Net Worth (&#8377; Cr)</label><input id="vd-networth" class="fi" placeholder="18.4"/></div></div><button class="btn-run btn-primary" id="btn-vd-run" style="background:linear-gradient(135deg,#5B4ED4,#7F77DD)" onclick="requireLoginThen(runValuationDoc)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg> Generate Valuation &middot; &#8377;2,999 &rarr;</button></div><div class="prog-wrap" id="prog-valdoc" style="display:none"><div class="prog-step" id="vd1"><div class="ps-dot"></div><div class="ps-lbl">Extracting financial data</div></div><div class="prog-step" id="vd2"><div class="ps-dot"></div><div class="ps-lbl">Peer comparable analysis</div></div><div class="prog-step" id="vd3"><div class="ps-dot"></div><div class="ps-lbl">DCF model (5-year)</div></div><div class="prog-step" id="vd4"><div class="ps-dot"></div><div class="ps-lbl">SEBI ICDR Reg 26 checks</div></div><div class="prog-step" id="vd5"><div class="ps-dot"></div><div class="ps-lbl">Price band recommendation</div></div></div><div id="result-valdoc"></div></div><div id="content-valintel" class="tier-content"><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128200; Intelligence Valuation &middot; &#8377;7,999 &nbsp;<span style="font-size:11px;padding:3px 8px;background:rgba(26,158,107,.08);border-radius:5px;color:var(--ok)">Probe42 Verified</span></p><div class="form-grid" style="margin-bottom:14px"><div class="fg"><label class="fl">CIN / LLPIN <span class="req">*</span></label><div style="position:relative"><input id="vi-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN" oninput="this.value=this.value.toUpperCase();viSearch(this.value)"/><div id="vi-results" class="search-drop" style="display:none"></div></div></div><div class="fg"><label class="fl">Sector</label><select id="vi-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vi-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><button class="btn-run btn-primary" id="btn-vi-run" style="background:linear-gradient(135deg,#3B30B0,#5B4ED4)" onclick="requireLoginThen(runValuationIntel)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Generate Intelligence Valuation &middot; &#8377;7,999 &rarr;</button></div><div class="prog-wrap" id="prog-valintel" style="display:none"><div class="prog-step" id="vi1"><div class="ps-dot"></div><div class="ps-lbl">Fetching Probe42 data</div></div><div class="prog-step" id="vi2"><div class="ps-dot"></div><div class="ps-lbl">Sector peer identification</div></div><div class="prog-step" id="vi3"><div class="ps-dot"></div><div class="ps-lbl">P/E, EV/EBITDA, P/Sales</div></div><div class="prog-step" id="vi4"><div class="ps-dot"></div><div class="ps-lbl">5-year DCF with WACC</div></div><div class="prog-step" id="vi5"><div class="ps-dot"></div><div class="ps-lbl">SEBI price band</div></div></div><div id="result-valintel"></div></div>
