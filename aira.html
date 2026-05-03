@@ -3082,6 +3082,196 @@ function downloadReport(tier){
     alert('Download failed. Please use Preview → Print to PDF instead.');
   }
 }
+
+
+async function runMainboardCore(){
+  var cin=document.getElementById('mb-cin').value.trim().toUpperCase();
+  var sector=document.getElementById('mb-sector').value;
+  var exchange=document.getElementById('mb-exchange').value;
+  if(!cin){alert('Please enter CIN.');return;}
+  var btn=document.getElementById('btn-mb-run');
+  var prog=document.getElementById('prog-mainboard');
+  var out=document.getElementById('result-mainboard');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Scoring\u2026';
+  out.innerHTML='';if(prog)prog.style.display='flex';
+  ['mp1','mp2','mp3','mp4','mp5'].forEach(clearStep);stepActive('mp1');
+  var t1=setTimeout(function(){stepDone('mp1');stepActive('mp2');},5000);
+  var t2=setTimeout(function(){stepDone('mp2');stepActive('mp3');},12000);
+  var t3=setTimeout(function(){stepDone('mp3');stepActive('mp4');},22000);
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,board:'mainboard'})});
+    var result=await resp.json();
+    if(result.error)throw new Error(result.error);
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
+    ['mp1','mp2','mp3','mp4','mp5'].forEach(stepDone);
+    btn.disabled=false;btn.innerHTML='Run Mainboard AIRA \u2192';
+    var cname=result.company_name||cin;
+    AIRA_RESULTS['mainboard']={result:result,cname:cname,sector:sector,exchange:exchange,tier:'mainboard'};
+    renderAIRAReport(result,cname,sector,exchange,out,'mainboard');
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
+    btn.disabled=false;btn.innerHTML='Run Mainboard AIRA \u2192';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>'+esc(e.message)+'</b></div>';
+  }
+}
+
+async function runCACore(){
+  var cin=document.getElementById('ca-cin').value.trim().toUpperCase();
+  var sector=document.getElementById('ca-sector').value;
+  var exchange=document.getElementById('ca-exchange').value;
+  var firm=(document.getElementById('ca-firm')||{}).value||'';
+  if(!cin){alert('Please enter CIN.');return;}
+  var btn=document.getElementById('btn-ca-run');
+  var prog=document.getElementById('prog-ca');
+  var out=document.getElementById('result-ca');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Scoring\u2026';
+  out.innerHTML='';if(prog)prog.style.display='flex';
+  ['cp1','cp2','cp3','cp4','cp5'].forEach(clearStep);stepActive('cp1');
+  var t1=setTimeout(function(){stepDone('cp1');stepActive('cp2');},5000);
+  var t2=setTimeout(function(){stepDone('cp2');stepActive('cp3');},14000);
+  var t3=setTimeout(function(){stepDone('cp3');stepActive('cp4');},24000);
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,
+        price_tier:'ca_bundle_4999',firm_name:firm})});
+    var result=await resp.json();
+    if(result.error)throw new Error(result.error);
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
+    ['cp1','cp2','cp3','cp4','cp5'].forEach(stepDone);
+    btn.disabled=false;btn.innerHTML='Run CA/CS Bundle \u2192';
+    var caName=result.company_name||cin;
+    // Check mainboard eligibility in CA bundle too
+    if(checkMainboardAlert(result,caName,'ca')){
+      if(prog)prog.style.display='none'; return;
+    }
+    AIRA_RESULTS['ca']={result:result,cname:caName,sector:sector,exchange:exchange,tier:'ca'};
+    renderAIRAReport(result,caName,sector,exchange,out,'ca');
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
+    btn.disabled=false;btn.innerHTML='Run CA/CS Bundle \u2192';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>'+esc(e.message)+'</b></div>';
+  }
+}
+
+async function runDDBundle(){
+  var cin=document.getElementById('dd-cin').value.trim().toUpperCase();
+  var cname=(document.getElementById('dd-cname')||{}).value||'';cname=cname.trim();
+  var sector=document.getElementById('dd-sector').value;
+  var exchange=document.getElementById('dd-exchange').value;
+  if(!cin){alert('Please enter CIN.');return;}
+  var btn=document.getElementById('btn-dd-run');
+  var prog=document.getElementById('prog-ddbundle');
+  var out=document.getElementById('result-ddbundle');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Running DD\u2026';
+  out.innerHTML='';if(prog)prog.style.display='flex';
+  ['dd1','dd2','dd3','dd4','dd5'].forEach(clearStep);stepActive('dd1');
+  var t1=setTimeout(function(){stepDone('dd1');stepActive('dd2');},5000);
+  var t2=setTimeout(function(){stepDone('dd2');stepActive('dd3');},15000);
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange})});
+    var result=await resp.json();
+    if(result.error)throw new Error(result.error);
+    clearTimeout(t1);clearTimeout(t2);['dd1','dd2','dd3','dd4','dd5'].forEach(stepDone);
+    btn.disabled=false;btn.innerHTML='Run DD Bundle \u2192';
+    var coName=cname||result.company_name||cin;
+    AIRA_RESULTS['ddbundle']={result:result,cname:coName,sector:sector,exchange:exchange,tier:'ddbundle'};
+    renderAIRAReport(result,coName,sector,exchange,out,'ddbundle');
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);
+    btn.disabled=false;btn.innerHTML='Run DD Bundle \u2192';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>'+esc(e.message)+'</b></div>';
+  }
+}
+
+async function runCleanChitCore(){
+  var cin=document.getElementById('cc-cin').value.trim().toUpperCase();
+  var cname=(document.getElementById('cc-cname')||{}).value||'';cname=cname.trim();
+  var sector=document.getElementById('cc-sector').value;
+  var exchange=document.getElementById('cc-exchange').value;
+  if(!cin){alert('Please enter CIN.');return;}
+  var btn=document.getElementById('btn-cc-run');
+  var out=document.getElementById('result-clearchit');
+  var prog=document.getElementById('prog-clearchit');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  out.innerHTML='';if(prog)prog.style.display='flex';
+  ['cc1','cc2','cc3','cc4','cc5'].forEach(clearStep);stepActive('cc1');
+  var t1=setTimeout(function(){stepDone('cc1');stepActive('cc2');},5000);
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'aira_clean_chit',cin:cin,company_name:cname,sector:sector,exchange:exchange})});
+    var result=await resp.json();
+    if(result.error)throw new Error(result.error);
+    clearTimeout(t1);['cc1','cc2','cc3','cc4','cc5'].forEach(stepDone);
+    btn.disabled=false;btn.innerHTML='Run Clean Chit \u2192';
+    AIRA_RESULTS['clearchit']={result:result,cname:cname||result.company_name,sector:sector,exchange:exchange,tier:'clearchit'};
+    renderAIRAReport(result,cname||result.company_name,sector,exchange,out,'clearchit');
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    clearTimeout(t1);btn.disabled=false;btn.innerHTML='Run Clean Chit \u2192';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>'+esc(e.message)+'</b></div>';
+  }
+}
+
+async function runDirectorScan(){
+  var din=(document.getElementById('ds-din')||{}).value||'';din=din.trim();
+  var dname=(document.getElementById('ds-name')||{}).value||'';dname=dname.trim();
+  if(!din&&!dname){alert('Enter DIN or director name.');return;}
+  var btn=document.getElementById('btn-ds-run');
+  var out=document.getElementById('result-dirscan');
+  var prog=document.getElementById('prog-dirscan');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  out.innerHTML='';if(prog)prog.style.display='flex';
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'director_scan',din:din,director_name:dname})});
+    var result=await resp.json();
+    if(result.error)throw new Error(result.error);
+    if(prog)prog.style.display='none';
+    btn.disabled=false;btn.innerHTML='Scan Again';
+    var risk=result.risk||'MEDIUM';
+    var rc=risk==='LOW'?'var(--ok)':risk==='HIGH'?'var(--er)':'var(--wn)';
+    out.innerHTML='<div class="result-wrap">'
+      +'<div style="padding:16px 20px;background:var(--tld);border-radius:var(--r2);margin-bottom:14px">'
+      +'<div style="font-size:20px;font-weight:700;color:'+rc+'">Risk: '+risk+'</div>'
+      +'<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:3px">'+esc(dname||'DIN: '+din)+'</div></div>'
+      +'<div class="ai-card" style="padding:16px">'+mdToHtml(result._report||'')+'</div></div>';
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    btn.disabled=false;btn.innerHTML='Scan Again';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>'+esc(e.message)+'</b></div>';
+  }
+}
+
+async function activateAIRAAlert(){
+  var phone=(document.getElementById('al-phone')||{}).value||'';phone=phone.trim();
+  var email=(document.getElementById('al-email')||{}).value||'';email=email.trim();
+  if(!phone&&!email){alert('Enter mobile or email.');return;}
+  var btn=document.getElementById('btn-al-run');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Activating\u2026';
+  try{
+    await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'email',to:'partners@ipowork.com',
+        subject:'AIRA Alert Request: '+phone,
+        html:'<p>Phone: +91 '+phone+'</p><p>Email: '+email+'</p>'})});
+    btn.disabled=false;btn.innerHTML='Activate AIRA Alert \u2192';
+    var out=document.getElementById('result-alert');
+    if(out)out.innerHTML='<div style="padding:20px;background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.25);border-radius:10px;text-align:center">'
+      +'<b style="color:var(--ok)">AIRA Alert Requested!</b><br/>'
+      +'<span style="font-size:12px;color:var(--mu)">We will activate monitoring within 24 hours.</span></div>';
+  }catch(e){
+    btn.disabled=false;btn.innerHTML='Activate AIRA Alert \u2192';
+  }
+}
 </script>
 
 <div id="content-valdoc" class="tier-content"><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128196; Document-Based Valuation &middot; &#8377;2,999</p><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Company Name <span class="req">*</span></label><input id="vd-cname" class="fi" placeholder="e.g. Sharma Textiles Pvt Ltd"/></div><div class="fg"><label class="fl">CIN (optional)</label><input id="vd-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN"/></div><div class="fg"><label class="fl">Sector</label><select id="vd-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vd-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Revenue (&#8377; Cr)</label><input id="vd-revenue" class="fi" placeholder="45.8"/></div><div class="fg"><label class="fl">PAT (&#8377; Cr)</label><input id="vd-pat" class="fi" placeholder="3.2"/></div><div class="fg"><label class="fl">EBITDA (&#8377; Cr)</label><input id="vd-ebitda" class="fi" placeholder="6.5"/></div><div class="fg"><label class="fl">Net Worth (&#8377; Cr)</label><input id="vd-networth" class="fi" placeholder="18.4"/></div></div><button class="btn-run btn-primary" id="btn-vd-run" style="background:linear-gradient(135deg,#5B4ED4,#7F77DD)" onclick="requireLoginThen(runValuationDoc)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg> Generate Valuation &middot; &#8377;2,999 &rarr;</button></div><div class="prog-wrap" id="prog-valdoc" style="display:none"><div class="prog-step" id="vd1"><div class="ps-dot"></div><div class="ps-lbl">Extracting financial data</div></div><div class="prog-step" id="vd2"><div class="ps-dot"></div><div class="ps-lbl">Peer comparable analysis</div></div><div class="prog-step" id="vd3"><div class="ps-dot"></div><div class="ps-lbl">DCF model (5-year)</div></div><div class="prog-step" id="vd4"><div class="ps-dot"></div><div class="ps-lbl">SEBI ICDR Reg 26 checks</div></div><div class="prog-step" id="vd5"><div class="ps-dot"></div><div class="ps-lbl">Price band recommendation</div></div></div><div id="result-valdoc"></div></div><div id="content-valintel" class="tier-content"><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128200; Intelligence Valuation &middot; &#8377;7,999 &nbsp;<span style="font-size:11px;padding:3px 8px;background:rgba(26,158,107,.08);border-radius:5px;color:var(--ok)">Probe42 Verified</span></p><div class="form-grid" style="margin-bottom:14px"><div class="fg"><label class="fl">CIN / LLPIN <span class="req">*</span></label><div style="position:relative"><input id="vi-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN" oninput="this.value=this.value.toUpperCase();viSearch(this.value)"/><div id="vi-results" class="search-drop" style="display:none"></div></div></div><div class="fg"><label class="fl">Sector</label><select id="vi-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vi-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><button class="btn-run btn-primary" id="btn-vi-run" style="background:linear-gradient(135deg,#3B30B0,#5B4ED4)" onclick="requireLoginThen(runValuationIntel)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg> Generate Intelligence Valuation &middot; &#8377;7,999 &rarr;</button></div><div class="prog-wrap" id="prog-valintel" style="display:none"><div class="prog-step" id="vi1"><div class="ps-dot"></div><div class="ps-lbl">Fetching Probe42 data</div></div><div class="prog-step" id="vi2"><div class="ps-dot"></div><div class="ps-lbl">Sector peer identification</div></div><div class="prog-step" id="vi3"><div class="ps-dot"></div><div class="ps-lbl">P/E, EV/EBITDA, P/Sales</div></div><div class="prog-step" id="vi4"><div class="ps-dot"></div><div class="ps-lbl">5-year DCF with WACC</div></div><div class="prog-step" id="vi5"><div class="ps-dot"></div><div class="ps-lbl">SEBI price band</div></div></div><div id="result-valintel"></div></div>
