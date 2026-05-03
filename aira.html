@@ -1588,6 +1588,262 @@ function renderValuation(sector, revenue, pat, ebitda, ebitdaM){
 /* ═══════════════════════════
    FREE TIER RUN
 ═══════════════════════════ */
+
+function renderAIRAReport(result, cname, sector, exchange, out, tier) {
+  if(!out) return;
+  AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,exchange:exchange,tier:tier};
+
+  var report  = result._report || result.report || '';
+  var score   = result.score || 0;
+  if(!score){ var sM=report.match(/AIRA Score:\s*(\d+)/i); score=sM?Math.min(99,Math.max(1,parseInt(sM[1]))):65; }
+  var v=vd(score), col=sc(score);
+
+  var dims={financial:0,governance:0,compliance:0,promoter:0,legal:0,readiness:0};
+  var jm=report.match(/---JSON---\s*([\s\S]*?)---END---/);
+  if(jm){try{var d2=JSON.parse(jm[1].trim());Object.keys(dims).forEach(function(k){if(d2[k])dims[k]=d2[k];});}catch(e){}}
+
+  var clean=report.replace(/AIRA Score:\s*\d+\n?/gi,'').replace(/---JSON---[\s\S]*?---END---/g,'')
+    .replace(/RESEARCH_JSON_START[\s\S]*?RESEARCH_JSON_END/g,'').replace(/REPORT_START\s*/,'')
+    .replace(/\s*REPORT_END/,'').trim();
+
+  var company = cname||result.company_name||result.cin||'';
+  var tierLabel={paid:'Intelligence',doc:'AIRA Score',mainboard:'Mainboard',ca:'CA/CS Bundle',
+    clearchit:'Clean Chit',ddbundle:'DD Bundle',free:'Free Analysis'}[tier]||tier;
+
+  // ── Helper formatters ───────────────────────────────────────────────────
+  function fmtINR(v){
+    if(v==null||v===''||v===undefined)return'\u2014';
+    var n=parseFloat(String(v).replace(/[^\d.-]/g,''));
+    if(isNaN(n))return String(v);
+    if(n>=10000000)return'\u20B9'+(n/10000000).toFixed(1)+' Cr';
+    if(n>=100000)return'\u20B9'+(n/100000).toFixed(1)+' L';
+    if(n>=1000)return'\u20B9'+(n/1000).toFixed(0)+' K';
+    return'\u20B9'+n.toFixed(0);
+  }
+  function fmtPct(v){return(v!=null&&v!==''&&!isNaN(parseFloat(v)))?parseFloat(v).toFixed(1)+'%':'\u2014';}
+  function fmtN(v){return(v!=null&&v!==''&&v!=='null')?String(v):'\u2014';}
+  function fmtRatio(v,dec){return(v!=null&&!isNaN(parseFloat(v)))?parseFloat(v).toFixed(dec||2)+'x':'\u2014';}
+  function fmtDays(v){return(v!=null&&!isNaN(parseFloat(v)))?Math.round(parseFloat(v))+' d':'\u2014';}
+  function okBad(v,goodFn){var s=String(v||'');if(!s||s==='\u2014')return'';return goodFn(v)?'v-ok':'v-bad';}
+
+  // Probe42 fields
+  var fin2  = result.financials   || {};
+  var com2  = result.compliance   || {};
+  var prom2 = result.promoters    || {};
+  var dirs2 = Array.isArray(result.directors)       ? result.directors       : [];
+  var chgs2 = Array.isArray(result.charges)         ? result.charges         : [];
+  var peers2= Array.isArray(result.peer_comparison) ? result.peer_comparison : [];
+  var cr2   = Array.isArray(result.credit_ratings)  ? result.credit_ratings  : [];
+  var activeDirs = dirs2.filter(function(d){return !d.cessation;});
+
+  var html='<div class="result-wrap">';
+
+  // ── 1. Dual-score header ───────────────────────────────────────────────
+  html += dualScoreBanner(score, v, col, company, sector, exchange, dims, null);
+
+  // ── 2. Source + action row ─────────────────────────────────────────────
+  if(result._source==='probe42_sandbox'){
+    html+='<div style="padding:8px 14px;background:rgba(26,158,107,.08);border:1px solid rgba(26,158,107,.2);border-radius:8px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--ok)">&#9679; Probe42 Verified \u2014 '+esc(company)+'</div>';
+  }
+  html+='<div class="dl-row">'
+    +'<button class="dl-btn-filled" style="background:var(--tl)" onclick="previewReport(\''+tier+'\')">Preview Report</button>'
+    +'<button class="dl-btn-outline" onclick="downloadReport(\''+tier+'\')">Download PDF</button>'
+    +'</div>';
+
+  // ── 3. MCA Company Master ──────────────────────────────────────────────
+  if(result.company_name || result.date_of_incorporation || result.status){
+    html+='<div class="ds-card">';
+    html+='<div class="ds-hd"><div class="ds-name">MCA Master</div><span class="ds-badge ds-live">VERIFIED</span></div>';
+    html+='<div class="ds-rows">';
+    var masterFields=[
+      ['Status',       fmtN(result.status)],
+      ['Compliance',   fmtN(result.active_compliance)],
+      ['Incorporated', fmtN(result.date_of_incorporation)],
+      ['Type',         fmtN(result.company_type)],
+      ['Paid-up Capital', fmtINR(result.paid_up_capital)],
+      ['Auth Capital', fmtINR(result.authorised_capital)],
+      ['State',        fmtN(result.registered_state)],
+      ['Last AGM',     fmtN(result.last_agm_date)],
+      ['Last Filing',  fmtN(result.last_filing_date)],
+      ['CIRP',         fmtN(result.cirp_status||'None')],
+    ];
+    masterFields.forEach(function(f){
+      if(f[1]&&f[1]!=='\u2014')
+        html+='<div class="ds-row"><span class="k">'+f[0]+'</span><span class="v">'+esc(String(f[1]))+'</span></div>';
+    });
+    if(result.website) html+='<div class="ds-row"><span class="k">Website</span><span class="v"><a href="https://'+esc(result.website)+'" target="_blank" style="color:var(--tl)">'+esc(result.website)+'</a></span></div>';
+    html+='</div></div>';
+  }
+
+  // ── 4. Compliance card ─────────────────────────────────────────────────
+  if(com2.gst_status||com2.roc_filing_status){
+    html+='<div class="ds-card">';
+    html+='<div class="ds-hd"><div class="ds-name">Compliance</div><span class="ds-badge ds-live">PROBE42</span></div>';
+    html+='<div class="ds-rows">';
+    [['GST Status',fmtN(com2.gst_status)],
+     ['GST Registrations',fmtN(com2.gst_count)],
+     ['EPFO',com2.epfo_registered?'Registered ('+com2.epfo_count+' estbl.)':'Not found'],
+     ['ROC Filings',fmtN(com2.roc_filing_status)],
+     ['MSME Delays',fmtN(com2.msme_delays||0)],
+     ['Defaulter List',com2.defaulter?'\u26a0\ufe0f YES':'No'],
+     ['Promoter Holding',fmtPct(prom2.promoter_holding_pct||'')],
+    ].forEach(function(f){
+      if(f[1]&&f[1]!=='\u2014')
+        html+='<div class="ds-row"><span class="k">'+f[0]+'</span><span class="v '+(f[0]==='Defaulter List'&&com2.defaulter?'v-bad':'')+'">'+esc(String(f[1]))+'</span></div>';
+    });
+    html+='</div></div>';
+  }
+
+  // ── 5. Financials KPI grid ─────────────────────────────────────────────
+  if(fin2.revenue_fy24||fin2.pat_fy24||fin2.net_worth){
+    html+='<div class="sec-hd">Verified Financials \u2014 Probe42 ('+fmtN(fin2.fy_year)+')</div>';
+    html+='<div class="kv-grid">';
+    var kpData=[
+      {l:'Revenue',v:fmtINR(fin2.revenue_fy24),g:true},
+      {l:'PAT',v:fmtINR(fin2.pat_fy24),g:parseFloat(fin2.pat_fy24||0)>0},
+      {l:'EBITDA Margin',v:fmtPct(fin2.ebitda_margin),g:parseFloat(fin2.ebitda_margin||0)>=12},
+      {l:'Net Margin',v:fmtPct(fin2.net_margin),g:parseFloat(fin2.net_margin||0)>=8},
+      {l:'Net Worth',v:fmtINR(fin2.net_worth),g:true},
+      {l:'Total Assets',v:fmtINR(fin2.total_assets),g:true},
+      {l:'D/E Ratio',v:fmtRatio(fin2.debt_equity_ratio),g:parseFloat(fin2.debt_equity_ratio||99)<=1.5},
+      {l:'Current Ratio',v:fmtRatio(fin2.current_ratio),g:parseFloat(fin2.current_ratio||0)>=1.5},
+      {l:'ROE',v:fmtPct(fin2.roe),g:parseFloat(fin2.roe||0)>=15},
+      {l:'ROCE',v:fmtPct(fin2.roce),g:parseFloat(fin2.roce||0)>=15},
+      {l:'Revenue Growth',v:fmtPct(fin2.revenue_growth),g:parseFloat(fin2.revenue_growth||0)>=10},
+      {l:'Interest Coverage',v:fmtRatio(fin2.interest_coverage,1),g:parseFloat(fin2.interest_coverage||0)>=3},
+      {l:'Inventory Days',v:fmtDays(fin2.inventory_days),g:true},
+      {l:'Debtor Days',v:fmtDays(fin2.debtor_days),g:true},
+      {l:'Auditor',v:fmtN(fin2.auditor),g:true},
+      {l:'Filing Std',v:fmtN(fin2.filing_standard),g:true},
+    ];
+    kpData.forEach(function(k){
+      if(!k.v||k.v==='\u2014')return;
+      html+='<div class="kv-card"><div class="kv-val '+(k.g?'g':'a')+'">'+esc(String(k.v))+'</div><div class="kv-lbl">'+k.l+'</div></div>';
+    });
+    html+='</div>';
+
+    // Credit ratings
+    // Deduplicate ratings client-side (safety net)
+    var crDedup=(function(){
+      var seen={},out=[];
+      (cr2||[]).forEach(function(r){
+        var key=(r.agency||'')+'|'+(r.instrument||'');
+        if(!seen[key]){seen[key]=true;out.push(r);}
+      });
+      return out.slice(0,6);
+    })();
+    if(crDedup.length){
+      html+='<div style="padding:10px 14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:9px;margin:10px 0">';
+      html+='<div style="font-size:11px;font-weight:700;color:var(--tl);margin-bottom:6px">Credit Ratings</div>';
+      html+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+      crDedup.forEach(function(r){
+        var rc=r.rating&&r.rating.startsWith('A')?'var(--ok)':r.rating&&r.rating.startsWith('B')?'var(--wn)':'var(--mu)';
+        html+='<div style="padding:6px 12px;background:#fff;border-radius:7px;border:1px solid var(--bd);font-size:12px">'
+          +'<span style="color:var(--mu);font-size:10px">'+esc(r.agency)+'</span> '
+          +'<span style="font-weight:800;color:'+rc+'">'+esc(r.rating)+'</span>'
+          +(r.instrument?'<span style="font-size:10px;color:var(--mu)"> · '+esc(r.instrument)+'</span>':'')
+          +(r.outlook&&r.outlook!=='Withdrawn'?'<span style="font-size:10px;color:var(--mu)"> ('+esc(r.outlook)+')</span>':'')
+          +'</div>';
+      });
+      html+='</div></div>';
+    }
+  }
+
+  // ── 6. Dimension scores ────────────────────────────────────────────────
+  if(Object.values(dims).some(function(v){return v>0;})){
+    html+='<div class="sec-hd">Dimension Scores</div><div class="dim-grid">';
+    Object.keys(dims).forEach(function(k){
+      var dv=dims[k]; if(!dv) return;
+      var dc=sc(dv);
+      html+='<div class="dim-card" style="border-top-color:'+dc+'">'
+        +'<div class="dim-lbl">'+dimIcon(k)+' '+dimLabel(k)+'</div>'
+        +'<div class="dim-val" style="color:'+dc+'">'+dv+'</div>'
+        +'<div class="dim-bar-bg"><div class="dim-bar" style="width:'+dv+'%;background:'+dc+'"></div></div>'
+        +'<div class="dim-verd">'+dimVerd(dv)+'</div></div>';
+    });
+    html+='</div>';
+  }
+
+  // ── 7. Directors table ─────────────────────────────────────────────────
+  if(dirs2.length){
+    html+='<div class="sec-hd">Board of Directors \u2014 Probe42 ('+dirs2.length+' total, '+activeDirs.length+' active)</div>';
+    html+='<div class="dir-wrap"><div style="font-size:11px;color:var(--mu);margin-bottom:6px">Source: Probe42 authorized_signatories</div>';
+    html+='<table class="dtable"><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Gender</th><th>Status</th><th>Appointed</th></tr></thead><tbody>';
+    dirs2.forEach(function(d){
+      var act=!d.cessation;
+      html+='<tr>'
+        +'<td style="font-weight:600">'+esc(d.name||'N/A')+'</td>'
+        +'<td><span class="din-tag">'+esc(d.din||'N/A')+'</span></td>'
+        +'<td>'+esc(d.designation||'Director')+'</td>'
+        +'<td>'+esc(d.gender||'\u2014')+'</td>'
+        +'<td style="color:'+(act?'var(--ok)':'var(--mu)')+'">&#9679; '+(act?'Active':'Ceased')+'</td>'
+        +'<td>'+esc(d.appointed||'\u2014')+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  // ── 8. Charges table ──────────────────────────────────────────────────
+  if(chgs2.length){
+    html+='<div class="sec-hd">Charges &amp; Liens \u2014 Probe42 ('+chgs2.length+' open)</div>';
+    html+='<table class="fin-tbl"><thead><tr><th>Holder</th><th>Amount</th><th>Type</th><th>Status</th><th>Date</th></tr></thead><tbody>';
+    chgs2.forEach(function(c){
+      html+='<tr><td>'+esc(c.holder||'N/A')+'</td><td>'+esc(fmtINR(c.amount))+'</td>'
+        +'<td>'+esc(c.type||'N/A')+'</td>'
+        +'<td style="color:var(--wn);font-weight:600">'+esc(c.status||'Open')+'</td>'
+        +'<td>'+esc(c.date||'N/A')+'</td></tr>';
+    });
+    html+='</tbody></table>';
+  }
+
+  // ── 9. Peer comparison ────────────────────────────────────────────────
+  var validPeers = peers2.filter(function(p){return p.name&&p.name!=='N/A';});
+  if(validPeers.length){
+    html+='<div class="sec-hd">Peer Comparison \u2014 Probe42</div>';
+    html+='<table class="fin-tbl"><thead><tr><th>Company</th><th>Revenue</th><th>PAT</th><th>City</th></tr></thead><tbody>';
+    validPeers.forEach(function(p){
+      var isSelf=(p.cin&&p.cin===result.cin)||(p.name&&result.company_name&&p.name.toLowerCase()===result.company_name.toLowerCase());
+      html+='<tr style="'+(isSelf?'background:rgba(13,92,107,.06);font-weight:700':'')+'">'
+        +'<td>'+esc(p.name)+(isSelf?' &#9733;':'')+'</td>'
+        +'<td>'+esc(fmtINR(p.revenue))+'</td>'
+        +'<td>'+esc(fmtINR(p.pat))+'</td>'
+        +'<td>'+esc(p.city||'\u2014')+'</td></tr>';
+    });
+    html+='</tbody></table>';
+  }
+
+  // ── 10. Industry benchmark ────────────────────────────────────────────
+  try{ html+=renderBenchmark(score,sector); }catch(e){}
+
+  // ── 11. AI Intelligence Report ─────────────────────────────────────────
+  html+='<div class="sec-hd">'+esc(tierLabel)+' Report</div>';
+  html+='<div class="ai-card" style="padding:0;overflow:hidden">'
+    +'<div style="padding:12px 18px;background:var(--tld);color:#fff;font-size:12px;font-weight:700">'
+    +'AIRA REPORT \u2014 '+esc(company)+'</div>'
+    +'<div id="ai-report-body-'+tier+'" style="padding:18px 20px">'+mdToHtml(clean)+'</div>'
+    +'</div>';
+
+  // ── 12. Score simulator + Fix engine ─────────────────────────────────
+  try{ html+=renderSimulator(score); }catch(e){}
+  try{ html+=renderFixEngine(); }catch(e){}
+
+
+  // ── 13. Upsell for lower tiers ────────────────────────────────────────
+  if(tier==='free'||tier==='doc'){
+    html+='<div class="upsell">'
+      +'<div class="upsell-icon">&#128300;</div>'
+      +'<div><div class="upsell-ttl">Upgrade to AIRA Intelligence</div>'
+      +'<div class="upsell-sub">Live Probe42 MCA data &middot; peer comparison &middot; director verification &middot; full 8,000-word report</div></div>'
+      +'<button class="upsell-cta" onclick="switchTier(\'paid\')">Upgrade &#8594;</button>'
+      +'</div>';
+  }
+
+  html+='</div>';
+  out.innerHTML=html;
+  try{initSimulator(score);}catch(e){}
+  try{animateBenchmarkBar();}catch(e){}
+}
+
+
 async function runFreeCore(){
   var cin=(document.getElementById('f-cin')||{}).value||'';
   var cname=(document.getElementById('f-cname')||{}).value||'';
