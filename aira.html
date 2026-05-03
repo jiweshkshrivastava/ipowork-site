@@ -2357,12 +2357,13 @@ function isMainboardEligible(result) {
   // Practical indicators: revenue > ₹250 Cr, PAT > ₹25 Cr, or AIRA score >= 85
   var fin = (result && result.financials) || {};
   var fin2 = (result && result.financials) || {};
-  var rev = parseFloat(fin2.revenue_fy24 || 0);
-  var pat = parseFloat(fin2.pat_fy24 || 0);
-  var nw  = parseFloat(fin2.net_worth || 0);
-  // paid_up_capital from Probe42 is in RUPEES — convert to Cr
-  var pucRaw = parseFloat((result && result.paid_up_capital) || 0);
-  var puc = pucRaw > 10000 ? pucRaw / 10000000 : pucRaw; // rupees → Cr
+  // Probe42 returns financials in Crores already (revenue_fy24 is Cr)
+  // but paid_up_capital is in rupees
+  function toCr(v){ var n=parseFloat(v||0); if(n>1000000) return n/10000000; if(n>10000) return n/100; return n; }
+  var rev = toCr(fin2.revenue_fy24);
+  var pat = toCr(fin2.pat_fy24);
+  var nw  = toCr(fin2.net_worth);
+  var puc = toCr((result && result.paid_up_capital) || 0);
   var score = (result && result.score) || 0;
 
   var reasons = [];
@@ -2724,19 +2725,33 @@ function buildReportHTML(tier) {
     if(!v||v==='—') return null;
     var n=parseFloat(String(v).replace(/[^\d.-]/g,''));
     if(isNaN(n)||n<=0) return null;
+    // Probe42 paid_up_capital is always in rupees
     if(n>=10000000) return '\u20b9'+(n/10000000).toFixed(2)+' Cr';
-    if(n>=100000)   return '\u20b9'+(n/100000).toFixed(1)+' L';
-    if(n>=1000)     return '\u20b9'+(n/1000).toFixed(0)+' K';
+    if(n>=100000)   return '\u20b9'+(n/100000).toFixed(2)+' Cr';
+    if(n>=1000)     return '\u20b9'+(n/1000).toFixed(1)+' K';
     return '\u20b9'+n.toFixed(0);
   }
-  function fC(n,d){ var p=parseFloat(n); return isNaN(p)?'—':'₹'+p.toFixed(d!=null?d:1)+' Cr'; }
+  function fC(n,d){
+    var p=parseFloat(n);
+    if(isNaN(p)||p===0) return '—';
+    // Probe42 peer revenues are in rupees (e.g. 677340000 = ₹67.7 Cr)
+    // Probe42 financial KPIs (revenue_fy24, net_worth) are already in Cr
+    // So: only convert if clearly rupees (> 5 crore = 50 lakh)
+    if(p > 5000000) p = p/10000000;   // raw rupees → Cr
+    return '₹'+p.toFixed(d!=null?d:1)+' Cr';
+  }
   function fN(n,d){ var p=parseFloat(n); return isNaN(p)?'—':p.toFixed(d!=null?d:1); }
   function fPct(n){ var p=parseFloat(n); return isNaN(p)?'—':p.toFixed(1)+'%'; }
   function fX(n){ var p=parseFloat(n); return isNaN(p)?'—':p.toFixed(1)+'x'; }
   function g(n,t){ return parseFloat(n)>=t; }
 
   var score    = result.score || 0;
-  if (!score && report){ var sm=report.match(/AIRA Score:\s*(\d+)/i); if(sm) score=parseInt(sm[1]); }
+  if (!score && report){ 
+    var sm=report.match(/AIRA Score[:\s]+([0-9]+)(?:\/100)?/i)||report.match(/Score[:\s]+([0-9]+)\/100/i);
+    if(sm) score=parseInt(sm[1]);
+  }
+  // Also try from JSON dims
+  if(!score && dims && dims.readiness) score = Math.round((dims.financial+dims.governance+dims.compliance+dims.promoter+dims.legal+dims.readiness)/6);
   var scoreCol = score>=78?'#1A9E6B':score>=65?'#C8820A':'#C0392B';
 
   var TIER_LABELS = {paid:'SME Intelligence',doc:'AIRA Score',mainboard:'Mainboard',
