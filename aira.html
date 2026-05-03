@@ -2755,7 +2755,22 @@ function buildReportHTML(tier) {
     .replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'')
     .replace(/---JSON---[\s\S]*?---END---/g,'')
     .replace(/VALUATION REPORT (START|END)/g,'').replace(/REPORT_(START|END)/g,'')
-    .replace(/AIRA Score:\s*\d+\n?/gi,'').trim();
+    .replace(/AIRA Score:\s*\d+\n?/gi,'')
+    .replace(/DIMENSION SCORES\s*```json[\s\S]*?```/gi,'')
+    .replace(/DIMENSION SCORES\s*\{[\s\S]*?\}/gi,'')
+    .replace(/```json[\s\S]*?```/gi,'')
+    .replace(/```[\s\S]*?```/gi,'')
+    .trim();
+  
+  // Extract dimension scores from JSON block
+  var dims = {};
+  var dimMatch = report.match(/---JSON---\s*([\s\S]*?)---END---/);
+  if(dimMatch){ try{ dims = JSON.parse(dimMatch[1].trim()); }catch(e2){} }
+  // Also try from DIMENSION SCORES block
+  if(!dims.financial){
+    var dsMatch = report.match(/DIMENSION SCORES[\s\S]*?```json\s*([\s\S]*?)```/i);
+    if(dsMatch){ try{ dims = JSON.parse(dsMatch[1].trim()); }catch(e2){} }
+  }
 
   /* ── markdown → rich HTML ── */
   function md2html(raw) {
@@ -2808,9 +2823,31 @@ function buildReportHTML(tier) {
       if(hm){ out.push('<h'+hm[1].length+'>'+xe(hm[2])+'</h'+hm[1].length+'>'); continue; }
       // HR
       if(/^---+$/.test(stripped)){ out.push('<hr/>'); continue; }
-      // Numbered
-      var nm=stripped.match(/^(\d+)\. (.+)/);
-      if(nm){ out.push('<p class="numbered"><span class="num-badge">'+nm[1]+'</span>'+nm[2].replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>')+'</p>'); continue; }
+      // Numbered list items — handle both "1. text" and standalone digit lines  
+      var nm=stripped.match(/^(\d+)[.)]\s+(.+)/);
+      if(nm){ 
+        out.push('<div class="gap-card"><span class="num-badge">'+nm[1]+'</span><div class="gap-body">'+nm[2].replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>')+'</div></div>'); 
+        continue; 
+      }
+      // Standalone digit on its own line = start of numbered block
+      var nm2=stripped.match(/^(\d+)$/);
+      if(nm2&&i+1<lines.length&&lines[i+1].trim()){ 
+        var nextLines=[]; var j=i+1;
+        while(j<lines.length&&lines[j].trim()&&!lines[j].trim().match(/^\d+$/)){
+          nextLines.push(lines[j].trim()); j++;
+        }
+        var content=nextLines.join(' ').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
+        // Detect CRITICAL/HIGH severity
+        var sev=''; var sevCol='#C8820A';
+        if(/CRITICAL/.test(content)){sev='CRITICAL';sevCol='#C0392B';}
+        else if(/HIGH/.test(content)){sev='HIGH';sevCol='#C8820A';}
+        out.push('<div class="gap-card" style="border-left-color:'+sevCol+'">'
+          +'<span class="num-badge" style="background:'+sevCol+'22;color:'+sevCol+'">'+nm2[1]+'</span>'
+          +'<div class="gap-body">'
+          +(sev?'<span class="sev-badge" style="background:'+sevCol+'22;color:'+sevCol+'">'+sev+'</span> ':'')
+          +content+'</div></div>');
+        i=j-1; continue; 
+      }
       // Normal
       if(stripped){
         var tx=stripped.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
@@ -2938,7 +2975,7 @@ function buildReportHTML(tier) {
     '.ai em{font-style:italic;color:#4A6A75}',
     '.ai hr{border:none;border-top:2px solid '+ACL+';margin:24px 0}',
     '.ai .tbl-wrap{margin-bottom:14px}',
-    '.ai .numbered{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;padding:8px 10px;background:rgba(192,57,43,.03);border-radius:6px;border-left:3px solid rgba(192,57,43,.2)}'+'.ai .numbered strong{color:#C0392B}',
+    '.ai .gap-card{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;padding:12px 14px;background:#FAFCFD;border-radius:8px;border:1px solid #E0EEF0;border-left:4px solid #C0392B}'+'.ai .gap-body{flex:1;font-size:11.5px;line-height:1.7}'+'.ai .sev-badge{display:inline-block;font-size:8.5px;font-weight:800;padding:2px 8px;border-radius:10px;margin-right:6px;text-transform:uppercase;letter-spacing:.5px}'+'.ai .num-badge{background:rgba(192,57,43,.1);color:#C0392B;font-weight:800;font-size:11px;padding:3px 8px;border-radius:6px;flex-shrink:0;align-self:flex-start;min-width:28px;text-align:center}'+'.ai .numbered strong{color:#C0392B}',
     '.ai .num-badge{background:'+ACL+';color:'+AC+';font-weight:800;font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0}',
     /* Disclaimer */
     '.disclaimer{background:#F8FAFB;border:1px solid #DFF0F3;border-radius:10px;padding:14px 16px;margin-top:20px;font-size:10.5px;color:#6B8A94;line-height:1.7}',
@@ -3293,6 +3330,38 @@ function buildReportHTML(tier) {
     }
   }
 
+  /* ── DIMENSION SCORES ──────────────────────────────────── */
+  var dimNames = {financial:'Financial',governance:'Governance',compliance:'Compliance',
+    promoter:'Promoter',legal:'Legal',readiness:'Readiness'};
+  var dimKeys = ['financial','governance','compliance','promoter','legal','readiness'];
+  var hasDims = dimKeys.some(function(k){ return dims[k]>0; });
+  if(!isVal && hasDims){
+    htm += section('Dimension Scores', 'SEBI ICDR 2018 · 6 Parameters');
+    htm += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:18px">';
+    dimKeys.forEach(function(k){
+      var dv = parseInt(dims[k])||0; if(!dv) return;
+      var dc = dv>=78?'#1A9E6B':dv>=65?'#C8820A':'#C0392B';
+      var bg = dv>=78?'rgba(26,158,107,.06)':dv>=65?'rgba(200,130,10,.06)':'rgba(192,57,43,.06)';
+      var bd = dv>=78?'rgba(26,158,107,.2)':dv>=65?'rgba(200,130,10,.2)':'rgba(192,57,43,.2)';
+      var lbl = dv>=78?'Strong':dv>=65?'Good':dv>=50?'Fair':'Weak';
+      htm += '<div style="text-align:center;padding:12px 8px;background:'+bg+';border:1px solid '+bd+';border-radius:9px">'
+        +'<div style="font-family:Georgia,serif;font-size:26px;font-weight:900;color:'+dc+';line-height:1">'+dv+'</div>'
+        +'<div style="font-size:8.5px;font-weight:700;color:'+dc+';text-transform:uppercase;letter-spacing:.4px;margin-top:4px">'+xe(dimNames[k])+'</div>'
+        +'<div style="font-size:9px;color:'+dc+'">'+lbl+'</div>'
+        +'</div>';
+    });
+    htm += '</div>\n';
+
+  /* ── PEER COMPARISON ─────────────────────────────────────── */
+  var peerData = Array.isArray(result.peer_comparison) ? result.peer_comparison : [];
+  if(!isVal && peerData.length){
+    htm += section('Peer Comparison', xe(result.peer_industry||sector)+' · '+(result.peer_year||'FY24'));
+    htm += table(
+      ['Company','Revenue (₹Cr)','PAT (₹Cr)','City'],
+      peerData.map(function(p){ return [p.name||'—', fC(p.revenue,1), fC(p.pat,1), p.city||'—']; })
+    );
+  }
+
   /* ── FULL AI REPORT ────────────────────────────────────── */
   if(cleanR){
     htm += section(isVal?'Detailed Valuation Analysis':'AIRA Intelligence Report','Prepared by AI · Confidential');
@@ -3540,6 +3609,8 @@ async function activateAIRAAlert(){
   }catch(e){
     btn.disabled=false;btn.innerHTML='Activate AIRA Alert \u2192';
   }
+}
+
 }
 </script>
 
