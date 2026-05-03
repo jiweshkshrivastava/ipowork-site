@@ -2346,7 +2346,23 @@ var ADMIN_UNLOCKED=false,ADMIN_PWD='ipowork@admin2026';
 function openAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='flex';setTimeout(function(){document.getElementById('admin-pwd-input').focus();},100);}}
 function closeAdminAuth(){var o=document.getElementById('admin-auth-overlay');if(o){o.style.display='none';document.getElementById('admin-pwd-input').value='';document.getElementById('admin-pwd-err').textContent='';}}
 function checkAdminPwd(){var p=document.getElementById('admin-pwd-input').value;if(p===ADMIN_PWD){ADMIN_UNLOCKED=true;closeAdminAuth();var t=document.getElementById('tab-admin');if(t)t.style.display='';switchTier('admin');}else{document.getElementById('admin-pwd-err').textContent='Incorrect password.';document.getElementById('admin-pwd-input').value='';}}
-document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==='9'||e.key==='(')){e.preventDefault();ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth();}});
+document.addEventListener('keydown',function(e){
+  if(e.ctrlKey&&e.shiftKey&&(e.key==='9'||e.key==='(')){e.preventDefault();ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth();}
+  if((e.ctrlKey&&e.shiftKey&&(e.key==='8'||e.key==='*'))||e.key==='F9'){e.preventDefault();toggleDevGroups();}
+});
+
+function toggleDevGroups(){
+  var g1=document.getElementById('group-clean-compliance');
+  var g2=document.getElementById('group-valuation');
+  var show=g1&&g1.style.display==='none';
+  if(g1)g1.style.display=show?'':'none';
+  if(g2)g2.style.display=show?'':'none';
+  var nb=document.createElement('div');
+  nb.style.cssText='position:fixed;top:14px;right:14px;z-index:99999;background:'+(show?'#5B4ED4':'#3A5560')+';color:#fff;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:700;font-family:sans-serif;box-shadow:0 4px 20px rgba(0,0,0,.25)';
+  nb.textContent=show?'Dev mode ON: Clean & Valuation visible':'Dev mode OFF: groups hidden';
+  document.body.appendChild(nb);
+  setTimeout(function(){nb.remove();},2500);
+}
 (function(){var _o=switchTier;switchTier=function(t){if(t==='admin'&&!ADMIN_UNLOCKED){openAdminAuth();return;}_o(t);};})();
 
 
