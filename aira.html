@@ -1922,7 +1922,7 @@ async function runFreeCore(){
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Researching…';}
   if(out)out.innerHTML='';if(prog)prog.style.display='flex';
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'aira_free',cin:cin||'U99999MH2020PTC000000',company_name:cname||cin,sector:sector,exchange:exchange})});
+    var result=await workerPost({type:'aira_free',cin:cin||'U99999MH2020PTC000000',company_name:cname||cin,sector:sector,exchange:exchange});
 
 
     var result=await resp.json();
@@ -1993,8 +1993,8 @@ async function runPaidCore(){
   var t2=setTimeout(function(){stepDone('pp2');stepActive('pp3');},12000);
   var t3=setTimeout(function(){stepDone('pp3');stepActive('pp4');},20000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange})});
-    var result=await resp.json();
+    var result=await workerPost({type:'full_paid',cin:cin,sector:sector,exchange:exchange});
+
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
     ['pp1','pp2','pp3','pp4','pp5'].forEach(stepDone);
@@ -2031,7 +2031,7 @@ async function loadAdmin(){
 
   try{
     // Fetch reports
-    var rr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'reports',limit:200,order:'created_at.desc'})});
+    var rj=await workerPost({type:'admin_data',table:'reports',limit:200,order:'created_at.desc'});
 
     var rj=await rr.json();
 
@@ -2044,7 +2044,7 @@ async function loadAdmin(){
     var reports=rj.data||[];
 
     // Fetch users
-    var ur=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'users',limit:300,order:'created_at.desc'})});
+    var uj=await workerPost({type:'admin_data',table:'users',limit:300,order:'created_at.desc'});
 
     var uj=await ur.json();
     var users=uj.data||[];
@@ -2271,7 +2271,7 @@ async function runValuationDoc(){
         docTexts.push('['+key.toUpperCase()+'] '+file.name+': '+text);
       }
     }
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'valuation_doc',company_name:cname,cin:cin,sector:sector,exchange:exchange,revenue:revenue,pat:pat,ebitda:ebitda,net_worth:nw,documents:docTexts.join('\n\n').substring(0,50000)})});
+    var result=await workerPost(docTexts.length?{type:'aira_doc',company_name:cname,cin:cin||'NOT PROVIDED',sector:sector,exchange:exchange,documents:docTexts.join(' | ').substring(0,60000)}:{type:'aira_free',cin:cin||'U99999MH2020PTC000000',company_name:cname,sector:sector,exchange:exchange});
 
 
 
@@ -2341,8 +2341,8 @@ async function runValuationIntel(){
   }, 90000);
 
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'valuation_intel',cin:cin,sector:sector,exchange:exchange})});
-    var result=await resp.json();
+    var result=await workerPost({type:'valuation_intel',cin:cin,sector:sector,exchange:exchange});
+
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);clearTimeout(tTimeout);
     if(result.error) throw new Error(result.error);
     ['vi1','vi2','vi3','vi4','vi5'].forEach(stepDone);
@@ -2369,8 +2369,8 @@ async function runCleanChitCore(){
   ['cc1','cc2','cc3','cc4','cc5'].forEach(clearStep);stepActive('cc1');
   var t1=setTimeout(function(){stepDone('cc1');stepActive('cc2');},5000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'aira_clean_chit',cin:cin,company_name:cname,sector:sector,exchange:exchange})});
-    var result=await resp.json();if(result.error)throw new Error(result.error);
+    var result=await workerPost({type:'aira_clean_chit',cin:cin,company_name:cname,sector:sector,exchange:exchange});if(result.error)throw new Error(result.error);
+
     clearTimeout(t1);['cc1','cc2','cc3','cc4','cc5'].forEach(stepDone);
     btn.disabled=false;btn.innerHTML='Run Clean Chit';
     AIRA_RESULTS['clearchit']={result:result,cname:cname||result.company_name,sector:sector,exchange:exchange,tier:'clearchit'};
@@ -2389,8 +2389,8 @@ async function runDirectorScan(){
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
   out.innerHTML='';if(prog)prog.style.display='flex';
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'director_scan',din:din,director_name:dname})});
-    var result=await resp.json();if(result.error)throw new Error(result.error);
+    var result=await workerPost({type:'director_scan',din:din,director_name:dname});if(result.error)throw new Error(result.error);
+
     if(prog)prog.style.display='none';btn.disabled=false;btn.innerHTML='Scan Again';
     var risk=result.risk||'MEDIUM',rc=risk==='LOW'?'var(--ok)':risk==='HIGH'?'var(--er)':'var(--wn)';
     out.innerHTML='<div class="result-wrap"><div style="padding:16px 20px;background:var(--tld);border-radius:var(--r2);margin-bottom:14px"><div style="font-size:18px;font-weight:700;color:'+rc+'">Risk: '+risk+'</div><div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:3px">'+esc(dname||'DIN: '+din)+'</div></div><div class="ai-card" style="padding:16px">'+mdToHtml(result._report||'')+'</div></div>';
@@ -2409,8 +2409,8 @@ async function runDDBundle(){
   var t1=setTimeout(function(){stepDone('dd1');stepActive('dd2');},5000);
   var t2=setTimeout(function(){stepDone('dd2');stepActive('dd3');},15000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange})});
-    var result=await resp.json();if(result.error)throw new Error(result.error);
+    var result=await workerPost({type:'full_paid',cin:cin,sector:sector,exchange:exchange});if(result.error)throw new Error(result.error);
+
     clearTimeout(t1);clearTimeout(t2);['dd1','dd2','dd3','dd4','dd5'].forEach(stepDone);
     btn.disabled=false;btn.innerHTML='Run DD Bundle';
     AIRA_RESULTS['ddbundle']={result:result,cname:cname||result.company_name,sector:sector,exchange:exchange,tier:'ddbundle'};
@@ -2442,8 +2442,8 @@ async function testWorker(){
   try{
     var r1=await fetch(WORKER,{method:'GET'});var t1=await r1.text();
     if(!t1.includes('OK'))throw new Error('Worker not responding');
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'aira_free',cin:'U74999MH2020PTC123456',company_name:'Test Co',sector:'Manufacturing',exchange:'NSE Emerge (SME)'})});
-    var j2=await r2.json();if(j2.error)throw new Error(j2.error);
+    var r2=await workerPost({type:'aira_free',cin:'U74999MH2020PTC123456',company_name:'Test Co',sector:'Manufacturing',exchange:'NSE Emerge (SME)'});
+    if(j2.error)throw new Error(j2.error);
     var rLen=(j2.report||j2._report||'').length;
     if(!rLen)throw new Error('No report returned');
     if(el)el.innerHTML='<span style="color:var(--ok)">✓ Worker OK — '+rLen+' chars</span>';
@@ -2544,8 +2544,8 @@ async function runDocCore(){
   try{
     var docTexts=[];
     for(var key in UPLOADED_DOCS){var file=UPLOADED_DOCS[key];var text=await new Promise(function(res){var r=new FileReader();r.onload=function(e){res((e.target.result||'').substring(0,8000));};r.onerror=function(){res('');};r.readAsText(file);});docTexts.push('['+key.toUpperCase()+'] '+file.name+': '+text);}
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(docTexts.length?{type:'aira_doc',company_name:cname,cin:cin||'NOT PROVIDED',sector:sector,exchange:exchange,documents:docTexts.join(' | ').substring(0,60000)}:{type:'aira_free',cin:cin||'U99999MH2020PTC000000',company_name:cname,sector:sector,exchange:exchange})});
-    var result=await resp.json();if(result.error)throw new Error(result.error);
+    var result=await workerPost(docTexts.length?{type:'aira_doc',company_name:cname,cin:cin||'NOT PROVIDED',sector:sector,exchange:exchange,documents:docTexts.join(' | ').substring(0,60000)}:{type:'aira_free',cin:cin||'U99999MH2020PTC000000',company_name:cname,sector:sector,exchange:exchange});
+
     clearTimeout(t1);clearTimeout(t2);['ds1','ds2','ds3','ds4'].forEach(stepDone);
     btn.disabled=false;btn.innerHTML='Run Again';
     AIRA_RESULTS['doc']={result:result,cname:cname,sector:sector,exchange:exchange,tier:'doc'};
@@ -3573,8 +3573,8 @@ async function runMainboardCore(){
   var t2=setTimeout(function(){stepDone('mp2');stepActive('mp3');},12000);
   var t3=setTimeout(function(){stepDone('mp3');stepActive('mp4');},22000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,board:'mainboard'})});
-    var result=await resp.json();
+    var result=await workerPost({type:'full_paid',cin:cin,sector:sector,exchange:exchange,board:'mainboard'});
+
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
     ['mp1','mp2','mp3','mp4','mp5'].forEach(stepDone);
@@ -3607,10 +3607,10 @@ async function runCACore(){
   var t2=setTimeout(function(){stepDone('cp2');stepActive('cp3');},14000);
   var t3=setTimeout(function(){stepDone('cp3');stepActive('cp4');},24000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,price_tier:'ca_bundle_4999',firm_name:firm})});
+    var result=await workerPost({type:'full_paid',cin:cin,sector:sector,exchange:exchange,price_tier:'ca_bundle_4999',firm_name:firm});
 
 
-    var result=await resp.json();
+
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
     ['cp1','cp2','cp3','cp4','cp5'].forEach(stepDone);
@@ -3646,9 +3646,9 @@ async function runDDBundle(){
   var t1=setTimeout(function(){stepDone('dd1');stepActive('dd2');},5000);
   var t2=setTimeout(function(){stepDone('dd2');stepActive('dd3');},15000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange})});
+    var result=await workerPost({type:'full_paid',cin:cin,sector:sector,exchange:exchange});
 
-    var result=await resp.json();
+
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);['dd1','dd2','dd3','dd4','dd5'].forEach(stepDone);
     btn.disabled=false;btn.innerHTML='Run DD Bundle \u2192';
@@ -3678,9 +3678,9 @@ async function runCleanChitCore(){
   ['cc1','cc2','cc3','cc4','cc5'].forEach(clearStep);stepActive('cc1');
   var t1=setTimeout(function(){stepDone('cc1');stepActive('cc2');},5000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'aira_clean_chit',cin:cin,company_name:cname,sector:sector,exchange:exchange})});
+    var result=await workerPost({type:'aira_clean_chit',cin:cin,company_name:cname,sector:sector,exchange:exchange});
 
-    var result=await resp.json();
+
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);['cc1','cc2','cc3','cc4','cc5'].forEach(stepDone);
     btn.disabled=false;btn.innerHTML='Run Clean Chit \u2192';
@@ -3704,9 +3704,9 @@ async function runDirectorScan(){
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
   out.innerHTML='';if(prog)prog.style.display='flex';
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'director_scan',din:din,director_name:dname})});
+    var result=await workerPost({type:'director_scan',din:din,director_name:dname});
 
-    var result=await resp.json();
+
     if(result.error)throw new Error(result.error);
     if(prog)prog.style.display='none';
     btn.disabled=false;btn.innerHTML='Scan Again';
