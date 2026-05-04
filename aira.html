@@ -389,7 +389,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 </div>
 
   <div class="rp-wrap">
-    <div class="topbar-right">
+    <div class="topbar-right"><button onclick="testWorkerNow()" title="Test worker connection" style="font-size:11px;padding:3px 10px;background:rgba(13,92,107,.1);border:1px solid rgba(13,92,107,.3);border-radius:5px;cursor:pointer;color:var(--tl);font-weight:600">🔌 Test</button>
       <button onclick="ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth()" title="Admin [Ctrl+Shift+9]"
         style="opacity:.35;padding:4px 10px;background:transparent;border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:13px;color:var(--mu)">&#128202; Admin</button>
       <button onclick="toggleDevGroups()" title="Dev groups [F9]"
@@ -1202,6 +1202,43 @@ var AIRA_RESULTS={};
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 
+// ─── DIAGNOSTICS ─────────────────────────────
+async function testWorkerNow() {
+  var out = document.getElementById('worker-diag') || document.createElement('div');
+  out.id = 'worker-diag';
+  out.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:99999;background:#fff;border:2px solid #0D5C6B;border-radius:8px;padding:16px 20px;font-size:13px;font-family:monospace;max-width:500px;box-shadow:0 4px 20px rgba(0,0,0,.2)';
+  document.body.appendChild(out);
+  out.innerHTML = '🔄 Testing worker...';
+  
+  // Test 1: GET
+  try {
+    var r1 = await fetch(WORKER);
+    var t1 = await r1.text();
+    out.innerHTML += '<br>✅ GET ' + r1.status + ': ' + t1.substring(0,50);
+  } catch(e) {
+    out.innerHTML += '<br>❌ GET failed: ' + e.message;
+  }
+  
+  // Test 2: OPTIONS preflight
+  try {
+    var r2 = await fetch(WORKER, {method:'OPTIONS', headers:{'Content-Type':'application/json','Origin':'https://claude.ai'}});
+    out.innerHTML += '<br>✅ OPTIONS ' + r2.status + ' CORS OK';
+  } catch(e) {
+    out.innerHTML += '<br>❌ OPTIONS failed: ' + e.message;
+  }
+  
+  // Test 3: POST admin_data (no API key needed)
+  try {
+    var r3 = await fetch(WORKER, {method:'POST', mode:'cors', credentials:'omit', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'admin_data',table:'reports',limit:1})});
+    var t3 = await r3.text();
+    out.innerHTML += '<br>✅ POST ' + r3.status + ': ' + t3.substring(0,80);
+  } catch(e) {
+    out.innerHTML += '<br>❌ POST failed: ' + e.message;
+  }
+  
+  out.innerHTML += '<br><br><small onclick="this.parentElement.remove()" style="cursor:pointer;color:#0D5C6B">✕ Close</small>';
+}
+
 async function workerPost(payload) {
   var resp = await fetch(WORKER, {
     method: 'POST',
@@ -1943,7 +1980,7 @@ async function runFreeCore(){
     var result=await workerPost({type:'aira_free',cin:cin||'U99999MH2020PTC000000',company_name:cname||cin,sector:sector,exchange:exchange});
 
 
-    var result=await resp.json();
+
     if(result.error)throw new Error(result.error);
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='Run AIRA →';}
@@ -2051,7 +2088,7 @@ async function loadAdmin(){
     // Fetch reports
     var rj=await workerPost({type:'admin_data',table:'reports',limit:200,order:'created_at.desc'});
 
-    var rj=await rr.json();
+
 
     // Debug: show raw response if empty
     if(!rj.data){
@@ -2064,7 +2101,7 @@ async function loadAdmin(){
     // Fetch users
     var uj=await workerPost({type:'admin_data',table:'users',limit:300,order:'created_at.desc'});
 
-    var uj=await ur.json();
+
     var users=uj.data||[];
 
     window._adminData={reports:reports,users:users};
@@ -2293,7 +2330,7 @@ async function runValuationDoc(){
 
 
 
-    var result=await resp.json();
+
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
     ['vd1','vd2','vd3','vd4','vd5'].forEach(stepDone);
