@@ -2047,16 +2047,19 @@ async function loadAdmin(){
     if(statsEl){
       var stats=[
         {l:'Total Reports',v:totalRep,c:'var(--tl)'},
-        {l:'Avg Score',v:avgScore||'—',c:avgScore>=65?'var(--ok)':'var(--wn)'},
-        {l:'Score ≥65',v:ready65,c:'var(--ok)'},
-        {l:'With Report Text',v:withText,c:'var(--tl)'},
-        {l:'SME Intel',v:byTier['paid']||0,c:'var(--sf)'},
-        {l:'AIRA Score',v:(byTier['doc']||0)+(byTier['doc_paid']||0),c:'var(--tl)'},
-        {l:'Mainboard',v:byTier['mainboard']||0,c:'#1864B4'},
-        {l:'CA Bundle',v:byTier['ca']||0,c:'var(--ok)'},
         {l:'Total Leads',v:users.length,c:'var(--tl)'},
+        {l:'Avg Score',v:avgScore||'—',c:avgScore>=65?'var(--ok)':'var(--wn)'},
+        {l:'AIRA Score',v:(byTier['doc']||0)+(byTier['doc_paid']||0),c:'var(--tl)'},
+        {l:'SME Intel',v:byTier['paid']||0,c:'#E88A2E'},
+        {l:'Mainboard',v:byTier['mainboard']||0,c:'#1864B4'},
+        {l:'CA Bundle',v:byTier['ca']||0,c:'#0F6E4A'},
+        {l:'Clean Chit',v:(byTier['clearchit']||0)+(byTier['clean_chit']||0),c:'#0F6E4A'},
+        {l:'DD Bundle',v:byTier['ddbundle']||0,c:'#5B4ED4'},
+        {l:'Valuation',v:(byTier['valdoc']||0)+(byTier['valintel']||0),c:'#3B30B0'},
+        {l:'Dir Scan',v:byTier['dirscan']||0,c:'#C0392B'},
+        {l:'Free Reports',v:byTier['free']||0,c:'var(--mu)'},
       ];
-      statsEl.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px';
+      statsEl.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px';
       statsEl.innerHTML=stats.map(function(s){
         return '<div style="background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;text-align:center;box-shadow:var(--sh)">'
           +'<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+s.c+'">'+s.v+'</div>'
@@ -2076,21 +2079,26 @@ async function loadAdmin(){
           +'</div>';
       } else {
         function tierBadge(tier){
-          var cfg={paid:{bg:'rgba(232,138,46,.1)',c:'#E88A2E',lbl:'Intel'},
-            doc:{bg:'rgba(13,92,107,.08)',c:'var(--tl)',lbl:'Score'},
-            doc_paid:{bg:'rgba(13,92,107,.08)',c:'var(--tl)',lbl:'Score'},
-            mainboard:{bg:'rgba(24,95,165,.1)',c:'#1864B4',lbl:'Main'},
-            ca:{bg:'rgba(26,158,107,.1)',c:'#0F6E4A',lbl:'CA'},
-            clearchit:{bg:'rgba(26,158,107,.1)',c:'#0F6E4A',lbl:'Chit'},
-            clean_chit:{bg:'rgba(26,158,107,.1)',c:'#0F6E4A',lbl:'Chit'},
-            ddbundle:{bg:'rgba(91,78,212,.1)',c:'#5B4ED4',lbl:'DD'},
-            free:{bg:'rgba(107,126,133,.08)',c:'var(--mu)',lbl:'Free'}};
+          var cfg={
+            free:     {bg:'rgba(107,126,133,.08)',c:'#6B7E85',    lbl:'Free'},
+            doc:      {bg:'rgba(13,92,107,.08)',  c:'var(--tl)', lbl:'AIRA Score'},
+            doc_paid: {bg:'rgba(13,92,107,.08)',  c:'var(--tl)', lbl:'AIRA Score'},
+            paid:     {bg:'rgba(232,138,46,.1)',  c:'#E88A2E',   lbl:'SME Intel'},
+            mainboard:{bg:'rgba(24,95,165,.1)',   c:'#1864B4',   lbl:'Mainboard'},
+            ca:       {bg:'rgba(26,158,107,.1)',  c:'#0F6E4A',   lbl:'CA Bundle'},
+            clearchit:{bg:'rgba(26,158,107,.1)',  c:'#0F6E4A',   lbl:'Clean Chit'},
+            clean_chit:{bg:'rgba(26,158,107,.1)', c:'#0F6E4A',   lbl:'Clean Chit'},
+            dirscan:  {bg:'rgba(192,57,43,.1)',   c:'#C0392B',   lbl:'Dir Scan'},
+            ddbundle: {bg:'rgba(91,78,212,.1)',   c:'#5B4ED4',   lbl:'DD Bundle'},
+            alert:    {bg:'rgba(201,147,42,.1)',  c:'#C8820A',   lbl:'AIRA Alert'},
+            valdoc:   {bg:'rgba(91,78,212,.12)',  c:'#3B30B0',   lbl:'Val Doc'},
+            valintel: {bg:'rgba(91,78,212,.18)',  c:'#1A1560',   lbl:'Val Intel'},
+          };
           var t=cfg[tier]||cfg.free;
           return '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:'+t.bg+';color:'+t.c+'">'+t.lbl+'</span>';
         }
-        repEl.innerHTML='<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:820px">'
-          +'<thead><tr><th>Date</th><th>CIN</th><th>Company</th><th>Tier</th><th>Score</th>'
-          +'<th>Sector</th><th>Phone</th><th>Report</th></tr></thead><tbody>'
+        repEl.innerHTML='<div style="overflow-x:auto"><table class="fin-tbl" style="min-width:900px">'
+          +'<thead><tr><th>Date</th><th>Company / CIN</th><th>Tier</th><th>Score</th><th>Sector</th><th>Exchange</th><th>Phone</th><th>View</th></tr></thead><tbody>'
           +reports.map(function(r,idx){
             var d=new Date(r.created_at);
             var ds=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
@@ -2099,11 +2107,11 @@ async function loadAdmin(){
             var hasReport=(r.report_text||'').length>50;
             return '<tr>'
               +'<td style="color:var(--mu);font-size:11px;white-space:nowrap">'+ds+'</td>'
-              +'<td style="font-family:monospace;font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+esc(r.cin||'—')+'</td>'
-              +'<td style="font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((r.company_name||'—').slice(0,28))+'</td>'
+              +'<td style="max-width:180px"><div style="font-weight:600;font-size:12px">'+esc((r.company_name||'—').slice(0,25))+'</div><div style="font-family:monospace;font-size:10px;color:var(--mu)">'+esc((r.cin||'').slice(0,21))+'</div></td>'
               +'<td>'+tierBadge(r.tier||'free')+'</td>'
-              +'<td style="font-weight:800;color:'+col+';font-family:monospace">'+(sc||'—')+'</td>'
-              +'<td style="font-size:11px;color:var(--mu);max-width:100px;overflow:hidden">'+esc((r.sector||'—').slice(0,15))+'</td>'
+              +'<td style="font-weight:800;color:'+col+';font-family:monospace;text-align:center">'+(sc||'—')+'</td>'
+              +'<td style="font-size:11px;color:var(--mu)">'+esc((r.sector||'—').slice(0,14))+'</td>'
+              +'<td style="font-size:11px;color:var(--mu)">'+esc((r.exchange||'—').slice(0,12))+'</td>'
               +'<td style="font-family:monospace;font-size:11px">'+esc(r.phone||'—')+'</td>'
               +'<td>'+(hasReport
                 ?'<button onclick="viewAdminReport('+idx+')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--tl);background:#fff;color:var(--tl);cursor:pointer;font-weight:600">View</button>'
