@@ -1203,6 +1203,7 @@ var AIRA_RESULTS={};
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 
 async function workerPost(payload) {
+  var type = payload.type || 'unknown';
   try {
     var resp = await fetch(WORKER, {
       method: 'POST',
@@ -1211,10 +1212,12 @@ async function workerPost(payload) {
     });
     var text = await resp.text();
     try { return JSON.parse(text); }
-    catch(e) { throw new Error('HTTP ' + resp.status + ': ' + text.substring(0, 150)); }
+    catch(e) { 
+      throw new Error('['+type+'] HTTP ' + resp.status + ': ' + text.substring(0, 200));
+    }
   } catch(e) {
-    if (e.message.startsWith('HTTP ')) throw e;
-    throw new Error(e.message);
+    if (e.message.startsWith('[')) throw e;
+    throw new Error('['+type+'] Network: ' + e.message);
   }
 }
 
