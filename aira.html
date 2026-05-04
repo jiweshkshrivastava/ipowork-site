@@ -2304,29 +2304,43 @@ async function runValuationIntel(){
   var btn=document.getElementById('btn-vi-run');
   var prog=document.getElementById('prog-valintel');
   var out=document.getElementById('result-valintel');
-  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Fetching data &amp; valuing\u2026';
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Fetching data&hellip;';
   out.innerHTML=''; if(prog)prog.style.display='flex';
   ['vi1','vi2','vi3','vi4','vi5'].forEach(clearStep); stepActive('vi1');
-  var t1=setTimeout(function(){stepDone('vi1');stepActive('vi2');},5000);
-  var t2=setTimeout(function(){stepDone('vi2');stepActive('vi3');},12000);
-  var t3=setTimeout(function(){stepDone('vi3');stepActive('vi4');},22000);
-  var t4=setTimeout(function(){stepDone('vi4');stepActive('vi5');},35000);
+
+  var t1=setTimeout(function(){stepDone('vi1');stepActive('vi2');},6000);
+  var t2=setTimeout(function(){stepDone('vi2');stepActive('vi3');},15000);
+  var t3=setTimeout(function(){stepDone('vi3');stepActive('vi4');},25000);
+  var t4=setTimeout(function(){stepDone('vi4');stepActive('vi5');},38000);
+
+  // 90-second hard timeout with helpful message
+  var tTimeout=setTimeout(function(){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
+    btn.disabled=false; btn.innerHTML='Generate Intelligence Valuation · ₹7,999 →';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>Timeout (90s):</b> Worker is taking too long. '
+      +'Possible causes: (1) Worker not redeployed after last fix — redeploy <code>cloudflare-worker.js</code> to Cloudflare. '
+      +'(2) PROBE42_KEY not set in Worker Secrets. '
+      +'(3) CIN not found in Probe42 sandbox.</div>';
+  }, 90000);
+
   try{
     var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({type:'valuation_intel',cin:cin,sector:sector,exchange:exchange})});
     var result=await resp.json();
-    if(result.error)throw new Error(result.error);
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);clearTimeout(tTimeout);
+    if(result.error) throw new Error(result.error);
     ['vi1','vi2','vi3','vi4','vi5'].forEach(stepDone);
-    btn.disabled=false; btn.innerHTML='Generate Intelligence Valuation \u00b7 \u20b97,999 \u2192';
+    btn.disabled=false; btn.innerHTML='Generate Intelligence Valuation · ₹7,999 →';
     var cname=result.company_name||cin;
     renderValuationReport(result,cname,sector,out,'valintel');
     out.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
-    btn.disabled=false; btn.innerHTML='Generate Intelligence Valuation \u00b7 \u20b97,999 \u2192';
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);clearTimeout(tTimeout);
+    btn.disabled=false; btn.innerHTML='Generate Intelligence Valuation · ₹7,999 →';
     if(prog)prog.style.display='none';
-    out.innerHTML='<div class="err-card"><b>'+esc(e.message)+'</b></div>';
+    out.innerHTML='<div class="err-card"><b>'+esc(e.message)+'</b><br>'
+      +'<small style="color:var(--mu)">Check: Worker redeployed? PROBE42_KEY set? CIN valid?</small></div>';
   }
 }
 async function runCleanChitCore(){
