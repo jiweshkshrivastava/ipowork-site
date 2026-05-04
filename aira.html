@@ -1202,6 +1202,21 @@ var AIRA_RESULTS={};
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 
+async function workerPost(payload) {
+  var resp = await fetch(WORKER, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+  var text = await resp.text();
+  try { return JSON.parse(text); } catch(e) {
+    if (!navigator.onLine) throw new Error('No internet connection.');
+    if (resp.status === 524) throw new Error('Timeout (524) — AI is taking too long. Try again.');
+    if (resp.status === 503) throw new Error('Worker unavailable (503). Check Cloudflare.');
+    throw new Error('Worker error (' + resp.status + '): ' + text.substring(0, 100));
+  }
+}
+
 
 var SB_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
