@@ -1201,6 +1201,8 @@ var AIRA_RESULTS={};
 
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+
 var SB_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
 var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
 
@@ -1251,11 +1253,11 @@ function submitLogin(){
   var user={phone:phone,email:email,ts:Date.now()};
   try{localStorage.setItem('ipowork_user',JSON.stringify(user));}catch(e){}
   try{
-    fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'email',to:'partners@ipowork.com',
-        subject:'New AIRA Lead: +91 '+phone,
-        html:'<p><b>Phone:</b> +91 '+phone+'</p><p><b>Email:</b> '+email+'</p>'
-      })}).catch(function(){});
+    fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'email',to:'partners@ipowork.com',subject:'New AIRA Lead: +91 '+phone,html:'<p><b>Phone:</b> +91 '+phone+'</p><p><b>Email:</b> '+email+'</p>'})}).catch(function(){});
+
+
+
+
   }catch(e){}
   if(btn){btn.disabled=false;btn.textContent='Continue - Run My AIRA Score';}
   closeLogin();
@@ -1337,8 +1339,8 @@ function doSearch(q,tier){
     return;
   }
   if(resEl) resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">🔍 Searching...</div>';
-  fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({type:'company_search',query:q})})
+  fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'company_search',query:q})})
+
   .then(function(r){return r.json();})
   .then(function(d){
     if(!resEl)return;
@@ -1920,9 +1922,9 @@ async function runFreeCore(){
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Researching…';}
   if(out)out.innerHTML='';if(prog)prog.style.display='flex';
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'aira_free',cin:cin||'U99999MH2020PTC000000',
-        company_name:cname||cin,sector:sector,exchange:exchange})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'aira_free',cin:cin||'U99999MH2020PTC000000',company_name:cname||cin,sector:sector,exchange:exchange})});
+
+
     var result=await resp.json();
     if(result.error)throw new Error(result.error);
     if(prog)prog.style.display='none';
@@ -1991,8 +1993,7 @@ async function runPaidCore(){
   var t2=setTimeout(function(){stepDone('pp2');stepActive('pp3');},12000);
   var t3=setTimeout(function(){stepDone('pp3');stepActive('pp4');},20000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange})});
+    var resp=await wFetch({type:'full_paid',cin:cin,sector:sector,exchange:exchange})
     var result=await resp.json();
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
@@ -2030,8 +2031,8 @@ async function loadAdmin(){
 
   try{
     // Fetch reports
-    var rr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'admin_data',table:'reports',limit:200,order:'created_at.desc'})});
+    var rr=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'reports',limit:200,order:'created_at.desc'})});
+
     var rj=await rr.json();
 
     // Debug: show raw response if empty
@@ -2043,8 +2044,8 @@ async function loadAdmin(){
     var reports=rj.data||[];
 
     // Fetch users
-    var ur=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'admin_data',table:'users',limit:300,order:'created_at.desc'})});
+    var ur=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'admin_data',table:'users',limit:300,order:'created_at.desc'})});
+
     var uj=await ur.json();
     var users=uj.data||[];
 
@@ -2270,10 +2271,10 @@ async function runValuationDoc(){
         docTexts.push('['+key.toUpperCase()+'] '+file.name+': '+text);
       }
     }
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'valuation_doc',company_name:cname,cin:cin,sector:sector,
-        exchange:exchange,revenue:revenue,pat:pat,ebitda:ebitda,net_worth:nw,
-        documents:docTexts.join('\n\n').substring(0,50000)})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'valuation_doc',company_name:cname,cin:cin,sector:sector,exchange:exchange,revenue:revenue,pat:pat,ebitda:ebitda,net_worth:nw,documents:docTexts.join('\n\n').substring(0,50000)})});
+
+
+
     var result=await resp.json();
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
@@ -2294,8 +2295,7 @@ function viSearch(v){
   clearTimeout(viSearch._t);
   viSearch._t=setTimeout(async function(){
     try{
-      var r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({type:'company_search',query:v})});
+      fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'company_search',query:v})}).catch(function(){});
       var j=await r.json();
       var results=(j.results||[]);
       var el=document.getElementById('vi-results');
@@ -2341,8 +2341,7 @@ async function runValuationIntel(){
   }, 90000);
 
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'valuation_intel',cin:cin,sector:sector,exchange:exchange})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'valuation_intel',cin:cin,sector:sector,exchange:exchange})});
     var result=await resp.json();
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);clearTimeout(tTimeout);
     if(result.error) throw new Error(result.error);
@@ -2429,7 +2428,7 @@ async function activateAIRAAlert(){
   var btn=document.getElementById('btn-al-run');
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
   try{
-    await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'email',to:'partners@ipowork.com',subject:'AIRA Alert: '+phone,html:'<p>'+phone+'</p><p>'+email+'</p>'})});
+    fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'email',to:'partners@ipowork.com',subject:'AIRA Alert: '+phone,html:'<p>'+phone+'</p><p>'+email+'</p>'})}).catch(function(){});
     btn.disabled=false;btn.innerHTML='Activate AIRA Alert';
     document.getElementById('result-alert').innerHTML='<div style="padding:20px;background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.25);border-radius:10px;text-align:center"><b style="color:var(--ok)">AIRA Alert Requested!</b><br/><span style="font-size:12px;color:var(--mu)">We will activate monitoring within 24 hours.</span></div>';
   }catch(e){btn.disabled=false;btn.innerHTML='Activate AIRA Alert';}
@@ -2443,7 +2442,7 @@ async function testWorker(){
   try{
     var r1=await fetch(WORKER,{method:'GET'});var t1=await r1.text();
     if(!t1.includes('OK'))throw new Error('Worker not responding');
-    var r2=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'aira_free',cin:'U74999MH2020PTC123456',company_name:'Test Co',sector:'Manufacturing',exchange:'NSE Emerge (SME)'})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'aira_free',cin:'U74999MH2020PTC123456',company_name:'Test Co',sector:'Manufacturing',exchange:'NSE Emerge (SME)'})});
     var j2=await r2.json();if(j2.error)throw new Error(j2.error);
     var rLen=(j2.report||j2._report||'').length;
     if(!rLen)throw new Error('No report returned');
@@ -3574,8 +3573,7 @@ async function runMainboardCore(){
   var t2=setTimeout(function(){stepDone('mp2');stepActive('mp3');},12000);
   var t3=setTimeout(function(){stepDone('mp3');stepActive('mp4');},22000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,board:'mainboard'})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,board:'mainboard'})});
     var result=await resp.json();
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
@@ -3609,9 +3607,9 @@ async function runCACore(){
   var t2=setTimeout(function(){stepDone('cp2');stepActive('cp3');},14000);
   var t3=setTimeout(function(){stepDone('cp3');stepActive('cp4');},24000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,
-        price_tier:'ca_bundle_4999',firm_name:firm})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,price_tier:'ca_bundle_4999',firm_name:firm})});
+
+
     var result=await resp.json();
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
@@ -3648,8 +3646,8 @@ async function runDDBundle(){
   var t1=setTimeout(function(){stepDone('dd1');stepActive('dd2');},5000);
   var t2=setTimeout(function(){stepDone('dd2');stepActive('dd3');},15000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange})});
+
     var result=await resp.json();
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);clearTimeout(t2);['dd1','dd2','dd3','dd4','dd5'].forEach(stepDone);
@@ -3680,8 +3678,8 @@ async function runCleanChitCore(){
   ['cc1','cc2','cc3','cc4','cc5'].forEach(clearStep);stepActive('cc1');
   var t1=setTimeout(function(){stepDone('cc1');stepActive('cc2');},5000);
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'aira_clean_chit',cin:cin,company_name:cname,sector:sector,exchange:exchange})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'aira_clean_chit',cin:cin,company_name:cname,sector:sector,exchange:exchange})});
+
     var result=await resp.json();
     if(result.error)throw new Error(result.error);
     clearTimeout(t1);['cc1','cc2','cc3','cc4','cc5'].forEach(stepDone);
@@ -3706,8 +3704,8 @@ async function runDirectorScan(){
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
   out.innerHTML='';if(prog)prog.style.display='flex';
   try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'director_scan',din:din,director_name:dname})});
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'director_scan',din:din,director_name:dname})});
+
     var result=await resp.json();
     if(result.error)throw new Error(result.error);
     if(prog)prog.style.display='none';
