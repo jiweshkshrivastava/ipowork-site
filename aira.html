@@ -1209,11 +1209,12 @@ async function workerPost(payload) {
     body: JSON.stringify(payload)
   });
   var text = await resp.text();
-  try { return JSON.parse(text); } catch(e) {
+  try {
+    var data = JSON.parse(text);
+    return data;
+  } catch(e) {
     if (!navigator.onLine) throw new Error('No internet connection.');
-    if (resp.status === 524) throw new Error('Timeout (524) — AI is taking too long. Try again.');
-    if (resp.status === 503) throw new Error('Worker unavailable (503). Check Cloudflare.');
-    throw new Error('Worker error (' + resp.status + '): ' + text.substring(0, 100));
+    throw new Error('HTTP ' + resp.status + ': ' + text.substring(0, 200));
   }
 }
 
