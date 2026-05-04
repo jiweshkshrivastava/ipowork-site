@@ -1314,17 +1314,29 @@ function pickCompany(idx){
 
 function doSearch(q,tier){
   if(!q||q.length<3)return;
-  var resEl=document.getElementById(tier==='paid'?'zauba-results-p':'zauba-results');
-  var cinId=tier==='paid'?'p-cin':'f-cin';
-  var nameId=tier==='paid'?'p-cname':'f-cname';
+  // Map tier → correct element IDs
+  var IDS={
+    free:      {res:'zauba-results',    cin:'f-cin',  name:'f-cname'},
+    paid:      {res:'zauba-results-p',  cin:'p-cin',  name:'p-cname'},
+    mainboard: {res:'zauba-results-mb', cin:'mb-cin', name:'mb-cname'},
+    ca:        {res:'zauba-results-ca', cin:'ca-cin', name:'ca-cname'},
+    clearchit: {res:'zauba-results-cc', cin:'cc-cin', name:'cc-cname'},
+    dirscan:   {res:'zauba-results-ds', cin:'ds-cin', name:'ds-name'},
+    ddbundle:  {res:'zauba-results-dd', cin:'dd-cin', name:'dd-cname'},
+    alert:     {res:'zauba-results-al', cin:'al-cin', name:'al-cname'},
+  };
+  var ids=IDS[tier]||IDS.free;
+  var resEl=document.getElementById(ids.res);
+  var cinId=ids.cin; var nameId=ids.name;
+
   var cinRx=/^[ULul][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/i;
   if(cinRx.test(q.trim())){
-    document.getElementById(cinId).value=q.trim().toUpperCase();
-    if(resEl)resEl.innerHTML='<div style="font-size:12px;color:var(--ok);padding:4px 0">✓ CIN detected — click Run AIRA Score</div>';
+    var ci=document.getElementById(cinId);
+    if(ci) ci.value=q.trim().toUpperCase();
+    if(resEl) resEl.innerHTML='<div style="font-size:12px;color:var(--ok);padding:4px 0">✓ CIN detected — ready to run</div>';
     return;
   }
-  // Search for company by name via worker
-  if(resEl)resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">🔍 Searching...</div>';
+  if(resEl) resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">🔍 Searching...</div>';
   fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({type:'company_search',query:q})})
   .then(function(r){return r.json();})
@@ -1332,24 +1344,26 @@ function doSearch(q,tier){
     if(!resEl)return;
     var results=d.results||[];
     if(!results.length){
-      resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">No results found. Try entering the CIN directly.</div>';
+      resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">No results. Enter CIN directly.</div>';
       return;
     }
-    window._searchResults = results;
-    window._searchCinId = cinId;
-    window._searchNameId = nameId;
-    window._searchResId = resEl.id;
-    resEl.innerHTML = results.map(function(co,idx){
+    window._searchResults=results;
+    window._searchCinId=cinId;
+    window._searchNameId=nameId;
+    window._searchResId=resEl.id;
+    resEl.innerHTML=results.map(function(co,idx){
+      var hasCin=co.cin&&co.cin!=='UNKNOWN';
       return '<div onclick="pickCompany('+idx+')" style="padding:8px 12px;background:#fff;border:1px solid #E2E8EA;border-radius:8px;cursor:pointer;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">'
         +'<div><div style="font-size:13px;font-weight:600;color:#2C3E47">'+esc(co.name)+'</div>'
-        +(co.cin&&co.cin!=='UNKNOWN'?'<div style="font-size:11px;color:#6B7E85;font-family:monospace">'+esc(co.cin)+'</div>':'')
-        +'</div><span style="font-size:11px;color:#0D5C6B">Select</span></div>';
+        +(hasCin?'<div style="font-size:11px;color:#6B7E85;font-family:monospace">'+esc(co.cin)+'</div>':'')
+        +'</div><span style="font-size:11px;color:#0D5C6B">Select →</span></div>';
     }).join('');
   })
   .catch(function(){
-    if(resEl)resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">Search unavailable. Enter CIN directly.</div>';
+    if(resEl) resEl.innerHTML='<div style="font-size:12px;color:var(--mu);padding:6px 0">Search unavailable. Enter CIN directly.</div>';
   });
 }
+
 
 /* ═══════════════════════════
    BENCHMARK
@@ -1963,7 +1977,7 @@ function mdToHtml(t){
 }
 
 async function runPaidCore(){
-  var cin=document.getElementById('p-cin').value.trim().toUpperCase();
+  var cin=document.getElementById('p-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
   var sector=document.getElementById('p-sector').value;
   var exchange=document.getElementById('p-exchange').value;
   if(!cin){alert('Please enter CIN or LLPIN.');return;}
@@ -2287,9 +2301,11 @@ function viSearch(v){
       var el=document.getElementById('vi-results');
       if(!results.length){el.style.display='none';return;}
       el.innerHTML=results.map(function(r){
-        return '<div class="sr-item" onclick="document.getElementById(\'vi-cin\').value=\''+esc(r.cin||'')+'\';document.getElementById(\'vi-results\').style.display=\'none\'">'
+        var safeCin=(r.cin&&r.cin!=='UNKNOWN')?r.cin:'';
+        return '<div class="sr-item" onclick="document.getElementById(\'vi-cin\').value=\''+esc(safeCin)+'\';document.getElementById(\'vi-results\').style.display=\'none\'">'
           +'<span class="sr-name">'+esc(r.name||'')+'</span>'
-          +'<span class="sr-cin">'+esc(r.cin||'')+'</span></div>';
+          +(safeCin?'<span class="sr-cin">'+esc(safeCin)+'</span>':'<span style="font-size:10px;color:var(--mu)">Enter CIN manually</span>')
+          +'</div>';
       }).join('');
       el.style.display='block';
     }catch(e){}
@@ -2297,7 +2313,7 @@ function viSearch(v){
 }
 
 async function runValuationIntel(){
-  var cin     = document.getElementById('vi-cin').value.trim().toUpperCase();
+  var cin     = document.getElementById('vi-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
   var sector  = document.getElementById('vi-sector').value;
   var exchange= document.getElementById('vi-exchange').value;
   if(!cin){ alert('Please enter CIN or LLPIN.'); return; }
@@ -3544,7 +3560,7 @@ function downloadReport(tier){
 
 
 async function runMainboardCore(){
-  var cin=document.getElementById('mb-cin').value.trim().toUpperCase();
+  var cin=document.getElementById('mb-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
   var sector=document.getElementById('mb-sector').value;
   var exchange=document.getElementById('mb-exchange').value;
   if(!cin){alert('Please enter CIN.');return;}
@@ -3578,7 +3594,7 @@ async function runMainboardCore(){
 }
 
 async function runCACore(){
-  var cin=document.getElementById('ca-cin').value.trim().toUpperCase();
+  var cin=document.getElementById('ca-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
   var sector=document.getElementById('ca-sector').value;
   var exchange=document.getElementById('ca-exchange').value;
   var firm=(document.getElementById('ca-firm')||{}).value||'';
