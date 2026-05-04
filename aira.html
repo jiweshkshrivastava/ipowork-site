@@ -396,11 +396,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
         style="opacity:.25;padding:4px 8px;background:transparent;border:none;cursor:pointer;font-size:14px">&#9881;&#65039;</button>
     </div>
 
-<div id="diag-bar" style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:8px 14px;margin-bottom:12px;font-size:12px;display:none">
-  <b>Worker test:</b> <span id="diag-result">click to test</span>
-  <button onclick="testConn()" style="margin-left:10px;padding:2px 10px;background:#ffc107;border:none;border-radius:4px;cursor:pointer;font-size:11px">Test Connection</button>
-  <button onclick="document.getElementById('diag-bar').style.display='none'" style="margin-left:6px;padding:2px 8px;background:#ddd;border:none;border-radius:4px;cursor:pointer;font-size:11px">✕</button>
-</div>
 <div class="tier-content active" id="content-free" class="tier-content"  >
 
     <!-- Pricing banner -->
@@ -3749,28 +3744,8 @@ async function runDirectorScan(){
 
 
 // Initialise first tab
-async function testConn() {
-  var el = document.getElementById('diag-result');
-  el.textContent = 'Testing...';
-  try {
-    var r = await fetch(WORKER, {method:'GET'});
-    var t = await r.text();
-    if (t.includes('OK')) {
-      el.textContent = '✅ GET OK. Testing POST...';
-      var r2 = await fetch(WORKER, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'admin_data',table:'reports',limit:1})});
-      var t2 = await r2.text();
-      el.textContent = '✅ POST OK: ' + t2.substring(0,80);
-    } else {
-      el.textContent = '❌ GET failed: ' + t.substring(0,100);
-    }
-  } catch(e) {
-    el.textContent = '❌ ' + e.message + ' | online:' + navigator.onLine;
-  }
-}
-
 document.addEventListener('DOMContentLoaded', function(){
   switchTier('free');
-  document.getElementById('diag-bar').style.display='block';
   // Re-attach F9 shortcut
   document.addEventListener('keydown', function(ev){
     if(ev.key==='F9'){ev.preventDefault();toggleDevGroups();}
