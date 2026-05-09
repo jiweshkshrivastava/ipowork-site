@@ -425,10 +425,43 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       </div>
 
       <!-- DATA SOURCES PANEL -->
+      <!-- ── PROBE42 CIN PANEL ── -->
+      <div style="max-width:700px;width:100%;margin-bottom:14px;background:linear-gradient(135deg,rgba(13,92,107,.06),rgba(13,92,107,.02));border:1.5px solid rgba(13,92,107,.2);border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid rgba(13,92,107,.12)">
+          <span style="font-size:18px">🔗</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:800;color:var(--tld)">Probe42 MCA Verified Data — Primary Source</div>
+            <div style="font-size:11px;color:var(--mut);margin-top:1px">Enter CIN to auto-fetch verified financials, directors, charges & compliance — feeds all 15 modules</div>
+          </div>
+          <span id="p42-status" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(13,92,107,.08);color:var(--tl);border:1px solid rgba(13,92,107,.2)">Enter CIN ↓</span>
+        </div>
+        <div style="padding:14px 18px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+            <input class="inp" id="i-cin" placeholder="CIN or LLPIN — e.g. U51909KA2011PTC060489" maxlength="25"
+              style="flex:1;text-transform:uppercase;font-family:var(--mono);letter-spacing:.5px"
+              oninput="this.value=this.value.toUpperCase();clearTimeout(window._cinT);window._cinT=setTimeout(autoFetchP42,700)"/>
+            <button onclick="autoFetchP42()" class="btn btn-a" style="flex-shrink:0;padding:10px 14px;white-space:nowrap">Fetch Probe42</button>
+          </div>
+          <div id="p42-preview" style="display:none">
+            <div style="background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.15);border-radius:10px;padding:12px 14px;margin-bottom:4px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <span style="font-size:16px">✅</span>
+                <div>
+                  <div style="font-size:13px;font-weight:800;color:var(--tld)" id="p42-coname">—</div>
+                  <div style="font-size:11px;color:var(--mut)" id="p42-meta">—</div>
+                </div>
+                <span style="margin-left:auto;font-size:9px;font-weight:700;color:var(--ok);background:rgba(26,158,107,.1);padding:3px 8px;border-radius:99px;border:1px solid rgba(26,158,107,.2)">● Probe42 Verified</span>
+              </div>
+              <div id="p42-kv-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="data-panel">
         <div class="dp-head">
           <span style="font-size:18px">📡</span>
-          <span style="font-size:13px;font-weight:800;color:var(--tld);flex:1">Primary Data Sources</span>
+          <span style="font-size:13px;font-weight:800;color:var(--tld);flex:1">Additional Documents <span style="font-size:10px;font-weight:400;color:var(--mut)">(supplements Probe42 data)</span></span>
           <span class="dp-badge">● Feeds All 15 Modules</span>
         </div>
         <div class="dp-body">
@@ -571,957 +604,93 @@ var WORKER='https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 
 /* ════ AUTH ════ */
 var SESS={name:'',email:'',org:'',role:'',demo:false};
-function doRegister(){
-  var n=v('g-name'),e=v('g-email'),o=v('g-org'),r=v('g-role');
-  var err=document.getElementById('g-err');
-  if(!n){err.textContent='Please enter your name.';return;}
-  if(!e||!e.includes('@')){err.textContent='Please enter a valid email.';return;}
-  if(!o){err.textContent='Please enter your organisation.';return;}
-  if(!r){err.textContent='Please select your role.';return;}
-  err.textContent='';
-  SESS={name:n,email:e,org:o,role:r,demo:false};
-  openApp(n.split(' ')[0],'Welcome, '+n.split(' ')[0]+'!','You now have access to the AI Company Intelligence Engine.\nEnter a company below to begin your first analysis.');
-}
-function doDemo(){
-  SESS={name:'Demo User',email:'user@example.com',org:'Demo',role:'Other',demo:true};
-  openApp('Demo','Welcome to Demo Mode','All 15 analysis modules are available. Enter any private company to begin.');
-}
-function openApp(chipName,toastTitle,toastMsg){
-  document.getElementById('gate').classList.add('gone');
-  document.getElementById('user-chip').textContent='👤 '+chipName;
-  document.getElementById('user-chip').style.display='inline-flex';
-  document.getElementById('toast-title').textContent=toastTitle;
-  document.getElementById('toast-msg').textContent=toastMsg;
-  document.getElementById('toast').classList.add('show');
-  setTimeout(function(){ document.getElementById('toast').classList.remove('show'); },5000);
-  document.getElementById('i-co').focus();
-}
-function v(id){ return document.getElementById(id)?document.getElementById(id).value.trim():''; }
 
-/* ════ FILE HANDLING ════ */
-var ATTS=[],MAX_F=8,MAX_C=18000,MAX_T=65000;
-function fi(n){var e=(n.split('.').pop()||'').toLowerCase();return {pdf:'📄',xlsx:'📊',xls:'📊',csv:'📋',docx:'📝',doc:'📝',txt:'📃',png:'🖼',jpg:'🖼',jpeg:'🖼',webp:'🖼'}[e]||'📎';}
-function fsz(b){return b>1048576?(b/1048576).toFixed(1)+'MB':(b/1024).toFixed(0)+'KB';}
-function trunc(s,m){if(!s||s.length<=m)return s;return s.slice(0,m)+'\n[truncated]';}
-function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+/* ════ PROBE42 STATE ════ */
+var P42={data:null,ok:false,cin:'',ctx:''};
 
-document.getElementById('f-pick').addEventListener('change',function(){doFiles(this.files);this.value='';});
-document.getElementById('cam-pick').addEventListener('change',function(){doFiles(this.files);this.value='';});
-var dz=document.getElementById('drop-zone');
-dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over');});
-dz.addEventListener('dragleave',function(){dz.classList.remove('over');});
-dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('over');doFiles(e.dataTransfer.files);});
-
-function doFiles(files){Array.from(files).forEach(addFile);}
-function addFile(file){
-  if(ATTS.length>=MAX_F){alert('Max '+MAX_F+' files.');return;}
-  var id='f'+Date.now()+Math.random().toString(36).slice(2,5);
-  var ext=(file.name.split('.').pop()||'').toLowerCase();
-  var att={id:id,name:file.name,size:file.size,status:'processing',content:null,b64:false,mt:null,meta:''};
-  ATTS.push(att);renderFiles();
-  if(ext==='pdf'){
-    if(typeof pdfjsLib==='undefined'){att.status='error';att.content='PDF.js not loaded';renderFiles();return;}
-    var rd=new FileReader();
-    rd.onload=function(e){
-      pdfjsLib.getDocument({data:e.target.result}).promise.then(function(pdf){
-        var pg=pdf.numPages,col=[],i=0;
-        function nx(){i++;if(i>pg){att.content=trunc('=== PDF: '+file.name+' ('+pg+'p) ===\n'+col.join('\n'),MAX_C);att.b64=false;att.mt='text/plain';att.status='ready';att.meta='PDF · '+pg+'p · text extracted';renderFiles();return;}
-          pdf.getPage(i).then(function(p){p.getTextContent().then(function(tc){col.push('-- p'+i+' --\n'+tc.items.map(function(x){return x.str;}).join(' '));nx();});});}
-        nx();
-      }).catch(function(err){att.status='error';att.content='PDF error: '+err.message;renderFiles();});
-    };rd.readAsArrayBuffer(file);
-  }else if(['png','jpg','jpeg','webp','gif'].indexOf(ext)>-1){
-    var url=URL.createObjectURL(file);var img=new Image();
-    img.onload=function(){
-      var MD=900,q=0.65,w=img.naturalWidth,h=img.naturalHeight;
-      if(w>MD||h>MD){var s=Math.min(MD/w,MD/h);w=Math.round(w*s);h=Math.round(h*s);}
-      var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
-      function tq(q){var d=cv.toDataURL('image/jpeg',q),b=d.split(',')[1];if(b.length>52000&&q>0.2){tq(q-0.15);return;}
-        att.content=b;att.b64=true;att.mt='image/jpeg';att.status='ready';att.meta='Image · '+w+'×'+h+' · compressed';renderFiles();}
-      tq(q);
-    };img.onerror=function(){URL.revokeObjectURL(url);att.status='error';renderFiles();};img.src=url;
-  }else if(ext==='xlsx'||ext==='xls'){
-    var r=new FileReader();r.onload=function(e){
-      try{var wb=XLSX.read(e.target.result,{type:'array'}),t='=== EXCEL: '+file.name+' ===\n';
-        wb.SheetNames.forEach(function(s){t+='\n--- Sheet: '+s+' ---\n'+XLSX.utils.sheet_to_csv(wb.Sheets[s]);});
-        att.content=trunc(t,MAX_C);att.b64=false;att.mt='text/plain';att.status='ready';renderFiles();
-      }catch(err){att.status='error';renderFiles();}
-    };r.readAsArrayBuffer(file);
-  }else if(ext==='docx'||ext==='doc'){
-    var r2=new FileReader();r2.onload=function(e){
-      if(typeof mammoth==='undefined'){att.status='error';renderFiles();return;}
-      mammoth.extractRawText({arrayBuffer:e.target.result}).then(function(res){
-        att.content=trunc('=== WORD: '+file.name+' ===\n'+res.value,MAX_C);att.b64=false;att.mt='text/plain';att.status='ready';renderFiles();
-      }).catch(function(){att.status='error';renderFiles();});
-    };r2.readAsArrayBuffer(file);
-  }else if(ext==='csv'||ext==='txt'){
-    var r3=new FileReader();
-    r3.onload=function(e){att.content=trunc('=== '+ext.toUpperCase()+': '+file.name+' ===\n'+e.target.result,MAX_C);att.b64=false;att.mt='text/plain';att.status='ready';renderFiles();};
-    r3.onerror=function(){att.status='error';renderFiles();};r3.readAsText(file);
-  }else{att.status='error';att.content='Unsupported';renderFiles();}
+async function autoFetchP42(){
+  var cin=(document.getElementById('i-cin')||{value:''}).value.trim().toUpperCase();
+  if(!cin||cin.length<10)return;
+  P42.cin=cin;
+  var sb=document.getElementById('p42-status');
+  if(sb){sb.textContent='⟳ Fetching…';sb.style.color='var(--amber)';}
+  try{
+    var r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'probe42_raw',cin:cin})});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    var d=await r.json();
+    if(d.error||!d.company_name||d.company_name==='NOT FOUND')throw new Error('Not found');
+    P42.data=d;P42.ok=true;
+    if(sb){sb.textContent='✓ Verified';sb.style.color='var(--ok)';}
+    // Auto-fill company name
+    var nc=document.getElementById('i-co');
+    if(nc&&!nc.value&&d.company_name)nc.value=d.company_name;
+    // Show preview
+    showP42Preview(d);
+    P42.ctx=buildP42Ctx(d);
+  }catch(e){
+    P42.ok=false;P42.data=null;
+    if(sb){sb.textContent='✗ Not found';sb.style.color='var(--red)';}
+    var prev=document.getElementById('p42-preview');
+    if(prev)prev.style.display='none';
+  }
 }
-function removeFile(id){ATTS=ATTS.filter(function(a){return a.id!==id;});renderFiles();}
-function renderFiles(){
-  var el=document.getElementById('files-list');if(!el)return;
-  if(!ATTS.length){el.innerHTML='';return;}
-  el.innerHTML=ATTS.map(function(a){
-    var stC=a.status==='ready'?'ready':a.status==='processing'?'processing':'error';
-    var stT=a.status==='ready'?'✓ Ready':a.status==='processing'?'⟳ Processing…':'✗ Error';
-    var mt=a.meta||(a.b64?'Compressed image':'Text extracted');
-    if(a.status==='ready'&&!a.b64&&a.content)mt+=' · ~'+Math.round(a.content.length/1000)+'K';
-    return '<div class="frow"><div class="fi">'+fi(a.name)+'</div>'+
-      '<div class="finfo"><div class="fn">'+esc(a.name)+'</div><div class="fm">'+fsz(a.size)+' · '+mt+'</div></div>'+
-      '<div class="fst '+stC+'">'+stT+'</div>'+
-      '<button class="frm" data-rid="'+a.id+'">×</button></div>';
+
+function showP42Preview(d){
+  var prev=document.getElementById('p42-preview');
+  if(!prev)return;
+  prev.style.display='block';
+  var f=d.financials||{},co=d.company||{};
+  function cr(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);}
+  function pc(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';}
+  var nm=document.getElementById('p42-coname');if(nm)nm.textContent=d.company_name||'—';
+  var mt=document.getElementById('p42-meta');
+  if(mt)mt.textContent=(co.incorporation_date||d.date_of_incorporation||'N/A')+' · '+(co.classification||d.company_type||'N/A')+' · '+((co.registered_address&&co.registered_address.state)||d.registered_state||'N/A');
+  var grid=document.getElementById('p42-kv-grid');
+  if(!grid)return;
+  var kv=[{l:'Revenue',v:cr(f.revenue_fy24)},{l:'PAT',v:cr(f.pat_fy24)},{l:'EBITDA%',v:pc(f.ebitda_margin)},
+    {l:'Net Worth',v:cr(f.net_worth)},{l:'D/E',v:f.debt_equity_ratio!=null?parseFloat(f.debt_equity_ratio).toFixed(2)+'x':'N/A'},
+    {l:'ROE',v:pc(f.roe)},{l:'Directors',v:(d.directors||[]).length||'N/A'},{l:'Charges',v:(d.charges||[]).length+' open'}];
+  grid.innerHTML=kv.map(function(k){
+    var c=k.v==='N/A'?'var(--dim)':'var(--tld)';
+    return '<div style="background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:8px;padding:10px;text-align:center">'
+      +'<div style="font-family:var(--mono);font-size:15px;font-weight:700;color:'+c+'">'+k.v+'</div>'
+      +'<div style="font-size:9px;color:var(--mut);margin-top:3px;text-transform:uppercase;letter-spacing:.4px">'+k.l+'</div></div>';
   }).join('');
-  el.querySelectorAll('[data-rid]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();removeFile(this.dataset.rid);});});
-  var tc=ATTS.filter(function(a){return a.status==='ready'&&!a.b64&&a.content;}).reduce(function(s,a){return s+a.content.length;},0);
-  var ni=ATTS.filter(function(a){return a.status==='ready'&&a.b64;}).length;
-  if(ATTS.some(function(a){return a.status==='ready';})){
-    var kb=Math.round(tc/1000),c=kb<50?'var(--green)':kb<80?'var(--amber)':'var(--red)';
-    el.insertAdjacentHTML('beforeend','<div style="font-size:9px;color:'+c+';text-align:right;padding:5px 2px;font-family:var(--mono)">📦 ~'+kb+'K text'+(ni?' + '+ni+' img':'') +' · Worker safe ≤100KB</div>');
+}
+
+function buildP42Ctx(d){
+  var f=d.financials||{},c=d.compliance||{},co=d.company||{};
+  function n(v){return v!=null&&v!==''?String(v):'N/A';}
+  function cr(v){if(!v||isNaN(v))return'N/A';var x=Number(v);return x>=10000000?'\u20b9'+(x/10000000).toFixed(1)+' Cr':x>=100000?'\u20b9'+(x/100000).toFixed(1)+' L':'\u20b9'+x.toFixed(0);}
+  function pc(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';}
+  var dirs=(d.directors||[]).filter(function(x){return !x.cessation;}).slice(0,8);
+  var nl='\n';
+  var ctx=nl+nl+'=== PROBE42 MCA VERIFIED DATA (Use as primary source) ==='+nl;
+  ctx+='Company: '+n(d.company_name)+' | CIN: '+n(d.cin||P42.cin)+nl;
+  ctx+='Status: '+n(co.efiling_status||d.status)+' | Type: '+n(co.classification||d.company_type)+nl;
+  ctx+='Incorporated: '+n(co.incorporation_date||d.date_of_incorporation)+' | State: '+n((co.registered_address&&co.registered_address.state)||d.registered_state)+nl;
+  ctx+='Paid-up Capital: '+cr(co.paid_up_capital||d.paid_up_capital)+' | Auth Capital: '+cr(co.authorized_capital||d.authorised_capital)+nl;
+  ctx+='Last AGM: '+n(co.last_agm_date||d.last_agm_date)+' | Last Filing: '+n(co.last_filing_date||d.last_filing_date)+nl;
+  ctx+='Active Compliance: '+n(co.active_compliance||d.active_compliance)+' | CIRP: '+n(co.cirp_status||d.cirp_status||'None')+nl;
+  if(d.description&&d.description.desc_thousand_char)ctx+='Business: '+String(d.description.desc_thousand_char).substring(0,300)+nl;
+  ctx+=nl+'FINANCIALS ('+n(f.fy_year||'FY2024')+' | Probe42 Verified):'+nl;
+  ctx+='Revenue: '+cr(f.revenue_fy24)+' | PAT: '+cr(f.pat_fy24)+' | EBITDA: '+pc(f.ebitda_margin)+nl;
+  ctx+='Net Worth: '+cr(f.net_worth)+' | Total Assets: '+cr(f.total_assets)+' | Total Debt: '+cr(f.total_debt)+nl;
+  ctx+='D/E: '+n(f.debt_equity_ratio)+'x | ROE: '+pc(f.roe)+' | ROCE: '+pc(f.roce)+nl;
+  ctx+='Revenue Growth: '+pc(f.revenue_growth)+' | Net Margin: '+pc(f.net_margin)+nl;
+  ctx+='Current Ratio: '+n(f.current_ratio)+'x | Interest Coverage: '+n(f.interest_coverage)+'x'+nl;
+  ctx+='Debtor Days: '+n(f.debtor_days)+' | Inventory Days: '+n(f.inventory_days)+nl;
+  ctx+='Auditor: '+n(f.auditor)+nl;
+  if(dirs.length){
+    ctx+=nl+'DIRECTORS ('+dirs.length+' active):'+nl;
+    dirs.forEach(function(d2){ctx+=d2.name+' | DIN:'+d2.din+' | '+d2.designation+' | '+d2.gender+nl;});
   }
+  var chgs=d.charges||[];
+  if(chgs.length)ctx+=nl+'OPEN CHARGES: '+chgs.length+' (Sum: '+cr(d.sum_of_charges)+')'+nl;
+  ctx+='COMPLIANCE: GST:'+n(c.gst_status)+' | EPFO:'+(c.epfo_registered?'Yes':'No')+' | Defaulter:'+(c.defaulter?'YES-CRITICAL':'No')+nl;
+  var rpt=d.related_party_transactions||[];
+  if(rpt.length)ctx+='RELATED PARTY TRANSACTIONS: '+rpt.length+' on record'+nl;
+  ctx+='=== END PROBE42 DATA ==='+nl;
+  return ctx;
 }
-
-/* ════ VOICE ════ */
-var VS={bRec:null,bFin:'',dRec:null,dFin:''};
-function getSR(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Voice input requires Chrome on Android/Desktop.');return null;}var r=new SR();r.continuous=true;r.interimResults=true;r.lang='en-IN';return r;}
-function toggleVoice(){
-  if(VS.bRec){VS.bRec.stop();VS.bRec=null;return;}
-  var rec=getSR();if(!rec)return;VS.bRec=rec;
-  document.getElementById('vbox').style.display='block';
-  document.getElementById('vpulse').style.display='inline-block';
-  setVBtn(true);
-  rec.onresult=function(e){var int='';for(var i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)VS.bFin+=e.results[i][0].transcript+' ';else int=e.results[i][0].transcript;}document.getElementById('v-text').textContent=VS.bFin+int;};
-  rec.onerror=function(){};
-  rec.onend=function(){VS.bRec=null;document.getElementById('vpulse').style.display='none';setVBtn(false);};
-  rec.start();
-}
-function setVBtn(on){var b=document.getElementById('v-btn');b.classList[on?'add':'remove']('rec');document.getElementById('v-icon').textContent=on?'⏹':'🎤';document.getElementById('v-lbl').textContent=on?'Stop Recording':'Speak Briefing';document.getElementById('v-sub').textContent=on?'Tap to stop':'Dictate company overview';}
-function toggleDict(){
-  if(VS.dRec){VS.dRec.stop();VS.dRec=null;return;}
-  var rec=getSR();if(!rec)return;VS.dRec=rec;
-  var ta=document.getElementById('i-desc');VS.dFin=ta.value;
-  document.getElementById('dict-btn').classList.add('rec');document.getElementById('dict-lbl').textContent='Stop';
-  rec.onresult=function(e){var int='';for(var i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)VS.dFin+=e.results[i][0].transcript+' ';else int=e.results[i][0].transcript;}ta.value=VS.dFin+int;};
-  rec.onerror=function(){};
-  rec.onend=function(){ta.value=VS.dFin;VS.dRec=null;document.getElementById('dict-btn').classList.remove('rec');document.getElementById('dict-lbl').textContent='Dictate';};
-  rec.start();
-}
-
-/* ════ DEPTH BUTTONS ════ */
-document.querySelectorAll('.d-btn').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.d-btn').forEach(function(x){x.classList.remove('on');});this.classList.add('on');S.depth=this.dataset.d;});});
-
-/* ════ APP STATE ════ */
-var S={co:'',sec:'',stg:'',desc:'',rev:'',ebit:'',comp:'',prom:'',geo:'',yr:'',inv:'',depth:'standard',done:0,total:0,results:{},start:null,ctx:''};
-
-/* ════ MODULES ════ */
-var MODULES=[
-  /* ── 1 ── */
-  {id:'corporate-identity',num:1,icon:'🏢',name:'Corporate Identity & Structure',cat:'Governance',col:'#7C3AED',weight:.07,
-   msg:'Analysing incorporation, shareholding, board composition & group structure...',
-   sys:`You are a corporate governance expert and company law specialist. Analyse CORPORATE IDENTITY & STRUCTURE.
-Use ALL attached documents (MCA filings, incorporation docs, shareholding patterns, annual reports) as primary source.
-
-### Incorporation & Legal Foundation
-Incorporation date, CIN, registered office, type (Pvt Ltd / LLP / Public). Paid-up capital. Any name changes or restructuring history.
-
-### Shareholding Pattern
-Exact shareholding from documents — promoter %, institutional %, public %. Cross-holdings with related entities. Any pledging or encumbrance noted.
-
-### Subsidiaries & Group Structure
-All subsidiaries, associate companies, joint ventures. Holding company structure. Intra-group transactions. Complexity of group structure — is it clean or opaque?
-
-### Board Composition & Independence
-Number of directors, independent director ratio (minimum 1/3rd required under Companies Act). Executive vs non-executive mix. Director qualifications and domain expertise. Any nominee directors (VC/PE). Audit committee, remuneration committee quality.
-
-### ESOP Structure
-ESOP scheme details from documents — total pool size, granted, vested, exercised. ESOP as % of paid-up capital. Key beneficiaries if disclosed.
-
-### Governance Transparency
-Quality of books and record-keeping signals. Timeliness and completeness of ROC filings. Statutory auditor quality — Big4, mid-tier, or local CA?
-
-End with: **Corporate Identity Score: X/10** and signal tags: [CLEAN STRUCTURE] [COMPLEX GROUP] [STRONG BOARD] [WEAK GOVERNANCE] [PROMOTER DOMINANT] [INSTITUTIONAL BACKED] [ESOP CULTURE] [HIGH INDEPENDENCE] [ROC COMPLIANT] [OPAQUE HOLDINGS]`},
-
-  /* ── 2 ── */
-  {id:'promoter-intelligence',num:2,icon:'👤',name:'Promoter Intelligence & Leadership',cat:'Governance',col:'#7C3AED',weight:.12,
-   msg:'Deep-profiling promoter credibility, track record, psychology & governance behaviour...',
-   sys:`You are an executive profiler, governance expert and investment bank analyst combining promoter due diligence with the 7 hidden investment bank parameters.
-Analyse PROMOTER INTELLIGENCE & LEADERSHIP from ALL attached documents.
-
-### Promoter Track Record & Credibility
-Background from documents — qualifications, domain experience, previous ventures (successes AND failures). Capital allocation history. Execution of stated goals. Banker/investor/supplier relationships signalled in documents.
-
-### Skin in the Game
-Promoter shareholding % from documents. Trend — increasing (confidence) or decreasing (exit signal)? Any pledging of shares? Loans from/to promoter entities? Personal guarantees on company loans?
-
-### Governance Behaviour Analysis
-Related Party Transactions (RPTs) from financial statements — amounts, nature, counterparties. Are RPTs arm's-length? Director remuneration as % of PAT (sector benchmark: should be <10% for SMEs). Dividend track record — does promoter return capital? Any audit qualifications or emphasis of matter?
-
-### Psychological & Leadership Profile
-Communication style signals — clarity, transparency, willingness to admit challenges. Risk appetite from historical investment/expansion decisions. Are growth projections in company presentations credible or promotional? Leadership style: operational/delegator/visionary/micromanager.
-
-### Strategic Vision Quality
-Clear 5-10 year roadmap vs vague statements? Does the vision match the company's capability? Innovation mindset signals. Industry foresight shown in historical decisions.
-
-### Succession & Institutionalisation
-Family involvement — professional or nepotistic? Professional management depth. Is the business institution-dependent or promoter-dependent? Succession planning evidence.
-
-### INVESTMENT BANK HIDDEN PARAMETER — Promoter Reputation Risk
-Internal IBD filter: background check signals, litigation in personal capacity, media reputation, history with previous investors.
-
-End with: **Promoter Intelligence Score: X/10** and tags: [VISIONARY LEADER] [EXECUTION TRACK RECORD] [HIGH INTEGRITY] [SKIN IN GAME] [GOVERNANCE RISK] [RPT CONCERN] [PROMOTER PLEDGE] [PROFESSIONAL MANAGEMENT] [KEY MAN RISK] [MINORITY FRIENDLY] [SUCCESSION PLANNED] [REPUTATION RISK]`},
-
-  /* ── 3 ── */
-  {id:'financial-health',num:3,icon:'💰',name:'Financial Health & Earnings Quality',cat:'Financial',col:'#10B981',weight:.14,
-   msg:'Deep financial analysis: revenue quality, margins, cash flow forensics & earnings verification...',
-   sys:`You are a senior CA, financial forensics expert and investment analyst. Analyse FINANCIAL HEALTH & EARNINGS QUALITY.
-This is PRIMARY DATA — extract actual numbers from documents, calculate ratios, identify trends. This section covers PE/VC Parameters 4 (Customer & Revenue Quality), 5 (Financial Strength) and the HIDDEN INVESTMENT BANK PARAMETER 2 (Earnings Quality).
-
-### Revenue Quality & Growth (PE/VC Framework)
-Actual 3-5 year revenue figures and CAGR from documents. Revenue breakdown by product/service/geography if available. Revenue concentration — top customer % of total. Recurring vs one-time revenue split. Advance payments vs credit sales. Revenue visibility score.
-
-### Margin Analysis & Trends
-Calculate gross margin, EBITDA margin, EBIT margin, PAT margin from documents. 3-year margin trend. Operating leverage — how do margins move with revenue growth? Compare to sector benchmarks.
-
-### EARNINGS QUALITY FORENSICS (Hidden Parameter)
-Critical checks: (1) Does OCF match PAT — large divergence signals earnings manipulation. (2) Revenue recognition — any aggressive recognition? (3) One-time gains/exceptional items inflating reported profit. (4) Related party revenue — what % of revenue comes from promoter-related entities? (5) Inventory and debtors buildup — classic earnings inflation signals.
-
-### Balance Sheet Strength
-Total assets, net worth, total debt, cash. D/E ratio, D/EBITDA, Net D/EBITDA. Asset quality — any impairment, write-offs. Contingent liabilities.
-
-### Working Capital Management
-Calculate debtor days, inventory days, creditor days, cash conversion cycle from documents. WC as % of revenue. Any stretching of payment cycles?
-
-### Return Metrics
-ROCE, ROE, ROIC — calculate from documents. Capital efficiency trend.
-
-### Key Financial Risks
-5 specific risks with actual numbers as evidence.
-
-End with: **Financial Health Score: X/10** and tags: [CASH GENERATIVE] [STRONG FCF] [EARNINGS QUALITY HIGH] [EARNINGS QUALITY CONCERN] [DEBT FREE] [HIGH LEVERAGE] [MARGIN EXPANSION] [MARGIN COMPRESSION] [WORKING CAPITAL STRESS] [REVENUE CONCENTRATED] [STRONG BALANCE SHEET] [RETURN METRICS STRONG]`},
-
-  /* ── 4 ── */
-  {id:'capital-structure',num:4,icon:'🏦',name:'Capital Structure & Funding',cat:'Financial',col:'#10B981',weight:.06,
-   msg:'Analysing debt structure, equity dilution, investor base & capital efficiency...',
-   sys:`You are a corporate finance specialist. Analyse CAPITAL STRUCTURE & FUNDING covering PE/VC Parameter 6 (Capital Efficiency).
-
-### Debt Structure & Composition
-Total debt quantum from balance sheet. Debt breakdown — working capital facilities, term loans, ECB, NCD/debentures, promoter loans. Maturity profile — near-term refinancing risk. Lender quality — PSU banks, private banks, NBFCs, international banks. Security/collateral structure.
-
-### Equity Structure & Dilution History
-Total equity rounds from any documents — Pre-Series A, Series A/B/C, strategic rounds. Dilution per round. Current cap table structure. Any anti-dilution provisions, preference rights, drag-along rights visible in documents?
-
-### VC/PE Investor Base
-Names and tiers of investors if mentioned. Investment thesis alignment. Board seats held. Exit pressure timeline — how old are the oldest investments? Any secondary transactions?
-
-### Capital Efficiency (PE/VC Parameter 6)
-Burn rate if pre-profitability. Unit economics — Revenue per rupee of equity raised. Historical capital raised vs revenue/growth achieved (efficiency ratio). ROIC trend.
-
-### Future Capital Needs
-Based on growth plans and current burn/capex, what additional capital is needed? IPO as capital raise vs exit vehicle.
-
-End with: **Capital Structure Score: X/10** and tags: [WELL CAPITALISED] [OVER-LEVERAGED] [CLEAN CAP TABLE] [PE BACKED] [DILUTION RISK] [CAPITAL EFFICIENT] [NEAR-TERM REFINANCING] [STRONG LENDERS] [EXIT PRESSURE] [IPO CAPITAL NEEDED]`},
-
-  /* ── 5 ── */
-  {id:'business-model',num:5,icon:'🏗️',name:'Business Model & Unit Economics',cat:'Core',col:'#F28C00',weight:.08,
-   msg:'Analysing value proposition, revenue architecture, pricing power & scalability...',
-   sys:`You are a business model strategist and PE/VC analyst. Analyse BUSINESS MODEL & UNIT ECONOMICS covering PE/VC Parameters 3 (Product/Service Strength) and the HIDDEN PARAMETER 3 (Scalability of Business Model).
-
-### Value Proposition & Product Strength (PE/VC Param 3)
-Core product/service from documents. Differentiation vs competitors. Intellectual property — patents, trademarks, proprietary processes from documents. Pricing power — evidence of price increases without volume loss. Customer switching costs. Product lifecycle stage.
-
-### Revenue Architecture
-All revenue streams with %s from documents. Primary vs secondary. Contracted vs spot. Geographic mix. Seasonality patterns.
-
-### Unit Economics
-Revenue per customer/unit vs cost to acquire and serve. Gross margin per unit. Payback period on customer acquisition. LTV:CAC ratio signals from documents.
-
-### SCALABILITY ANALYSIS (Hidden Parameter 3)
-Critical for IPO: Can the company scale without proportional cost increase? Evidence: (1) Gross margin trend — improving at scale? (2) Fixed vs variable cost structure. (3) Capacity expansion capex required per unit of revenue growth. (4) Technology leverage — does tech multiply output? (5) Market expansion without distribution cost explosion.
-
-### Competitive Moat
-What is truly defensible? IP/regulatory/network/brand/cost/switching cost moat. How wide is the moat? Moat durability.
-
-End with: **Business Model Score: X/10** and tags: [STRONG MOAT] [SCALABLE] [ASSET-LIGHT] [CAPITAL INTENSIVE] [PRICING POWER] [IP PROTECTED] [PLATFORM PLAY] [NICHE LEADER] [HIGH SWITCHING COST] [SCALABILITY PROVEN]`},
-
-  /* ── 6 ── */
-  {id:'market-intelligence',num:6,icon:'📈',name:'Market & Industry Intelligence',cat:'Market',col:'#2DC48F',weight:.08,
-   msg:'Sizing TAM/SAM/SOM, benchmarking competitors & assessing market attractiveness...',
-   sys:`You are a market research analyst. Analyse MARKET & INDUSTRY INTELLIGENCE covering PE/VC Parameter 2 (Market Opportunity).
-
-### Market Opportunity — TAM, SAM, SOM (PE/VC Param 2)
-TAM — total addressable market in India and globally. SAM — serviceable addressable market for this company's specific offering. SOM — current and realistic 3-5 year market share. Quantify market growth rate.
-
-### Competitive Landscape & Benchmarking
-Top 5-7 competitors (listed + unlisted, domestic + global). Market share distribution. Who is gaining/losing share and why. Competitive benchmarking on key metrics — revenue per employee, margins, growth rate vs peers.
-
-### HIDDEN PARAMETER 6 — Peer Valuation Benchmark
-Investment bank critical check: How does this company's metrics compare to listed peers? EV/EBITDA, P/E, EV/Revenue, P/Sales. Growth-adjusted valuation (PEG). If listed peers trade at depressed multiples, IPO becomes difficult. Identify 3-5 closest listed comparables with their trading multiples.
-
-### Industry Dynamics & Entry Barriers (PE/VC Param 2)
-Industry growth rate, profitability pool, competitive intensity (Porter's 5 Forces brief). Entry barriers — capital, regulation, technology, network effects, distribution.
-
-### Industry Cycles & Current Position
-Where is the industry in its cycle? Growth/maturity/decline? Regulatory tailwinds/headwinds. Disruption threats.
-
-### HIDDEN PARAMETER 5 — Institutional Investor Appetite
-Investment bank assessment: Is this sector currently favoured by MFs/FPIs? Recent IPOs in similar sectors — performance track record. Sector valuation sentiment.
-
-End with: **Market Intelligence Score: X/10** and tags: [LARGE TAM] [FAST GROWING] [OLIGOPOLY] [FRAGMENTED MARKET] [HIGH BARRIERS] [CONSOLIDATING] [SECTOR FAVOURITE] [DISRUPTION RISK] [EXPORT OPPORTUNITY] [PEER PREMIUM VALUATIONS]`},
-
-  /* ── 7 ── */
-  {id:'operations',num:7,icon:'⚙️',name:'Operations & Execution Capability',cat:'Core',col:'#F28C00',weight:.06,
-   msg:'Assessing supply chain, capacity, vendor risk & operational scalability...',
-   sys:`You are an operations management expert. Analyse OPERATIONS & EXECUTION CAPABILITY covering PE/VC Parameter 7 (Operational Strength).
-
-### Supply Chain Architecture
-Map from documents: key suppliers, manufacturing locations, distribution network. Single-source risks. Geographic concentration. Import dependency (forex risk).
-
-### Production Capacity & Utilisation
-Capacity figures from documents. Utilisation rate. Expansion capex pipeline. Regulatory certifications — ISO, GMP, US-FDA, CE, FSSAI, BIS. Quality management systems.
-
-### Technology Integration in Operations
-Automation level. ERP/MES/WMS systems mentioned. Industry 4.0 adoption. Operational tech as efficiency driver.
-
-### Vendor Concentration Risk (PE/VC Param 7)
-Top vendor concentration — any single vendor >30% of inputs? Ability to switch suppliers. Long-term supply agreements. Spot vs contracted purchasing.
-
-### Operational Scalability
-Can operations scale with demand? Bottlenecks — machines, people, licences? Capacity expansion timeline and cost.
-
-### Operational KPIs from Documents
-Any capacity utilisation, throughput, wastage, defect rates, on-time delivery data from documents. Compare to sector benchmarks.
-
-End with: **Operations Score: X/10** and tags: [LEAN OPS] [VERTICALLY INTEGRATED] [IMPORT DEPENDENT] [STRONG QUALITY SYSTEMS] [AUTOMATION LEADER] [FRAGILE SUPPLY CHAIN] [DIVERSIFIED SUPPLY] [OPERATIONAL RISK] [CAPACITY CONSTRAINED] [SCALABLE OPERATIONS]`},
-
-  /* ── 8 ── */
-  {id:'sales-consumer',num:8,icon:'📣',name:'Sales, Marketing & Consumer Intelligence',cat:'Market',col:'#2DC48F',weight:.07,
-   msg:'Evaluating GTM, customer retention, brand strength & new product opportunities...',
-   sys:`You are a marketing strategist and consumer insights analyst. Analyse SALES, MARKETING & CONSUMER INTELLIGENCE.
-
-### Go-To-Market & Customer Acquisition
-GTM approach from documents — B2B/B2C/B2G. Direct sales, channel, digital. Customer acquisition cost signals. Sales force productivity.
-
-### Customer Profile & Concentration
-Top customer analysis from documents. Revenue concentration — top 3/5/10 customers as % of revenue. B2B buyer profile or B2C consumer segments. Customer tenure.
-
-### Revenue Durability (PE/VC Param 4)
-Recurring vs one-time revenue. Customer retention rate/churn signals. Average contract value. Revenue visibility — order book, long-term contracts, subscription base.
-
-### Brand Strength & Positioning
-Brand recognition in segment. Certifications, awards, export approvals. Pricing premium vs competition. Brand as a moat.
-
-### Consumer Preference Trends
-Premiumisation, sustainability, digital preference, value consciousness, health awareness, localisation (Vocal for Local). Is this company aligned with or at risk from preference shifts?
-
-### New Product/Service Opportunities
-Top 3-5 credible adjacencies — new geographies, product extensions, digital channels, premiumisation opportunities based on customer needs and company capabilities from documents.
-
-End with: **Sales & Consumer Score: X/10** and tags: [STRONG BRAND] [HIGH RETENTION] [RECURRING REVENUE] [CUSTOMER CONCENTRATED] [PRICING POWER] [NEW PRODUCT POTENTIAL] [DIGITAL NATIVE] [EXPORT OPPORTUNITY] [CHURN RISK] [B2B STICKY]`},
-
-  /* ── 9 ── */
-  {id:'technology-digital',num:9,icon:'💻',name:'Technology & Digital Capability',cat:'Digital',col:'#1D9E75',weight:.05,
-   msg:'Assessing tech stack, digital maturity, data systems & cybersecurity...',
-   sys:`You are a technology strategist and CTO advisor. Analyse TECHNOLOGY & DIGITAL CAPABILITY covering PE/VC Parameter 10.
-
-### Technology Stack & Digital Maturity
-ERP, CRM, manufacturing systems from documents. Cloud adoption. Mobile/digital commerce. Rate digital maturity 1-5 with justification.
-
-### Core Business Technology
-Is tech a competitive advantage? Proprietary vs commodity technology. Tech differentiation in product/service delivery. R&D investment signals.
-
-### Data & Analytics Capability
-How is data used? Business intelligence, demand forecasting, customer analytics, pricing algorithms. Is data a strategic asset or unused?
-
-### IT Scalability
-Can current infrastructure support 3-5x growth? Legacy tech debt. IT capex plans. Cloud migration status.
-
-### Cybersecurity & Compliance
-IT security posture. India DPDP Act 2023 compliance. Customer data exposure. Any IT audit findings in documents.
-
-### Digital Transformation Roadmap
-Planned tech investments. AI/ML adoption. Automation roadmap. Digital channel strategy.
-
-End with: **Technology Score: X/10** and tags: [TECH NATIVE] [LEGACY SYSTEMS] [CLOUD FIRST] [DATA DRIVEN] [CYBER RISK] [DIGITAL MOAT] [AI ADOPTER] [AUTOMATION LEADER] [UNDER-INVESTED IN TECH] [TECH LAGGARD]`},
-
-  /* ── 10 ── */
-  {id:'human-resources',num:10,icon:'👥',name:'Human Capital & Culture',cat:'People',col:'#C47840',weight:.05,
-   msg:'Evaluating leadership depth, talent pipeline, culture & HR scalability...',
-   sys:`You are a human capital expert. Analyse HUMAN CAPITAL & CULTURE.
-
-### Leadership Team Quality
-CEO/MD/CFO/COO profiles from documents — qualifications, tenure, domain expertise. Board independence and expertise. Promoter vs professional management balance.
-
-### Team Size & Productivity
-Headcount from documents. Revenue per employee — sector benchmark comparison. Department structure if available. Key hires and departures.
-
-### Compensation, ESOPs & Culture
-Personnel costs as % of revenue from financials. ESOP scheme details. Competitive compensation signals. Culture markers — HR certifications, Great Place to Work, employee reviews signals.
-
-### Talent Acquisition & Retention
-Hiring approach, employer brand strength. Attrition signals — sector benchmarks (IT 15-25%, mfg 8-12%, FMCG 10-15%). Key-person dependency.
-
-### HR Scalability
-Can the company hire and onboard at growth pace? Knowledge institutionalisation vs person-dependency. Training and capability building signals.
-
-End with: **Human Capital Score: X/10** and tags: [STRONG LEADERSHIP] [DEEP BENCH] [KEY MAN RISK] [ESOP CULTURE] [TALENT MAGNET] [HIGH ATTRITION RISK] [PROFESSIONAL MANAGEMENT] [CULTURE STRENGTH] [SUCCESSION PLANNED] [TALENT CONSTRAINED]`},
-
-  /* ── 11 ── */
-  {id:'legal-compliance',num:11,icon:'⚖️',name:'Legal, Compliance & Risk',cat:'Regulatory',col:'#EF4444',weight:.06,
-   msg:'Scanning litigation exposure, regulatory compliance & legal risk for IPO readiness...',
-   sys:`You are a regulatory affairs expert and company law specialist. Analyse LEGAL, COMPLIANCE & RISK covering PE/VC Parameter 8 (Regulatory & Legal Risk).
-
-### Regulatory Compliance Status
-Key licences from documents — factory licence, pollution NOC (PCB), drug licence, FSSAI, CDSCO/FDA, BIS, FEMA compliance. Any licence renewals overdue? Compliance certifications.
-
-### Litigation Exposure
-Any litigation mentioned in documents — tax disputes, labour disputes, supplier/customer disputes, environmental cases, criminal cases against directors. Quantum of contingent liability. Is litigation material to business?
-
-### Tax Compliance
-GST compliance signals. Direct tax disputes — any assessments pending, demands under appeal. Transfer pricing exposure if international transactions. Custom duty disputes.
-
-### IPO-Critical Compliance
-Companies Act compliance — AGM timeliness, ROC filings. SEBI pre-IPO compliance requirements. Any company law violations? Related party transaction approvals. Secretarial audit findings.
-
-### Environmental & Labour Compliance
-PCB/CPCB compliance. Labour law compliance — PF, ESIC, gratuity funding, contract labour. Any notices/show-cause orders from regulatory bodies.
-
-### Government Schemes & Incentives
-PLI eligibility and status. MSME registration benefits. Export incentives (RODTEP, duty drawback, MEIS). State government incentives, SEZ benefits. Quantify if mentioned in documents.
-
-End with: **Legal & Compliance Score: X/10** and tags: [HIGH COMPLIANCE] [LITIGATION RISK] [CLEAN REGULATORY HISTORY] [TAX DISPUTE] [IPO READY COMPLIANCE] [POLICY BENEFICIARY] [PLI ELIGIBLE] [ENVIRONMENTAL RISK] [LABOUR COMPLIANCE RISK] [SEBI READY]`},
-
-  /* ── 12 ── */
-  {id:'esg-sustainability',num:12,icon:'🌱',name:'ESG & Sustainability',cat:'ESG',col:'#7BBFA0',weight:.04,
-   msg:'Evaluating environmental impact, governance transparency & social responsibility...',
-   sys:`You are an ESG analyst. Analyse ESG & SUSTAINABILITY for this private company.
-Note: private companies have limited ESG disclosure, so infer from documents and sector context.
-
-### Environmental Impact
-Sector-specific environmental footprint. Any environmental certifications from documents (ISO 14001, LEED, carbon reduction initiatives). Regulatory environmental compliance. Climate risk exposure for this business.
-
-### Governance Transparency (G of ESG)
-Financial reporting quality — timeliness, completeness, auditor quality. RPT transparency. Board diversity (gender, expertise). Whistle-blower policy. Anti-bribery/anti-corruption policy signals.
-
-### Social Responsibility
-CSR spending if applicable (mandatory for companies with Rs 5 Cr+ PAT). Employee welfare programmes. Community impact. Supply chain ethics — child labour, fair wages policy.
-
-### ESG Disclosures
-Any voluntary ESG/sustainability reporting. BRSR (Business Responsibility and Sustainability Report) preparedness. Readiness for mandatory ESG disclosures post-IPO.
-
-### ESG Risk for Investors
-Reputational risks from ESG gaps. ESG as valuation driver — PE/institutional investors increasingly require ESG scores. Sector-specific ESG risks (chemicals = environmental, pharma = patient safety, FMCG = plastic waste).
-
-End with: **ESG Score: X/10** and tags: [ESG LEADER] [ESG LAGGARD] [ENVIRONMENTAL RISK] [STRONG GOVERNANCE] [CSR ACTIVE] [BRSR READY] [CLIMATE EXPOSED] [SUPPLY CHAIN ETHICS] [DIVERSITY LEADER] [ESG DISCLOSURE GAP]`},
-
-  /* ── 13 ── */
-  {id:'strategic-positioning',num:13,icon:'🎯',name:'Strategic Positioning & Growth',cat:'Strategy',col:'#F59E0B',weight:.06,
-   msg:'Evaluating growth strategy, expansion plans, M&A activity & innovation pipeline...',
-   sys:`You are a strategy consultant and investment analyst. Analyse STRATEGIC POSITIONING & GROWTH covering PE/VC Parameter 9 (Strategic Positioning) and the HIDDEN PARAMETER 4 (Investor Story Strength).
-
-### Growth Strategy & Execution
-Current growth strategy from company documents — organic, M&A, geographic expansion, product extension. Which strategic initiatives are underway vs planned?
-
-### Geographic & Market Expansion
-Current geographic footprint from documents. Expansion into new markets — domestic (Tier 2/3 cities, new states) and international (export markets). Credibility of expansion plans.
-
-### M&A Activity & Partnerships
-Any acquisitions, mergers, joint ventures, technology partnerships from documents. M&A as value creation or distraction? Integration capability.
-
-### Innovation Pipeline
-New products/services in pipeline. R&D investment from financials. Innovation as growth driver vs follower strategy. Patent pipeline.
-
-### HIDDEN PARAMETER 4 — IPO Story Strength
-Investment bank critical assessment: Does this company have a compelling IPO narrative? Analyse whether the company is: (1) A category leader, (2) Fastest-growing in sector, (3) Disruptive technology, (4) Strong export story, (5) Import substitute, (6) Government policy beneficiary, (7) Unique business model. Score the story strength.
-
-### Long-Term Value Creation
-Sustainability of growth. Reinvestment vs cash extraction. Alignment of strategy with macro trends.
-
-End with: **Strategic Score: X/10** and tags: [CLEAR VISION] [STRONG STORY] [IPO NARRATIVE READY] [GEOGRAPHIC EXPANSION] [INNOVATION DRIVEN] [M&A ACTIVE] [EXPORT STORY] [IMPORT SUBSTITUTE] [POLICY TAILWIND] [STRATEGY UNCLEAR]`},
-
-  /* ── 14 ── */
-  {id:'macro-economics',num:14,icon:'🌍',name:'Economics — Macro & Micro',cat:'Economics',col:'#8B5CF6',weight:.05,
-   msg:'Evaluating GDP sensitivity, sector micro-economics, recent India & global triggers...',
-   sys:`You are a macroeconomist and microeconomist. Analyse MACRO & MICRO ECONOMICS for this company.
-Use financial data from documents to ground the analysis. Cover both current (2024-25) context and structural factors.
-
-### Macro Environment (India 2024-25)
-RBI monetary policy — repo rate trajectory and its effect on this company. Government capex thrust. Private capex recovery. Consumption trends. MSME credit growth. How does current India macro specifically benefit or hurt this company?
-
-### Global Macro Context (2024-25)
-US Fed rate cycle and India impact. China slowdown — risk or opportunity? Geopolitical risks (Red Sea disruptions, tariffs, trade tensions). Commodity super-cycle impact. Which global macro factor is most material for this company?
-
-### Micro-Economics — Pricing Power & Margins
-Market structure — oligopoly/competitive? Company's pricing power evidence from documents. Demand elasticity. Input cost pass-through capability. Factor market position (labour, materials, energy).
-
-### Competitive Dynamics
-Porter's 5 Forces brief for this specific sector. Entry barriers quality. Supplier power and buyer power for this company.
-
-### Structural Tailwinds/Headwinds
-Long-term demographic and structural forces — urbanisation, formalisation, digitisation, China+1, PLI, energy transition. Which structural trends favour this company?
-
-End with: **Economics Score: X/10** and tags: [MACRO TAILWIND] [DEFENSIVE BUSINESS] [CYCLICAL] [PRICING POWER] [INELASTIC DEMAND] [EXPORT ORIENTED] [CHINA+1 WINNER] [POLICY BENEFICIARY] [RATE SENSITIVE] [STRUCTURAL GROWTH STORY]`},
-
-  /* ── 15 ── */
-  {id:'ipo-readiness',num:15,icon:'🚀',name:'IPO Readiness Engine',cat:'IPO',col:'#F28C00',weight:.11,
-   msg:'Running IPO suitability filter: 7 hidden investment bank parameters + exit readiness assessment...',
-   sys:`You are a senior investment banking analyst and IPO advisor specialising in Indian markets (NSE/BSE/NSE Emerge/BSE SME). Run the FULL IPO READINESS ASSESSMENT using the 7 hidden investment bank parameters that decide whether a company is taken to IPO.
-
-### Hidden Parameter 1 — Promoter Credibility & Reputation Risk
-IBD's first filter. Assess promoter reputation from documents — any governance red flags, litigation in personal capacity, history with previous investors, corporate governance culture. Probability of SEBI raising objections.
-
-### Hidden Parameter 2 — Earnings Quality Score
-Does reported profit reflect true economic earnings? OCF vs PAT delta from documents. Related party revenue %. Exceptional items in P&L. Auditor qualifications. Give an earnings quality grade: High/Medium/Low.
-
-### Hidden Parameter 3 — Scalability of Business Model
-IPO investors want growth stories. Assessment: Can this company grow revenue 3x in 5 years post-IPO? What are the scaling constraints? Technology, distribution, regulation, talent, capital?
-
-### Hidden Parameter 4 — IPO Story Strength
-Rate the investment narrative 1-10: Is there a clear, differentiated, exciting investor story? Category leader? Disruption play? Export growth? Import substitute? Government policy beneficiary? What's the headline?
-
-### Hidden Parameter 5 — Institutional Investor Appetite
-Assess likely MF and FPI demand: Is this sector currently in favour with Indian institutional investors? Recent comparable IPO performance. FPI limit availability in this sector. Anchor investor probability.
-
-### Hidden Parameter 6 — Peer Valuation Feasibility
-IPO valuation viability: Identify 3-5 closest listed peers and their trading multiples (EV/EBITDA, P/E). Calculate implied valuation range for this company at peer multiples. Is an attractive IPO valuation achievable?
-
-### Hidden Parameter 7 — Post-Listing Stability Probability
-Assess likelihood of price holding post-IPO: Free float size, promoter lock-in quantum and period (min 18 months for promoter contribution, 6 months for excess), pre-IPO investor lock-in (182 days), likely anchor investor quality, retail demand signals, OFS vs fresh issue mix.
-
-### IPO Track — SME vs Main Board
-Based on revenue, profitability and AIRA criteria: SME IPO (NSE Emerge/BSE SME, Rs 10-300 Cr revenue, AIRA 65+) or Main Board (NSE/BSE, Rs 300 Cr+ revenue, AIRA 78+)? Recommended timing window.
-
-### IPO Readiness Checklist
-Status check on: 3-year audited financials, restated financials, DRHP readiness, legal due diligence status, secretarial compliance, anchor investor potential, merchant banker selection.
-
-End with: **IPO Readiness Score: X/10** (this is the overall IPO suitability score considering all 7 parameters). Then give: RECOMMENDED IPO TRACK: [SME IPO / MAIN BOARD / NOT READY], ESTIMATED TIMELINE: [Immediate / 12 months / 24 months / Not feasible], VALUATION RANGE: estimated range based on peer multiples.
-Signal tags: [IPO READY] [SME IPO CANDIDATE] [MAIN BOARD CANDIDATE] [IPO IN 12 MONTHS] [IPO IN 24 MONTHS] [NOT IPO READY] [STRONG ANCHOR POTENTIAL] [RETAIL STORY] [INSTITUTIONAL DEMAND HIGH] [LISTING STABILITY HIGH] [EARNINGS QUALITY HIGH] [COMPELLING IPO STORY]`}
-];
-
-/* ════ SIDEBAR INIT ════ */
-function initSide(){
-  var el=document.getElementById('mod-list');el.innerHTML='';
-  MODULES.forEach(function(m){
-    var d=document.createElement('div');d.className='mod-item';d.id='mi-'+m.id;
-    d.innerHTML='<div class="mod-dot dp" id="dot-'+m.id+'">'+m.num+'</div><div class="mod-name">'+m.name+'</div><span style="font-size:8px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--bg);color:var(--dim)">'+m.cat+'</span>';
-    d.addEventListener('click',function(){var t=document.getElementById('mr-'+m.id);if(t)t.scrollIntoView({behavior:'smooth',block:'start'});});
-    el.appendChild(d);
-  });
-}
-initSide();
-
-/* ════ START ════ */
-function startResearch(){
-  var co=v('i-co'),sec=document.getElementById('i-sec').value;
-  if(!co||!sec){alert('Please enter company name and sector.');return;}
-  var busy=ATTS.filter(function(a){return a.status==='processing';});
-  if(busy.length){alert('Please wait — '+busy.length+' file(s) still processing.');return;}
-  S.co=co;S.sec=sec;S.stg=document.getElementById('i-stg').value;
-  S.desc=v('i-desc');S.rev=v('i-rev');S.ebit=v('i-ebit');S.comp=v('i-comp');
-  S.prom=v('i-prom');S.geo=v('i-geo');S.yr=v('i-yr');S.inv=v('i-inv');
-  S.done=0;S.results={};S.start=Date.now();
-  document.getElementById('inp-phase').style.display='none';
-  document.getElementById('res-phase').classList.add('on');
-  document.getElementById('btn-new').style.display='flex';
-  document.getElementById('chip-n').textContent=co;
-  document.getElementById('chip-s').textContent=sec+(S.stg?' · '+S.stg:'');
-  document.getElementById('co-chip').style.display='block';
-  document.getElementById('ov-score').classList.add('on');
-  buildBadges();S.ctx=buildCtx();buildSkeletons();runAll();
-}
-function buildCtx(){
-  var c='Company: '+S.co+'\nSector: '+S.sec+'\n';
-  if(S.stg)c+='Stage: '+S.stg+'\n';if(S.yr)c+='Incorporated: '+S.yr+'\n';
-  if(S.desc)c+='Description: '+S.desc+'\n';if(S.rev)c+='Revenue: '+S.rev+'\n';
-  if(S.ebit)c+='EBITDA/PAT: '+S.ebit+'\n';if(S.comp)c+='Competitors: '+S.comp+'\n';
-  if(S.prom)c+='Promoter/Founder: '+S.prom+'\n';if(S.geo)c+='Geography: '+S.geo+'\n';
-  if(S.inv)c+='Investors/Debt: '+S.inv+'\n';
-  if(VS.bFin.length>10)c+='\n=== VOICE BRIEFING ===\n'+VS.bFin+'\n';
-  return c;
-}
-function buildBadges(){
-  var docs=ATTS.filter(function(a){return a.status==='ready';});
-  var h='';
-  if(docs.length)h+='<span class="sp sp-d">📎 '+docs.length+' doc'+(docs.length>1?'s':'')+'</span>';
-  if(VS.bFin.length>10)h+='<span class="sp sp-v">🎤 voice</span>';
-  document.getElementById('src-bar').innerHTML=h;
-  document.getElementById('chip-src').innerHTML=h;
-}
-
-/* ════ BUILD API CONTENT ════ */
-function buildContent(prompt){
-  var content=[],docs=ATTS.filter(function(a){return a.status==='ready'&&a.content;}),txt='',tc=0;
-  docs.forEach(function(a){
-    if(a.b64&&a.mt&&a.mt.indexOf('image/')===0){content.push({type:'image',source:{type:'base64',media_type:a.mt,data:a.content}});}
-    else if(!a.b64&&a.content&&tc<MAX_T){var ch=a.content.slice(0,MAX_T-tc);txt+='\n\n'+ch;tc+=ch.length;}
-  });
-  content.push({type:'text',text:prompt+txt});return content;
-}
-
-/* ════ SKELETONS ════ */
-function buildSkeletons(){
-  var c=document.getElementById('res-cont');c.innerHTML='';
-  MODULES.forEach(function(m){
-    var d=document.createElement('div');d.className='mcard hidden';d.id='mr-'+m.id;
-    d.innerHTML='<div class="mc-head">'+
-      '<div class="mc-icon">'+m.icon+'</div>'+
-      '<div class="mc-title">'+m.name+'</div>'+
-      '<span class="mc-cat">'+m.cat+'</span>'+
-      '<div class="mc-st" id="ms-'+m.id+'">Pending</div>'+
-      '<div class="mc-tog">▾</div></div>'+
-      '<div class="mc-load" id="ml-'+m.id+'" style="display:none"><div class="spin"></div>'+
-      '<div><div style="color:var(--cyan);font-size:13px;font-weight:600;margin-bottom:3px">Reading documents &amp; analysing...</div>'+
-      '<div style="font-size:13px;color:var(--dim);font-family:var(--mono)">'+m.msg+'</div></div></div>'+
-      '<div class="mc-body" id="mb-'+m.id+'"></div>';
-    d.querySelector('.mc-head').addEventListener('click',function(){d.classList.toggle('expanded');});
-    c.appendChild(d);
-  });
-}
-
-/* ════ RUN ════ */
-async function runAll(){
-  var toks=S.depth==='quick'?700:S.depth==='deep'?2000:1300;
-  for(var i=0;i<MODULES.length;i++){await runOne(MODULES[i],toks);S.done++;updateProg();}
-  finalize();
-}
-function runOne(m,toks){
-  return new Promise(function(resolve){
-    var el=document.getElementById('mr-'+m.id);
-    el.classList.remove('hidden');el.classList.add('running','expanded');
-    document.getElementById('ml-'+m.id).style.display='flex';
-    document.getElementById('ms-'+m.id).textContent='Analysing...';
-    var mi=document.getElementById('mi-'+m.id);if(mi)mi.classList.add('running','active');
-    var dot=document.getElementById('dot-'+m.id);if(dot){dot.className='mod-dot dr';dot.textContent='⟳';}
-    el.scrollIntoView({behavior:'smooth',block:'start'});
-    var hasDocs=ATTS.filter(function(a){return a.status==='ready';}).length;
-    var prompt='Analyse ['+m.name+'] for this company:\n\n'+S.ctx+
-      '\n\nPrivate/unlisted company. '+(hasDocs?'ALL attached documents are PRIMARY data — extract specific figures, names and data. ':'No documents — use sector knowledge. ')+
-      'Be direct, specific, quantitative. State clearly when data is unavailable.';
-    workerCall(m,toks,prompt,resolve);
-  });
-}
-
-/* ═══ WORKER CALL with auto-retry + per-module retry button ═══ */
-function workerCall(m,toks,prompt,resolve){
-  var attempt=0,maxAttempts=3;
-  function tryFetch(){
-    attempt++;
-    setModuleStatus(m.id,'Analysing'+(attempt>1?' (retry '+attempt+')…':'…'));
-    fetch(WORKER,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:toks,system:m.sys,
-        messages:[{role:'user',content:buildContent(prompt)}]})
-    })
-    .then(function(res){
-      if(!res.ok) return res.text().then(function(t){ throw new Error('HTTP '+res.status+' — '+t.slice(0,120)); });
-      return res.json();
-    })
-    .then(function(d){
-      var txt=(d.content||[]).map(function(c){return c.text||'';}).join('');
-      if(!txt) txt='AI returned empty response. Please retry.';
-      hideModuleLoader(m.id);
-      onDone(m,txt);
-      if(resolve) resolve();
-    })
-    .catch(function(err){
-      var msg=err&&err.message?err.message:'Network error';
-      var isFetch=(msg.indexOf('Failed to fetch')>-1||msg.indexOf('NetworkError')>-1||msg.indexOf('fetch')>-1);
-      if(isFetch && attempt<maxAttempts){
-        setTimeout(tryFetch, 1500*attempt);
-        return;
-      }
-      hideModuleLoader(m.id);
-      var hint='';
-      if(msg.indexOf('413')>-1)
-        hint='<br/><br/>💡 <b>Fix:</b> Remove some attached files — payload exceeds 128KB limit.';
-      else if(isFetch)
-        hint='<br/><br/>💡 <b>Most likely cause:</b> Your Cloudflare Worker is not deployed, is returning CORS errors, or the free plan CPU limit is hit.<br/>'+
-             '→ Go to <a href="https://dash.cloudflare.com" target="_blank" style="color:var(--amber)">dash.cloudflare.com</a> → Workers → Your Worker → Logs to see the actual error.<br/>'+
-             '→ Make sure CORS headers are set: <code style="color:var(--cyan)">Access-Control-Allow-Origin: *</code><br/>'+
-             '→ Make sure <code style="color:var(--cyan)">ANTHROPIC_API_KEY</code> is set in Worker Settings → Variables.';
-      else if(msg.indexOf('401')>-1||msg.indexOf('403')>-1)
-        hint='<br/><br/>💡 <b>Fix:</b> ANTHROPIC_API_KEY is missing or invalid in your Cloudflare Worker environment variables.';
-      else if(msg.indexOf('500')>-1)
-        hint='<br/><br/>💡 <b>Fix:</b> Worker threw an internal error. Check Cloudflare Worker → Logs for the stack trace.';
-      else if(msg.indexOf('524')>-1||msg.indexOf('timeout')>-1)
-        hint='<br/><br/>💡 <b>Fix:</b> Worker CPU timeout (free plan = 10ms). Upgrade to Cloudflare Workers Paid ($5/mo) for 30s limit.';
-      var errHtml='<div class="module-err-block">'+
-        '<div class="meb-title">⚠️ Module failed after '+attempt+' attempt'+(attempt>1?'s':'')+'</div>'+
-        '<div class="meb-msg">'+escHtml(msg)+hint+'</div>'+
-        '<button class="meb-retry" data-mid="'+m.id+'">↺ Retry This Module</button>'+
-        '<div class="meb-hint">Or check: <a href="https://dash.cloudflare.com" target="_blank" style="color:var(--amber)">Cloudflare Dashboard</a> → Worker → Logs</div>'+
-        '</div>';
-      setModuleStatus(m.id,'✗ Failed');
-      document.getElementById('mb-'+m.id).innerHTML=errHtml;
-      document.getElementById('mb-'+m.id).querySelector('[data-mid]').addEventListener('click',function(){
-        retryModule(m.id);
-      });
-      var el=document.getElementById('mr-'+m.id);
-      if(el) el.classList.add('errored');
-      document.getElementById('worker-diag').style.display='block';
-      S.results[m.id]='ERROR';
-      if(resolve) resolve();
-    });
-  }
-  tryFetch();
-}
-
-function setModuleStatus(id,txt){ var el=document.getElementById('ms-'+id); if(el) el.textContent=txt; }
-function hideModuleLoader(id){ var el=document.getElementById('ml-'+id); if(el) el.style.display='none'; }
-
-function retryModule(mid){
-  var m=MODULES.find(function(x){return x.id===mid;});
-  if(!m) return;
-  var toks=S.depth==='quick'?700:S.depth==='deep'?2000:1300;
-  var el=document.getElementById('mr-'+mid);
-  el.classList.remove('errored'); el.classList.add('running');
-  document.getElementById('ml-'+mid).style.display='flex';
-  document.getElementById('mb-'+mid).innerHTML='';
-  var prompt='Analyse ['+m.name+'] dimension:\n\n'+S.context+
-    '\n\nPrivate/unlisted company. '+(ATTACHMENTS.filter(function(a){return a.status==="ready";}).length?'Use attached documents as primary source. ':'No documents — use sector knowledge. ')+
-    'Be specific, quantitative, reference India context.';
-  workerCall(m,toks,prompt,null);
-}
-
-/* ═══ WORKER HEALTH CHECK on page load ═══ */
-function checkWorkerHealth(){
-  var bar=document.getElementById('worker-status-bar');
-  if(!bar) return;
-  bar.style.display='flex';
-  bar.innerHTML='<span style="color:var(--dim)">⟳ Checking AI server connection…</span>';
-  fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:5,
-      messages:[{role:'user',content:'ping'}]})
-  })
-  .then(function(res){
-    if(res.ok||res.status===400||res.status===200){
-      bar.innerHTML='<span style="color:var(--green)">✓ AI server connected — Ready to analyse</span>';
-      setTimeout(function(){bar.style.display='none';},3000);
-    } else {
-      bar.innerHTML='<span style="color:var(--orange)">⚠️ AI server responded with HTTP '+res.status+' — Analysis may fail</span>';
-    }
-  })
-  .catch(function(err){
-    var m=err&&err.message?err.message:'Unknown';
-    bar.innerHTML='<span style="color:var(--red)">✗ Cannot reach AI server: '+escHtml(m)+'</span>'+
-      '<a href="https://dash.cloudflare.com" target="_blank" style="color:var(--amber);font-size:13px;margin-left:10px">→ Check Worker</a>';
-  });
-}
-setTimeout(checkWorkerHealth, 1500);
-
-function onDone(m,text){
-  S.results[m.id]=text;
-  var el=document.getElementById('mr-'+m.id);
-  el.classList.remove('running');el.classList.add('done');
-  document.getElementById('ml-'+m.id).style.display='none';
-  document.getElementById('ms-'+m.id).textContent='✓ Done';
-  document.getElementById('mb-'+m.id).innerHTML=renderContent(text,m);
-  var mc=el.querySelector('.mc-icon');if(mc)mc.style.background=ra(m.col,.08);
-  var mc2=el.querySelector('.mc-cat');if(mc2){mc2.style.background=ra(m.col,.08);mc2.style.color=m.col;}
-  var dot=document.getElementById('dot-'+m.id);if(dot){dot.className='mod-dot dd';dot.textContent='✓';}
-  var mi=document.getElementById('mi-'+m.id);if(mi){mi.classList.remove('running');mi.classList.add('done');}
-}
-
-/* ════ RENDER ════ */
-function renderContent(text,m){
-  var h=text
-    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
-    .replace(/### (.+)/g,'<h3>$1</h3>').replace(/## (.+)/g,'<h3>$1</h3>').replace(/#### (.+)/g,'<h4>$1</h4>')
-    .replace(/^[-•] (.+)/gm,'<li>$1</li>').replace(/^\d+\. (.+)/gm,'<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
-    .replace(/\[([A-Z][A-Z ]+)\]/g,function(_,s){return '<span class="sig '+(pos(s)?'sg':neg(s)?'sr':'sa')+'">'+s+'</span>';})
-    .replace(/\n{2,}/g,'</p><p>');
-  h='<div class="ac"><p>'+h+'</p></div>';
-  h=h.replace(/<p><(h[34]|ul)>/g,'<$1>').replace(/<\/(h[34]|ul)><\/p>/g,'</$1>').replace(/<p>\s*<\/p>/g,'');
-  var sm=text.match(/Score:\s*(\d+\.?\d*)\/10/);
-  if(sm){
-    var sc=parseFloat(sm[1]),c=sc>=8?'var(--green)':sc>=6?'var(--amber)':sc>=4?'var(--orange)':'var(--red)',bc=sc>=8?'rgba(123,191,160,.2)':sc>=6?'rgba(191,160,106,.2)':sc>=4?'rgba(251,146,60,.2)':'rgba(184,123,131,.2)';
-    h+='<div class="sc-row"><div style="font-size:13px;color:var(--mut);font-weight:600;flex:1">Module Score</div><div class="sc-badge" style="color:'+c+';border:1px solid '+bc+'">'+sc+'/10 '+(sc>=8?'STRONG':sc>=6?'MODERATE':sc>=4?'NEEDS WORK':'WEAK')+'</div></div>';
-    S.results['sc_'+m.id]=sc;
-  }
-  if(m.id==='ipo-readiness'){
-    var tk=text.match(/RECOMMENDED IPO TRACK[:\s]+([^\n\.]+)/i);
-    var tl=text.match(/ESTIMATED TIMELINE[:\s]+([^\n\.]+)/i);
-    var vl=text.match(/VALUATION RANGE[:\s]+([^\n\.]+)/i);
-    if(tk||tl||vl){
-      h+='<div class="ipo-cards">';
-      if(tk)h+=ipoC('📍 Track',tk[1].trim(),'var(--amber)');
-      if(tl)h+=ipoC('⏱ Timeline',tl[1].trim(),'var(--cyan)');
-      if(vl)h+=ipoC('💎 Valuation',vl[1].trim(),'var(--green)');
-      h+='</div>';
-      S.results['ipo_tk']=tk?tk[1].trim():'';
-      S.results['ipo_tl']=tl?tl[1].trim():'';
-      S.results['ipo_vl']=vl?vl[1].trim():'';
-    }
-  }
-  return h;
-}
-function ipoC(lbl,val,col){return '<div class="ipo-card" style="border:1px solid '+col.replace('var(--','rgba(').replace(')',',0.2)')+'"><div class="ipo-card-lbl">'+lbl+'</div><div class="ipo-card-val" style="color:'+col+'">'+val+'</div></div>';}
-
-/* ════ PROGRESS ════ */
-function updateProg(){
-  var p=Math.round(S.done/MODULES.length*100);
-  document.getElementById('prog-pct').textContent=p+'%';
-  document.getElementById('prog-txt').textContent=S.done+'/'+MODULES.length+' done';
-  document.getElementById('ring').style.strokeDashoffset=107-(107*p/100);
-  document.getElementById('gp-fill').style.width=p+'%';
-}
-
-/* ════ FINALIZE ════ */
-function finalize(){
-  var elapsed=Math.round((Date.now()-S.start)/1000);
-  document.getElementById('prog-txt').textContent='Done in '+elapsed+'s';
-  var W={'corporate-identity':.07,'promoter-intelligence':.12,'financial-health':.14,'capital-structure':.06,'business-model':.08,'market-intelligence':.08,'operations':.06,'sales-consumer':.07,'technology-digital':.05,'human-resources':.05,'legal-compliance':.06,'esg-sustainability':.04,'strategic-positioning':.06,'macro-economics':.05,'ipo-readiness':.11};
-  var ws=0,wt=0;
-  MODULES.forEach(function(m){var sc=S.results['sc_'+m.id];if(sc!==undefined){ws+=sc*(W[m.id]||.067);wt+=(W[m.id]||.067);}});
-  var ov=wt>0?Math.round(ws/wt*10)/10:'—';
-  var gr=ov>=8?'STRONG BUY':ov>=7?'BUY':ov>=6?'MODERATE':ov>=5?'CAUTIOUS':'HIGH RISK';
-  var gc=ov>=7?'var(--green)':ov>=6?'var(--amber)':ov>=5?'var(--orange)':'var(--red)';
-  document.getElementById('ov-num').textContent=ov+'/10';document.getElementById('ov-num').style.color=gc;
-  document.getElementById('ov-grade').textContent=gr;document.getElementById('ov-grade').style.color=gc;
-  document.getElementById('ov-fill').style.width=(ov/10*100)+'%';document.getElementById('ov-fill').style.background=gc;
-  buildFinal(ov,gr,gc,elapsed);document.getElementById('export-bar').classList.add('on');
-}
-function buildFinal(ov,gr,gc,el){
-  var cats={'Governance':['corporate-identity','promoter-intelligence'],'Financial':['financial-health','capital-structure'],'Core':['business-model','operations'],'Market':['market-intelligence','sales-consumer'],'Digital & People':['technology-digital','human-resources'],'Regulatory':['legal-compliance','esg-sustainability'],'Strategy':['strategic-positioning','macro-economics'],'IPO':['ipo-readiness']};
-  var cs={};
-  Object.keys(cats).forEach(function(cat){var ids=cats[cat],s=0,n=0;ids.forEach(function(id){var x=S.results['sc_'+id];if(x!==undefined){s+=x;n++;}});cs[cat]=n>0?Math.round(s/n*10)/10:'—';});
-  var sc={};Object.keys(S.results).forEach(function(k){if(k.indexOf('sc_')===0||k.indexOf('ipo_')===0)return;(S.results[k].match(/\[([A-Z][A-Z ]+)\]/g)||[]).forEach(function(s){var t=s.replace(/\[|\]/g,'').trim();sc[t]=(sc[t]||0)+1;});});
-  var top=Object.keys(sc).sort(function(a,b){return sc[b]-sc[a];}).slice(0,18);
-  var ps=top.filter(pos).slice(0,8),ns=top.filter(neg).slice(0,6);
-  var risks=[];MODULES.forEach(function(m){var x=S.results['sc_'+m.id];if(x!==undefined&&x<6)risks.push({name:m.name,sc:x,c:x<4?'var(--red)':'var(--orange)' });});
-  var docs=ATTS.filter(function(a){return a.status==='ready';});
-  var h='<div class="fs">';
-  h+='<div style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--text);margin-bottom:3px">AI Company Intelligence Report — '+esc(S.co)+'</div>';
-  h+='<div style="font-size:13px;color:var(--mut);margin-bottom:5px">'+esc(S.sec)+(S.stg?' · '+esc(S.stg):'')+'</div>';
-  if(docs.length)h+='<div style="font-size:13px;color:var(--green);margin-bottom:14px">✓ '+docs.length+' document'+(docs.length>1?'s':'')+' analysed · 15 modules · PE/VC 50-parameter framework</div>';
-  h+='<div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-start">';
-  h+='<div style="background:rgba(255,255,255,.03);border:1px solid '+gc.replace('var(--','rgba(').replace(')',',0.3)')+';border-radius:12px;padding:16px 24px;text-align:center;flex-shrink:0">';
-  h+='<div style="font-family:var(--serif);font-size:44px;font-weight:900;color:'+gc+';line-height:1">'+ov+'</div>';
-  h+='<div style="font-size:9px;font-weight:700;color:'+gc+';text-transform:uppercase;letter-spacing:.8px;margin-top:3px">Investment Score / 10</div>';
-  h+='<div style="font-size:13px;font-weight:800;color:var(--tld);margin-top:7px">'+gr+'</div></div>';
-  h+='<div style="flex:1"><div style="font-size:13px;color:var(--mut);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">50-Parameter Scorecard</div><div class="sc-grid">';
-  Object.keys(cs).forEach(function(cat){var s=cs[cat];var c=s==='—'?'var(--dim)':s>=8?'var(--green)':s>=6?'var(--amber)':s>=4?'var(--orange)':'var(--red)';h+='<div class="sc-cell"><div class="sc-v" style="color:'+c+'">'+s+'</div><div class="sc-l">'+cat+'</div></div>';});
-  h+='</div></div></div>';
-  var is=S.results['sc_ipo-readiness'];
-  if(is||S.results['ipo_tk']){
-    h+='<div style="background:rgba(191,160,106,.05);border:1px solid rgba(191,160,106,.15);border-radius:12px;padding:16px;margin-bottom:18px">';
-    h+='<div style="font-size:13px;font-weight:800;color:var(--amber);margin-bottom:12px">🚀 IPO READINESS — 7 INVESTMENT BANK PARAMETERS</div><div class="ipo-cards">';
-    if(is!==undefined)h+=ipoC('IPO Suitability',is+'/10',is>=8?'var(--green)':is>=6?'var(--amber)':'var(--red)');
-    if(S.results['ipo_tk'])h+=ipoC('Recommended Track',S.results['ipo_tk'],'var(--amber)');
-    if(S.results['ipo_tl'])h+=ipoC('Timeline',S.results['ipo_tl'],'var(--cyan)');
-    if(S.results['ipo_vl'])h+=ipoC('Valuation Range',S.results['ipo_vl'],'var(--green)');
-    h+='</div></div>';
-  }
-  if(ps.length){h+='<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">✅ Positive Signals</div><div style="display:flex;flex-wrap:wrap;gap:5px">';ps.forEach(function(s){h+='<span class="sig sg">'+s+'</span>';});h+='</div></div>';}
-  if(ns.length||risks.length){
-    h+='<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">⚠️ Risk Heat Map</div>';
-    if(ns.length){h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';ns.forEach(function(s){h+='<span class="sig sr">'+s+'</span>';});h+='</div>';}
-    if(risks.length){h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:7px">';risks.forEach(function(r){h+='<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.02);border:1px solid #080F0C;border-radius:7px;padding:7px 10px"><div style="font-size:13px;color:var(--txt)">'+r.name+'</div><div style="font-family:var(--mono);font-size:13px;font-weight:700;color:'+r.c+'">'+r.sc+'/10</div></div>';});h+='</div>';}
-    h+='</div>';
-  }
-  h+='<div style="background:rgba(255,255,255,.02);border-radius:8px;padding:10px;font-size:13px;color:var(--dim);line-height:1.7">⚠️ AI-generated research using PE/VC 50-parameter + 7 Investment Bank parameter framework. Not investment advice. Verify with audited financials and professional advisors before decisions. Completed in '+el+'s.</div></div>';
-  document.getElementById('res-final').innerHTML=h;
-  document.getElementById('res-final').scrollIntoView({behavior:'smooth'});
-}
-
-/* ════ UTILS ════ */
-function pos(s){return ['STRONG','MOAT','SCALABLE','LEADER','POWER','TAILWIND','COMPLIANT','INTEGRITY','CASH','DEBT FREE','BENCH','TAM','MOVER','LOYAL','VISIONARY','CLOUD','DATA','AUTOMATION','SKIN IN GAME','EXPORT','HIGH COMPLIANCE','CLEAN','ESG LEADER','IPO READY','COMPELLING'].some(function(p){return s.indexOf(p)>-1;});}
-function neg(s){return ['RISK','STRESS','DEPENDENT','WEAK','CONCERN','CONSTRAINED','CHURN','LEGACY','LAGGARD','LEVERAGE','COMPRESSION','CONCENTRATED','PLEDGE','RPT','SINGLE','GAP','EXPOSED','DISPUTE','LITIGATION'].some(function(p){return s.indexOf(p)>-1;});}
-function ra(hex,a){if(hex.startsWith('#')){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return 'rgba('+r+','+g+','+b+','+a+')';}var m={'amber':'232,176,64','cyan':'0,212,245','green':'0,200,150','purple':'167,139,250','red':'248,113,113','orange':'251,146,60','blue':'96,165,250'};var k=hex.replace('var(--','').replace(')','');return 'rgba('+(m[k]||'255,255,255')+','+a+')';}
-function exportReport(){MODULES.forEach(function(m){var e=document.getElementById('mr-'+m.id);if(e){e.classList.add('expanded');e.classList.remove('hidden');}});setTimeout(function(){window.print();},300);}
-function copyReport(){var t='# AI COMPANY INTELLIGENCE REPORT — '+S.co+'\n'+S.sec+'\n\n';MODULES.forEach(function(m){if(S.results[m.id])t+='## '+m.name.toUpperCase()+'\n'+S.results[m.id]+'\n\n';});navigator.clipboard.writeText(t).then(function(){alert('Copied!');}).catch(function(){alert('Use PDF export.');});}
-function resetApp(){
-  document.getElementById('inp-phase').style.display='flex';
-  document.getElementById('res-phase').classList.remove('on');
-  document.getElementById('export-bar').classList.remove('on');
-  document.getElementById('btn-new').style.display='none';
-  document.getElementById('co-chip').style.display='none';
-  document.getElementById('ov-score').classList.remove('on');
-  document.getElementById('res-cont').innerHTML='';
-  document.getElementById('res-final').innerHTML='';
-  document.getElementById('gp-fill').style.width='0';
-  document.getElementById('prog-pct').textContent='0%';
-  document.getElementById('prog-txt').textContent='Ready to analyse';
-  document.getElementById('ring').style.strokeDashoffset=107;
-  document.getElementById('src-bar').innerHTML='';
-  ATTS=[];VS.bFin='';VS.bRec=null;VS.dRec=null;VS.dFin='';
-  document.getElementById('files-list').innerHTML='';
-  document.getElementById('vbox').style.display='none';
-  document.getElementById('v-text').textContent='';
-  document.getElementById('i-co').value='';document.getElementById('i-desc').value='';
-  S={co:'',sec:'',stg:'',desc:'',rev:'',ebit:'',comp:'',prom:'',geo:'',yr:'',inv:'',depth:'standard',done:0,total:0,results:{},start:null,ctx:''};
-  initSide();
-}
-</script>
-
-<!-- ══ WORKER DIAGNOSTICS (shown on Worker errors) ══ -->
-<div id="worker-diag" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0A1525;border-top:2px solid var(--amber);z-index:400;padding:16px 20px;font-size:13px;font-family:var(--mono);color:var(--muted);max-height:50vh;overflow-y:auto">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <div style="font-weight:700;color:var(--amber)">⚠️ Worker Diagnostics — fix these to make analyses work</div>
-    <button onclick="document.getElementById('worker-diag').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">×</button>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-    <div>
-      <div style="color:#fff;font-weight:700;margin-bottom:6px;font-family:var(--font)">1. Your Cloudflare Worker must have this code:</div>
-      <pre style="background:rgba(0,0,0,.4);padding:10px;border-radius:6px;font-size:13px;color:var(--cyan);overflow-x:auto">addEventListener('fetch', event =&gt; {
-  event.respondWith(handleRequest(event.request))
-})
-
-async function handleRequest(request) {
-  // Handle CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
-    })
-  }
-
-  const body = await request.json()
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify(body)
-  })
-  const data = await res.json()
-  return new Response(JSON.stringify(data), {
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    }
-  })
-}</pre>
-    </div>
-    <div>
-      <div style="color:#fff;font-weight:700;margin-bottom:6px;font-family:var(--font)">2. Worker Environment Variables:</div>
-      <div style="background:rgba(0,0,0,.4);padding:10px;border-radius:6px;line-height:2">
-        <div>Variable name: <span style="color:var(--cyan)">ANTHROPIC_API_KEY</span></div>
-        <div>Value: <span style="color:var(--dim)">sk-ant-api03-...</span></div>
-        <div style="margin-top:6px">→ Settings → Variables → Add</div>
-      </div>
-      <div style="color:#fff;font-weight:700;margin:12px 0 6px;font-family:var(--font)">3. Compatibility Date:</div>
-      <div style="background:rgba(0,0,0,.4);padding:8px 10px;border-radius:6px;color:var(--cyan)">2024-01-01 or later</div>
-      <div style="color:#fff;font-weight:700;margin:12px 0 6px;font-family:var(--font)">4. Plan requirement:</div>
-      <div style="background:rgba(0,0,0,.4);padding:8px 10px;border-radius:6px;line-height:1.8">Free plan: 10ms CPU limit (too short)<br/><span style="color:var(--amber)">Paid plan ($5/mo): 30s — required for AI calls</span></div>
-    </div>
-  </div>
-</div>
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  /* Auto-bypass gate — open immediately in demo mode */
-  doDemo();
-});
-</script>
-</body>
-</html>
