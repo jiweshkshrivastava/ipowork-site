@@ -653,19 +653,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
         <div class="api-chip"><div class="api-dot live"></div>Promoter &amp; Pledge data</div>
         <span style="font-size:11px;color:var(--mu);margin-left:auto">Requires PROBE42_KEY in Worker</span>
       </div>
-      <div class="run-section">
+      <div class="run-section" style="flex-wrap:wrap;gap:10px">
         <button class="btn-run btn-amber" id="btn-paid-run" onclick="requireLoginThen(runPaidCore)">
           <svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 1L9.2 5.5H14L10.4 8.5L11.9 13L7.5 10L3.1 13L4.6 8.5L1 5.5H5.8L7.5 1Z" fill="white"/></svg>
-          Run SME Intelligence →
+          Run SME Intel · 8 min →
         </button>
-        <span style="font-size:12px;color:var(--mu)">Probe42 live data · 400+ points · 16 parameters</span>
+        <button class="btn-run" id="btn-deep-run" onclick="requireLoginThen(runDeepResearch)"
+          style="background:linear-gradient(135deg,#1A1560,#5B4ED4);color:#fff;box-shadow:0 2px 8px rgba(91,78,212,.3)">
+          <svg width="13" height="13" viewBox="0 0 15 15" fill="none"><path d="M7.5 2a5.5 5.5 0 100 11A5.5 5.5 0 007.5 2zm0 1.5a4 4 0 110 8 4 4 0 010-8zm0 1.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" fill="white"/></svg>
+          🔬 Deep Research · 15 min →
+        </button>
+        <div>
+          <div style="font-size:11px;color:var(--mu)">Probe42 verified + Claude web search · 400+ data points</div>
+          <div style="font-size:10px;color:#5B4ED4;font-weight:600;margin-top:2px">✦ Deep Research = Probe42 financials + live news + regulatory checks + sector analysis</div>
+        </div>
       </div>
     
   <div class="prog-steps" id="prog-paid" style="display:none">
-      <div class="prog-step" id="pp1"><div class="ps-n">1</div>Probe42 fetch</div>
-      <div class="prog-step" id="pp2"><div class="ps-n">2</div>7-yr financials</div>
-      <div class="prog-step" id="pp3"><div class="ps-n">3</div>Compliance scan</div>
-      <div class="prog-step" id="pp4"><div class="ps-n">4</div>AI scoring</div>
+      <div class="prog-step" id="pp1"><div class="ps-n">1</div>Probe42 data</div>
+      <div class="prog-step" id="pp2"><div class="ps-n">2</div>Web research</div>
+      <div class="prog-step" id="pp3"><div class="ps-n">3</div>News & regulatory</div>
+      <div class="prog-step" id="pp4"><div class="ps-n">4</div>AI deep analysis</div>
       <div class="prog-step" id="pp5"><div class="ps-n">5</div>Report ready</div>
     </div>
     <div id="result-paid"></div>
@@ -1287,7 +1295,7 @@ function submitLogin(){
    UI HELPERS
 ═══════════════════════════ */
 function switchTier(t){
-  ['free','paid','mainboard','ca','clearchit','dirscan','ddbundle','alert','valdoc','valintel','admin'].forEach(function(id){
+  ['free','paid','mainboard','ca','deepresearch','clearchit','dirscan','ddbundle','alert','valdoc','valintel','admin'].forEach(function(id){
     var c=document.getElementById('content-'+id);
     var tb=document.getElementById('tab-'+id);
     if(c) c.classList.toggle('active',id===t);
@@ -1345,6 +1353,7 @@ function doSearch(q,tier){
     dirscan:   {res:'zauba-results-ds', cin:'ds-cin', name:'ds-name'},
     ddbundle:  {res:'zauba-results-dd', cin:'dd-cin', name:'dd-cname'},
     alert:     {res:'zauba-results-al', cin:'al-cin', name:'al-cname'},
+    deepresearch: {res:'zauba-results-dr', cin:'dr-cin', name:'dr-cname'},
   };
   var ids=IDS[tier]||IDS.free;
   var resEl=document.getElementById(ids.res);
@@ -1997,6 +2006,84 @@ function mdToHtml(t){
   return t;
 }
 
+async function runDeepResearch(){
+  var cin=document.getElementById('p-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
+  var sector=document.getElementById('p-sector').value;
+  var exchange=document.getElementById('p-exchange').value;
+  if(!cin){alert('Please enter CIN or LLPIN.');return;}
+  var btn=document.getElementById('btn-deep-run');
+  var prog=document.getElementById('prog-paid');
+  var out=document.getElementById('result-paid');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Deep Research…';
+  out.innerHTML='';if(prog)prog.style.display='flex';
+  ['pp1','pp2','pp3','pp4','pp5'].forEach(clearStep);stepActive('pp1');
+  var t1=setTimeout(function(){stepDone('pp1');stepActive('pp2');},8000);
+  var t2=setTimeout(function(){stepDone('pp2');stepActive('pp3');},20000);
+  var t3=setTimeout(function(){stepDone('pp3');stepActive('pp4');},35000);
+  var t4=setTimeout(function(){stepDone('pp4');stepActive('pp5');},50000);
+  var tTimeout=setTimeout(function(){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
+    btn.disabled=false;btn.innerHTML='🔬 Deep Research · 15 min →';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>Deep Research timed out (90s).</b> The web search + AI analysis takes time. Please try again or use standard SME Intel instead.</div>';
+  },90000);
+  try{
+    var result=await workerPost({type:'deep_research',cin:cin,sector:sector,exchange:exchange});
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);clearTimeout(tTimeout);
+    if(result.error)throw new Error(result.error);
+    ['pp1','pp2','pp3','pp4','pp5'].forEach(stepDone);
+    btn.disabled=false;btn.innerHTML='🔬 Deep Research · 15 min →';
+    if(prog)prog.style.display='none';
+    var cname=result.company_name||cin;
+    AIRA_RESULTS['paid']={result:result,cname:cname,sector:sector,exchange:exchange,tier:'paid'};
+    renderAIRAReport(result,cname,sector,exchange,out,'paid');
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);clearTimeout(tTimeout);
+    btn.disabled=false;btn.innerHTML='🔬 Deep Research · 15 min →';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
+  }
+}
+
+async function runDeepResearchProduct(){
+  var cin=(document.getElementById('dr-cin')||{}).value||'';cin=cin.trim().toUpperCase();
+  var cname=(document.getElementById('dr-cname')||{}).value||'';
+  var sector=(document.getElementById('dr-sector')||{}).value||'Manufacturing';
+  var exchange=(document.getElementById('dr-exchange')||{}).value||'NSE Emerge (SME)';
+  if(!cin){alert('Please enter CIN.');return;}
+  var btn=document.getElementById('btn-dr-run'),prog=document.getElementById('prog-deepresearch'),out=document.getElementById('result-deepresearch');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Researching…';
+  out.innerHTML='';if(prog)prog.style.display='flex';
+  ['dr1','dr2','dr3','dr4','dr5'].forEach(clearStep);stepActive('dr1');
+  var t1=setTimeout(function(){stepDone('dr1');stepActive('dr2');},9000);
+  var t2=setTimeout(function(){stepDone('dr2');stepActive('dr3');},25000);
+  var t3=setTimeout(function(){stepDone('dr3');stepActive('dr4');},45000);
+  var t4=setTimeout(function(){stepDone('dr4');stepActive('dr5');},65000);
+  var tOut=setTimeout(function(){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);
+    btn.disabled=false;btn.innerHTML='Run Deep Research →';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>Timed out (90s).</b> Requires Cloudflare Workers Paid plan ($5/month). Use SME Intel instead.</div>';
+  },90000);
+  try{
+    var result=await workerPost({type:'deep_research',cin:cin,company_name:cname,sector:sector,exchange:exchange});
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);clearTimeout(tOut);
+    if(result.error)throw new Error(result.error);
+    ['dr1','dr2','dr3','dr4','dr5'].forEach(stepDone);
+    btn.disabled=false;btn.innerHTML='Run Deep Research →';
+    if(prog)prog.style.display='none';
+    var coName=result.company_name||cname||cin;
+    AIRA_RESULTS['deepresearch']={result:result,cname:coName,sector:sector,exchange:exchange,tier:'paid'};
+    renderAIRAReport(result,coName,sector,exchange,out,'paid');
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);clearTimeout(t4);clearTimeout(tOut);
+    btn.disabled=false;btn.innerHTML='Run Deep Research →';
+    if(prog)prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
+  }
+}
 async function runPaidCore(){
   var cin=document.getElementById('p-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
   var sector=document.getElementById('p-sector').value;
@@ -2851,10 +2938,9 @@ function buildReportHTML(tier) {
     stored = AIRA_RESULTS[keys[keys.length-1]];
   }
   var result   = stored.result   || {};
-  var cname    = stored.cname    || result.company_name || '';
-  // If cname looks like a CIN (all caps + digits), try harder
+  var cname = result.company_name || stored.cname || '';
   if(!cname || /^[A-Z][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/.test(cname)) {
-    cname = result.company_name || result.name || stored.cname || cname || 'Company';
+    cname = result.company_name || stored.cname || 'Company';
   }
   var sector   = stored.sector   || '';
   var exchange = stored.exchange || '';
@@ -3024,131 +3110,95 @@ function buildReportHTML(tier) {
      CSS
      ══════════════════════════════════════════════════════════ */
   var CSS = [
-    '@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=JetBrains+Mono:wght@400;600&display=swap");',
+    '@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,700&family=JetBrains+Mono:wght@400;500;600&display=swap");',
     '*{box-sizing:border-box;margin:0;padding:0}',
     'html{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
-    'body{font-family:"Inter",-apple-system,sans-serif;color:#0F1E25;font-size:11.5px;line-height:1.7;background:#fff}',
-    '.page{max-width:1000px;margin:0 auto;padding:40px 44px}',
+    'body{font-family:"Inter",-apple-system,sans-serif;color:#0F1E25;font-size:11.5px;line-height:1.72;background:#fff}',
+    /* Page layout */
+    '.page{max-width:1000px;margin:0 auto;padding:44px 48px}',
     /* Header */
-    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:3px solid '+ACD+';margin-bottom:30px}',
-    '.brand{font-family:"Playfair Display",Georgia,serif;font-size:30px;font-weight:900;color:'+ACD+';letter-spacing:-0.5px}',
-    '.brand-sup{font-size:13px;color:#E88A2E;font-family:"Inter",sans-serif;font-weight:800;vertical-align:super}',
-    '.brand-sub{font-size:10.5px;color:#8FA8B2;margin-top:4px;font-weight:400}',
-    '.hdr-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px}',
-    '.tier-badge{font-size:8.5px;font-weight:800;padding:4px 14px;border-radius:20px;background:'+ACL+';color:'+AC+';text-transform:uppercase;letter-spacing:.8px;border:1px solid '+ACB+'}',
-    '.gen-date{font-size:10px;color:#8FA8B2}',
-    '.ca-firm{font-size:11px;font-weight:700;color:'+AC+';margin-top:1px}',
+    '.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;margin-bottom:28px;border-bottom:3px solid '+ACD+'}',
+    '.brand{font-family:"Playfair Display",Georgia,serif;font-size:32px;font-weight:900;color:'+ACD+';letter-spacing:-.5px;line-height:1}',
+    '.brand-sup{font-size:13px;color:#E88A2E;font-family:"Inter",sans-serif;font-weight:800;vertical-align:super;margin-left:1px}',
+    '.brand-sub{font-size:10px;color:#8FA8B2;margin-top:5px;font-weight:400;letter-spacing:.3px}',
+    '.hdr-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px}',
+    '.tier-badge{font-size:9px;font-weight:800;padding:4px 14px;border-radius:20px;background:'+ACL+';color:'+AC+';text-transform:uppercase;letter-spacing:1px;border:1.5px solid '+ACB+'}',
+    '.gen-date{font-size:10px;color:#8FA8B2;letter-spacing:.3px}',
     /* Hero */
-    '.hero{border-radius:18px;padding:28px 34px;margin-bottom:24px;background:'+HBG+'}',
-    '.hero-inner{display:flex;align-items:center;gap:30px}',
-    '.score-circle{background:rgba(255,255,255,.08);border:3px solid rgba(255,255,255,.2);border-radius:50%;width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}',
-    '.score-num{font-family:"Playfair Display",Georgia,serif;font-size:40px;font-weight:900;color:'+scoreCol+';line-height:1}',
-    '.score-denom{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}',
-    '.val-main-num{font-family:"Playfair Display",Georgia,serif;font-size:42px;font-weight:900;color:#C5BFFF;line-height:1}',
-    '.hero-co{font-size:19px;font-weight:700;color:#fff;margin-bottom:4px}',
-    '.hero-cin{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:rgba(255,255,255,.45);margin-bottom:6px}',
-    '.hero-meta{font-size:10.5px;color:rgba(255,255,255,.5)}',
-    '.hero-tag{font-size:9px;font-weight:700;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);display:inline-block;margin-top:6px}',
-    /* Section heading */
-    '.sec-head{margin:28px 0 12px;display:flex;align-items:center;gap:10px;page-break-after:avoid;break-after:avoid}',
-    '.sec-bar{width:4px;border-radius:3px;background:'+AC+';flex-shrink:0;align-self:stretch;min-height:16px}',
-    '.sec-label{font-size:9.5px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:1.1px}',
-    '.sec-sub{font-size:9px;color:#8FA8B2;margin-left:auto;font-weight:500}',
-    /* KPI grid */
-    '.kv4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}',
-    '.kv6{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:16px}',
-    '.kv{background:#F4FAFB;border:1px solid #DFF0F3;border-radius:9px;padding:11px 10px;text-align:center}',
-    '.kv-v{font-family:"Playfair Display",Georgia,serif;font-size:15px;font-weight:700;color:#0F1E25;line-height:1.2}',
+    '.hero{border-radius:20px;padding:30px 36px;margin-bottom:28px;background:'+HBG+';position:relative;overflow:hidden}',
+    '.hero::before{content:"";position:absolute;top:-60px;right:-60px;width:250px;height:250px;border-radius:50%;background:rgba(255,255,255,.04)}',
+    '.hero::after{content:"";position:absolute;bottom:-40px;left:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.03)}',
+    '.hero-inner{display:flex;align-items:center;gap:28px;position:relative;z-index:1}',
+    '.score-circle{background:rgba(255,255,255,.1);border:3px solid rgba(255,255,255,.25);border-radius:50%;width:108px;height:108px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 30px rgba(0,0,0,.2)}',
+    '.score-num{font-family:"Playfair Display",Georgia,serif;font-size:42px;font-weight:900;color:'+scoreCol+';line-height:1}',
+    '.score-denom{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;letter-spacing:.5px}',
+    '.hero-co{font-size:21px;font-weight:700;color:#fff;margin-bottom:5px;line-height:1.2}',
+    '.hero-cin{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:rgba(255,255,255,.4);margin-bottom:8px;letter-spacing:.5px}',
+    '.hero-meta{font-size:11px;color:rgba(255,255,255,.55);line-height:1.5}',
+    '.hero-tag{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.75);margin-top:8px;letter-spacing:.4px;text-transform:uppercase}',
+    /* Section headings */
+    '.sec-head{margin:30px 0 14px;display:flex;align-items:center;gap:10px;page-break-after:avoid;break-after:avoid}',
+    '.sec-bar{width:4px;min-height:20px;border-radius:3px;background:'+AC+';flex-shrink:0;align-self:stretch}',
+    '.sec-label{font-size:10px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:1.2px}',
+    '.sec-sub{font-size:9.5px;color:#8FA8B2;margin-left:auto;font-weight:500;letter-spacing:.3px}',
+    /* KPI Grid */
+    '.kv4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}',
+    '.kv6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:18px}',
+    '.kv{background:linear-gradient(135deg,#F4FAFB,#EBF5F7);border:1px solid #D8EDF0;border-radius:12px;padding:14px 12px;text-align:center;transition:.2s}',
+    '.kv-v{font-family:"Playfair Display",Georgia,serif;font-size:16px;font-weight:700;color:#0F1E25;line-height:1.2}',
     '.kv-v.g{color:#1A9E6B}.kv-v.a{color:#C8820A}.kv-v.r{color:#C0392B}',
-    '.kv-l{font-size:8.5px;color:#6B8A94;text-transform:uppercase;letter-spacing:.4px;margin-top:4px;font-weight:600}',
-    /* Valuation range */
-    '.vr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}',
-    '.vr-box{text-align:center;padding:18px 12px;border-radius:12px;border:1px solid #DFF0F3;background:#F8FDFE}',
-    '.vr-box.hi{background:linear-gradient(135deg,rgba(91,78,212,.1),rgba(91,78,212,.04));border:2px solid rgba(91,78,212,.35);box-shadow:0 4px 20px rgba(91,78,212,.12)}',
-    '.vr-lbl{font-size:8.5px;color:#6B8A94;text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px;font-weight:700}',
-    '.vr-num{font-family:"Playfair Display",Georgia,serif;font-size:22px;font-weight:900;color:#3B30B0;line-height:1}',
-    '.vr-box.hi .vr-num{font-size:28px;color:#1A1560}',
-    '.vr-note{font-size:9px;color:#8FA8B2;margin-top:5px}',
-    /* Price band */
-    '.pb-card{padding:18px 24px;background:linear-gradient(135deg,rgba(91,78,212,.06),rgba(91,78,212,.02));border:1.5px solid rgba(91,78,212,.25);border-radius:14px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}',
-    '.pb-num{font-family:"Playfair Display",Georgia,serif;font-size:30px;font-weight:900;color:#1A1560;line-height:1}',
-    '.pb-label{font-size:9.5px;font-weight:800;color:#5B4ED4;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}',
-    '.pb-note{font-size:10px;color:#8FA8B2;margin-top:5px}',
+    '.kv-l{font-size:8.5px;color:#6B8A94;text-transform:uppercase;letter-spacing:.5px;margin-top:5px;font-weight:600}',
     /* Tables */
-    '.tbl-wrap{overflow:hidden;margin-bottom:16px;border-radius:10px;border:1px solid #DFF0F3;box-shadow:0 2px 8px rgba(0,0,0,.04)}',
+    '.tbl-wrap{overflow:hidden;margin-bottom:18px;border-radius:12px;border:1px solid #DFF0F3;box-shadow:0 2px 12px rgba(13,92,107,.06)}',
     '.tbl-wrap table{width:100%;border-collapse:collapse;font-size:11px}',
-    '.tbl-wrap th{background:'+ACL+';font-size:9px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:.5px;padding:9px 13px;text-align:left;white-space:nowrap;border-bottom:1.5px solid '+ACB+'}',
-    '.tbl-wrap td{padding:9px 13px;border-bottom:1px solid #EEF5F7;vertical-align:top}',
+    '.tbl-wrap th{background:'+ACL+';font-size:9px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:.6px;padding:10px 14px;text-align:left;white-space:nowrap;border-bottom:2px solid '+ACB+'}',
+    '.tbl-wrap td{padding:10px 14px;border-bottom:1px solid #EEF5F7;vertical-align:top;line-height:1.5}',
     '.tbl-wrap tbody tr:last-child td{border-bottom:none}',
-    '.tbl-wrap tbody tr:nth-child(even) td{background:#FAFCFD}',
+    '.tbl-wrap tbody tr:nth-child(even) td{background:rgba(13,92,107,.02)}',
+    '.tbl-wrap tbody tr:hover td{background:rgba(13,92,107,.04)}',
     '.tbl-wrap .hl-row td{background:'+ACL+'!important;font-weight:700;color:'+AC+';border-top:2px solid '+AC+'}',
-    /* WACC */
-    '.wacc2{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:18px}',
-    '.wacc-tbl-card{background:#F4FAFB;border:1px solid #DFF0F3;border-radius:10px;padding:14px}',
-    '.wacc-val-card{background:linear-gradient(135deg,rgba(91,78,212,.08),rgba(91,78,212,.03));border:2px solid rgba(91,78,212,.3);border-radius:12px;padding:22px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}',
-    '.wacc-big{font-family:"Playfair Display",Georgia,serif;font-size:54px;font-weight:900;color:#3B30B0;line-height:1}',
-    '.wacc-formula{font-family:"JetBrains Mono",monospace;font-size:9px;color:#6B8A94;margin-top:10px;line-height:1.5}',
-    /* Projections */
-    '.proj-note{font-size:10px;color:#8FA8B2;margin-top:-10px;margin-bottom:14px;font-style:italic}',
-    /* DCF bridge */
-    '.dcf2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}',
-    '.dcf-card{background:#F4FAFB;border:1px solid #DFF0F3;border-radius:10px;padding:14px}',
-    '.dcf-row{display:flex;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #EEF5F7;font-size:11.5px}',
-    '.dcf-row:last-child{border-bottom:none}',
-    '.dcf-row.total{border-top:2px solid '+AC+';font-weight:800;color:'+AC+';font-size:12.5px}',
-    '.dcf-row.sub{color:#C0392B}',
-    /* Drivers/Risks */
-    '.dr2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}',
-    '.dr-card{border-radius:10px;padding:14px 16px}',
-    '.dr-head{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}',
-    '.dr-item{display:flex;gap:8px;margin-bottom:8px;font-size:11.5px;line-height:1.6;align-items:flex-start}',
-    '.dr-icon{flex-shrink:0;font-size:12px;margin-top:1px}',
-    /* Compliance */
-    '.comp-box{background:'+ACL+';border:1px solid '+ACB+';border-radius:10px;padding:14px 16px;margin-bottom:16px}',
-    '.comp-head{font-size:9.5px;font-weight:800;color:'+AC+';text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}',
-    '.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}',
-    '.comp-item{display:flex;gap:6px;font-size:10.5px;color:#4A6A75;align-items:flex-start}',
-    '.comp-check{color:'+AC+';font-weight:800;flex-shrink:0}',
-    /* MCA data */
-    '.mca-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px}',
-    '.mca-item{background:#F4FAFB;border:1px solid #DFF0F3;border-radius:8px;padding:8px 12px}',
-    '.mca-l{font-size:9px;font-weight:700;color:#6B8A94;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}',
-    '.mca-v{font-size:11.5px;font-weight:600;color:#0F1E25}',
+    /* Dimension scores */
+    '.dim6{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px}',
+    '.dim-box{text-align:center;padding:14px 8px;border-radius:12px;border:1.5px solid;transition:.2s}',
     /* AI report body */
-    '.ai{font-size:12px;line-height:1.82;color:#0F1E25;word-break:break-word;overflow-wrap:break-word}',
-    '.ai h1{font-family:"Playfair Display",Georgia,serif;font-size:20px;font-weight:700;color:'+ACD+';margin:32px 0 12px;padding-bottom:8px;border-bottom:2px solid '+ACL+';page-break-before:always}',
+    '.ai{font-size:12px;line-height:1.82;color:#0F1E25;word-break:break-word}',
+    '.ai h1{font-family:"Playfair Display",Georgia,serif;font-size:22px;font-weight:700;color:'+ACD+';margin:36px 0 14px;padding-bottom:10px;border-bottom:2px solid '+ACL+';page-break-before:always}',
     '.ai h1:first-child{page-break-before:avoid}',
-    '.ai h2{font-size:14px;font-weight:800;color:'+AC+';margin:22px 0 9px;padding:8px 12px;background:'+ACL+';border-left:4px solid '+AC+';border-radius:0 5px 5px 0}',
-    '.ai h3{font-size:12.5px;font-weight:700;color:#2A4A55;margin:16px 0 6px;border-bottom:1px dashed #DFF0F3;padding-bottom:4px}',
-    '.ai h4{font-size:11.5px;font-weight:700;color:#4A7A80;margin:12px 0 5px}',
-    '.ai p{margin-bottom:10px}',
-    '.ai ul{padding-left:20px;margin-bottom:10px}',
-    '.ai ol{padding-left:20px;margin-bottom:10px}',
-    '.ai li{margin-bottom:6px;padding-left:4px}',
+    '.ai h2{font-size:15px;font-weight:800;color:'+AC+';margin:24px 0 10px;padding:10px 14px 10px 16px;background:'+ACL+';border-left:5px solid '+AC+';border-radius:0 8px 8px 0}',
+    '.ai h3{font-size:13px;font-weight:700;color:#2A4A55;margin:18px 0 7px;padding-bottom:4px;border-bottom:1px dashed #DFF0F3}',
+    '.ai h4{font-size:12px;font-weight:700;color:#4A7A80;margin:14px 0 5px;text-transform:uppercase;letter-spacing:.4px;font-size:10.5px}',
+    '.ai p{margin-bottom:11px}',
+    '.ai ul{padding-left:22px;margin-bottom:11px}',
+    '.ai ol{padding-left:22px;margin-bottom:11px}',
+    '.ai li{margin-bottom:7px;padding-left:4px;line-height:1.65}',
     '.ai strong{color:'+ACD+';font-weight:700}',
     '.ai em{font-style:italic;color:#4A6A75}',
-    '.ai hr{border:none;border-top:2px solid '+ACL+';margin:24px 0}',
-    '.ai .tbl-wrap{margin-bottom:14px}',
-    '.ai .gap-card{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;padding:12px 14px;background:#FAFCFD;border-radius:8px;border:1px solid #E0EEF0;border-left:4px solid #C0392B}'+'.ai .gap-body{flex:1;font-size:11.5px;line-height:1.7}'+'.ai .sev-badge{display:inline-block;font-size:8.5px;font-weight:800;padding:2px 8px;border-radius:10px;margin-right:6px;text-transform:uppercase;letter-spacing:.5px}'+'.ai .num-badge{background:rgba(192,57,43,.1);color:#C0392B;font-weight:800;font-size:11px;padding:3px 8px;border-radius:6px;flex-shrink:0;align-self:flex-start;min-width:28px;text-align:center}'+'.ai .numbered strong{color:#C0392B}',
-    '.ai .num-badge{background:'+ACL+';color:'+AC+';font-weight:800;font-size:10px;padding:2px 7px;border-radius:10px;flex-shrink:0}',
-    /* Disclaimer */
-    '.disclaimer{background:#F8FAFB;border:1px solid #DFF0F3;border-radius:10px;padding:14px 16px;margin-top:20px;font-size:10.5px;color:#6B8A94;line-height:1.7}',
+    '.ai hr{border:none;border-top:2px solid '+ACL+';margin:28px 0}',
+    '.ai blockquote{margin:14px 0;padding:12px 18px;background:rgba(201,147,42,.06);border-left:4px solid #C8820A;border-radius:0 8px 8px 0;font-style:italic;color:#5A4A20}',
+    '.ai .gap-card{display:flex;gap:12px;margin-bottom:12px;padding:13px 16px;background:#FAFCFD;border-radius:10px;border:1px solid #E0EEF0;border-left:4px solid #C0392B;align-items:flex-start}',
+    '.ai .num-badge{background:'+ACL+';color:'+AC+';font-weight:800;font-size:11px;padding:3px 9px;border-radius:8px;flex-shrink:0;min-width:28px;text-align:center}',
+    '.ai .gap-body{flex:1;font-size:11.5px;line-height:1.7}',
+    '.ai .sev-badge{display:inline-block;font-size:8.5px;font-weight:800;padding:2px 8px;border-radius:10px;margin-right:6px;text-transform:uppercase;letter-spacing:.5px}',
+    /* Disclaimer & footer */
+    '.disclaimer{background:linear-gradient(135deg,rgba(13,92,107,.04),rgba(13,92,107,.02));border:1px solid #DFF0F3;border-radius:12px;padding:16px 18px;margin-top:24px;font-size:10.5px;color:#6B8A94;line-height:1.7}',
     '.disclaimer strong{color:#0F1E25}',
-    /* Footer */
-    '.footer{margin-top:30px;padding-top:14px;border-top:1.5px solid #E0EEF0;display:flex;justify-content:space-between;font-size:10px;color:#8FA8B2;flex-wrap:wrap;gap:6px}',
+    '.footer{margin-top:28px;padding-top:16px;border-top:2px solid #E0EEF0;display:flex;justify-content:space-between;font-size:10px;color:#8FA8B2;flex-wrap:wrap;gap:6px}',
     /* Print */
     '@media print{',
-    '  @page{size:A4;margin:14mm 12mm}',
-    '  body{font-size:10.5px}',
+    '  @page{size:A4;margin:12mm 10mm}',
+    '  body{font-size:10px}',
     '  .page{padding:0;max-width:100%}',
-    '  .hero,.vr-box,.vr-box.hi,.wacc-val-card,.kv,.comp-box{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    '  .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}',
+    '  .kv,.dim-box,.tbl-wrap{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
     '  .sec-head{break-after:avoid;page-break-after:avoid}',
-    '  .kv4,.kv6,.vr3,.dr2,.dcf2,.wacc2{break-inside:avoid;page-break-inside:avoid}',
+    '  .kv4,.kv6,.dim6{break-inside:avoid;page-break-inside:avoid}',
     '  table{break-inside:auto}',
     '  thead{display:table-header-group}',
     '  tr{break-inside:avoid;page-break-inside:avoid}',
     '  .ai h1{break-before:page;page-break-before:page}',
-    '  .ai h1:first-child,.ai h2{break-before:avoid;page-break-before:avoid}',
+    '  .ai h1:first-child{break-before:avoid;page-break-before:avoid}',
+    '  .ai h2{break-before:avoid;page-break-before:avoid}',
+    '  .ai .gap-card{break-inside:avoid}',
     '}'
   ].join('\n');
 
@@ -3546,19 +3596,12 @@ function buildReport(tier){ return buildReportHTML(tier); }
 function previewReport(tier){
   var r = buildReportHTML(tier);
   if(!r){ alert('Run AIRA first to generate a report.'); return; }
-  var w = window.open('','_blank');
-  if(w&&w.document){
-    var bar='<div style="position:sticky;top:0;z-index:999;background:'+
-      (tier==='valdoc'||tier==='valintel'?'#1A1560':'#052028')+
-      ';padding:10px 22px;display:flex;align-items:center;gap:14px;font-family:-apple-system,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.3)">'
-      +'<span style="font-size:16px;font-weight:900;color:#fff;font-family:Georgia,serif">ipowork<sup style="font-size:10px;color:#E88A2E">AI</sup></span>'
-      +'<span style="flex:1;font-size:11px;color:rgba(255,255,255,.5)">'+r.company+(r.score?' &mdash; Score: '+r.score:'')+'</span>'
-      +'<button onclick="window.print()" style="padding:8px 20px;background:#E88A2E;color:#fff;border:none;border-radius:7px;font-weight:800;font-size:12px;cursor:pointer;font-family:-apple-system,sans-serif">Print / Save PDF</button>'
-      +'<button onclick="window.close()" style="padding:8px 14px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:7px;font-size:12px;cursor:pointer;margin-left:4px">Close</button>'
-      +'</div>';
-    w.document.write(r.htm.replace('<body>','<body>'+bar));
-    w.document.close(); w.focus();
-  } else { alert('Please allow popups for this site.'); }
+  var blob = new Blob([r.htm], {type:'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
 }
 
 function downloadReport(tier){
@@ -3566,11 +3609,11 @@ function downloadReport(tier){
   if(!r){ alert('Run AIRA first to generate a report.'); return; }
   try{
     var blob = new Blob([r.htm], {type:'text/html;charset=utf-8'});
-    var url  = URL.createObjectURL(blob);
-    var a    = document.createElement('a');
-    a.href   = url;
-    a.download = 'ipowork-'+(r.company||tier).replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').substring(0,40)
-      +'-'+r.tier+'-'+new Date().toISOString().slice(0,10)+'.html';
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'AIRA-Report-'+(r.company||tier).replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-').substring(0,35)
+      +'-'+new Date().toISOString().slice(0,10)+'.html';
     document.body.appendChild(a); a.click();
     setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 3000);
   } catch(e2){
