@@ -591,6 +591,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
 <script>
 var WORKER='https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+/* ── Global state ── */
+var ATTS=[],MAX_F=8,MAX_C=18000,MAX_T=65000;
+var VS={bRec:null,bFin:'',dRec:null,dFin:''};
 // PDF.js worker — set after DOM ready to avoid "fake worker" warning
 (function setPDFWorker(){
   var workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -599,8 +602,6 @@ var WORKER='https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
   } else {
     document.addEventListener('DOMContentLoaded',function(){
       if(typeof pdfjsLib!=='undefined') pdfjsLib.GlobalWorkerOptions.workerSrc=workerSrc;
-      /* Auto-open in demo mode — no sign-in required */
-      doDemo();
     });
   }
 })();
@@ -1121,9 +1122,14 @@ async function startResearch(){
     await autoFetchP42();
     btn.disabled=false;btn.textContent='🧠 Run AI Company Intelligence Analysis — 15 Modules →';
   }
-  S.co=document.getElementById('i-co').value.trim();
-  S.sec=document.getElementById('i-sec').value;
-  if(!S.co||!S.sec){ alert('Please enter company name and select sector.'); return; }
+  // Use Probe42 data as fallback for company name
+  S.co=(document.getElementById('i-co').value||'').trim();
+  if(!S.co&&P42&&P42.ok&&P42.data)S.co=P42.data.company_name||'';
+  S.sec=(document.getElementById('i-sec').value||'').trim();
+  // Auto-select sector based on company type if empty
+  if(!S.sec&&P42&&P42.ok)S.sec='Financial Services / BFSI';
+  if(!S.co){ alert('Please enter company name or fetch Probe42 data first.'); return; }
+  if(!S.sec){ alert('Please select a sector.'); return; }
   var notReady=ATTS.filter(function(a){ return a.status==='processing'; });
   if(notReady.length){ alert('Please wait \u2014 '+notReady.length+' file(s) still processing.'); return; }
   S.stg=document.getElementById('i-stg').value;
@@ -1154,16 +1160,17 @@ function buildCtx(){
   if(S.geo) c+='Geography: '+S.geo+nl;
   if(S.yr) c+='Year: '+S.yr+nl;
   if(S.inv) c+='Investors/Debt: '+S.inv+nl;
-  if(typeof VS!=='undefined'&&VS.bFin&&VS.bFin.length>10) c+=nl+'=== VOICE BRIEFING ==='+nl+VS.bFin+nl;
+  if(VS&&VS.bFin&&VS.bFin.length>10) c+=nl+'=== VOICE BRIEFING ==='+nl+VS.bFin+nl;
   if(P42&&P42.ok&&P42.ctx)c+=P42.ctx;
   return c;
 }
 
 function buildSourceBadges(){
-  var docs=ATTS.filter(function(a){ return a.status==='ready'; });
+  var docs=(ATTS||[]).filter(function(a){ return a.status==='ready'; });
   var html='';
-  if(docs.length) html+='<span class="source-pill sp-doc">\ud83d\udcce '+docs.length+' doc'+(docs.length>1?'s':'')+'</span>';
-  if(VS.bFin.length>10) html+='<span class="source-pill sp-voice">\ud83c\udfa4 voice</span>';
+  if(P42&&P42.ok) html+='<span class="sp sp-d">🔗 Probe42</span>';
+  if(docs.length) html+='<span class="sp sp-d">📎 '+docs.length+' doc'+(docs.length>1?'s':'')+'</span>';
+  if(VS&&VS.bFin&&VS.bFin.length>10) html+='<span class="sp sp-voice">\ud83c\udfa4 voice</span>';
   var scans=docs.filter(function(a){ return a.name.indexOf('Scanned_')===0; }).length;
   if(scans) html+='<span class="source-pill sp-scan">\ud83d\udcf7 '+scans+' scan'+(scans>1?'s':'')+'</span>';
   document.getElementById('src-bar').innerHTML=html;
@@ -1461,6 +1468,52 @@ function resetApp(){
   S={company:'',sector:'',stage:'',desc:'',rev:'',comp:'',promoter:'',geo:'',depth:'standard',running:false,results:{},completedCount:0,startTime:null,context:''};
   initSide();
 }
+
+/* ── File handling (stubs - full version in main aira.html) ── */
+function fi(n){var e=(n.split('.').pop()||'').toLowerCase();return {pdf:'📄',xlsx:'📊',xls:'📊',csv:'📋',docx:'📝',doc:'📝',txt:'📃',png:'🖼',jpg:'🖼',jpeg:'🖼'}[e]||'📎';}
+function fsz(b){return b>1048576?(b/1048576).toFixed(1)+'MB':(b/1024).toFixed(0)+'KB';}
+function trunc(s,m){if(!s||s.length<=m)return s;return s.slice(0,m)+'\n[truncated]';}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function removeFile(id){ATTS=ATTS.filter(function(a){return a.id!==id;});renderFiles();}
+function renderFiles(){
+  var el=document.getElementById('files-list');
+  if(!el||!ATTS.length){if(el)el.innerHTML='';return;}
+  var html='';
+  ATTS.forEach(function(a){
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--card2);border:1px solid var(--bdr);border-radius:8px;margin-bottom:5px">'
+      +'<span>'+fi(a.name)+'</span><div style="flex:1"><div style="font-size:12px;font-weight:700">'+esc(a.name)+'</div>'
+      +'<div style="font-size:9px;color:var(--mu)">'+fsz(a.size)+'</div></div>'
+      +'<span style="font-size:12px;font-weight:600;color:'+(a.status==='ready'?'var(--ok)':'var(--mu)')+'">'+( a.status==='ready'?'✓ Ready':'⟳')+'</span>'
+      +'<button data-rid="'+a.id+'" style="background:none;border:none;color:var(--mu);cursor:pointer;font-size:14px">×</button></div>';
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('[data-rid]').forEach(function(b){b.addEventListener('click',function(){removeFile(this.dataset.rid);});});
+}
+function doFiles(files){Array.from(files).forEach(addFile);}
+function addFile(file){
+  if(ATTS.length>=MAX_F){alert('Max '+MAX_F+' files.');return;}
+  var id='f'+Date.now();
+  var att={id:id,name:file.name,size:file.size,status:'processing',content:null,isBase64:false,mediaType:null};
+  ATTS.push(att);renderFiles();
+  var r=new FileReader();
+  r.onload=function(e){att.content=trunc(e.target.result,MAX_C);att.status='ready';renderFiles();};
+  r.onerror=function(){att.status='error';renderFiles();};
+  r.readAsText(file);
+}
+/* File input handlers */
+document.addEventListener('DOMContentLoaded',function(){
+  var fp=document.getElementById('f-pick');
+  if(fp)fp.addEventListener('change',function(){doFiles(this.files);this.value='';});
+  var cp=document.getElementById('cam-pick');
+  if(cp)cp.addEventListener('change',function(){doFiles(this.files);this.value='';});
+  var dz=document.getElementById('drop-zone');
+  if(dz){
+    dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over');});
+    dz.addEventListener('dragleave',function(){dz.classList.remove('over');});
+    dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('over');doFiles(e.dataTransfer.files);});
+  }
+  doDemo();
+});
 </script>
 
 </body></html>
