@@ -123,22 +123,25 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 /* ── SIDEBAR ── */
 .side-head{padding:14px 16px 12px;border-bottom:1px solid var(--bdr)}
 .ring-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.prog-lbl{font-size:13px;color:var(--mut)}
-.prog-lbl strong{color:var(--amber);font-size:13px;font-family:var(--mono)}
+.prog-lbl{font-size:12px;color:var(--mu);letter-spacing:.2px}
+.prog-lbl strong{color:var(--tl);font-size:13px;font-family:var(--mono);font-weight:800}
 .co-chip{background:var(--card);border:1px solid var(--bdr2);border-radius:8px;padding:8px 12px;display:none}
 .mod-list{flex:1;overflow-y:auto;padding:8px 0}
-.mod-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;transition:.15s;border-left:2px solid transparent}
-.mod-item:hover{background:rgba(255,255,255,.02)}
-.mod-item.active{background:rgba(191,160,106,.05);border-left-color:var(--amber)}
-.mod-item.running{background:rgba(0,212,245,.04);border-left-color:var(--cyan)}
-.mod-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;font-family:var(--mono)}
-.dp{background:var(--dimmer);border:1px solid var(--dim);color:var(--dim)}
-.dr{background:rgba(0,212,245,.1);border:1px solid var(--cyan);animation:pr .8s infinite}
-.dd{background:rgba(123,191,160,.1);border:1px solid var(--green);color:var(--green)}
-@keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(0,212,245,.4)}50%{box-shadow:0 0 0 4px rgba(0,212,245,0)}}
-.mod-name{font-size:13px;font-weight:600;color:var(--mut);flex:1;line-height:1.4}
-.mod-item.active .mod-name,.mod-item.done .mod-name{color:var(--txt)}
-.mod-item.running .mod-name{color:var(--cyan)}
+.mod-item{display:flex;align-items:center;gap:9px;padding:9px 14px 9px 16px;cursor:pointer;transition:.15s;border-left:3px solid transparent;position:relative}
+.mod-item:hover{background:rgba(13,92,107,.04);border-left-color:rgba(13,92,107,.3)}
+.mod-item.active{background:linear-gradient(135deg,rgba(13,92,107,.08),rgba(13,92,107,.04));border-left-color:var(--tl);box-shadow:inset 0 0 0 1px rgba(13,92,107,.08)}
+.mod-item.running{background:rgba(232,138,46,.04);border-left-color:var(--amber)}
+.mod-item.done{background:rgba(26,158,107,.04);border-left-color:var(--ok)}
+.mod-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;font-family:var(--mono);transition:.2s}
+.dp{background:rgba(13,92,107,.06);border:1.5px solid rgba(13,92,107,.2);color:var(--mu)}
+.dr{background:rgba(232,138,46,.12);border:1.5px solid var(--amber);color:var(--amber);animation:pr .8s infinite}
+.dd{background:rgba(26,158,107,.12);border:1.5px solid var(--ok);color:var(--ok)}
+@keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(232,138,46,.4)}50%{box-shadow:0 0 0 4px rgba(232,138,46,0)}}
+.mod-name{font-size:12px;font-weight:500;color:var(--mu);flex:1;line-height:1.4;transition:.15s}
+.mod-item:hover .mod-name{color:var(--tl)}
+.mod-item.active .mod-name{color:var(--tld);font-weight:700}
+.mod-item.done .mod-name{color:var(--ok);font-weight:600}
+.mod-item.running .mod-name{color:var(--amber);font-weight:600}
 .side-foot{padding:10px 16px;border-top:1px solid var(--bdr)}
 .ov-score{background:var(--card);border:1px solid var(--bdr2);border-radius:10px;padding:12px;text-align:center;display:none}
 .ov-score.on{display:block}
@@ -624,7 +627,7 @@ async function autoFetchP42(){
     if(sb){sb.textContent='✓ Verified';sb.style.color='var(--ok)';}
     // Auto-fill company name
     var nc=document.getElementById('i-co');
-    if(nc&&!nc.value&&d.company_name)nc.value=d.company_name;
+    if(nc&&d.company_name)nc.value=d.company_name;  // Always fill company name
     // Show preview
     showP42Preview(d);
     P42.ctx=buildP42Ctx(d);
@@ -1210,7 +1213,7 @@ function renderSkeletons(){
 }
 
 async function runAll(){
-  var toks=S.depth==='quick'?700:S.depth==='deep'?2000:1300;
+  var toks=S.depth==='quick'?1200:S.depth==='deep'?4500:2500;
   for(var i=0;i<MODULES.length;i++){
     await runModule(MODULES[i],toks);
     S.done++; updateProgress();
@@ -1231,7 +1234,7 @@ function runModule(m,toks){
     var p42note=P42&&P42.ok?'PROBE42 MCA DATA above is primary source. Use exact numbers. ':'';
     var prompt='Analyse ['+m.name+'] for '+S.co+' ('+S.sec+')\n\n'+S.ctx+'\n\n'+p42note+(hasDocs?'ALL attached docs = PRIMARY. ':'No docs — use sector knowledge. ')+'Be specific and quantitative.';
     fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:toks,system:m.sys,messages:[{role:'user',content:buildContent(prompt)}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:toks,system:m.sys,messages:[{role:'user',content:buildContent(prompt)}]})
     })
     .then(function(r){ return r.json(); })
     .then(function(d){ var txt=(d.content||[]).map(function(c){ return c.text||''; }).join(''); if(!txt) txt='Analysis unavailable. Please retry.'; onDone(m,txt); resolve(); })
