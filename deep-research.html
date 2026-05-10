@@ -1200,22 +1200,32 @@ function buildContent(textPrompt){
    SEQUENTIAL RUNNER
 \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 function renderSkeletons(){
-  var c=document.getElementById('res-cont'); c.innerHTML='';
+  var c=document.getElementById('res-cont');
+  if(!c){console.error('res-cont not found');return;}
+  c.innerHTML='';
   MODULES.forEach(function(m){
-    var d=document.createElement('div'); d.className='mcard hidden'; d.id='mr-'+m.id;
-    d.innerHTML='<div class="mr-head">'+
-      '<div class="mr-icon" style="background:rgba(255,255,255,.03)">'+m.icon+'</div>'+
-      '<div class="mr-title">'+m.name+'</div>'+
-      '<span class="mr-cat" style="background:rgba(255,255,255,.04);color:var(--dim)">'+m.cat+'</span>'+
-      '<div class="mr-status" id="mrs-'+m.id+'">Pending</div>'+
-      '<div class="mr-toggle">\u25be</div></div>'+
-    '<div class="mr-loading" id="ml-'+m.id+'" style="display:none">'+
-      '<div class="spinner"></div>'+
-      '<div><div style="color:var(--cyan);font-size:11px;font-weight:600;margin-bottom:3px">Reading documents & analysing...</div>'+
-      '<div style="font-size:10px;color:var(--dim);font-family:var(--mono)">'+m.msg+'</div></div></div>'+
-    '<div class="mr-body" id="mb-'+m.id+'"></div>';
-    d.querySelector('.mc-head').addEventListener('click',function(){ d.classList.toggle('expanded'); });
-    c.appendChild(d);
+    var el=document.createElement('div');
+    el.className='mcard hidden';
+    el.id='mr-'+m.id;
+    el.innerHTML=
+      '<div class="mc-head" style="padding:14px 18px;display:flex;align-items:center;gap:11px;cursor:pointer;border-bottom:1px solid transparent;user-select:none">'+
+        '<div class="mc-icon" style="width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(13,92,107,.06)">'+m.icon+'</div>'+
+        '<div style="font-weight:800;font-size:13px;color:var(--sl);flex:1">'+m.name+'</div>'+
+        '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--bg);color:var(--mu)">'+m.cat+'</span>'+
+        '<div id="ms-'+m.id+'" style="font-size:12px;color:var(--mu);flex-shrink:0;font-family:var(--mono)">Pending</div>'+
+        '<div style="font-size:12px;color:var(--mu);transition:.2s;flex-shrink:0">▾</div>'+
+      '</div>'+
+      '<div id="ml-'+m.id+'" style="display:none;padding:18px;font-size:13px;color:var(--mu);align-items:center;gap:12px">'+
+        '<div class="spin"></div>'+
+        '<div><div style="color:var(--tl);font-size:12px;font-weight:600;margin-bottom:3px">Analysing with Probe42 data + AI...</div>'+
+        '<div style="font-size:11px;color:var(--mu);font-family:var(--mono)">'+( m.msg||'Running analysis...')+'</div></div>'+
+      '</div>'+
+      '<div id="mb-'+m.id+'" class="mc-body" style="display:none;padding:18px 20px"></div>';
+    el.querySelector('.mc-head').addEventListener('click',function(){
+      var body=el.querySelector('.mc-body');
+      if(body)body.style.display=body.style.display==='block'?'none':'block';
+    });
+    c.appendChild(el);
   });
 }
 
@@ -1231,8 +1241,8 @@ async function runAll(){
 function runModule(m,toks){
   return new Promise(function(resolve){
     var el=document.getElementById('mr-'+m.id);
-    el.classList.remove('hidden'); el.classList.add('running','expanded');
-    document.getElementById('ml-'+m.id).style.display='flex';
+    el.classList.remove('hidden');el.style.display='block';el.classList.add('running','expanded');
+    var loadEl=document.getElementById('ml-'+m.id);if(loadEl){loadEl.style.display='flex';}
     document.getElementById('ms-'+m.id).textContent='Analysing...';
     var mi=document.getElementById('mi-'+m.id); if(mi) mi.classList.add('running','active');
     var dot=document.getElementById('dot-'+m.id); if(dot){ dot.className='mod-dot dr'; dot.textContent='\u27f3'; }
@@ -1252,21 +1262,22 @@ function runModule(m,toks){
 function onDone(m,text){
   S.results[m.id]=text;
   var el=document.getElementById('mr-'+m.id);
-  el.classList.remove('running'); el.classList.add('done');
-  document.getElementById('ml-'+m.id).style.display='none';
-  document.getElementById('ms-'+m.id).textContent='\u2713 Done';
-  document.getElementById('mb-'+m.id).innerHTML=renderContent(text,m);
+  if(!el)return;
+  el.classList.remove('running','hidden');
+  el.classList.add('done');
+  var ld=document.getElementById('ml-'+m.id);if(ld)ld.style.display='none';
+  var st=document.getElementById('ms-'+m.id);if(st)st.textContent='✓ Done';
+  var body=document.getElementById('mb-'+m.id);
+  if(body){body.innerHTML=renderContent(text,m);}el.classList.add('expanded');
+  // Color the icon background
   var head=el.querySelector('.mc-head');
-  head.querySelector('.mr-icon').style.background=rgba(m.col,.08);
-  head.querySelector('.mr-cat').style.background=rgba(m.col,.08);
-  head.querySelector('.mr-cat').style.color=m.col;
-  var dot=document.getElementById('dot-'+m.id); if(dot){ dot.className='mod-dot dd'; dot.textContent='\u2713'; }
-  var mi=document.getElementById('mi-'+m.id); if(mi){ mi.classList.remove('running'); mi.classList.add('done'); }
+  if(head&&m.col){head.style.borderBottom='1px solid rgba(13,92,107,.1)';}
+  var dot=document.getElementById('dot-'+m.id);
+  if(dot){dot.className='mod-dot dd';dot.textContent='✓';}
+  var mi=document.getElementById('mi-'+m.id);
+  if(mi){mi.classList.remove('running');mi.classList.add('done');}
 }
 
-/* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-   CONTENT RENDERER
-\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 function renderContent(text,m){
   var html=text
     .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
