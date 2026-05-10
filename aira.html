@@ -3283,20 +3283,30 @@ function buildReportHTML(tier) {
     '.footer{margin-top:28px;padding-top:16px;border-top:2px solid #E0EEF0;display:flex;justify-content:space-between;font-size:10px;color:#8FA8B2;flex-wrap:wrap;gap:6px}',
     /* Print */
     '@media print{',
-    '  @page{size:A4;margin:12mm 10mm}',
-    '  body{font-size:10px}',
-    '  .page{padding:0;max-width:100%}',
-    '  .hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid}',
-    '  .kv,.dim-box,.tbl-wrap{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    '  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}',
+    '  @page{size:A4;margin:10mm 12mm}',
+    '  html,body{height:auto!important;overflow:visible!important}',
+    '  body{font-size:10px!important;background:#fff!important}',
+    '  .page{padding:0!important;max-width:100%!important;height:auto!important}',
+    '  .hero{break-inside:avoid;page-break-inside:avoid}',
+    '  .kv,.kv-v,.dim-box,.tbl-wrap,.p42-card{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
     '  .sec-head{break-after:avoid;page-break-after:avoid}',
-    '  .kv4,.kv6,.dim6{break-inside:avoid;page-break-inside:avoid}',
-    '  table{break-inside:auto}',
+    '  .kv4,.kv6,.dim6,.p42-grid{break-inside:avoid;page-break-inside:avoid}',
+    '  table{break-inside:auto;width:100%}',
     '  thead{display:table-header-group}',
     '  tr{break-inside:avoid;page-break-inside:avoid}',
-    '  .ai h1{break-before:page;page-break-before:page}',
+    '  .ai{font-size:10.5px!important;line-height:1.7!important}',
+    '  .ai h1{font-size:16px!important;break-before:page;page-break-before:page;margin-top:0!important}',
     '  .ai h1:first-child{break-before:avoid;page-break-before:avoid}',
-    '  .ai h2{break-before:avoid;page-break-before:avoid}',
-    '  .ai .gap-card{break-inside:avoid}',
+    '  .ai h2{font-size:13px!important;break-before:avoid;break-after:avoid}',
+    '  .ai h3{font-size:12px!important;break-after:avoid}',
+    '  .ai p{margin-bottom:6px!important}',
+    '  .ai ul,.ai ol{padding-left:16px!important;margin-bottom:6px!important}',
+    '  .ai li{margin-bottom:3px!important}',
+    '  .ai .gap-card{break-inside:avoid;page-break-inside:avoid}',
+    '  .disclaimer{break-inside:avoid;margin-top:16px!important}',
+    '  .footer{margin-top:12px!important}',
+    '  .score-circle{-webkit-print-color-adjust:exact;print-color-adjust:exact}',
     '}'
   ].join('\n');
 
@@ -3694,7 +3704,17 @@ function buildReport(tier){ return buildReportHTML(tier); }
 function previewReport(tier){
   var r = buildReportHTML(tier);
   if(!r){ alert('Run AIRA first to generate a report.'); return; }
-  var blob = new Blob([r.htm], {type:'text/html;charset=utf-8'});
+  // Inject print toolbar into report HTML
+  var toolbar = '<div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#08404D;padding:10px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.3);font-family:-apple-system,sans-serif">'
+    +'<span style="font-size:16px;font-weight:900;color:#fff;font-family:Georgia,serif">ipowork<sup style="font-size:9px;color:#E88A2E;font-weight:800">AI</sup></span>'
+    +'<span style="flex:1;font-size:11px;color:rgba(255,255,255,.6)">'+r.company+(r.score?' &middot; Score: '+r.score+'/100':'')+'</span>'
+    +'<button onclick="window.print()" style="padding:8px 20px;background:#E88A2E;color:#fff;border:none;border-radius:8px;font-weight:800;font-size:12px;cursor:pointer;font-family:-apple-system,sans-serif">🖨 Print / Save PDF</button>'
+    +'<button onclick="window.close()" style="padding:8px 14px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:8px;font-size:12px;cursor:pointer">Close</button>'
+    +'</div>'
+    +'<style>@media print{div[style*="position:fixed"]{display:none!important}}</style>'
+    +'<div style="height:54px"></div>';
+  var fullHtml = r.htm.replace('<body>', '<body>'+toolbar);
+  var blob = new Blob([fullHtml], {type:'text/html;charset=utf-8'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url; a.target = '_blank'; a.rel = 'noopener';
