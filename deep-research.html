@@ -1087,8 +1087,8 @@ Signal tags: [IPO READY] [SME IPO CANDIDATE] [MAIN BOARD CANDIDATE] [IPO IN 12 M
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
    APP STATE
 \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
-var S={company:'',sector:'',stage:'',desc:'',rev:'',comp:'',promoter:'',geo:'',
-       depth:'standard',running:false,results:{},completedCount:0,startTime:null,context:''};
+var S={co:'',sec:'',stg:'',desc:'',rev:'',comp:'',prom:'',geo:'',yr:'',inv:'',
+       depth:'standard',running:false,results:{},done:0,start:null,ctx:''};
 
 document.querySelectorAll('.depth-btn').forEach(function(b){
   b.addEventListener('click',function(){ document.querySelectorAll('.depth-btn').forEach(function(x){ x.classList.remove('active'); }); this.classList.add('active'); S.depth=this.dataset.depth; });
@@ -1097,7 +1097,7 @@ document.querySelectorAll('.depth-btn').forEach(function(b){
 function initSide(){
   var el=document.getElementById('mod-list'); el.innerHTML='';
   MODULES.forEach(function(m){
-    var d=document.createElement('div'); d.className='module-item'; d.id='mi-'+m.id;
+    var d=document.createElement('div'); d.className='mod-item'; d.id='mi-'+m.id;
     d.innerHTML='<div class="module-dot md-pending" id="dot-'+m.id+'">'+m.num+'</div>'+
       '<div class="module-name">'+m.name+'</div>'+
       '<span class="module-cat" style="background:rgba(255,255,255,.04);color:var(--dim)">'+m.cat+'</span>';
@@ -1127,16 +1127,16 @@ async function startResearch(){
   S.desc=document.getElementById('i-desc').value.trim();
   S.rev=document.getElementById('i-rev').value.trim();
   S.comp=document.getElementById('i-comp').value.trim();
-  S.promoter=document.getElementById('i-prom').value.trim();
+  S.prom=document.getElementById('i-prom').value.trim();
   S.geo=document.getElementById('i-geo').value.trim();
-  S.running=true; S.results={}; S.completedCount=0; S.startTime=Date.now();
+  S.running=true; S.results={}; S.done=0; S.start=Date.now();
   document.getElementById('inp-phase').style.display='none';
-  document.getElementById('res-phase').classList.add('active');
+  document.getElementById('res-phase').classList.add('on');
   document.getElementById('btn-new').style.display='flex';
   document.getElementById('chip-n').textContent=S.co;
   document.getElementById('chip-s').textContent=S.sec+(S.stg?' \u00b7 '+S.stg:'');
   document.getElementById('co-chip').style.display='block';
-  document.getElementById('ov-score').classList.add('visible');
+  document.getElementById('ov-score').classList.add('on');
   buildSourceBadges(); S.ctx=buildCtx(); renderSkeletons(); runAll();
 }
 
@@ -1147,7 +1147,7 @@ function buildCtx(){
   if(S.desc) c+='Description: '+S.desc+nl;
   if(S.rev) c+='Revenue: '+S.rev+nl;
   if(S.comp) c+='Competitors: '+S.comp+nl;
-  if(S.prom||S.promoter) c+='Promoter/Founder: '+(S.prom||S.promoter)+nl;
+  if(S.prom||S.prom) c+='Promoter/Founder: '+(S.prom||S.prom)+nl;
   if(S.geo) c+='Geography: '+S.geo+nl;
   if(S.yr) c+='Year: '+S.yr+nl;
   if(S.inv) c+='Investors/Debt: '+S.inv+nl;
@@ -1192,19 +1192,19 @@ function buildContent(textPrompt){
 function renderSkeletons(){
   var c=document.getElementById('res-cont'); c.innerHTML='';
   MODULES.forEach(function(m){
-    var d=document.createElement('div'); d.className='module-result hidden'; d.id='mr-'+m.id;
+    var d=document.createElement('div'); d.className='mcard hidden'; d.id='mr-'+m.id;
     d.innerHTML='<div class="mr-head">'+
       '<div class="mr-icon" style="background:rgba(255,255,255,.03)">'+m.icon+'</div>'+
       '<div class="mr-title">'+m.name+'</div>'+
       '<span class="mr-cat" style="background:rgba(255,255,255,.04);color:var(--dim)">'+m.cat+'</span>'+
       '<div class="mr-status" id="mrs-'+m.id+'">Pending</div>'+
       '<div class="mr-toggle">\u25be</div></div>'+
-    '<div class="mr-loading" id="mrl-'+m.id+'" style="display:none">'+
+    '<div class="mr-loading" id="ml-'+m.id+'" style="display:none">'+
       '<div class="spinner"></div>'+
       '<div><div style="color:var(--cyan);font-size:11px;font-weight:600;margin-bottom:3px">Reading documents & analysing...</div>'+
       '<div style="font-size:10px;color:var(--dim);font-family:var(--mono)">'+m.msg+'</div></div></div>'+
-    '<div class="mr-body" id="mrb-'+m.id+'"></div>';
-    d.querySelector('.mr-head').addEventListener('click',function(){ d.classList.toggle('expanded'); });
+    '<div class="mr-body" id="mb-'+m.id+'"></div>';
+    d.querySelector('.mc-head').addEventListener('click',function(){ d.classList.toggle('expanded'); });
     c.appendChild(d);
   });
 }
@@ -1213,7 +1213,7 @@ async function runAll(){
   var toks=S.depth==='quick'?700:S.depth==='deep'?2000:1300;
   for(var i=0;i<MODULES.length;i++){
     await runModule(MODULES[i],toks);
-    S.completedCount++; updateProgress();
+    S.done++; updateProgress();
   }
   finalize();
 }
@@ -1222,10 +1222,10 @@ function runModule(m,toks){
   return new Promise(function(resolve){
     var el=document.getElementById('mr-'+m.id);
     el.classList.remove('hidden'); el.classList.add('running','expanded');
-    document.getElementById('mrl-'+m.id).style.display='flex';
-    document.getElementById('mrs-'+m.id).textContent='Analysing...';
+    document.getElementById('ml-'+m.id).style.display='flex';
+    document.getElementById('ms-'+m.id).textContent='Analysing...';
     var mi=document.getElementById('mi-'+m.id); if(mi) mi.classList.add('running','active');
-    var dot=document.getElementById('dot-'+m.id); if(dot){ dot.className='module-dot md-running'; dot.textContent='\u27f3'; }
+    var dot=document.getElementById('dot-'+m.id); if(dot){ dot.className='mod-dot dr'; dot.textContent='\u27f3'; }
     el.scrollIntoView({behavior:'smooth',block:'start'});
     var hasDocs=ATTS.filter(function(a){ return a.status==='ready'; }).length;
     var p42note=P42&&P42.ok?'PROBE42 MCA DATA above is primary source. Use exact numbers. ':'';
@@ -1243,14 +1243,14 @@ function onDone(m,text){
   S.results[m.id]=text;
   var el=document.getElementById('mr-'+m.id);
   el.classList.remove('running'); el.classList.add('done');
-  document.getElementById('mrl-'+m.id).style.display='none';
-  document.getElementById('mrs-'+m.id).textContent='\u2713 Done';
-  document.getElementById('mrb-'+m.id).innerHTML=renderContent(text,m);
-  var head=el.querySelector('.mr-head');
+  document.getElementById('ml-'+m.id).style.display='none';
+  document.getElementById('ms-'+m.id).textContent='\u2713 Done';
+  document.getElementById('mb-'+m.id).innerHTML=renderContent(text,m);
+  var head=el.querySelector('.mc-head');
   head.querySelector('.mr-icon').style.background=rgba(m.col,.08);
   head.querySelector('.mr-cat').style.background=rgba(m.col,.08);
   head.querySelector('.mr-cat').style.color=m.col;
-  var dot=document.getElementById('dot-'+m.id); if(dot){ dot.className='module-dot md-done'; dot.textContent='\u2713'; }
+  var dot=document.getElementById('dot-'+m.id); if(dot){ dot.className='mod-dot dd'; dot.textContent='\u2713'; }
   var mi=document.getElementById('mi-'+m.id); if(mi){ mi.classList.remove('running'); mi.classList.add('done'); }
 }
 
@@ -1291,16 +1291,16 @@ function ipoCard(label,val,col){
    PROGRESS & FINALIZE
 \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 function updateProgress(){
-  var pct=Math.round(S.completedCount/MODULES.length*100);
+  var pct=Math.round(S.done/MODULES.length*100);
   document.getElementById('prog-pct').textContent=pct+'%';
-  document.getElementById('prog-txt').textContent=S.completedCount+'/'+MODULES.length+' done';
+  document.getElementById('prog-txt').textContent=S.done+'/'+MODULES.length+' done';
   document.getElementById('ring').style.strokeDashoffset=107-(107*pct/100);
   document.getElementById('gp-fill').style.width=pct+'%';
 }
 
 function finalize(){
   S.running=false;
-  var elapsed=Math.round((Date.now()-S.startTime)/1000);
+  var elapsed=Math.round((Date.now()-S.start)/1000);
   document.getElementById('prog-txt').textContent='Done in '+elapsed+'s';
   /* Weighted overall score using PE/VC weighting */
   var ws=0,wt=0;
@@ -1315,7 +1315,7 @@ function finalize(){
   document.getElementById('ov-fill').style.width=(ov/10*100)+'%';
   document.getElementById('ov-fill').style.background=gc;
   renderSummary(ov,gr,gc,elapsed);
-  document.getElementById('export-bar').classList.add('show');
+  document.getElementById('export-bar').classList.add('on');
 }
 
 function renderSummary(ov,gr,gc,elapsed){
@@ -1437,11 +1437,11 @@ function copyReport(){
 }
 function resetApp(){
   document.getElementById('inp-phase').style.display='flex';
-  document.getElementById('res-phase').classList.remove('active');
-  document.getElementById('export-bar').classList.remove('show');
+  document.getElementById('res-phase').classList.remove('on');
+  document.getElementById('export-bar').classList.remove('on');
   document.getElementById('btn-new').style.display='none';
   document.getElementById('co-chip').style.display='none';
-  document.getElementById('ov-score').classList.remove('visible');
+  document.getElementById('ov-score').classList.remove('on');
   document.getElementById('res-cont').innerHTML='';
   document.getElementById('res-final').innerHTML='';
   document.getElementById('gp-fill').style.width='0';
