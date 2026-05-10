@@ -267,14 +267,17 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .sp-d{background:rgba(191,160,106,.1);color:var(--amber);border:1px solid rgba(191,160,106,.2)}
 .sp-v{background:rgba(155,142,196,.1);color:var(--purple);border:1px solid rgba(155,142,196,.2)}
 @media print{
-  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  @page{size:A4;margin:12mm 14mm}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box!important}
+  @page{size:A4 portrait;margin:10mm 12mm}
+  html{height:auto!important;overflow:visible!important;font-size:10px}
+  body{height:auto!important;overflow:visible!important;background:#fff!important;color:#0F1E25!important;font-size:10px!important;font-family:'Sora',sans-serif!important;margin:0!important;padding:0!important}
   #gate,#toast,.bar,.side,.export-bar,.gp,.inp-phase,.act-row,.drop,#drop-zone,
-  #files-list,.vbox,.depth-row,.start-btn,.disc,#btn-new,.bar-right{display:none!important}
-  body{background:#fff!important;color:#0F1E25!important;font-size:10px!important;font-family:'Sora',sans-serif!important;-webkit-print-color-adjust:exact}
-  .app{height:auto!important;margin-top:0!important;display:block!important}
-  .main{overflow:visible!important;height:auto!important;display:block!important}
-  .res-phase{display:block!important;padding:0!important}
+  #files-list,.vbox,.depth-row,.start-btn,.disc,#btn-new,.bar-right,
+  .data-panel,.p42-panel,button,.d-btn,.lbl{display:none!important}
+  .app{height:auto!important;margin-top:0!important;display:block!important;width:100%!important;overflow:visible!important}
+  .side{display:none!important}
+  .main{overflow:visible!important;height:auto!important;display:block!important;width:100%!important;float:none!important}
+  .res-phase{display:block!important;padding:8px!important;height:auto!important;overflow:visible!important}
   /* Print header */
   #print-header{display:flex!important;align-items:center;justify-content:space-between;padding:14px 20px;background:#08404D!important;color:#fff!important;margin-bottom:16px;border-radius:8px}
   /* Module cards */
@@ -1513,6 +1516,7 @@ function exportReport(){
   if(phn)phn.textContent=S.co+(S.sec?' · '+S.sec:'');
   if(phd)phd.textContent='Generated: '+new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})+' · ipowork.com';
   // Wait for render then print
+  window.scrollTo(0,0);
   setTimeout(function(){
     window.print();
     // Restore header after print
