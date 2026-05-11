@@ -1218,7 +1218,7 @@ async function workerPost(payload) {
   var type = payload.type || 'unknown';
   // Hard 25-second timeout — kills hanging fetches
   var ctrl = new AbortController();
-  var tid = setTimeout(function(){ ctrl.abort(); }, 25000);
+  var tid = setTimeout(function(){ ctrl.abort(); }, 35000);
   try {
     var resp = await fetch(WORKER, {
       method: 'POST',
@@ -1235,7 +1235,7 @@ async function workerPost(payload) {
   } catch(e) {
     clearTimeout(tid);
     if (e.name === 'AbortError') {
-      throw new Error('['+type+'] Request timed out after 25s. Worker may be overloaded or not deployed. Visit https://flat-bread-b021.jiweshkshrivastava.workers.dev/ — should show v10.7 OK');
+      throw new Error('['+type+'] Request timed out after 35s. Worker may be overloaded or not deployed. Visit https://flat-bread-b021.jiweshkshrivastava.workers.dev/ — should show v10.7 OK');
     }
     if (e.message.startsWith('[')) throw e;
     throw new Error('['+type+'] Network error: ' + e.message);
