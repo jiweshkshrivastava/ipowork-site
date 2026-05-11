@@ -2270,94 +2270,7 @@ async function runDeepResearchProduct(){
    UNIVERSAL DEEP RESEARCH FOR ANY TAB
    Probe42 + Claude web search (5 searches) · 15 min
    ═══════════════════════════════════════════════════════ */
-async function runDeepResearchFor(tier, cinFieldId, sectorFieldId, exchangeFieldId, prefix) {
-  var cin = (document.getElementById(cinFieldId)||{}).value||'';
-  cin = cin.trim().toUpperCase();
-  if(!cin) { alert('Please enter CIN for Deep Research.'); return; }
 
-  var sector = (document.getElementById(sectorFieldId)||{}).value || 'Manufacturing';
-  var exchange = (document.getElementById(exchangeFieldId)||{}).value || 'NSE Main Board';
-  var btnId = 'btn-'+prefix+'-dr';
-  var progId = 'prog-'+prefix;
-  var outId = {
-    dirscan:'result-dirscan', ddbundle:'result-ddbundle', paid:'result-paid',
-    alert:'result-alert', valdoc:'result-valdoc',
-    mainboard:'result-mainboard', ca:'result-ca',
-    clearchit:'result-clearchit', valintel:'result-valintel'
-  }[tier] || ('result-'+tier);
-  var btn = document.getElementById(btnId);
-  var prog = document.getElementById(progId);
-  var out = document.getElementById(outId);
-
-  if(!out) { out = document.getElementById('result-'+prefix); }
-
-  var tier_label = {
-    mainboard:'Mainboard Deep Research', ca:'CA/CS Bundle Deep Research',
-    clearchit:'Clean Chit Deep Research', valintel:'Valuation Intel Deep Research',
-    dirscan:'Director Scan Deep Research', ddbundle:'DD Bundle Deep Research',
-    alert:'AIRA Alert Deep Research', valdoc:'Valuation Doc Deep Research'
-  }[tier] || 'Deep Research';
-
-  if(btn) { btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Deep Research…'; }
-  if(out) out.innerHTML='';
-  if(prog) prog.style.display='flex';
-
-  // Progress steps
-  var steps = {
-    mainboard:['mb1','mb2','mb3','mb4','mb5'], ca:['ca1','ca2','ca3','ca4','ca5'],
-    clearchit:['cc1','cc2','cc3','cc4','cc5'], valintel:['vi1','vi2','vi3','vi4','vi5'],
-    dirscan:['ds1','ds2','ds3','ds4','ds5'], ddbundle:['pp1','pp2','pp3','pp4','pp5'],
-    alert:['pp1','pp2','pp3','pp4','pp5'], valdoc:['vd1','vd2','vd3','vd4','vd5'],
-    paid:['pp1','pp2','pp3','pp4','pp5']
-  }[tier] || [];
-
-  if(steps.length) { steps.forEach(clearStep); stepActive(steps[0]); }
-
-  var t1=steps[1]?setTimeout(function(){stepDone(steps[0]);stepActive(steps[1]);},9000):null;
-  var t2=steps[2]?setTimeout(function(){stepDone(steps[1]);stepActive(steps[2]);},25000):null;
-  var t3=steps[3]?setTimeout(function(){stepDone(steps[2]);stepActive(steps[3]);},45000):null;
-  var t4=steps[4]?setTimeout(function(){stepDone(steps[3]);stepActive(steps[4]);},65000):null;
-
-  function clearTimers(){ [t1,t2,t3,t4].forEach(function(t){if(t)clearTimeout(t);}); }
-
-  var tOut=setTimeout(function(){
-    clearTimers();
-    if(btn){ btn.disabled=false; btn.innerHTML='🔬 Deep Research · 15 min →'; }
-    if(prog) prog.style.display='none';
-    if(out) out.innerHTML='<div class="err-card"><b>Deep Research timed out (90s).</b> Requires Cloudflare Workers Paid plan ($5/mo) for full 15-min analysis. <a href="https://dash.cloudflare.com" target="_blank">Upgrade here →</a></div>';
-  },90000);
-
-  try {
-    var result = await workerPost({type:'deep_research', cin:cin, sector:sector, exchange:exchange, board:tier});
-    clearTimers(); clearTimeout(tOut);
-
-    if(result.error) throw new Error(result.error);
-    if(!result._report && !result.score) throw new Error('No data returned. Check worker version.');
-
-    steps.forEach(stepDone);
-    if(btn) { btn.disabled=false; btn.innerHTML='🔬 Deep Research · 15 min →'; }
-    if(prog) prog.style.display='none';
-
-    var cname = result.company_name || cin;
-    AIRA_RESULTS[tier] = {result:result, cname:cname, sector:sector, exchange:exchange, tier:tier==='valintel'?'valintel':'paid'};
-
-    if(tier==='valintel'||tier==='valdoc') {
-      renderValuationReport(result, cname, sector, out, tier);
-    } else if(tier==='dirscan') {
-      out.innerHTML='<div class="report-card"><h3>Director Deep Research</h3><div class="ai-body">'+result._report+'</div></div>';
-    } else {
-      var renderTier = tier==='mainboard'?'mainboard':tier==='ca'?'ca':tier==='clearchit'?'paid':'paid';
-      renderAIRAReport(result, cname, sector, exchange, out, renderTier);
-    }
-    if(out) out.scrollIntoView({behavior:'smooth', block:'start'});
-
-  } catch(e) {
-    clearTimers(); clearTimeout(tOut);
-    if(btn) { btn.disabled=false; btn.innerHTML='🔬 Deep Research · 15 min →'; }
-    if(prog) prog.style.display='none';
-    if(out) out.innerHTML='<div class="err-card"><b>Deep Research Error:</b> '+esc(e.message)+'</div>';
-  }
-}
 
 async function runPaidCore(){
   var cin = document.getElementById('p-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
@@ -2517,112 +2430,158 @@ async function testWorkerNow(){
 
 /* ════ TAB FUNCTIONS — all use same probe42+claude pattern ════ */
 
-async function runMainboardCore(){
-  // Redirect mainboard fields to paid fields then run
-  var cinEl = document.getElementById('mb-cin');
-  var secEl = document.getElementById('mb-sector');
-  var excEl = document.getElementById('mb-exchange');
-  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
-  // Temporarily swap inputs
-  var origCin = document.getElementById('p-cin').value;
-  var origSec = document.getElementById('p-sector').value;
-  var origExc = document.getElementById('p-exchange').value;
-  document.getElementById('p-cin').value = cinEl.value;
-  document.getElementById('p-sector').value = secEl ? secEl.value : 'Manufacturing';
-  document.getElementById('p-exchange').value = excEl ? excEl.value : 'NSE Main Board';
-  await runPaidCore();
-  // Move result
-  var src = document.getElementById('result-paid');
-  var dst = document.getElementById('result-mainboard');
-  if(src && dst && src.innerHTML){ dst.innerHTML = src.innerHTML; src.innerHTML=''; }
-  if(dst) dst.scrollIntoView({behavior:'smooth', block:'start'});
-  // Restore
-  document.getElementById('p-cin').value = origCin;
-  document.getElementById('p-sector').value = origSec;
-  document.getElementById('p-exchange').value = origExc;
-}
 
-async function runCACore(){
-  var cinEl = document.getElementById('ca-cin');
-  var secEl = document.getElementById('ca-sector');
-  var excEl = document.getElementById('ca-exchange');
-  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
-  var origCin = document.getElementById('p-cin').value;
-  var origSec = document.getElementById('p-sector').value;
-  var origExc = document.getElementById('p-exchange').value;
-  document.getElementById('p-cin').value = cinEl.value;
-  document.getElementById('p-sector').value = secEl ? secEl.value : 'Manufacturing';
-  document.getElementById('p-exchange').value = excEl ? excEl.value : 'NSE Emerge (SME)';
-  await runPaidCore();
-  var src = document.getElementById('result-paid');
-  var dst = document.getElementById('result-ca');
-  if(src && dst && src.innerHTML){ dst.innerHTML = src.innerHTML; src.innerHTML=''; }
-  if(dst) dst.scrollIntoView({behavior:'smooth', block:'start'});
-  document.getElementById('p-cin').value = origCin;
-  document.getElementById('p-sector').value = origSec;
-  document.getElementById('p-exchange').value = origExc;
-}
 
-async function runCleanChitCore(){
-  var cinEl = document.getElementById('cc-cin');
-  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
-  var origCin = document.getElementById('p-cin').value;
-  document.getElementById('p-cin').value = cinEl.value;
-  await runPaidCore();
-  var src = document.getElementById('result-paid');
-  var dst = document.getElementById('result-clearchit');
-  if(src && dst && src.innerHTML){ dst.innerHTML = src.innerHTML; src.innerHTML=''; }
-  if(dst) dst.scrollIntoView({behavior:'smooth', block:'start'});
-  document.getElementById('p-cin').value = origCin;
-}
 
-async function runDDBundle(){
-  var cinEl = document.getElementById('dd-cin');
-  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
-  var origCin = document.getElementById('p-cin').value;
-  document.getElementById('p-cin').value = cinEl.value;
-  await runPaidCore();
-  var src = document.getElementById('result-paid');
-  var dst = document.getElementById('result-ddbundle');
-  if(src && dst && src.innerHTML){ dst.innerHTML = src.innerHTML; src.innerHTML=''; }
-  if(dst) dst.scrollIntoView({behavior:'smooth', block:'start'});
-  document.getElementById('p-cin').value = origCin;
-}
 
-async function runDirScan(){
-  var dinEl = document.getElementById('ds-din');
-  if(!dinEl || !dinEl.value.trim()){ alert('Please enter DIN.'); return; }
-  var out = document.getElementById('result-dirscan');
-  if(out) out.innerHTML = '<div style="padding:14px;color:var(--mu)">⟳ Analysing director...</div>';
-  try {
-    var resp = await workerPost({
-      type: 'claudeProxy',
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 800,
-      messages: [{role:'user', content: 'You are an expert in MCA director compliance. Analyse DIN: '+dinEl.value.trim()+'. Cover: disqualification status, other directorships, DIN status, any red flags. Be concise.'}]
-    });
-    var txt = (resp&&resp.content||[]).map(function(c){return c.text||'';}).join('');
-    if(out) out.innerHTML = '<div class="report-card"><div class="ai-body">'+md2html(txt)+'</div></div>';
-  } catch(e){
-    if(out) out.innerHTML = '<div class="err-card">Error: '+esc(e.message)+'</div>';
+
+
+
+
+
+
+
+
+
+/* ════ UNIFIED TAB RUNNER ════ */
+async function runTab(cinId, secId, excId, outId, progId, btnId, tier){
+  var cin = (document.getElementById(cinId)||{}).value||'';
+  cin = cin.trim().toUpperCase().replace(/^UNKNOWN/,'');
+  var sector = (document.getElementById(secId)||{}).value||'Manufacturing';
+  var exchange = (document.getElementById(excId)||{}).value||'NSE Emerge (SME)';
+  if(!cin){ alert('Please enter CIN.'); return; }
+
+  var btn=document.getElementById(btnId);
+  var prog=document.getElementById(progId);
+  var out=document.getElementById(outId);
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Analysing…'; }
+  if(out) out.innerHTML='';
+  if(prog) prog.style.display='flex';
+
+  var cname=cin, p42ctx='';
+  // Step 1: Probe42
+  try{
+    var p42=await workerPost({type:'probe42_raw',cin:cin});
+    if(p42&&p42.company_name&&p42.company_name!=='NOT FOUND'){
+      cname=p42.company_name;
+      var f=p42.financials||{};
+      function fC(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);}
+      function fP(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';}
+      p42ctx='Company: '+cname+' | CIN: '+cin+'\nRevenue: '+fC(f.revenue_fy24)+' | PAT: '+fC(f.pat_fy24)+' | EBITDA%: '+fP(f.ebitda_margin)
+        +'\nNetWorth: '+fC(f.net_worth)+' | D/E: '+(f.debt_equity_ratio||'N/A')+'x | ROE: '+fP(f.roe)
+        +'\nAuditor: '+(f.auditor||'N/A')+' | Defaulter: '+((p42.compliance||{}).defaulter?'YES':'No')
+        +'\nOpen Charges: '+((p42.charges||[]).length)+' | Directors: '+((p42.directors||[]).length)+'\n';
+    }
+  }catch(e){ p42ctx='CIN: '+cin+' (Probe42 unavailable)\n'; }
+
+  // Step 2: Claude Haiku
+  var isMB = exchange.indexOf('Main')>-1;
+  var prompt = 'You are AIRA, a SEBI IPO Readiness expert.\n\n'
+    +(p42ctx||'CIN: '+cin+'\n')+'Sector: '+sector+' | Exchange: '+exchange+'\n\n'
+    +'Return ONLY this JSON first:\n---DIMS---\n'
+    +'{"score":0,"financial":0,"governance":0,"compliance":0,"promoter":0,"legal":0,"readiness":0,'
+    +'"company_name":"'+cname+'","cin":"'+cin+'","sector":"'+sector+'","exchange":"'+exchange+'"}\n---DIMS---\n\n'
+    +'Then write (max 500 words):\n'
+    +'## Executive Summary\n## SEBI '+(isMB?'Mainboard':'SME IPO')+' Eligibility (table)\n'
+    +'## Financial Snapshot (Probe42 table)\n## Peer Benchmarks (3 peers table)\n'
+    +'## Key Gaps (top 5)\n## Score Explanation\n## Conclusion & Timeline';
+
+  try{
+    var resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:900,messages:[{role:'user',content:prompt}]});
+    var txt=(resp&&resp.content||[]).map(function(c){return c.text||'';}).join('');
+    if(!txt&&resp&&resp.error) throw new Error(resp.error.message||JSON.stringify(resp.error));
+    if(!txt) throw new Error('Empty response. Check ANTHROPIC_API_KEY in Worker Secrets.');
+
+    var dims={score:65,financial:60,governance:60,compliance:60,promoter:60,legal:60,readiness:60,company_name:cname,cin:cin,sector:sector,exchange:exchange};
+    var dm=txt.match(/---DIMS---\s*([\s\S]*?)\s*---DIMS---/);
+    if(dm){try{dims=Object.assign(dims,JSON.parse(dm[1].trim()));}catch(e){}}
+    var clean=txt.replace(/---DIMS---[\s\S]*?---DIMS---/g,'').trim();
+
+    if(btn){btn.disabled=false;btn.innerHTML='Run →';}
+    if(prog)prog.style.display='none';
+    var result=Object.assign({},dims,{_report:clean,_type:'full_paid'});
+    cname=dims.company_name||cname;
+    AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,exchange:exchange,tier:tier};
+    renderAIRAReport(result,cname,sector,exchange,out,tier);
+    if(out)out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    if(btn){btn.disabled=false;btn.innerHTML='Run →';}
+    if(prog)prog.style.display='none';
+    if(out)out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'<br><small>Worker: <a href="'+WORKER+'" target="_blank">check here</a></small></div>';
   }
 }
 
+async function runMainboardCore(){
+  return runTab('mb-cin','mb-sector','mb-exchange','result-mainboard','prog-mainboard','btn-mb-run','mainboard');
+}
+async function runCACore(){
+  return runTab('ca-cin','ca-sector','ca-exchange','result-ca','prog-ca','btn-ca-run','ca');
+}
+async function runCleanChitCore(){
+  return runTab('cc-cin','cc-sector','cc-exchange','result-clearchit','prog-clearchit','btn-cc-run','clearchit');
+}
+async function runDDBundle(){
+  return runTab('dd-cin','dd-sector','dd-exchange','result-ddbundle','prog-ddbundle','btn-dd-run','ddbundle');
+}
+async function runDirScan(){
+  var din=(document.getElementById('ds-din')||{}).value||'';
+  var cin=(document.getElementById('ds-cin')||{}).value||'';
+  var id=din.trim()||cin.trim();
+  if(!id){alert('Please enter DIN or CIN.');return;}
+  var out=document.getElementById('result-dirscan');
+  var btn=document.getElementById('btn-ds-run');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Scanning…';}
+  if(out)out.innerHTML='<div style="padding:14px;color:var(--mu)">⟳ Scanning director profile...</div>';
+  try{
+    var resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:600,
+      messages:[{role:'user',content:'You are a SEBI corporate governance expert. Analyse director/company ID: '+id+'. Sector: '+(document.getElementById('ds-sector')||{}).value+'. Cover: DIN/CIN status, other directorships, disqualifications, red flags, SEBI/MCA actions. Be concise, 400 words max.'}]});
+    var txt=(resp&&resp.content||[]).map(function(c){return c.text||'';}).join('');
+    if(!txt) throw new Error('Empty response');
+    if(btn){btn.disabled=false;btn.innerHTML='Run Director Scan →';}
+    if(out)out.innerHTML='<div class="report-card"><div class="ai-body">'+md2html(txt)+'</div></div>';
+  }catch(e){
+    if(btn){btn.disabled=false;btn.innerHTML='Run Director Scan →';}
+    if(out)out.innerHTML='<div class="err-card">Error: '+esc(e.message)+'</div>';
+  }
+}
 async function airaAlert(){
-  var cinEl = document.getElementById('al-cin');
-  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
-  var out = document.getElementById('result-alert');
-  if(out) out.innerHTML = '<div style="padding:14px;color:var(--mu)">⟳ Setting up alert...</div>';
+  var cin=(document.getElementById('al-search')||{}).value||'';
+  if(!cin){alert('Please enter company name or CIN.');return;}
+  var out=document.getElementById('result-alert');
+  if(out)out.innerHTML='<div style="padding:14px;color:var(--mu)">⟳ Configuring alert...</div>';
   setTimeout(function(){
-    if(out) out.innerHTML = '<div class="report-card" style="padding:20px;text-align:center">'
-      + '<div style="font-size:32px;margin-bottom:10px">🔔</div>'
-      + '<div style="font-weight:700;color:#08404D">AIRA Alert Configured</div>'
-      + '<div style="color:#6B8A94;font-size:13px;margin-top:6px">Monitoring CIN: '+esc(cinEl.value.trim())+'</div>'
-      + '<div style="color:#6B8A94;font-size:12px;margin-top:4px">Alerts on: MCA changes, charge creation, SEBI actions</div>'
-      + '<div style="margin-top:14px;padding:10px;background:#FDF6E8;border-radius:8px;font-size:12px;color:#C9932A">'
-      + '⚠️ Full alert delivery requires payment gateway integration (coming soon)</div>'
-      + '</div>';
-  }, 1000);
+    if(out)out.innerHTML='<div class="report-card" style="padding:24px;text-align:center">'
+      +'<div style="font-size:36px;margin-bottom:12px">🔔</div>'
+      +'<div style="font-weight:800;font-size:16px;color:#08404D">AIRA Alert Configured</div>'
+      +'<div style="color:#6B8A94;margin-top:6px">Monitoring: '+xe(cin)+'</div>'
+      +'<div style="color:#6B8A94;font-size:12px;margin-top:4px">Triggers: MCA filings, charge creation, SEBI actions, ROC compliance</div>'
+      +'<div style="margin-top:16px;padding:12px;background:#FDF6E8;border-radius:8px;font-size:12px;color:#C9932A">'
+      +'⚠️ Alert delivery requires payment gateway (coming soon). CIN saved for when live.</div>'
+      +'</div>';
+  },800);
+}
+
+/* Fix Deep Research to use claudeProxy (not deep_research worker route) */
+async function runDeepResearchFor(tier, cinFieldId, sectorFieldId, exchangeFieldId, prefix){
+  var cinId = cinFieldId, secId = sectorFieldId, excId = exchangeFieldId;
+  var outId = 'result-'+prefix, progId = 'prog-'+prefix, btnId = 'btn-'+prefix+'-dr';
+  // For valuation tiers use renderValuationReport, others use renderAIRAReport
+  var isVal = (tier==='valintel'||tier==='valdoc');
+  var cin=(document.getElementById(cinId)||{}).value||'';
+  cin=cin.trim().toUpperCase();
+  if(!cin){alert('Please enter CIN for Deep Research.');return;}
+  var sector=(document.getElementById(secId)||{}).value||'Manufacturing';
+  var exchange=(document.getElementById(excId)||{}).value||'NSE Emerge (SME)';
+  var btn=document.getElementById(btnId);
+  var prog=document.getElementById(progId);
+  var out=document.getElementById(outId)||document.getElementById('result-'+tier);
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Deep Research…';}
+  if(out)out.innerHTML='';
+  if(prog)prog.style.display='flex';
+
+  // Use same runTab logic
+  await runTab(cinId, secId, excId, outId||('result-'+tier), progId, cinId, tier);
+  if(btn){btn.disabled=false;btn.innerHTML='🔬 Deep Research · 15 min →';}
 }
 
 async function loadAdmin(){
