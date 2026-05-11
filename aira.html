@@ -1210,6 +1210,42 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 var AIRA_RESULTS={};
 
+/* ════ SESSION & INIT ════ */
+var SESS = {name:'', email:'', org:'', role:'', plan:'free', demo:false};
+
+function requireLoginThen(fn){
+  // Free access for now until payment gateway
+  if(typeof fn==='function') fn();
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  // Init first tab
+  switchTier('paid');
+  
+  // Hide dev groups by default  
+  var g1 = document.getElementById('group-clean-compliance');
+  var g2 = document.getElementById('group-valuation');
+  if(g1) g1.style.display = 'none';
+  if(g2) g2.style.display = 'none';
+  
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e){
+    if(e.key==='F9'){ e.preventDefault(); toggleDevGroups(); }
+    if(e.ctrlKey && e.shiftKey && e.key==='9'){ openAdminAuth(); }
+  });
+  
+  // Worker health check
+  setTimeout(function(){
+    var el = document.getElementById('worker-test-result');
+    if(el && el.textContent.indexOf('Click')>-1){
+      fetch(WORKER).then(function(r){return r.text();}).then(function(t){
+        if(el && t.indexOf('OK')>-1) el.textContent = t.trim();
+      }).catch(function(){});
+    }
+  }, 2000);
+});
+
+
 
 
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
@@ -1267,11 +1303,7 @@ function isLoggedIn(){
 }
 function openLogin(){ document.getElementById('login-modal').classList.add('open'); setTimeout(function(){document.getElementById('login-phone').focus();},300); }
 function closeLogin(){ document.getElementById('login-modal').classList.remove('open'); _loginCallback=null; }
-function requireLoginThen(cb){
-  if(isLoggedIn()){ cb(); return; }
-  _loginCallback=cb;
-  openLogin();
-}
+
 function submitLogin(){
   var phone=(document.getElementById('login-phone').value||'').trim();
   var email=(document.getElementById('login-email').value||'').trim();
@@ -1740,6 +1772,95 @@ function kv(label, value, note){
     + '<div style="font-size:12px;font-weight:700;color:#1A2E35;flex:1">'+val+'</div>'
     + (note?'<div style="font-size:10px;color:#9AB0B8">'+note+'</div>':'')
     + '</div>';
+}
+
+
+function md2html(raw) {
+  if (!raw) return '';
+  var t = String(raw)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*\n]+)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^##### (.+)$/gm,'<h5>$1</h5>')
+    .replace(/^#### (.+)$/gm,'<h4>$1</h4>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/^---+$/gm,'<hr>')
+    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^[-*] (.+)$/gm,'<li>$1</li>')
+    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>');
+  // Tables
+  var lines = t.split('\n'), out = [], inTbl=false, thead=[], tbody=[];
+  for (var i=0; i<lines.length; i++) {
+    var ln = lines[i];
+    if (ln.indexOf('|') > -1) {
+      var cols = ln.replace(/^\|/,'').replace(/\|$/,'').split('|').map(function(c){return c.trim();});
+      var isSep = cols.every(function(c){return /^[-:|\s]+$/.test(c);});
+      if (!inTbl) { inTbl=true; thead=cols; tbody=[]; }
+      else if (isSep) {}
+      else { tbody.push(cols); }
+    } else {
+      if (inTbl) {
+        var tbl='<table><thead><tr>'+thead.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+        tbody.forEach(function(row){tbl+='<tr>'+row.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';});
+        out.push(tbl+'</tbody></table>');
+        inTbl=false; thead=[]; tbody=[];
+      }
+      out.push(ln);
+    }
+  }
+  if(inTbl){
+    var tbl2='<table><thead><tr>'+thead.map(function(c){return '<th>'+c+'</th>';}).join('')+'</tr></thead><tbody>';
+    tbody.forEach(function(row){tbl2+='<tr>'+row.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';});
+    out.push(tbl2+'</tbody></table>');
+  }
+  t = out.join('\n').replace(/\n{2,}/g,'</p><p>');
+  return '<p>'+t+'</p>';
+}
+
+function buildReportHTML(tier) {
+  var stored = AIRA_RESULTS[tier];
+  if (!stored) {
+    var keys = Object.keys(AIRA_RESULTS);
+    if (!keys.length) return null;
+    stored = AIRA_RESULTS[keys[keys.length-1]];
+  }
+  if (!stored) return null;
+  var result = stored.result || stored;
+  var cname = stored.cname || result.company_name || 'Company';
+  var sector = stored.sector || '';
+  var score = result.score || 0;
+  var col = score>=78?'#1A9E6B':score>=65?'#E88A2E':'#C0392B';
+  var report = result._report || result.report_text || result.report || '';
+  var htm = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>AIRA — '+xe(cname)+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0}'
+    +'html,body{height:auto!important;overflow:visible!important;font-family:-apple-system,sans-serif;font-size:12px;color:#1A2E35;background:#fff}'
+    +'@page{size:A4;margin:10mm 12mm}'
+    +'.page{max-width:900px;margin:0 auto;padding:24px}'
+    +'.hero{background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:18px;display:flex;align-items:center;gap:18px}'
+    +'.sc{font-size:48px;font-weight:900;font-family:Georgia,serif;color:'+col+';line-height:1}'
+    +'h1{font-size:14px;font-weight:800;color:#08404D;margin:16px 0 5px;padding:8px 12px;background:#EEF9FB;border-left:4px solid #0D5C6B;border-radius:0 6px 6px 0}'
+    +'h2{font-size:13px;font-weight:700;color:#0D5C6B;margin:12px 0 4px;padding:5px 10px;background:rgba(13,92,107,.06);border-radius:4px}'
+    +'h3{font-size:12px;font-weight:700;color:#08404D;margin:10px 0 4px;border-bottom:1px solid #E0EEF0;padding-bottom:3px}'
+    +'p{margin-bottom:7px}ul{padding-left:16px;margin-bottom:7px}li{margin-bottom:3px}'
+    +'strong{color:#08404D;font-weight:700}'
+    +'table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}'
+    +'th{background:#08404D;color:#fff;padding:6px 10px;text-align:left;font-size:10px}'
+    +'td{padding:5px 10px;border:1px solid #E0EEF0}'
+    +'tr:nth-child(even) td{background:#F8FCFD}'
+    +'blockquote{background:#FDF6E8;border-left:4px solid #E88A2E;padding:8px 12px;margin:8px 0}'
+    +'@media print{html,body{height:auto!important;overflow:visible!important}}</style>'
+    +'</head><body><div class="page">'
+    +'<div class="hero"><div class="sc">'+score+'</div>'
+    +'<div><div style="font-size:20px;font-weight:900;margin-bottom:3px">'+xe(cname)+'</div>'
+    +'<div style="opacity:.6;font-size:11px">'+xe(sector)+' &middot; AIRA IPO Readiness &middot; '+new Date().toLocaleDateString('en-IN')+'</div></div></div>'
+    +'<div>'+md2html(report)+'</div>'
+    +'<div style="margin-top:16px;padding-top:10px;border-top:1px solid #E0EEF0;font-size:10px;color:#9AB0B8;display:flex;justify-content:space-between">'
+    +'<span>ipowork.com &middot; AI IPO Readiness Platform</span><span>Not investment advice</span></div>'
+    +'</div></body></html>';
+  return {htm:htm, company:cname, score:score};
 }
 
 function renderAIRAReport(result, cname, sector, exchange, out, tier) {
