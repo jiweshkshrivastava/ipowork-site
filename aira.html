@@ -1695,6 +1695,53 @@ function renderValuation(sector, revenue, pat, ebitda, ebitdaM){
    FREE TIER RUN
 ═══════════════════════════ */
 
+
+/* ── Report helper functions ── */
+function xe(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function dualScoreBanner(score, vdict, col, company, sector, exchange, dims){
+  var s = score||0;
+  var grade = s>=78?'IPO READY':s>=65?'NEEDS WORK':s>=50?'CAUTIOUS':'NOT READY';
+  var html = '<div style="display:flex;align-items:center;gap:16px;padding:18px 20px;'
+    + 'background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:12px;margin-bottom:18px;color:#fff">'
+    + '<div style="font-size:52px;font-weight:900;font-family:Georgia,serif;color:'+col+';line-height:1">'+s+'</div>'
+    + '<div style="flex:1">'
+    + '<div style="font-size:18px;font-weight:800;margin-bottom:2px">'+xe(company)+'</div>'
+    + '<div style="font-size:11px;opacity:.6">'+xe(sector)+' &middot; '+xe(exchange)+'</div>'
+    + '<div style="margin-top:8px;font-size:13px;font-weight:700;color:'+col+'">'+grade+'</div>'
+    + '</div>';
+  if(dims){
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;min-width:180px">';
+    ['financial','governance','compliance','promoter','legal','readiness'].forEach(function(k){
+      var v2=dims[k]||0;
+      var c2=v2>=78?'#1A9E6B':v2>=65?'#E88A2E':'#C0392B';
+      html += '<div style="background:rgba(255,255,255,.1);border-radius:6px;padding:6px 8px;text-align:center">'
+        + '<div style="font-size:15px;font-weight:800;color:'+c2+'">'+v2+'</div>'
+        + '<div style="font-size:8px;opacity:.6;text-transform:uppercase;letter-spacing:.4px">'+k+'</div></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function section(title, sub){
+  return '<div class="sec-head" style="margin:18px 0 8px;padding:10px 14px;'
+    + 'background:rgba(13,92,107,.07);border-left:4px solid #0D5C6B;border-radius:0 8px 8px 0">'
+    + '<div style="font-size:13px;font-weight:800;color:#08404D">'+title+'</div>'
+    + (sub?'<div style="font-size:11px;color:#6B8A94;margin-top:2px">'+sub+'</div>':'')
+    + '</div>';
+}
+
+function kv(label, value, note){
+  var val = value||'—';
+  return '<div style="display:flex;align-items:baseline;gap:8px;padding:6px 0;border-bottom:1px solid #F0F6F8">'
+    + '<div style="font-size:11px;color:#6B8A94;min-width:120px">'+label+'</div>'
+    + '<div style="font-size:12px;font-weight:700;color:#1A2E35;flex:1">'+val+'</div>'
+    + (note?'<div style="font-size:10px;color:#9AB0B8">'+note+'</div>':'')
+    + '</div>';
+}
+
 function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   if(!out) return;
   AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,exchange:exchange,tier:tier};
