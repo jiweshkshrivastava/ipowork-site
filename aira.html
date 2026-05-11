@@ -1216,20 +1216,29 @@ var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 
 async function workerPost(payload) {
   var type = payload.type || 'unknown';
+  // Hard 25-second timeout — kills hanging fetches
+  var ctrl = new AbortController();
+  var tid = setTimeout(function(){ ctrl.abort(); }, 25000);
   try {
     var resp = await fetch(WORKER, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: ctrl.signal
     });
+    clearTimeout(tid);
     var text = await resp.text();
     try { return JSON.parse(text); }
-    catch(e) { 
+    catch(e) {
       throw new Error('['+type+'] HTTP ' + resp.status + ': ' + text.substring(0, 200));
     }
   } catch(e) {
+    clearTimeout(tid);
+    if (e.name === 'AbortError') {
+      throw new Error('['+type+'] Request timed out after 25s. Worker may be overloaded or not deployed. Visit https://flat-bread-b021.jiweshkshrivastava.workers.dev/ — should show v10.7 OK');
+    }
     if (e.message.startsWith('[')) throw e;
-    throw new Error('['+type+'] Network: ' + e.message);
+    throw new Error('['+type+'] Network error: ' + e.message);
   }
 }
 
