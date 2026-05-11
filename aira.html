@@ -2393,6 +2393,117 @@ async function testWorkerNow(){
   }
 }
 
+
+/* ════ TAB FUNCTIONS — all use same probe42+claude pattern ════ */
+
+async function runMainboardCore(){
+  // Redirect mainboard fields to paid fields then run
+  var cinEl = document.getElementById('mb-cin');
+  var secEl = document.getElementById('mb-sector');
+  var excEl = document.getElementById('mb-exchange');
+  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
+  // Temporarily swap inputs
+  var origCin = document.getElementById('p-cin').value;
+  var origSec = document.getElementById('p-sector').value;
+  var origExc = document.getElementById('p-exchange').value;
+  document.getElementById('p-cin').value = cinEl.value;
+  document.getElementById('p-sector').value = secEl ? secEl.value : 'Manufacturing';
+  document.getElementById('p-exchange').value = excEl ? excEl.value : 'NSE Main Board';
+  await runPaidCore();
+  // Move result
+  var src = document.getElementById('result-paid');
+  var dst = document.getElementById('result-mainboard');
+  if(src && dst && src.innerHTML){ dst.innerHTML = src.innerHTML; src.innerHTML=''; }
+  if(dst) dst.scrollIntoView({behavior:'smooth', block:'start'});
+  // Restore
+  document.getElementById('p-cin').value = origCin;
+  document.getElementById('p-sector').value = origSec;
+  document.getElementById('p-exchange').value = origExc;
+}
+
+async function runCACore(){
+  var cinEl = document.getElementById('ca-cin');
+  var secEl = document.getElementById('ca-sector');
+  var excEl = document.getElementById('ca-exchange');
+  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
+  var origCin = document.getElementById('p-cin').value;
+  var origSec = document.getElementById('p-sector').value;
+  var origExc = document.getElementById('p-exchange').value;
+  document.getElementById('p-cin').value = cinEl.value;
+  document.getElementById('p-sector').value = secEl ? secEl.value : 'Manufacturing';
+  document.getElementById('p-exchange').value = excEl ? excEl.value : 'NSE Emerge (SME)';
+  await runPaidCore();
+  var src = document.getElementById('result-paid');
+  var dst = document.getElementById('result-ca');
+  if(src && dst && src.innerHTML){ dst.innerHTML = src.innerHTML; src.innerHTML=''; }
+  if(dst) dst.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('p-cin').value = origCin;
+  document.getElementById('p-sector').value = origSec;
+  document.getElementById('p-exchange').value = origExc;
+}
+
+async function runCleanChitCore(){
+  var cinEl = document.getElementById('cc-cin');
+  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
+  var origCin = document.getElementById('p-cin').value;
+  document.getElementById('p-cin').value = cinEl.value;
+  await runPaidCore();
+  var src = document.getElementById('result-paid');
+  var dst = document.getElementById('result-clearchit');
+  if(src && dst && src.innerHTML){ dst.innerHTML = src.innerHTML; src.innerHTML=''; }
+  if(dst) dst.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('p-cin').value = origCin;
+}
+
+async function runDDBundle(){
+  var cinEl = document.getElementById('dd-cin');
+  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
+  var origCin = document.getElementById('p-cin').value;
+  document.getElementById('p-cin').value = cinEl.value;
+  await runPaidCore();
+  var src = document.getElementById('result-paid');
+  var dst = document.getElementById('result-ddbundle');
+  if(src && dst && src.innerHTML){ dst.innerHTML = src.innerHTML; src.innerHTML=''; }
+  if(dst) dst.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('p-cin').value = origCin;
+}
+
+async function runDirScan(){
+  var dinEl = document.getElementById('ds-din');
+  if(!dinEl || !dinEl.value.trim()){ alert('Please enter DIN.'); return; }
+  var out = document.getElementById('result-dirscan');
+  if(out) out.innerHTML = '<div style="padding:14px;color:var(--mu)">⟳ Analysing director...</div>';
+  try {
+    var resp = await workerPost({
+      type: 'claudeProxy',
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 800,
+      messages: [{role:'user', content: 'You are an expert in MCA director compliance. Analyse DIN: '+dinEl.value.trim()+'. Cover: disqualification status, other directorships, DIN status, any red flags. Be concise.'}]
+    });
+    var txt = (resp&&resp.content||[]).map(function(c){return c.text||'';}).join('');
+    if(out) out.innerHTML = '<div class="report-card"><div class="ai-body">'+md2html(txt)+'</div></div>';
+  } catch(e){
+    if(out) out.innerHTML = '<div class="err-card">Error: '+esc(e.message)+'</div>';
+  }
+}
+
+async function airaAlert(){
+  var cinEl = document.getElementById('al-cin');
+  if(!cinEl || !cinEl.value.trim()){ alert('Please enter CIN.'); return; }
+  var out = document.getElementById('result-alert');
+  if(out) out.innerHTML = '<div style="padding:14px;color:var(--mu)">⟳ Setting up alert...</div>';
+  setTimeout(function(){
+    if(out) out.innerHTML = '<div class="report-card" style="padding:20px;text-align:center">'
+      + '<div style="font-size:32px;margin-bottom:10px">🔔</div>'
+      + '<div style="font-weight:700;color:#08404D">AIRA Alert Configured</div>'
+      + '<div style="color:#6B8A94;font-size:13px;margin-top:6px">Monitoring CIN: '+esc(cinEl.value.trim())+'</div>'
+      + '<div style="color:#6B8A94;font-size:12px;margin-top:4px">Alerts on: MCA changes, charge creation, SEBI actions</div>'
+      + '<div style="margin-top:14px;padding:10px;background:#FDF6E8;border-radius:8px;font-size:12px;color:#C9932A">'
+      + '⚠️ Full alert delivery requires payment gateway integration (coming soon)</div>'
+      + '</div>';
+  }, 1000);
+}
+
 async function loadAdmin(){
   var statsEl=document.getElementById('admin-stats');
   var repEl=document.getElementById('admin-reports');
@@ -2682,6 +2793,37 @@ function viSearch(v){
       el.style.display='block';
     }catch(e){}
   },400);
+}
+
+
+function renderValuationReport(result, cname, sector, outEl, tier) {
+  if (!outEl) return;
+  var vb = result.val_base_cr || 0;
+  var vc = result.val_conservative_cr || 0;
+  var vo = result.val_optimistic_cr || 0;
+  var pb_lo = result.price_band_low || 0;
+  var pb_hi = result.price_band_high || 0;
+  var report = result._report || result.report_text || '';
+  var html = '<div class="report-card">';
+  html += '<div style="display:flex;align-items:center;gap:16px;padding:18px 20px;background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:12px;margin-bottom:18px;color:#fff">';
+  html += '<div style="font-size:38px;font-weight:900;font-family:Georgia,serif;color:#E88A2E">' + (vb ? '₹'+vb+' Cr' : '—') + '</div>';
+  html += '<div><div style="font-size:16px;font-weight:800">' + xe(cname) + '</div>';
+  html += '<div style="font-size:11px;opacity:.7">' + xe(sector) + ' · IPO Valuation</div>';
+  if(pb_lo && pb_hi) html += '<div style="margin-top:6px;font-size:12px;background:rgba(255,255,255,.15);padding:4px 10px;border-radius:6px">Price Band: ₹' + pb_lo + '–₹' + pb_hi + '</div>';
+  html += '</div></div>';
+  if(vc || vo) {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">';
+    [{l:'Conservative',v:vc,c:'#6B8A94'},{l:'Base Case',v:vb,c:'#1A9E6B'},{l:'Optimistic',v:vo,c:'#C9932A'}].forEach(function(x){
+      html += '<div style="background:#F8FCFD;border:1px solid #D8EDF0;border-radius:8px;padding:12px;text-align:center">';
+      html += '<div style="font-size:18px;font-weight:800;color:'+x.c+'">'+(x.v?'₹'+x.v+' Cr':'—')+'</div>';
+      html += '<div style="font-size:10px;color:#6B8A94;margin-top:2px">'+x.l+'</div></div>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="ai-body">' + md2html(report) + '</div>';
+  html += '</div>';
+  outEl.innerHTML = html;
+  AIRA_RESULTS[tier] = AIRA_RESULTS[tier] || {result:result,cname:cname,sector:sector,tier:tier};
 }
 
 async function runValuationIntel(){
