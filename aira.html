@@ -2232,6 +2232,76 @@ async function runPaidCore(){
 
 
 
+
+/* ════ WORKER TEST ════ */
+async function testWorkerNow(){
+  var out=document.getElementById('result-test');
+  if(!out)return;
+  out.innerHTML='<div style="padding:14px;color:var(--mu)">⟳ Testing worker...</div>';
+  try{
+    var t0=Date.now();
+    var r=await workerPost({type:'probe42_raw',cin:'U74120MH1985PLC035308'});
+    var ms=Date.now()-t0;
+    out.innerHTML='<div style="padding:14px;color:var(--ok);font-weight:700">✅ Worker OK ('+ms+'ms)<br>'
+      +'<span style="font-size:12px;color:var(--mu)">Company: '+(r.company_name||'N/A')+'</span></div>';
+  }catch(e){
+    out.innerHTML='<div style="padding:14px;color:var(--er)">✗ Worker error: '+esc(e.message)+'</div>';
+  }
+}
+
+
+
+
+/* ════ ADMIN AUTH ════ */
+var ADMIN_PWD='ipowork2024';
+var ADMIN_UNLOCKED=false;
+
+function openAdminAuth(){
+  var o=document.getElementById('admin-auth-overlay');
+  if(o)o.style.display='flex';
+}
+function closeAdminAuth(){
+  var o=document.getElementById('admin-auth-overlay');
+  if(o)o.style.display='none';
+  var inp=document.getElementById('admin-pwd-input');
+  if(inp)inp.value='';
+}
+function checkAdminPwd(){
+  var p=(document.getElementById('admin-pwd-input')||{}).value||'';
+  if(p===ADMIN_PWD){
+    ADMIN_UNLOCKED=true;
+    closeAdminAuth();
+    var t=document.getElementById('tab-admin');
+    if(t){t.style.display='inline-flex';t.style.opacity='1';}
+    switchTier('admin');
+    loadAdmin();
+  } else {
+    alert('Incorrect password.');
+  }
+}
+function toggleDevGroups(){
+  var g1=document.getElementById('group-clean-compliance');
+  var g2=document.getElementById('group-valuation');
+  var show=g1&&g1.style.display==='none';
+  [g1,g2].forEach(function(g){if(g)g.style.display=show?'':'none';});
+}
+/* ════ WORKER TEST ════ */
+async function testWorkerNow(){
+  var out=document.getElementById('result-test');
+  if(!out){alert('Run a test first.');return;}
+  out.innerHTML='<div style="padding:14px;color:var(--mu)">⟳ Testing worker...</div>';
+  try{
+    var t0=Date.now();
+    var r=await workerPost({type:'probe42_raw',cin:'U74120MH1985PLC035308'});
+    var ms=Date.now()-t0;
+    out.innerHTML='<div style="padding:14px;font-size:13px"><b style="color:var(--ok)">✅ Worker OK ('+ms+'ms)</b><br>'
+      +'Company: '+(r.company_name||'N/A')+'<br>Revenue: '+((r.financials||{}).revenue_fy24||'N/A')+'</div>';
+  }catch(e){
+    out.innerHTML='<div style="padding:14px;color:var(--er)"><b>✗ Error:</b> '+esc(e.message)+'<br>'
+      +'<small>Visit <a href="'+WORKER+'" target="_blank">'+WORKER+'</a> — should show v10.7 OK</small></div>';
+  }
+}
+
 /* ════ ADMIN DASHBOARD ════ */
 
 async function loadAdmin(){
