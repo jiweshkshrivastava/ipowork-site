@@ -2192,420 +2192,105 @@ async function runDeepResearchFor(tier, cinFieldId, sectorFieldId, exchangeField
 }
 
 async function runPaidCore(){
-  var cin=document.getElementById('p-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
-  var sector=document.getElementById('p-sector').value;
-  var exchange=document.getElementById('p-exchange').value;
-  if(!cin){alert('Please enter CIN or LLPIN.');return;}
+  var cin = document.getElementById('p-cin').value.trim().toUpperCase().replace(/^UNKNOWN/,'');
+  var sector = document.getElementById('p-sector').value;
+  var exchange = document.getElementById('p-exchange').value;
+  if(!cin){ alert('Please enter CIN or LLPIN.'); return; }
+
   var btn=document.getElementById('btn-paid-run');
   var prog=document.getElementById('prog-paid');
   var out=document.getElementById('result-paid');
-  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Scoring…';
-  out.innerHTML='';if(prog)prog.style.display='flex';
-  ['pp1','pp2','pp3','pp4','pp5'].forEach(clearStep);stepActive('pp1');
-  var t1=setTimeout(function(){stepDone('pp1');stepActive('pp2');},5000);
-  var t2=setTimeout(function(){stepDone('pp2');stepActive('pp3');},12000);
-  var t3=setTimeout(function(){stepDone('pp3');stepActive('pp4');},20000);
-  try{
-    var result=await workerPost({type:'full_paid',cin:cin,sector:sector,exchange:exchange});
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Fetching Probe42…';
+  out.innerHTML=''; if(prog) prog.style.display='flex';
+  ['pp1','pp2','pp3','pp4','pp5'].forEach(clearStep); stepActive('pp1');
 
-    if(result.error)throw new Error(result.error);
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
-    ['pp1','pp2','pp3','pp4','pp5'].forEach(stepDone);
-    btn.disabled=false;btn.innerHTML='Run Full AIRA →';
-    var cname=result.company_name||cin;
-    // Check if mainboard company entered in SME tab
-    if(checkMainboardAlert(result, cname, 'paid')){
-      btn.disabled=false;btn.innerHTML='Run SME Intelligence →';
-      if(prog)prog.style.display='none';
-      return;
+  var cname=cin, p42ctx='', p42flat={};
+
+  // STEP 1: Probe42 (proven working route)
+  try {
+    var p42 = await workerPost({type:'probe42_raw', cin:cin});
+    if(p42 && p42.company_name && p42.company_name!=='NOT FOUND'){
+      cname = p42.company_name;
+      p42flat = p42;
+      var f=p42.financials||{};
+      function fC(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);}
+      function fP(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';}
+      p42ctx = 'PROBE42 VERIFIED DATA:\n'
+        +'Company: '+cname+' | CIN: '+cin+' | Type: '+(p42.company_type||'N/A')+'\n'
+        +'Incorporated: '+(p42.date_of_incorporation||'N/A')+' | State: '+(p42.registered_state||'N/A')+'\n'
+        +'Paid-up: '+fC(p42.paid_up_capital)+' | Auth: '+fC(p42.authorised_capital)+'\n'
+        +'Revenue: '+fC(f.revenue_fy24)+' | PAT: '+fC(f.pat_fy24)+' | EBITDA%: '+fP(f.ebitda_margin)+'\n'
+        +'NetWorth: '+fC(f.net_worth)+' | TotalDebt: '+fC(f.total_debt)+' | D/E: '+(f.debt_equity_ratio||'N/A')+'x\n'
+        +'ROE: '+fP(f.roe)+' | ROCE: '+fP(f.roce)+' | Current Ratio: '+(f.current_ratio||'N/A')+'x\n'
+        +'Auditor: '+(f.auditor||'N/A')+' | Defaulter: '+((p42.compliance||{}).defaulter?'YES':'No')+'\n'
+        +'Open Charges: '+((p42.charges||[]).length)+' | Directors: '+((p42.directors||[]).length);
     }
-    AIRA_RESULTS['paid']={result:result,cname:cname,sector:sector,exchange:exchange,tier:'paid'};
-    renderAIRAReport(result,cname,sector,exchange,out,'paid');
-    out.scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
-    btn.disabled=false;btn.innerHTML='Run Full AIRA →';
-    if(prog)prog.style.display='none';
-    out.innerHTML='<div class="err-card"><b style="color:var(--er)">Error:</b> '+esc(e.message)+'</div>';
-  }
-}
+  } catch(e){ p42ctx='CIN: '+cin+' | Sector: '+sector+' | Exchange: '+exchange+' (Probe42 unavailable)'; }
 
+  stepDone('pp1'); stepActive('pp2');
+  btn.innerHTML='<span class="spinner"></span> AI Scoring…';
 
+  // STEP 2: Claude via claudeProxy (proven working)
+  var isMB = exchange&&(exchange.indexOf('Main')>-1||exchange.indexOf('NSE Main')>-1||exchange.indexOf('BSE Main')>-1);
+  var prompt = 'You are AIRA, a SEBI IPO Readiness expert. Score this company and write a concise report.\n\n'
+    + p42ctx + '\nSector: '+sector+' | Exchange: '+exchange+'\n\n'
+    + 'Return ONLY this JSON first:\n---DIMS---\n'
+    + '{"score":0,"financial":0,"governance":0,"compliance":0,"promoter":0,"legal":0,"readiness":0,'
+    + '"company_name":"'+cname+'","cin":"'+cin+'","sector":"'+sector+'","exchange":"'+exchange+'"}\n---DIMS---\n\n'
+    + 'Then write the report (max 500 words):\n'
+    + '## Executive Summary\n'
+    + '## SEBI '+(isMB?'Mainboard':'SME IPO')+' Eligibility (3-row table)\n'
+    + '## Financial Snapshot (Probe42 data table)\n'
+    + '## Peer Benchmarks (3 listed peers: Company|P/E|EV/EBITDA|Market Cap)\n'
+    + '## Key Gaps (top 5, numbered)\n'
+    + '## Score Explanation\n'
+    + '## Conclusion & IPO Timeline';
 
+  try {
+    stepDone('pp2'); stepActive('pp3');
+    var resp = await workerPost({
+      type: 'claudeProxy',
+      model: 'claude-sonnet-4-6',
+      max_tokens: 900,
+      messages: [{role:'user', content: prompt}]
+    });
 
-/* ════ WORKER TEST ════ */
-async function testWorkerNow(){
-  var out=document.getElementById('result-test');
-  if(!out)return;
-  out.innerHTML='<div style="padding:14px;color:var(--mu)">⟳ Testing worker...</div>';
-  try{
-    var t0=Date.now();
-    var r=await workerPost({type:'probe42_raw',cin:'U74120MH1985PLC035308'});
-    var ms=Date.now()-t0;
-    out.innerHTML='<div style="padding:14px;color:var(--ok);font-weight:700">✅ Worker OK ('+ms+'ms)<br>'
-      +'<span style="font-size:12px;color:var(--mu)">Company: '+(r.company_name||'N/A')+'</span></div>';
-  }catch(e){
-    out.innerHTML='<div style="padding:14px;color:var(--er)">✗ Worker error: '+esc(e.message)+'</div>';
-  }
-}
-
-
-
-
-
-
-function md2html(raw) {
-    if (!raw) return '';
-    var lines = raw.split('\n'), out = [], inTable=false, tableRows=[], inList=false, listItems=[];
-    function flushTable(){
-      if(!tableRows.length){inTable=false;return;}
-      var h2='<div class=\"tbl-wrap\"><table>';
-      tableRows.forEach(function(row,ri){
-        var tag=ri===0?'th':'td';
-        h2+='<tr>'+row.map(function(c){
-          var cs=c.trim();
-          var bold = /^\\*\\*/.test(cs)&&/\\*\\*$/.test(cs);
-          cs=cs.replace(/^\\*\\*|\\*\\*$/g,'').replace(/\\*\\*/g,'').trim();
-          return '<'+tag+(bold?' style=\"font-weight:800\"':'')+'>'+xe(cs)+'</'+tag+'>';
-        }).join('')+'</tr>';
-      });
-      out.push(h2+'</table></div>');
-      inTable=false; tableRows=[];
-    }
-    function flushList(){
-      if(!listItems.length){inList=false;return;}
-      out.push('<ul>'+listItems.map(function(li){return '<li>'+li+'</li>';}).join('')+'</ul>');
-      inList=false; listItems=[];
-    }
-    for(var i=0;i<lines.length;i++){
-      var l=lines[i];
-      var stripped=l.trim();
-      // Tables
-      if(/^\\|.+\\|$/.test(stripped)){
-        if(inList) flushList();
-        inTable=true;
-        var cells=stripped.replace(/^\\||\\|$/g,'').split('|');
-        var isSep=cells.every(function(c){return /^[-:|\s]+$/.test(c.trim());});
-        if(!isSep) tableRows.push(cells);
-        continue;
-      }
-      if(inTable) flushTable();
-      // List items
-      if(/^[-*] /.test(stripped)){
-        if(inTable) flushTable();
-        inList=true;
-        var li=stripped.replace(/^[-*] /,'').replace(/\\*\\*([^*]+)\\*\\*/g,'<strong>$1</strong>').replace(/\\*([^*]+)\\*/g,'<em>$1</em>');
-        listItems.push(li); continue;
-      }
-      if(inList&&stripped==='') { flushList(); out.push(''); continue; }
-      if(inList&&!/^[-*]/.test(stripped)) flushList();
-      // Headings
-      var hm=stripped.match(/^(#{1,4}) (.+)$/);
-      if(hm){ out.push('<h'+hm[1].length+'>'+xe(hm[2])+'</h'+hm[1].length+'>'); continue; }
-      // HR
-      if(/^---+$/.test(stripped)){ out.push('<hr/>'); continue; }
-      // Numbered
-      var nm=stripped.match(/^(\\d+)\\. (.+)/);
-      if(nm){ out.push('<p class=\"numbered\"><span class=\"num-badge\">'+nm[1]+'</span>'+nm[2].replace(/\\*\\*([^*]+)\\*\\*/g,'<strong>$1</strong>').replace(/\\*([^*]+)\\*/g,'<em>$1</em>')+'</p>'); continue; }
-      // Normal
-      if(stripped){
-        var tx=stripped.replace(/\\*\\*([^*]+)\\*\\*/g,'<strong>$1</strong>').replace(/\\*([^*]+)\\*/g,'<em>$1</em>');
-        out.push('<p>'+tx+'</p>');
-      } else { out.push(''); }
-    }
-    if(inTable) flushTable();
-    if(inList) flushList();
-    return out.join('\n');
-  }
-
-async function runMainboardCore(){
-  var cin=document.getElementById('mb-cin').value.trim().toUpperCase();
-  var sector=document.getElementById('mb-sector').value;
-  var exchange=document.getElementById('mb-exchange').value;
-  if(!cin){alert('Please enter CIN.');return;}
-  var btn=document.getElementById('btn-mb-run');
-  var prog=document.getElementById('prog-mainboard');
-  var out=document.getElementById('result-mainboard');
-  btn.disabled=true;btn.innerHTML='<span class=\"spinner\"></span> Scoring\\u2026';
-  out.innerHTML='';if(prog)prog.style.display='flex';
-  ['mp1','mp2','mp3','mp4','mp5'].forEach(clearStep);stepActive('mp1');
-  var t1=setTimeout(function(){stepDone('mp1');stepActive('mp2');},5000);
-  var t2=setTimeout(function(){stepDone('mp2');stepActive('mp3');},12000);
-  var t3=setTimeout(function(){stepDone('mp3');stepActive('mp4');},22000);
-  try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,board:'mainboard'})});
-    var result=await resp.json();
-    if(result.error)throw new Error(result.error);
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
-    ['mp1','mp2','mp3','mp4','mp5'].forEach(stepDone);
-    btn.disabled=false;btn.innerHTML='Run Mainboard AIRA \\u2192';
-    var cname=result.company_name||cin;
-    AIRA_RESULTS['mainboard']={result:result,cname:cname,sector:sector,exchange:exchange,tier:'mainboard'};
-    renderAIRAReport(result,cname,sector,exchange,out,'mainboard');
-    out.scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
-    btn.disabled=false;btn.innerHTML='Run Mainboard AIRA \\u2192';
-    if(prog)prog.style.display='none';
-    out.innerHTML='<div class=\"err-card\"><b>'+esc(e.message)+'</b></div>';
-  }
-}
-
-async function runCACore(){
-  var cin=document.getElementById('ca-cin').value.trim().toUpperCase();
-  var sector=document.getElementById('ca-sector').value;
-  var exchange=document.getElementById('ca-exchange').value;
-  var firm=(document.getElementById('ca-firm')||{}).value||'';
-  if(!cin){alert('Please enter CIN.');return;}
-  var btn=document.getElementById('btn-ca-run');
-  var prog=document.getElementById('prog-ca');
-  var out=document.getElementById('result-ca');
-  btn.disabled=true;btn.innerHTML='<span class=\"spinner\"></span> Scoring\\u2026';
-  out.innerHTML='';if(prog)prog.style.display='flex';
-  ['cp1','cp2','cp3','cp4','cp5'].forEach(clearStep);stepActive('cp1');
-  var t1=setTimeout(function(){stepDone('cp1');stepActive('cp2');},5000);
-  var t2=setTimeout(function(){stepDone('cp2');stepActive('cp3');},14000);
-  var t3=setTimeout(function(){stepDone('cp3');stepActive('cp4');},24000);
-  try{
-    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'full_paid',cin:cin,sector:sector,exchange:exchange,
-        price_tier:'ca_bundle_4999',firm_name:firm})});
-    var result=await resp.json();
-    if(result.error)throw new Error(result.error);
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
-    ['cp1','cp2','cp3','cp4','cp5'].forEach(stepDone);
-    btn.disabled=false;btn.innerHTML='Run CA/CS Bundle \\u2192';
-    var caName=result.company_name||cin;
-    // Check mainboard eligibility in CA bundle too
-    if(checkMainboardAlert(result,caName,'ca')){
-      if(prog)prog.style.display='none'; return;
-    }
-    AIRA_RESULTS['ca']={result:result,cname:caName,sector:sector,exchange:exchange,tier:'ca'};
-    renderAIRAReport(result,caName,sector,exchange,out,'ca');
-    out.scrollIntoView({behavior:'smooth',block:'start'});
-  }catch(e){
-    clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);
-    btn.disabled=false;btn.innerHTML='Run CA/CS Bundle \\u2192';
-    if(prog)prog.style.display='none';
-    out.innerHTML='<div class=\"err-card\"><b>'+esc(e.message)+'</b></div>';
-  }
-}
-
-function md2html(raw) {
-  if (!raw) return '';
-  var t = raw
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*([^*\n]+)\*/g,'<em>$1</em>')
-    .replace(/`([^`]+)`/g,'<code>$1</code>')
-    .replace(/^##### (.+)$/gm,'<h5>$1</h5>')
-    .replace(/^#### (.+)$/gm,'<h4>$1</h4>')
-    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
-    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
-    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/^---+$/gm,'<hr>')
-    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
-    .replace(/^[-*\u2022] (.+)$/gm,'<li>$1</li>')
-    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
-    .replace(/(<li>[^]*?<\/li>\n?)+/g,'<ul>$&</ul>');
-  // Tables
-  var lines = t.split('\n'), out = [];
-  var inTable = false, thead = [], tbody = [];
-  for (var i = 0; i < lines.length; i++) {
-    var ln = lines[i];
-    if (ln.indexOf('|') > -1) {
-      var cols = ln.replace(/^\|/, '').replace(/\|$/, '').split('|').map(function(c){return c.trim();});
-      var isSep = cols.every(function(c){return /^[-:| ]+$/.test(c);});
-      if (!inTable) { inTable = true; thead = cols; tbody = []; }
-      else if (isSep) { /* skip separator */ }
-      else { tbody.push(cols); }
+    stepDone('pp3'); stepActive('pp4');
+    var txt = '';
+    if(resp && resp.content){
+      txt = (resp.content||[]).map(function(c){return c.text||'';}).join('');
+    } else if(resp && resp.error){
+      throw new Error(resp.error.message || JSON.stringify(resp.error));
     } else {
-      if (inTable) {
-        var tbl = '<table><thead><tr>' + thead.map(function(c){return '<th>' + c + '</th>';}).join('') + '</tr></thead><tbody>';
-        tbody.forEach(function(r){tbl += '<tr>' + r.map(function(c){return '<td>' + c + '</td>';}).join('') + '</tr>';});
-        out.push(tbl + '</tbody></table>');
-        inTable = false; thead = []; tbody = [];
-      }
-      out.push(ln);
+      throw new Error('Empty AI response. Check ANTHROPIC_API_KEY in Worker Secrets.');
     }
-  }
-  if (inTable) {
-    var tbl2 = '<table><thead><tr>' + thead.map(function(c){return '<th>' + c + '</th>';}).join('') + '</tr></thead><tbody>';
-    tbody.forEach(function(r){tbl2 += '<tr>' + r.map(function(c){return '<td>' + c + '</td>';}).join('') + '</tr>';});
-    out.push(tbl2 + '</tbody></table>');
-  }
-  t = out.join('\n').replace(/\n{2,}/g,'</p><p>');
-  return '<p>' + t + '</p>';
-}
 
-function buildReportHTML(tier) {
-  var stored = AIRA_RESULTS[tier];
-  if (!stored) {
-    var keys = Object.keys(AIRA_RESULTS);
-    if (!keys.length) return null;
-    stored = AIRA_RESULTS[keys[keys.length-1]];
-  }
-  if (!stored) return null;
-  var result = stored.result || stored;
-  var cname = stored.cname || result.company_name || 'Company';
-  var sector = stored.sector || '';
-  var score = result.score || 0;
-  var scoreCol = score>=78?'#1A9E6B':score>=65?'#D4860C':'#C0392B';
-  var report = result._report || result.report_text || '';
-  var htm = '<!DOCTYPE html><html><head><meta charset="UTF-8"/>'
-    + '<title>AIRA Report — ' + xe(cname) + '</title>'
-    + '<style>'
-    + '*{box-sizing:border-box;margin:0;padding:0}'
-    + 'body{font-family:-apple-system,"Sora",sans-serif;color:#1A2E35;font-size:12px;line-height:1.75;background:#fff}'
-    + 'html,body{height:auto!important;overflow:visible!important}'
-    + '.page{max-width:900px;margin:0 auto;padding:28px}'
-    + '.hero{background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:24px 28px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;gap:20px}'
-    + '.big-score{font-size:52px;font-weight:900;font-family:Georgia,serif;color:'+scoreCol+';line-height:1}'
-    + '.ai h1{font-size:15px;font-weight:800;color:#08404D;margin:18px 0 6px;padding:8px 12px;background:#EEF9FB;border-left:4px solid #0D5C6B;border-radius:0 6px 6px 0;break-after:avoid}'
-    + '.ai h2{font-size:13px;font-weight:700;color:#0D5C6B;margin:14px 0 5px;padding:6px 10px;background:rgba(13,92,107,.06);border-radius:4px}'
-    + '.ai h3{font-size:12px;font-weight:700;color:#08404D;margin:10px 0 4px;border-bottom:1px solid #E0EEF0;padding-bottom:3px}'
-    + '.ai p{margin-bottom:8px}.ai ul{padding-left:18px;margin-bottom:8px}.ai li{margin-bottom:3px}'
-    + '.ai strong{color:#08404D;font-weight:700}'
-    + '.ai table{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}'
-    + '.ai th{background:#08404D;color:#fff;padding:7px 10px;text-align:left;font-size:10px}'
-    + '.ai td{padding:6px 10px;border:1px solid #E0EEF0}'
-    + '.ai tbody tr:nth-child(even) td{background:#F8FCFD}'
-    + '.ai blockquote{background:#FDF6E8;border-left:4px solid #E88A2E;padding:8px 12px;margin:10px 0;font-style:italic}'
-    + '@media print{html,body{height:auto!important;overflow:visible!important}@page{margin:10mm 12mm}}'
-    + '</style></head><body>'
-    + '<div class="page">'
-    + '<div class="hero">'
-    + '<div class="big-score">' + score + '</div>'
-    + '<div><div style="font-size:22px;font-weight:900;margin-bottom:4px">' + xe(cname) + '</div>'
-    + '<div style="font-size:12px;opacity:.7">' + xe(sector) + ' &middot; AIRA IPO Readiness Score &middot; Generated ' + new Date().toLocaleDateString('en-IN') + '</div></div>'
-    + '</div>'
-    + '<div class="ai">' + md2html(report) + '</div>'
-    + '<div style="margin-top:20px;padding-top:12px;border-top:1px solid #E0EEF0;font-size:10px;color:#8FA8B2;display:flex;justify-content:space-between">'
-    + '<div>ipowork.com &middot; AI IPO Readiness Platform</div>'
-    + '<div>Not investment advice. Verify with professionals.</div>'
-    + '</div>'
-    + '</div></body></html>';
-  return {htm: htm, company: cname, score: score};
-}
+    // Parse dims JSON
+    var dims = {score:65,financial:60,governance:60,compliance:60,promoter:60,legal:60,readiness:60,company_name:cname,cin:cin,sector:sector,exchange:exchange};
+    var dm = txt.match(/---DIMS---\s*([\s\S]*?)\s*---DIMS---/);
+    if(dm){ try{ dims=Object.assign(dims,JSON.parse(dm[1].trim())); }catch(e){} }
+    var clean = txt.replace(/---DIMS---[\s\S]*?---DIMS---/g,'').trim();
 
-function previewReport(tier){
-  var r = buildReportHTML(tier);
-  if(!r){ alert('Run AIRA first to generate a report.'); return; }
-  var toolbar = '<div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#08404D;padding:10px 20px;display:flex;align-items:center;gap:12px;font-family:sans-serif">'
-    + '<span style="font-size:16px;font-weight:900;color:#fff;font-family:Georgia">ipowork<sup style="font-size:9px;color:#E88A2E">AI</sup></span>'
-    + '<span style="flex:1;font-size:11px;color:rgba(255,255,255,.5)">' + r.company + (r.score?' &middot; Score: '+r.score+'/100':'') + '</span>'
-    + '<button onclick="window.print()" style="padding:7px 18px;background:#E88A2E;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">🖨 Print / Save PDF</button>'
-    + '<button onclick="window.close()" style="padding:7px 12px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:12px;cursor:pointer">Close</button>'
-    + '</div><div style="height:52px"></div>'
-    + '<style>@media print{div[style*="position:fixed"]{display:none!important}}</style>';
-  var fullHtml = r.htm.replace('<body>', '<body>' + toolbar);
-  var blob = new Blob([fullHtml], {type:'text/html;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url; a.target = '_blank'; a.rel = 'noopener';
-  document.body.appendChild(a); a.click();
-  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 5000);
-}
+    ['pp1','pp2','pp3','pp4','pp5'].forEach(stepDone);
+    btn.disabled=false; btn.innerHTML='Run Full AIRA →';
+    if(prog) prog.style.display='none';
 
-function downloadReport(tier){
-  var r = buildReportHTML(tier);
-  if(!r){ alert('Run AIRA first.'); return; }
-  var blob = new Blob([r.htm], {type:'text/html;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'AIRA-Report-' + (r.company||'Company').replace(/[^a-z0-9]/gi,'-') + '.html';
-  document.body.appendChild(a); a.click();
-  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 3000);
-}
+    var result = Object.assign({}, dims, {_report: clean, _type:'full_paid', _source:'claudeProxy'});
+    cname = dims.company_name || cname;
+    AIRA_RESULTS['paid'] = {result:result, cname:cname, sector:sector, exchange:exchange, tier:'paid'};
+    renderAIRAReport(result, cname, sector, exchange, out, 'paid');
+    out.scrollIntoView({behavior:'smooth', block:'start'});
 
-
-
-function renderValuationReport(result, cname, sector, outEl, tier) {
-  if (!outEl) return;
-  var vb = result.val_base_cr || 0;
-  var vc = result.val_conservative_cr || 0;
-  var vo = result.val_optimistic_cr || 0;
-  var pb_lo = result.price_band_low || 0;
-  var pb_hi = result.price_band_high || 0;
-  var report = result._report || result.report_text || '';
-  var html = '<div class="report-card">';
-  html += '<div style="display:flex;align-items:center;gap:16px;padding:18px 20px;background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:12px;margin-bottom:18px;color:#fff">';
-  html += '<div style="font-size:38px;font-weight:900;font-family:Georgia,serif;color:#E88A2E">' + (vb ? '\u20b9'+vb+' Cr' : '\u2014') + '</div>';
-  html += '<div>';
-  html += '<div style="font-size:16px;font-weight:800">' + xe(cname) + '</div>';
-  html += '<div style="font-size:11px;opacity:.7">' + xe(sector) + ' \u00b7 IPO Valuation</div>';
-  if (pb_lo && pb_hi) {
-    html += '<div style="margin-top:6px;font-size:12px;background:rgba(255,255,255,.15);padding:4px 10px;border-radius:6px">Price Band: \u20b9' + pb_lo + '\u2013\u20b9' + pb_hi + ' per share</div>';
-  }
-  html += '</div></div>';
-  if (vc || vo) {
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">';
-    html += '<div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:8px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:#08404D">' + (vc?'\u20b9'+vc+' Cr':'\u2014') + '</div><div style="font-size:10px;color:#6B8A94;margin-top:2px">Conservative</div></div>';
-    html += '<div style="background:#E8F9F0;border:1px solid #B8E0D0;border-radius:8px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:#1A9E6B">' + (vb?'\u20b9'+vb+' Cr':'\u2014') + '</div><div style="font-size:10px;color:#6B8A94;margin-top:2px">Base Case</div></div>';
-    html += '<div style="background:#FDF6E8;border:1px solid #E8D4A0;border-radius:8px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:#C9932A">' + (vo?'\u20b9'+vo+' Cr':'\u2014') + '</div><div style="font-size:10px;color:#6B8A94;margin-top:2px">Optimistic</div></div>';
-    html += '</div>';
-  }
-  html += '<div class="ai-body">' + md2html(report) + '</div>';
-  html += '<div style="margin-top:16px;display:flex;gap:8px">';
-  html += '<button class="btn-run btn-primary" style="background:#0D5C6B;color:#fff;padding:8px 16px" onclick="previewReport(\''+tier+'\')">\ud83d\udda8 Download Report</button>';
-  html += '</div>';
-  html += '</div>';
-  outEl.innerHTML = html;
-}
-
-/* ════ ADMIN AUTH ════ */
-var ADMIN_PWD='ipowork2024';
-var ADMIN_UNLOCKED=false;
-
-function openAdminAuth(){
-  var o=document.getElementById('admin-auth-overlay');
-  if(o)o.style.display='flex';
-}
-function closeAdminAuth(){
-  var o=document.getElementById('admin-auth-overlay');
-  if(o)o.style.display='none';
-  var inp=document.getElementById('admin-pwd-input');
-  if(inp)inp.value='';
-}
-function checkAdminPwd(){
-  var p=(document.getElementById('admin-pwd-input')||{}).value||'';
-  if(p===ADMIN_PWD){
-    ADMIN_UNLOCKED=true;
-    closeAdminAuth();
-    var t=document.getElementById('tab-admin');
-    if(t){t.style.display='inline-flex';t.style.opacity='1';}
-    switchTier('admin');
-    loadAdmin();
-  } else {
-    alert('Incorrect password.');
-  }
-}
-function toggleDevGroups(){
-  var g1=document.getElementById('group-clean-compliance');
-  var g2=document.getElementById('group-valuation');
-  var show=g1&&g1.style.display==='none';
-  [g1,g2].forEach(function(g){if(g)g.style.display=show?'':'none';});
-}
-/* ════ WORKER TEST ════ */
-async function testWorkerNow(){
-  var out=document.getElementById('result-test');
-  if(!out){alert('Run a test first.');return;}
-  out.innerHTML='<div style="padding:14px;color:var(--mu)">⟳ Testing worker...</div>';
-  try{
-    var t0=Date.now();
-    var r=await workerPost({type:'probe42_raw',cin:'U74120MH1985PLC035308'});
-    var ms=Date.now()-t0;
-    out.innerHTML='<div style="padding:14px;font-size:13px"><b style="color:var(--ok)">✅ Worker OK ('+ms+'ms)</b><br>'
-      +'Company: '+(r.company_name||'N/A')+'<br>Revenue: '+((r.financials||{}).revenue_fy24||'N/A')+'</div>';
-  }catch(e){
-    out.innerHTML='<div style="padding:14px;color:var(--er)"><b>✗ Error:</b> '+esc(e.message)+'<br>'
-      +'<small>Visit <a href="'+WORKER+'" target="_blank">'+WORKER+'</a> — should show v10.7 OK</small></div>';
+  } catch(e){
+    ['pp1','pp2','pp3','pp4','pp5'].forEach(stepDone);
+    btn.disabled=false; btn.innerHTML='Run Full AIRA →';
+    if(prog) prog.style.display='none';
+    out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)
+      +'<br><br><small>Check: ANTHROPIC_API_KEY set in Worker Secrets? '
+      +'Worker shows <a href="'+WORKER+'" target="_blank">v10.10 OK</a>?</small></div>';
   }
 }
 
-/* ════ ADMIN DASHBOARD ════ */
 
 async function loadAdmin(){
   var statsEl=document.getElementById('admin-stats');
