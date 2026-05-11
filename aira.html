@@ -2339,6 +2339,58 @@ async function runPaidCore(){
 }
 
 
+
+/* ════ ADMIN AUTH & DEV ════ */
+var ADMIN_PWD = 'ipowork2024';
+var ADMIN_UNLOCKED = false;
+
+function openAdminAuth(){
+  var o = document.getElementById('admin-auth-overlay');
+  if(o) o.style.display = 'flex';
+}
+function closeAdminAuth(){
+  var o = document.getElementById('admin-auth-overlay');
+  if(o) o.style.display = 'none';
+  var inp = document.getElementById('admin-pwd-input');
+  if(inp) inp.value = '';
+}
+function checkAdminPwd(){
+  var p = (document.getElementById('admin-pwd-input')||{}).value||'';
+  if(p === ADMIN_PWD){
+    ADMIN_UNLOCKED = true;
+    closeAdminAuth();
+    var t = document.getElementById('tab-admin');
+    if(t){ t.style.display='inline-flex'; t.style.opacity='1'; }
+    switchTier('admin');
+    loadAdmin();
+  } else {
+    alert('Incorrect password.');
+  }
+}
+function toggleDevGroups(){
+  var g1 = document.getElementById('group-clean-compliance');
+  var g2 = document.getElementById('group-valuation');
+  var show = g1 && g1.style.display === 'none';
+  [g1,g2].forEach(function(g){ if(g) g.style.display = show ? '' : 'none'; });
+}
+async function testWorkerNow(){
+  var out = document.getElementById('result-test');
+  if(!out){ alert('No test output area found.'); return; }
+  out.innerHTML = '<div style="padding:14px;color:var(--mu)">⟳ Testing worker...</div>';
+  try {
+    var t0 = Date.now();
+    var r = await workerPost({type:'probe42_raw', cin:'U74120MH1985PLC035308'});
+    var ms = Date.now() - t0;
+    out.innerHTML = '<div style="padding:14px"><b style="color:var(--ok)">✅ Worker OK ('+ms+'ms)</b><br>'
+      + '<span style="font-size:12px;color:var(--mu)">Company: '+(r.company_name||'N/A')+'<br>'
+      + 'Revenue: '+((r.financials||{}).revenue_fy24||'N/A')+'<br>'
+      + 'Worker: <a href="'+WORKER+'" target="_blank">'+WORKER+'</a></span></div>';
+  } catch(e){
+    out.innerHTML = '<div style="padding:14px;color:var(--er)"><b>✗ Error:</b> '+esc(e.message)+'<br>'
+      + '<small>Check: Worker deployed? ANTHROPIC_API_KEY set in Secrets?</small></div>';
+  }
+}
+
 async function loadAdmin(){
   var statsEl=document.getElementById('admin-stats');
   var repEl=document.getElementById('admin-reports');
