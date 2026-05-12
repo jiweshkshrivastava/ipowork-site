@@ -279,14 +279,49 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .sp-v{background:rgba(155,142,196,.1);color:var(--purple);border:1px solid rgba(155,142,196,.2)}
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box!important}
-  .ac table{box-shadow:none!important;margin:10px 0!important}
-  .ac th{background:#08404D!important;color:#fff!important;padding:8px 12px!important}
-  .ac td{padding:7px 12px!important;font-size:10px!important}
-  .ac h1{background:#EEF9FB!important;border-left:4px solid #0D5C6B!important;padding:10px 14px!important;font-size:16px!important}
-  .ac h2{background:rgba(13,92,107,.08)!important;font-size:14px!important}
-  .ac h3{font-size:12px!important;border-bottom:1px solid #E0EEF0!important}
-  .ac blockquote{background:rgba(232,138,46,.06)!important;border-left:4px solid #E88A2E!important}
-  .ac pre{background:#F4FAFB!important;border:1px solid #D8EDF0!important}
+  @page{size:A4 portrait;margin:10mm 12mm}
+  /* CRITICAL: kill overflow:hidden that clips to 1 page */
+  html{height:auto!important;overflow:visible!important;font-size:10px}
+  body{height:auto!important;overflow:visible!important;background:#fff!important;color:#1A2E35!important;font-family:'Sora',sans-serif!important;margin:0;padding:0}
+  /* Layout - flatten the flex SPA */
+  .app{display:block!important;height:auto!important;margin-top:0!important;overflow:visible!important}
+  .side{display:none!important}
+  .main{display:block!important;width:100%!important;height:auto!important;overflow:visible!important;float:none!important;background:#fff!important}
+  .res-phase{display:block!important;padding:4px!important;height:auto!important;overflow:visible!important}
+  /* Hide UI chrome */
+  .bar,.gp,.export-bar,.inp-phase,.data-panel,.p42-panel,.depth-row,.start-btn,.disc,
+  #btn-new,.bar-right,button:not(.print-btn),#drop-zone,.act-row,.files-list,.vbox{display:none!important}
+  /* Module cards */
+  .mcard{display:block!important;break-inside:avoid;page-break-inside:avoid;margin-bottom:10px!important;border:1px solid #D8EDF0!important;border-left:4px solid #0D5C6B!important;border-radius:0 10px 10px 0!important;box-shadow:none!important;overflow:visible!important}
+  .mcard.hidden{display:block!important}
+  .mc-head{display:flex!important;padding:8px 14px!important;background:#F0F9FB!important;break-after:avoid}
+  .mc-body{display:block!important;padding:10px 14px!important;height:auto!important;overflow:visible!important}
+  /* Tables */
+  .ac table{box-shadow:none!important;margin:8px 0!important;width:100%!important;border-collapse:collapse!important}
+  .ac th{background:#08404D!important;color:#fff!important;padding:7px 10px!important;font-size:9px!important}
+  .ac td{padding:6px 10px!important;font-size:10px!important;border:1px solid #E0EEF0!important}
+  .ac tbody tr:nth-child(even) td{background:#F8FCFD!important}
+  /* Headings */
+  .ac h1{background:#EEF9FB!important;border-left:4px solid #0D5C6B!important;padding:8px 12px!important;font-size:14px!important;break-before:page;page-break-before:page}
+  .ac h1:first-child{break-before:avoid}
+  .ac h2{background:rgba(13,92,107,.07)!important;padding:6px 10px!important;font-size:12px!important;break-after:avoid}
+  .ac h3{font-size:11px!important;border-bottom:1px solid #E0EEF0!important;break-after:avoid}
+  .ac h4{font-size:10px!important;break-after:avoid}
+  .ac p,.ac li{font-size:10px!important;line-height:1.6!important}
+  .ac blockquote{background:#FDF6E8!important;border-left:4px solid #E88A2E!important;padding:8px 12px!important}
+  .ac pre{background:#F4FAFB!important;border:1px solid #D8EDF0!important;font-size:9px!important;white-space:pre-wrap!important}
+  /* Signals */
+  .sig{font-size:8px!important;padding:2px 6px!important}
+  .sg{background:#E8F5F0!important;color:#1A9E6B!important;border:1px solid #B8E0D0!important}
+  .sr{background:#FDF0EE!important;color:#C0392B!important;border:1px solid #E8C4C0!important}
+  .sa{background:#FDF6E8!important;color:#C9932A!important;border:1px solid #E8D4A0!important}
+  /* Score & cards */
+  .sc-cell{background:#fff!important;border:1px solid #D8EDF0!important;break-inside:avoid}
+  .fs{background:#F0F9FB!important;border:1px solid #D8EDF0!important;break-inside:avoid}
+  .ipo-card{background:#fff!important;border:1px solid #D8EDF0!important}
+  .sc-row{border-top:1px solid #E0EEF0!important;margin-top:8px!important}
+  /* Print header */
+  #print-header{display:flex!important;background:#08404D!important;color:#fff!important;padding:10px 16px!important;margin-bottom:12px!important;border-radius:8px!important;break-inside:avoid}
   @page{size:A4 portrait;margin:10mm 12mm}
   html{height:auto!important;overflow:visible!important;font-size:10px}
   body{height:auto!important;overflow:visible!important;background:#fff!important;color:#0F1E25!important;font-size:10px!important;font-family:'Sora',sans-serif!important;margin:0!important;padding:0!important}
@@ -678,6 +713,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 <script>
 var WORKER='https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 /* ── Global state ── */
+/* Signal classification helpers - defined at top for all scopes */
+if(typeof isPosSignal==='undefined'){
+  window.isPosSignal=function(s){return ['STRONG','MOAT','SCALABLE','LEADER','POWER','TAILWIND','COMPLIANT','CLEAN','CASH','DEBT FREE','HIGH'].some(function(p){return s.indexOf(p)>-1;});};
+  window.isNegSignal=function(s){return ['RISK','STRESS','WEAK','CONCERN','CONSTRAINED','LEGACY','LEVERAGE','CONCENTRATED','DISPUTE','NON-COMPLIANT','LOSS'].some(function(p){return s.indexOf(p)>-1;});};
+  window.pos=function(s){return isPosSignal(s);};
+  window.neg=function(s){return isNegSignal(s);};
+}
 var ATTS=[],MAX_F=8,MAX_C=18000,MAX_T=65000;
 var VS={bRec:null,bFin:'',dRec:null,dFin:''};
 // PDF.js worker — set after DOM ready to avoid "fake worker" warning
@@ -1364,6 +1406,8 @@ function onDone(m,text){
   if(mi){mi.classList.remove('running');mi.classList.add('done');}
 }
 
+function pos(s){return isPosSignal(s);}
+function neg(s){return isNegSignal(s);}
 function renderContent(text,m){
   // Parse markdown tables first
   function parseTables(txt){
@@ -1671,4 +1715,29 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+  // Auto-fill from URL params (when opened from aira.html)
+  (function(){
+    var p = new URLSearchParams(window.location.search);
+    var cin = p.get('cin');
+    var sector = p.get('sector');
+    var exchange = p.get('exchange');
+    if(cin){
+      var el = document.getElementById('dr-cin');
+      if(el) el.value = cin;
+      // Also fill sector if present
+      var sel = document.getElementById('dr-sector');
+      if(sel && sector){
+        for(var i=0;i<sel.options.length;i++){
+          if(sel.options[i].value===sector){ sel.selectedIndex=i; break; }
+        }
+      }
+      // Auto-trigger fetch after short delay
+      setTimeout(function(){
+        var btn = document.getElementById('btn-fetch') || document.querySelector('button[onclick*="fetchProbe"]') || document.querySelector('button[onclick*="startResearch"]');
+        if(btn && cin) btn.click();
+      }, 800);
+    }
+  })();
+</script>
 </body></html>
