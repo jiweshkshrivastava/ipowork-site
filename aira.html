@@ -799,10 +799,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     
     <div class="prog-steps" id="prog-ca" style="display:none">
       <div class="prog-step" id="cp1"><div class="ps-n">1</div>Probe42 fetch</div>
-    <div id="result-ca"></div>
   </div>
+  
+<div class="prog-steps" id="prog-ca" style="display:none">
+      <div class="prog-step" id="cp1"><div class="ps-n">1</div>Probe42 fetch</div>
+  </div>
+  
     
   </div>
+<div id="result-ca"></div>
 
 
 </div>
@@ -916,11 +921,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     
     <div class="prog-steps" id="prog-clearchit" style="display:none">
       <div class="prog-step" id="cc1"><div class="ps-n">1</div>Probe42 fetch</div>
-    <div id="result-clearchit"></div>
   </div>
+  
+<div class="prog-steps" id="prog-clearchit" style="display:none">
+      <div class="prog-step" id="cc1"><div class="ps-n">1</div>Probe42 fetch</div>
+  </div>
+  
 
     
   </div>
+<div id="result-clearchit"></div>
 
 
 </div>
@@ -1071,10 +1081,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     
     <div class="prog-steps" id="prog-ddbundle" style="display:none">
       <div class="prog-step" id="dd1"><div class="ps-n">1</div>Probe42 fetch</div>
-    <div id="result-ddbundle"></div>
   </div>
+  
+<div class="prog-steps" id="prog-ddbundle" style="display:none">
+      <div class="prog-step" id="dd1"><div class="ps-n">1</div>Probe42 fetch</div>
+  </div>
+  
     
   </div>
+<div id="result-ddbundle"></div>
 
 
 </div>
@@ -2335,8 +2350,8 @@ async function runPaidCore(){
       cname = p42.company_name;
       p42flat = p42;
       var f=p42.financials||{};
-      function fC(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);}
-      function fP(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';}
+      var fC=function(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);};;
+      var fP=function(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';};
       p42ctx = 'PROBE42 VERIFIED DATA:\n'
         +'Company: '+cname+' | CIN: '+cin+' | Type: '+(p42.company_type||'N/A')+'\n'
         +'Incorporated: '+(p42.date_of_incorporation||'N/A')+' | State: '+(p42.registered_state||'N/A')+'\n'
@@ -2506,8 +2521,8 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier){
     if(p42&&p42.company_name&&p42.company_name!=='NOT FOUND'){
       cname=p42.company_name;
       var f=p42.financials||{};
-      function fC(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);}
-      function fP(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';}
+      var fC=function(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);};
+      var fP=function(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';};
       p42ctx='Company: '+cname+' | CIN: '+cin+'\nRevenue: '+fC(f.revenue_fy24)+' | PAT: '+fC(f.pat_fy24)+' | EBITDA%: '+fP(f.ebitda_margin)
         +'\nNetWorth: '+fC(f.net_worth)+' | D/E: '+(f.debt_equity_ratio||'N/A')+'x | ROE: '+fP(f.roe)
         +'\nAuditor: '+(f.auditor||'N/A')+' | Defaulter: '+((p42.compliance||{}).defaulter?'YES':'No')
@@ -2523,12 +2538,23 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier){
     +'{"score":0,"financial":0,"governance":0,"compliance":0,"promoter":0,"legal":0,"readiness":0,'
     +'"company_name":"'+cname+'","cin":"'+cin+'","sector":"'+sector+'","exchange":"'+exchange+'"}\n---DIMS---\n\n'
     +'Then write (max 500 words):\n'
-    +'## Executive Summary\n## SEBI '+(isMB?'Mainboard':'SME IPO')+' Eligibility (table)\n'
-    +'## Financial Snapshot (Probe42 table)\n## Peer Benchmarks (3 peers table)\n'
-    +'## Key Gaps (top 5)\n## Score Explanation\n## Conclusion & Timeline';
+    +'## 1. Executive Summary (company overview + AIRA verdict)\n'
+    +'## 2. SEBI '+(isMB?'Mainboard ICDR':'SME IPO ICDR')+' Eligibility\n'
+    +'| Criterion | Required | Status | Gap |\n|---|---|---|---|\n'
+    +'## 3. Financial Analysis (use ALL Probe42 numbers in table)\n'
+    +'## 4. Peer Benchmarks\n'
+    +'| Company | Revenue | PAT% | P/E | EV/EBITDA | Exchange |\n|---|---|---|---|---|---|\n'
+    +'## 5. Governance & Board\n'
+    +'## 6. Compliance Status (GST, EPFO, ROC, Charges table)\n'
+    +'## 7. Key Gaps & Action Plan (numbered, with timeline)\n'
+    +'## 8. Score Breakdown\n'
+    +'| Dimension | Score | Reason |\n|---|---|---|\n'
+    +'## 9. IPO Roadmap (Phase 1/2/3)\n'
+    +'## 10. Conclusion\n'
+    +'Write minimum 800 words. Complete ALL 10 sections. Use tables where specified.';
 
   try{
-    var resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]});
+    var resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:2000,messages:[{role:'user',content:prompt}]});
     var txt=(resp&&resp.content||[]).map(function(c){return c.text||'';}).join('');
     if(!txt&&resp&&resp.error) throw new Error(resp.error.message||JSON.stringify(resp.error));
     if(!txt) throw new Error('Empty response. Check ANTHROPIC_API_KEY in Worker Secrets.');
@@ -2604,25 +2630,22 @@ async function airaAlert(){
 
 /* Fix Deep Research to use claudeProxy (not deep_research worker route) */
 async function runDeepResearchFor(tier, cinFieldId, sectorFieldId, exchangeFieldId, prefix){
-  var cinId = cinFieldId, secId = sectorFieldId, excId = exchangeFieldId;
-  var outId = 'result-'+prefix, progId = 'prog-'+prefix, btnId = 'btn-'+prefix+'-dr';
-  // For valuation tiers use renderValuationReport, others use renderAIRAReport
-  var isVal = (tier==='valintel'||tier==='valdoc');
-  var cin=(document.getElementById(cinId)||{}).value||'';
-  cin=cin.trim().toUpperCase();
-  if(!cin){alert('Please enter CIN for Deep Research.');return;}
-  var sector=(document.getElementById(secId)||{}).value||'Manufacturing';
-  var exchange=(document.getElementById(excId)||{}).value||'NSE Emerge (SME)';
-  var btn=document.getElementById(btnId);
-  var prog=document.getElementById(progId);
-  var out=document.getElementById(outId)||document.getElementById('result-'+tier);
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Deep Research…';}
-  if(out)out.innerHTML='';
-  if(prog)prog.style.display='flex';
-
-  // Use same runTab logic
-  await runTab(cinId, secId, excId, outId||('result-'+tier), progId, btnId, tier);
-  if(btn){btn.disabled=false;btn.innerHTML='🔬 Deep Research · 15 min →';}
+  var cin = (document.getElementById(cinFieldId)||{}).value||'';
+  cin = cin.trim().toUpperCase();
+  if(!cin){ alert('Please enter CIN first, then click Deep Research.'); return; }
+  var sector = (document.getElementById(sectorFieldId)||{}).value||'Manufacturing';
+  var exchange = (document.getElementById(exchangeFieldId)||{}).value||'NSE Emerge (SME)';
+  // Open dedicated Deep Research tool with CIN pre-filled
+  var url = 'deep-research.html?cin='+encodeURIComponent(cin)
+    +'&sector='+encodeURIComponent(sector)
+    +'&exchange='+encodeURIComponent(exchange);
+  var w = window.open(url, '_blank');
+  if(!w) {
+    // Fallback if popup blocked
+    var a = document.createElement('a');
+    a.href = url; a.target='_blank'; a.rel='noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
 }
 
 async function loadAdmin(){
@@ -2884,7 +2907,7 @@ async function runValuationDoc(){
       +'{"val_conservative_cr":0,"val_base_cr":0,"val_optimistic_cr":0,"price_band_low":0,"price_band_high":0,"sector_pe_avg":0,"company_name":"'+cname+'"}\n'
       +'---VALUATION_JSON_END---\n\n'
       +'Then write 400 words: ## Valuation Summary ## Peer Comparables ## Price Band ## Key Risks ## Conclusion';
-    var apiResp = await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]});
+    var apiResp = await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:2000,messages:[{role:'user',content:prompt}]});
     var txt = (apiResp&&apiResp.content||[]).map(function(c){return c.text||'';}).join('');
     if(!txt&&apiResp&&apiResp.error) throw new Error(apiResp.error.message||JSON.stringify(apiResp.error));
     if(!txt) throw new Error('Empty response. Check ANTHROPIC_API_KEY in Worker Secrets.');
@@ -2990,8 +3013,8 @@ async function runValuationIntel(){
     if(p42 && p42.company_name && p42.company_name !== 'NOT FOUND'){
       cname = p42.company_name;
       var f = p42.financials||{};
-      function fC(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);}
-      function fP(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';}
+      var fC=function(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);};
+      var fP=function(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';};
       p42data = 'Company: '+cname+' | CIN: '+cin+' | Sector: '+sector+
         '\nRevenue: '+fC(f.revenue_fy24)+' | PAT: '+fC(f.pat_fy24)+
         ' | EBITDA%: '+fP(f.ebitda_margin)+' | Net Worth: '+fC(f.net_worth)+
