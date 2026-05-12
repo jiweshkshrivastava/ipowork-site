@@ -2506,6 +2506,62 @@ async function testWorkerNow(){
 
 
 /* ════ UNIFIED TAB RUNNER ════ */
+
+/* ════ SIMPLE REPORT RENDERER (for CA/CleanChit/DD/DirScan tabs) ════ */
+function renderSimpleReport(result, cname, sector, outEl, tier) {
+  if(!outEl) return;
+  var report = result._report || result.report || '';
+  var score  = result.score || 0;
+  var col    = score>=78?'#1A9E6B':score>=65?'#E88A2E':score>=50?'#C9932A':'#C0392B';
+  var label  = score>=78?'STRONG':'NEEDS WORK';
+  var dims   = result;
+
+  // Tier label map
+  var tLabel = {ca:'CA/CS Compliance Bundle',clearchit:'Clean Chit Report',
+    ddbundle:'Due Diligence Report',dirscan:'Director Scan Report',
+    mainboard:'Mainboard ICDR Report',paid:'AIRA Intelligence Report',
+    valintel:'Valuation Intelligence',valdoc:'Valuation Report'}[tier]||'AIRA Report';
+
+  var html = '<div style="background:#fff;border-radius:14px;border:1px solid #E0EEF0;overflow:hidden;box-shadow:0 4px 20px rgba(13,92,107,.08)">';
+
+  // Header
+  html += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);padding:20px 24px;color:#fff;display:flex;align-items:center;gap:18px">';
+  html += '<div style="font-size:48px;font-weight:900;font-family:Georgia,serif;color:'+col+';line-height:1;min-width:60px;text-align:center">'+score+'</div>';
+  html += '<div>';
+  html += '<div style="font-size:10px;font-weight:800;letter-spacing:1px;opacity:.6;text-transform:uppercase;margin-bottom:3px">'+tLabel+'</div>';
+  html += '<div style="font-size:18px;font-weight:800">'+xe(cname)+'</div>';
+  html += '<div style="font-size:11px;opacity:.6;margin-top:2px">'+xe(sector)+'</div>';
+  html += '<div style="margin-top:8px;display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:800;background:'+col+'22;color:'+col+';border:1px solid '+col+'44">'+label+'</div>';
+  html += '</div>';
+  // Score grid
+  html += '<div style="margin-left:auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;min-width:180px">';
+  [{k:'financial',l:'Financial'},{k:'governance',l:'Govern.'},{k:'compliance',l:'Comply'},
+   {k:'promoter',l:'Promoter'},{k:'legal',l:'Legal'},{k:'readiness',l:'Readiness'}
+  ].forEach(function(d){
+    var v=dims[d.k]||0;
+    var c=v>=70?'#1A9E6B':v>=55?'#E88A2E':'#C0392B';
+    html+='<div style="background:rgba(255,255,255,.1);border-radius:6px;padding:5px 8px;text-align:center">';
+    html+='<div style="font-size:14px;font-weight:800;color:'+c+'">'+v+'</div>';
+    html+='<div style="font-size:8px;opacity:.55;text-transform:uppercase">'+d.l+'</div></div>';
+  });
+  html += '</div>';
+  html += '</div>';
+
+  // Report body
+  html += '<div style="padding:22px 24px;font-size:13px;line-height:1.8;color:#1A2E35">';
+  html += md2html(report);
+  html += '</div>';
+
+  // Actions
+  html += '<div style="padding:12px 24px;border-top:1px solid #E8F4F6;display:flex;gap:8px;background:#F8FCFD">';
+  html += '<button onclick="previewReport(\''+tier+'\')" style="padding:8px 18px;background:#08404D;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🖨 Print / Save PDF</button>';
+  html += '</div>';
+  html += '</div>';
+
+  outEl.innerHTML = html;
+  AIRA_RESULTS[tier] = {result:result, cname:cname, sector:sector, tier:tier};
+}
+
 async function runTab(cinId, secId, excId, outId, progId, btnId, tier){
   var cin = (document.getElementById(cinId)||{}).value||'';
   cin = cin.trim().toUpperCase().replace(/^UNKNOWN/,'');
@@ -2569,7 +2625,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier){
     +'---DIMS---';
 
   try{
-    var resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:2500,
+    var resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:3000,
       system:'You are AIRA, India top SEBI IPO Readiness AI. Always write COMPLETE reports. Never stop early. Fill every section fully. Use tables for data. Minimum 1200 words.',
       messages:[{role:'user',content:prompt}]});
     var txt=(resp&&resp.content||[]).map(function(c){return c.text||'';}).join('');
@@ -2587,8 +2643,14 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier){
     var result=Object.assign({},dims,{_report:clean,_type:'full_paid'});
     cname=dims.company_name||cname;
     AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,exchange:exchange,tier:tier};
-    renderAIRAReport(result,cname,sector,exchange,out,tier);
-    // Move result outside prog if it's nested inside (so hiding prog doesn't hide result)
+    // Use simple renderer for sub-tabs, full AIRA renderer for paid/mainboard
+    var useSimple = (tier==='ca'||tier==='clearchit'||tier==='ddbundle'||tier==='dirscan');
+    if(useSimple){
+      renderSimpleReport(result,cname,sector,out,tier);
+    } else {
+      renderAIRAReport(result,cname,sector,exchange,out,tier);
+    }
+    // Move result outside prog if nested inside
     if(prog && out && prog.contains(out)){
       prog.parentNode.insertBefore(out, prog.nextSibling);
     }
@@ -3119,11 +3181,6 @@ async function runValuationIntel(){
       +'2. If not v10.7, redeploy cloudflare-worker.js<br>'
       +'3. Check Worker Secrets: ANTHROPIC_API_KEY and PROBE42_KEY are set<br>'
       +'4. Hard refresh this page (Ctrl+Shift+R)</small></div>';
-  }
-}
-
-
-fresh this page (Ctrl+Shift+R)</small></div>';
   }
 }
 
