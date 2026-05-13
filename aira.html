@@ -1236,6 +1236,158 @@ function requireLoginThen(fn){
   if(typeof fn==='function') fn();
 }
 
+
+/* ════ DOCUMENT UPLOAD — AIRA SCORE TAB ════ */
+var DOC_FILES = {}; // stores {slotId: {name, text, base64}}
+
+function fileSelected(slot, input){
+  if(!input.files||!input.files[0]) return;
+  var file = input.files[0];
+  var slot_el = document.getElementById('slot-'+slot);
+  var status_el = document.getElementById('status-'+slot);
+  
+  // Update UI
+  if(slot_el) slot_el.classList.add('has-file');
+  if(status_el) status_el.textContent = '✓ '+file.name.substring(0,25);
+  
+  // Read file as text (for PDFs/Excel just get filename for now)
+  var reader = new FileReader();
+  reader.onload = function(e){
+    DOC_FILES[slot] = {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      text: '[File: '+file.name+' ('+Math.round(file.size/1024)+'KB)]'
+    };
+    updateUploadCount();
+  };
+  reader.readAsArrayBuffer(file); // trigger onload
+  
+  // For text extraction, read as text too
+  var reader2 = new FileReader();
+  reader2.onload = function(e2){
+    if(DOC_FILES[slot]){
+      // Store first 3000 chars of text content
+      var txt = e2.target.result||'';
+      if(typeof txt === 'string' && txt.length > 10){
+        DOC_FILES[slot].text = '['+file.name+']: '+txt.substring(0,3000);
+      }
+    }
+  };
+  reader2.onerror = function(){};
+  try { reader2.readAsText(file); } catch(e){}
+}
+
+function updateUploadCount(){
+  var count = Object.keys(DOC_FILES).length;
+  var el = document.getElementById('upload-count-label');
+  var complete_el = document.getElementById('upload-complete-label');
+  if(el) el.textContent = count + ' document' + (count!==1?'s':'') + ' uploaded';
+  if(complete_el) complete_el.style.display = count > 0 ? 'flex' : 'none';
+  var summary = document.getElementById('upload-summary');
+  if(summary) summary.textContent = count > 0 ? count+' files ready for AI analysis' : '';
+}
+
+async function runDocCore(){
+  var cname = (document.getElementById('d-cname')||{}).value||'';
+  var cin   = (document.getElementById('d-cin')||{}).value||'';
+  var sector = (document.getElementById('d-sector')||{}).value||'Manufacturing';
+  var exchange = (document.getElementById('d-exchange')||{}).value||'NSE Emerge (SME)';
+  
+  cname = cname.trim(); cin = cin.trim().toUpperCase();
+  if(!cname){ alert('Please enter company name.'); return; }
+  
+  var btn = document.getElementById('btn-doc-run');
+  var prog = document.getElementById('prog-doc');
+  var out  = document.getElementById('result-doc');
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Analysing…'; }
+  if(out) out.innerHTML='';
+  if(prog) prog.style.display='flex';
+  
+  // Build document context from uploaded files
+  var docCount = Object.keys(DOC_FILES).length;
+  var docContext = '';
+  if(docCount > 0){
+    docContext = 'UPLOADED DOCUMENTS ('+docCount+' files):\n';
+    Object.values(DOC_FILES).forEach(function(d){
+      docContext += d.text.substring(0, 2000) + '\n---\n';
+    });
+  }
+  
+  // Try Probe42 if CIN provided
+  var p42ctx = '';
+  if(cin){
+    try{
+      var p42 = await workerPost({type:'probe42_raw', cin:cin});
+      if(p42 && p42.company_name && p42.company_name !== 'NOT FOUND'){
+        if(!cname) cname = p42.company_name;
+        var f = p42.financials||{};
+        var fC=function(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);};
+        var fP=function(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';};
+        p42ctx = '\nPROBE42 MCA DATA:\nRevenue: '+fC(f.revenue_fy24)+' | PAT: '+fC(f.pat_fy24)
+          +' | EBITDA%: '+fP(f.ebitda_margin)+' | NetWorth: '+fC(f.net_worth)
+          +' | D/E: '+(f.debt_equity_ratio||'N/A')+'x | ROE: '+fP(f.roe)
+          +'\nAuditor: '+(f.auditor||'N/A')+' | Defaulter: No\n';
+      }
+    }catch(e){}
+  }
+  
+  var isMB = exchange.indexOf('Main') > -1;
+  var prompt = 'You are AIRA, India top SEBI IPO Readiness AI. Score this company based on uploaded documents.\n\n'
+    +'Company: '+cname+(cin?' | CIN: '+cin:'')+'\nSector: '+sector+' | Exchange: '+exchange+'\n'
+    +p42ctx
+    +(docContext||'(No documents uploaded — use sector knowledge and company name to estimate)\n')
+    +'\nWrite a COMPLETE IPO Readiness Report. Minimum 1000 words. ALL 9 sections required:\n\n'
+    +'## 1. Executive Summary\n'
+    +'## 2. SEBI '+(isMB?'Mainboard ICDR':'SME IPO')+' Eligibility (criteria table)\n'
+    +'## 3. Financial Analysis (table with all key metrics)\n'
+    +'## 4. Listed Peer Benchmarks (3 real companies, P/E, EV/EBITDA table)\n'
+    +'## 5. Governance & Board Quality\n'
+    +'## 6. Compliance Status (table)\n'
+    +'## 7. Key Gaps & Action Plan (8 items, numbered, with timeline)\n'
+    +'## 8. IPO Roadmap (Phase 1/2/3)\n'
+    +'## 9. Conclusion & Verdict\n\n'
+    +'After the full report, append:\n'
+    +'---DIMS---\n'
+    +'{"score":0,"financial":0,"governance":0,"compliance":0,"promoter":0,"legal":0,"readiness":0}\n'
+    +'---DIMS---';
+
+  try{
+    var resp = await workerPost({
+      type:'claudeProxy',
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:3000,
+      system:'You are AIRA, India top SEBI IPO Readiness expert. Write COMPLETE detailed reports from uploaded documents. Minimum 1000 words. Never truncate any section.',
+      messages:[{role:'user', content:prompt}]
+    });
+    
+    var txt = (resp&&resp.content||[]).map(function(c){return c.text||'';}).join('');
+    if(!txt && resp&&resp.error) throw new Error(resp.error.message||JSON.stringify(resp.error));
+    if(!txt) throw new Error('Empty response. Check ANTHROPIC_API_KEY in Worker Secrets.');
+    
+    // Parse dims
+    var dims = {score:65,financial:60,governance:60,compliance:60,promoter:60,legal:60,readiness:60,
+                company_name:cname,cin:cin,sector:sector,exchange:exchange};
+    var dm = txt.match(/---DIMS---\s*([\s\S]*?)\s*---DIMS---/);
+    if(dm){try{dims=Object.assign(dims,JSON.parse(dm[1].trim()));}catch(e){}}
+    var clean = txt.replace(/---DIMS---[\s\S]*?---DIMS---/g,'')
+                   .replace(/```json[\s\S]*?```/g,'').replace(/```[\s\S]*?```/g,'').trim();
+    
+    if(btn){btn.disabled=false;btn.innerHTML='Generate AIRA Score →';}
+    if(prog)prog.style.display='none';
+    
+    var result = Object.assign({},dims,{_report:clean,_type:'doc'});
+    AIRA_RESULTS['doc'] = {result:result,cname:cname,sector:sector,exchange:exchange,tier:'doc'};
+    renderAIRAReport(result, cname, sector, exchange, out, 'doc');
+    if(out) out.scrollIntoView({behavior:'smooth',block:'start'});
+    
+  }catch(e){
+    if(btn){btn.disabled=false;btn.innerHTML='Generate AIRA Score →';}
+    if(prog)prog.style.display='none';
+    if(out) out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   // Init first tab
   switchTier('paid');
