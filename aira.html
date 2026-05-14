@@ -2634,10 +2634,13 @@ async function testWorkerNow(){
     var t0 = Date.now();
     var r = await workerPost({type:'probe42_raw', cin:'U74120MH1985PLC035308'});
     var ms = Date.now() - t0;
+    var dbg = r._debug ? '<br><span style="color:#C9932A">Debug: '+JSON.stringify(r._debug)+'</span>' : '';
+    var co = r.company_name && r.company_name!=='NOT FOUND' ? r.company_name : 'N/A — check Probe42 key/proxy';
+    var rev = (r.financials||{}).revenue_fy24;
     out.innerHTML = '<div style="padding:14px"><b style="color:var(--ok)">✅ Worker OK ('+ms+'ms)</b><br>'
-      + '<span style="font-size:12px;color:var(--mu)">Company: '+(r.company_name||'N/A')+'<br>'
-      + 'Revenue: '+((r.financials||{}).revenue_fy24||'N/A')+'<br>'
-      + 'Worker: <a href="'+WORKER+'" target="_blank">'+WORKER+'</a></span></div>';
+      + '<span style="font-size:12px;color:var(--mu)">Company: '+co+'<br>'
+      + 'Revenue: '+(rev||'N/A')+'<br>'
+      + 'Worker: <a href="'+WORKER+'" target="_blank">'+WORKER+'</a>'+dbg+'</span></div>';
   } catch(e){
     out.innerHTML = '<div style="padding:14px;color:var(--er)"><b>✗ Error:</b> '+esc(e.message)+'<br>'
       + '<small>Check: Worker deployed? ANTHROPIC_API_KEY set in Secrets?</small></div>';
