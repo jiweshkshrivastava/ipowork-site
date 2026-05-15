@@ -93,8 +93,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 .g-btn:hover{background:var(--tld);transform:translateY(-1px)}
 .g-or{display:flex;align-items:center;gap:10px;margin:14px 0;font-size:13px;color:var(--dim)}
 .g-or::before,.g-or::after{content:'';flex:1;height:1px;background:var(--bdr)}
-.g-demo{width:100%;padding:11px;border-radius:9px;border:1px solid var(--bdr);background:none;color:var(--mut);font-family:var(--font);font-weight:600;font-size:13px;cursor:pointer;transition:.2s}
-.g-demo:hover{border-color:var(--green);color:var(--green);background:rgba(123,191,160,.05)}
+
+
 .g-note{text-align:center;margin-top:14px;font-size:13px;color:var(--dim);line-height:1.7}
 
 /* ── WELCOME TOAST ── */
@@ -466,30 +466,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
 
 <!-- ════════════ AUTH GATE ════════════ -->
-<!-- GATE: auto-bypassed via JS doDemo() on load -->
-<div id="gate" style="display:none"></div>
 
-
-
-<!-- ════════════ WELCOME TOAST ════════════ -->
-<div id="toast">
-  <div style="font-size:20px;margin-bottom:6px">👋</div>
-  <div style="font-size:13px;font-weight:700;color:var(--text)" id="toast-title">Welcome!</div>
-  <div style="font-size:13px;color:var(--mut);margin-top:4px;line-height:1.75" id="toast-msg">Enter a company below to start your analysis.</div>
-  <button onclick="document.getElementById('toast').classList.remove('show')" style="margin-top:10px;background:none;border:none;color:var(--amber);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">Start Analysing →</button>
-</div>
-
-<!-- ════════════ TOPBAR ════════════ -->
-<div class="bar">
-  <a href="index.html" style="text-decoration:none;display:flex;align-items:center;gap:4px"><div class="bar-logo">ipowork <sup>INTELLIGENCE</sup></div></a>
-  <div class="bar-tag">🧠 AI Company Intelligence Engine</div>
-  <div id="src-bar" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap"></div>
-  <div class="bar-right">
-    <span id="user-chip" class="user-chip" style="display:none"></span>
-    <button class="btn btn-g" id="btn-new" style="display:none" onclick="resetApp()">+ New Research</button>
-    <a href="institutions.html" class="btn btn-g">← Portal</a>
-  </div>
-</div>
 
 <div class="gp"><div class="gp-fill" id="gp-fill"></div></div>
 
@@ -735,7 +712,7 @@ var VS={bRec:null,bFin:'',dRec:null,dFin:''};
 })();
 
 /* ════ AUTH ════ */
-var SESS={name:'',email:'',org:'',role:'',demo:false};
+var SESS={name:'',email:'',org:'',role:''};
 
 /* ════ PROBE42 STATE ════ */
 var P42={data:null,ok:false,cin:'',ctx:''};
@@ -827,12 +804,7 @@ function buildP42Ctx(d){
   return ctx;
 }
 
-function doDemo(){
-  SESS={name:'Demo User',email:'user@example.com',org:'Demo',role:'Other',demo:true};
-  document.getElementById('gate').classList.add('gone');
-  var uc=document.getElementById('user-chip');if(uc){uc.textContent='👤 Demo';uc.style.display='inline-flex';}
-  var ic=document.getElementById('i-co');if(ic)ic.focus();
-}
+
 var MODULES=[
   /* \u2500\u2500 1 \u2500\u2500 */
   {id:'corporate-identity',num:1,icon:'\ud83c\udfe2',name:'Corporate Identity & Structure',cat:'Governance',col:'#A78BFA',weight:.07,
@@ -1243,6 +1215,11 @@ initSide();
    START RESEARCH
 \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 async function startResearch(){
+  // Check login
+  if(!drIsLoggedIn()){
+    drShowGate();
+    return;
+  }
   var cinEl=document.getElementById('i-cin');
   if(cinEl&&cinEl.value.trim()&&P42&&!P42.ok){
     var btn=document.getElementById('start-btn');
@@ -1711,8 +1688,95 @@ document.addEventListener('DOMContentLoaded',function(){
     dz.addEventListener('dragleave',function(){dz.classList.remove('over');});
     dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('over');doFiles(e.dataTransfer.files);});
   }
-  doDemo();
+  
 });
+
+
+/* ════ IPOWORK ACCESS CONTROL (same as aira.html) ════ */
+var IPOWORK_USERS = {
+  'jiweshkshrivastava@gmail.com': {
+    name: 'Jiwesh Shrivastava',
+    password: 'ipowork@2007',
+    approved: true,
+    plan: 'admin',
+    free: true
+  }
+};
+var CURRENT_USER = null;
+
+(function(){
+  try {
+    var saved = localStorage.getItem('ipowork_session');
+    if(saved){
+      var sess = JSON.parse(saved);
+      if(sess && sess.email && sess.token) {
+        var u = IPOWORK_USERS[sess.email];
+        // Also check saved approved users
+        var extra = JSON.parse(localStorage.getItem('ipowork_approved_users')||'{}');
+        u = u || extra[sess.email];
+        if(u && u.approved && sess.token === btoa(sess.email + u.password)){
+          CURRENT_USER = {email: sess.email, name: u.name, plan: u.plan};
+        }
+      }
+    }
+    // Load extra approved users
+    var extra = JSON.parse(localStorage.getItem('ipowork_approved_users')||'{}');
+    Object.assign(IPOWORK_USERS, extra);
+  } catch(e){}
+})();
+
+function drIsLoggedIn(){ return !!(CURRENT_USER && CURRENT_USER.email); }
+
+function drShowGate(){
+  var gate = document.getElementById('dr-access-gate');
+  if(gate) gate.style.display = 'flex';
+}
+
+function drCloseGate(){
+  var gate = document.getElementById('dr-access-gate');
+  if(gate) gate.style.display = 'none';
+}
+
+function drLogin(){
+  var email = (document.getElementById('dr-gate-email')||{}).value||'';
+  var pw    = (document.getElementById('dr-gate-pw')||{}).value||'';
+  var errEl = document.getElementById('dr-gate-error');
+  email = email.trim().toLowerCase();
+
+  var u = IPOWORK_USERS[email];
+  if(!u){ if(errEl) errEl.textContent='❌ Email not registered. Contact partners@ipowork.com'; return; }
+  if(!u.approved){ if(errEl) errEl.textContent='⏳ Account pending approval. Contact partners@ipowork.com'; return; }
+  if(u.password !== pw){ if(errEl) errEl.textContent='❌ Incorrect password.'; return; }
+
+  CURRENT_USER = {email: email, name: u.name, plan: u.plan};
+  try {
+    localStorage.setItem('ipowork_session', JSON.stringify({
+      email: email, token: btoa(email + u.password), ts: Date.now()
+    }));
+  } catch(e){}
+  drCloseGate();
+  updateUserBadge();
+}
+
+function drLogout(){
+  CURRENT_USER = null;
+  try{ localStorage.removeItem('ipowork_session'); }catch(e){}
+  location.reload();
+}
+
+function updateUserBadge(){
+  var el = document.getElementById('dr-user-badge');
+  if(!el) return;
+  if(CURRENT_USER){
+    el.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,.7)">👤 '+
+      (CURRENT_USER.name||CURRENT_USER.email).split(' ')[0]+'</span>'
+      +' <button onclick="drLogout()" style="font-size:10px;padding:2px 8px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer;color:#fff;margin-left:6px">Logout</button>';
+  } else {
+    el.innerHTML = '<button onclick="drShowGate()" style="font-size:11px;padding:4px 12px;background:#E88A2E;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700">Login</button>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){ updateUserBadge(); });
 </script>
 
 <script>
@@ -1742,4 +1806,35 @@ document.addEventListener('DOMContentLoaded',function(){
     } catch(e){ console.log('URL param error:', e); }
   })();
 </script>
+
+<!-- IPOWORK DEEP RESEARCH ACCESS GATE -->
+<div id="dr-access-gate" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(8,64,77,.92);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:400px;margin:16px;box-shadow:0 24px 64px rgba(0,0,0,.3);position:relative">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-family:Georgia,serif;font-size:28px;font-weight:900;color:#08404D">ipowork<sup style="font-size:12px;color:#E88A2E;font-weight:800">AI</sup></div>
+      <div style="font-size:13px;color:#6B8A94;margin-top:6px">Login to run Deep Research</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Email</label>
+      <input id="dr-gate-email" type="email" placeholder="your@email.com"
+        style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter')document.getElementById('dr-gate-pw').focus()">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Password</label>
+      <input id="dr-gate-pw" type="password" placeholder="••••••••"
+        style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter')drLogin()">
+    </div>
+    <div id="dr-gate-error" style="color:#C0392B;font-size:12px;margin-bottom:12px;min-height:16px"></div>
+    <button onclick="drLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">
+      Login & Continue →
+    </button>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:#9AB0B8">
+      Need access? <a href="mailto:partners@ipowork.com" style="color:#0D5C6B;font-weight:600">partners@ipowork.com</a>
+    </div>
+    <button onclick="drCloseGate()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;color:#9AB0B8;cursor:pointer;line-height:1">×</button>
+  </div>
+</div>
+
 </body></html>
