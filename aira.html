@@ -2096,7 +2096,15 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
     .replace(/```json[\s\S]*?```/g,'').replace(/```[\s\S]*?```/g,'')
     .trim();
 
+  // Use best available company name - prefer Probe42 over Claude's JSON
   var company = cname||result.company_name||result.cin||'';
+  // If company looks like a CIN (starts with letter+digits), try to get real name
+  if(company && /^[ULu][0-9]{5}/.test(company)){
+    var stored = AIRA_RESULTS[tier];
+    if(stored && stored.cname && !/^[ULu][0-9]{5}/.test(stored.cname)){
+      company = stored.cname;
+    }
+  }
   var tierLabel={paid:'Intelligence',doc:'AIRA Score',mainboard:'Mainboard',ca:'CA/CS Bundle',
     clearchit:'Clean Chit',ddbundle:'DD Bundle',free:'Free Analysis'}[tier]||tier;
 
@@ -2573,7 +2581,7 @@ async function runPaidCore(){
     if(prog) prog.style.display='none';
 
     var result = Object.assign({}, dims, {_report: clean, _type:'full_paid', _source:'claudeProxy'});
-    cname = dims.company_name || cname;
+    cname = (p42flat.company_name && p42flat.company_name!=='NOT FOUND') ? p42flat.company_name : (dims.company_name || cname);
     AIRA_RESULTS['paid'] = {result:result, cname:cname, sector:sector, exchange:exchange, tier:'paid'};
     renderAIRAReport(result, cname, sector, exchange, out, 'paid');
     out.scrollIntoView({behavior:'smooth', block:'start'});
@@ -2799,7 +2807,9 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier){
     if(btn){btn.disabled=false;btn.innerHTML='Run →';}
     if(prog)prog.style.display='none';
     var result=Object.assign({},dims,{_report:clean,_type:'full_paid'});
-    cname=dims.company_name||cname;
+    // Keep Probe42 company name if available, don't let Claude override it
+    if(p42ctx && p42.company_name && p42.company_name!=='NOT FOUND') cname=p42.company_name;
+    else cname=dims.company_name||cname;
     AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,exchange:exchange,tier:tier};
     // Use simple renderer for sub-tabs, full AIRA renderer for paid/mainboard
     var useSimple = (tier==='ca'||tier==='clearchit'||tier==='ddbundle'||tier==='dirscan');
