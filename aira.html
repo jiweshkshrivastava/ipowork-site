@@ -1222,7 +1222,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     <div style="font-size:10px;font-weight:800;color:var(--tl);text-transform:uppercase;letter-spacing:.8px;padding:8px 0 6px;border-bottom:1.5px solid rgba(13,92,107,.08);margin-bottom:12px">Reports</div>
     <div id="admin-reports" style="overflow-x:auto"></div>
     <div style="font-size:10px;font-weight:800;color:var(--tl);text-transform:uppercase;letter-spacing:.8px;padding:8px 0 6px;border-bottom:1.5px solid rgba(13,92,107,.08);margin:16px 0 12px">Leads / Users</div>
-    <div id="admin-u
+    <div id="admin-users"></div>
+  </div>
+</div>
+<script>
 var AIRA_RESULTS={};
 
 /* ════ SESSION & INIT ════ */
@@ -1691,48 +1694,7 @@ function sbFetch(path, opts) {
   }, opts || {}));
 }
 
-/* ═══════════════════════════
-   LOGIN SYSTEM
-═══════════════════════════ */
-var _loginCallback = null;
 
-function isLoggedIn(){
-  try{ var u=JSON.parse(localStorage.getItem('ipowork_user')||'null'); return !!(u&&u.phone); }catch(e){return false;}
-}
-function openLogin(){ document.getElementById('login-modal').classList.add('open'); setTimeout(function(){document.getElementById('login-phone').focus();},300); }
-function closeLogin(){ document.getElementById('login-modal').classList.remove('open'); _loginCallback=null; }
-
-function submitLogin(){
-  var phone=(document.getElementById('login-phone').value||'').trim();
-  var email=(document.getElementById('login-email').value||'').trim();
-  var btn=document.getElementById('btn-login');
-
-  if(phone.length!==10||!/^[6-9]/.test(phone)){
-    var pw=document.getElementById('phone-wrap');
-    if(pw) pw.style.borderColor='var(--er)';
-    var ph=document.getElementById('login-phone'); if(ph) ph.focus();
-    return;
-  }
-  if(!email||!email.includes('@')||!email.includes('.')){
-    var el=document.getElementById('login-email');
-    if(el){el.style.borderColor='var(--er)';el.focus();}
-    return;
-  }
-
-  if(btn){btn.disabled=true;btn.textContent='Please wait...';}
-  var user={phone:phone,email:email,ts:Date.now()};
-  try{localStorage.setItem('ipowork_user',JSON.stringify(user));}catch(e){}
-  try{
-    fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'email',to:'partners@ipowork.com',subject:'New AIRA Lead: +91 '+phone,html:'<p><b>Phone:</b> +91 '+phone+'</p><p><b>Email:</b> '+email+'</p>'})}).catch(function(){});
-
-
-
-
-  }catch(e){}
-  if(btn){btn.disabled=false;btn.textContent='Continue - Run My AIRA Score';}
-  closeLogin();
-  if(_loginCallback){var cb=_loginCallback;_loginCallback=null;cb();}
-}
 
 /* ═══════════════════════════
    UI HELPERS
@@ -3673,10 +3635,6 @@ async function runValuationIntel(){
       +'2. If not v10.7, redeploy cloudflare-worker.js<br>'
       +'3. Check Worker Secrets: ANTHROPIC_API_KEY and PROBE42_KEY are set<br>'
       +'4. Hard refresh this page (Ctrl+Shift+R)</small></div>';
-  }
-}
-
-t+R)</small></div>';
   }
 }
 
