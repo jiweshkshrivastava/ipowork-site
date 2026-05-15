@@ -389,7 +389,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 </div>
 
   <div class="rp-wrap">
-    <div class="topbar-right"><button onclick="testWorkerNow()" title="Test worker connection" style="font-size:11px;padding:3px 10px;background:rgba(13,92,107,.1);border:1px solid rgba(13,92,107,.3);border-radius:5px;cursor:pointer;color:var(--tl);font-weight:600">🔌 Test</button>
+    <div class="topbar-right"><span id="user-display" style="margin-right:8px"></span><button onclick="testWorkerNow()" title="Test worker connection" style="font-size:11px;padding:3px 10px;background:rgba(13,92,107,.1);border:1px solid rgba(13,92,107,.3);border-radius:5px;cursor:pointer;color:var(--tl);font-weight:600">🔌 Test</button>
       <button onclick="ADMIN_UNLOCKED?switchTier('admin'):openAdminAuth()"  title="Admin [Ctrl+Shift+9]"
         style="opacity:.8;padding:4px 10px;background:transparent;border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:13px;color:var(--mu)">&#128202; Admin</button>
       <button onclick="toggleDevGroups()" title="Dev groups [F9]"
@@ -1222,19 +1222,245 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     <div style="font-size:10px;font-weight:800;color:var(--tl);text-transform:uppercase;letter-spacing:.8px;padding:8px 0 6px;border-bottom:1.5px solid rgba(13,92,107,.08);margin-bottom:12px">Reports</div>
     <div id="admin-reports" style="overflow-x:auto"></div>
     <div style="font-size:10px;font-weight:800;color:var(--tl);text-transform:uppercase;letter-spacing:.8px;padding:8px 0 6px;border-bottom:1.5px solid rgba(13,92,107,.08);margin:16px 0 12px">Leads / Users</div>
-    <div id="admin-users" style="overflow-x:auto"></div>
-  </div>
+    <div id="admin-users"></div>
 </div>
 <script>
 var AIRA_RESULTS={};
 
 /* ════ SESSION & INIT ════ */
-var SESS = {name:'', email:'', org:'', role:'', plan:'free', demo:false};
+var SESS = {name:'', email:'', org:'', role:'', plan:'free'};
+
+
+/* ════════════════════════════════════════════════════
+   IPOWORK ACCESS CONTROL SYSTEM
+   - All report generation requires approved login
+   - Admin (jiweshkshrivastava@gmail.com) is always free
+   - Admin can approve/revoke users from Admin panel
+   ════════════════════════════════════════════════════ */
+
+var IPOWORK_USERS = {
+  'jiweshkshrivastava@gmail.com': {
+    name: 'Jiwesh Shrivastava',
+    password: 'ipowork@2007',
+    approved: true,
+    plan: 'admin',
+    free: true
+  }
+};
+
+var CURRENT_USER = null;
+
+// Load saved session
+(function(){
+  try {
+    var saved = localStorage.getItem('ipowork_session');
+    if(saved){
+      var sess = JSON.parse(saved);
+      if(sess && sess.email && sess.token && IPOWORK_USERS[sess.email]) {
+        var u = IPOWORK_USERS[sess.email];
+        if(u.approved && sess.token === btoa(sess.email + u.password)) {
+          CURRENT_USER = {email: sess.email, name: u.name, plan: u.plan, free: u.free};
+          SESS.email = sess.email;
+          SESS.name = u.name;
+          SESS.plan = u.plan;
+        }
+      }
+    }
+  } catch(e){}
+})();
+
+function isLoggedIn(){ return !!CURRENT_USER && CURRENT_USER.email; }
+
+function isApproved(){
+  if(!CURRENT_USER) return false;
+  var u = IPOWORK_USERS[CURRENT_USER.email];
+  return u && u.approved;
+}
 
 function requireLoginThen(fn){
-  // Free access for now until payment gateway
-  if(typeof fn==='function') fn();
+  if(isLoggedIn() && isApproved()){
+    if(typeof fn==='function') fn();
+    return;
+  }
+  // Show access gate
+  showAccessGate(fn);
 }
+
+function showAccessGate(callback){
+  _loginCallback = callback;
+  var gate = document.getElementById('access-gate');
+  if(gate) {
+    gate.style.display = 'flex';
+    var inp = document.getElementById('gate-email');
+    if(inp) inp.focus();
+  }
+}
+
+function closeAccessGate(){
+  var gate = document.getElementById('access-gate');
+  if(gate) gate.style.display = 'none';
+}
+
+var _loginCallback = null;
+
+function gateLogin(){
+  var emailEl = document.getElementById('gate-email');
+  var pwEl = document.getElementById('gate-password');
+  var errEl = document.getElementById('gate-error');
+  var email = (emailEl ? emailEl.value : '').trim().toLowerCase();
+  var pw = pwEl ? pwEl.value : '';
+
+  if(!email || !pw){
+    if(errEl) errEl.textContent = 'Please enter email and password.';
+    return;
+  }
+
+  var u = IPOWORK_USERS[email];
+  if(!u){
+    if(errEl) errEl.textContent = '❌ Email not registered. Contact ipowork admin for access.';
+    return;
+  }
+  if(!u.approved){
+    if(errEl) errEl.textContent = '⏳ Your account is pending admin approval. Contact partners@ipowork.com';
+    return;
+  }
+  if(u.password !== pw){
+    if(errEl) errEl.textContent = '❌ Incorrect password.';
+    return;
+  }
+
+  // Login success
+  CURRENT_USER = {email: email, name: u.name, plan: u.plan, free: u.free};
+  SESS.email = email; SESS.name = u.name; SESS.plan = u.plan;
+
+  // Save session
+  try {
+    localStorage.setItem('ipowork_session', JSON.stringify({
+      email: email,
+      token: btoa(email + u.password),
+      ts: Date.now()
+    }));
+  } catch(e){}
+
+  closeAccessGate();
+  updateUserUI();
+
+  if(_loginCallback){ var cb=_loginCallback; _loginCallback=null; cb(); }
+}
+
+function gateLogout(){
+  CURRENT_USER = null;
+  SESS.email=''; SESS.name=''; SESS.plan='free';
+  try{ localStorage.removeItem('ipowork_session'); }catch(e){}
+  updateUserUI();
+  location.reload();
+}
+
+function updateUserUI(){
+  var userEl = document.getElementById('user-display');
+  if(!userEl) return;
+  if(CURRENT_USER){
+    userEl.innerHTML = '<span style="font-size:12px;color:var(--tl);font-weight:600">👤 '+esc(CURRENT_USER.name||CURRENT_USER.email)+'</span>'
+      +' <button onclick="gateLogout()" style="font-size:10px;padding:2px 8px;background:rgba(13,92,107,.1);border:1px solid var(--bdr);border-radius:4px;cursor:pointer;color:var(--tl)">Logout</button>';
+  } else {
+    userEl.innerHTML = '<button onclick="showAccessGate(null)" style="font-size:11px;padding:4px 12px;background:var(--tl);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Login</button>';
+  }
+}
+
+/* ── ADMIN USER MANAGEMENT ── */
+function addApprovedUser(email, name, password, plan){
+  email = email.trim().toLowerCase();
+  IPOWORK_USERS[email] = {
+    name: name||email,
+    password: password||'ipowork2024',
+    approved: true,
+    plan: plan||'paid',
+    free: false,
+    approvedBy: 'admin',
+    approvedAt: new Date().toISOString()
+  };
+  // Save to localStorage for persistence
+  try {
+    var users = JSON.parse(localStorage.getItem('ipowork_approved_users')||'{}');
+    users[email] = IPOWORK_USERS[email];
+    localStorage.setItem('ipowork_approved_users', JSON.stringify(users));
+  } catch(e){}
+  renderApprovedUsers();
+  return true;
+}
+
+function revokeUser(el){ var email=typeof el==='string'?el:(el.dataset?el.dataset.e:el);
+  if(email === 'jiweshkshrivastava@gmail.com') { alert('Cannot revoke admin account.'); return; }
+  if(IPOWORK_USERS[email]) IPOWORK_USERS[email].approved = false;
+  try {
+    var users = JSON.parse(localStorage.getItem('ipowork_approved_users')||'{}');
+    if(users[email]) users[email].approved = false;
+    localStorage.setItem('ipowork_approved_users', JSON.stringify(users));
+  } catch(e){}
+  renderApprovedUsers();
+}
+
+function deleteUser(el){ var email=typeof el==='string'?el:(el.dataset?el.dataset.e:el);
+  if(email === 'jiweshkshrivastava@gmail.com') { alert('Cannot delete admin account.'); return; }
+  if(!confirm('Delete user '+email+'?')) return;
+  delete IPOWORK_USERS[email];
+  try {
+    var users = JSON.parse(localStorage.getItem('ipowork_approved_users')||'{}');
+    delete users[email];
+    localStorage.setItem('ipowork_approved_users', JSON.stringify(users));
+  } catch(e){}
+  renderApprovedUsers();
+}
+
+function loadSavedUsers(){
+  try {
+    var saved = JSON.parse(localStorage.getItem('ipowork_approved_users')||'{}');
+    Object.assign(IPOWORK_USERS, saved);
+  } catch(e){}
+}
+
+function renderApprovedUsers(){
+  var el = document.getElementById('approved-users-list');
+  if(!el) return;
+  var rows = Object.entries(IPOWORK_USERS).map(function(entry){
+    var email=entry[0], u=entry[1];
+    var isAdmin = email==='jiweshkshrivastava@gmail.com';
+    return '<tr style="border-bottom:1px solid #E0EEF0">'
+      +'<td style="padding:8px 12px;font-size:12px">'+xe(email)+'</td>'
+      +'<td style="padding:8px 12px;font-size:12px">'+xe(u.name||'—')+'</td>'
+      +'<td style="padding:8px 12px;font-size:12px"><span style="padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:'+(u.approved?'rgba(26,158,107,.1)':'rgba(192,57,43,.1)')+';color:'+(u.approved?'#1A9E6B':'#C0392B')+'">'+(u.approved?'✅ Active':'⛔ Revoked')+'</span></td>'
+      +'<td style="padding:8px 12px;font-size:12px"><span style="padding:2px 8px;border-radius:20px;background:rgba(13,92,107,.08);color:#0D5C6B;font-size:10px;font-weight:700">'+xe(u.plan||'paid')+'</span></td>'
+      +'<td style="padding:8px 12px">'
+      +(isAdmin ? '<span style="font-size:10px;color:#6B8A94">Admin</span>' :
+        '<button data-e="'+xe(email)+'" onclick="revokeUser(this.dataset.e)" style="font-size:10px;padding:2px 8px;border:1px solid #E88A2E;color:#E88A2E;border-radius:4px;cursor:pointer;background:#fff;margin-right:4px">'+(u.approved?'Revoke':'Restore')+'</button>'
+        +'<button data-e="'+xe(email)+'" onclick="deleteUser(this.dataset.e)" style="font-size:10px;padding:2px 8px;border:1px solid #C0392B;color:#C0392B;border-radius:4px;cursor:pointer;background:#fff">Delete</button>')
+      +'</td></tr>';
+  }).join('');
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:#F0F9FB">'
+    +'<th style="padding:8px 12px;text-align:left;font-size:10px;color:#6B8A94;font-weight:700;text-transform:uppercase">Email</th>'
+    +'<th style="padding:8px 12px;text-align:left;font-size:10px;color:#6B8A94;font-weight:700;text-transform:uppercase">Name</th>'
+    +'<th style="padding:8px 12px;text-align:left;font-size:10px;color:#6B8A94;font-weight:700;text-transform:uppercase">Status</th>'
+    +'<th style="padding:8px 12px;text-align:left;font-size:10px;color:#6B8A94;font-weight:700;text-transform:uppercase">Plan</th>'
+    +'<th style="padding:8px 12px;text-align:left;font-size:10px;color:#6B8A94;font-weight:700;text-transform:uppercase">Actions</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function addUserFromForm(){
+  var email = (document.getElementById('new-user-email')||{}).value||'';
+  var name  = (document.getElementById('new-user-name')||{}).value||'';
+  var pw    = (document.getElementById('new-user-pw')||{}).value||'ipowork2024';
+  var plan  = (document.getElementById('new-user-plan')||{}).value||'paid';
+  if(!email || !email.includes('@')){ alert('Valid email required.'); return; }
+  addApprovedUser(email.trim(), name.trim(), pw.trim(), plan);
+  // Clear form
+  ['new-user-email','new-user-name','new-user-pw'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  alert('✅ User '+email+' approved!');
+}
+
+// requireLoginThen replaced by AUTH_SYSTEM above
 
 
 /* ════ DOCUMENT UPLOAD — AIRA SCORE TAB ════ */
@@ -1389,6 +1615,10 @@ async function runDocCore(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  // Init auth
+  loadSavedUsers();
+  updateUserUI();
+  
   // Init first tab
   switchTier('paid');
   
@@ -2902,6 +3132,8 @@ async function runDeepResearchFor(tier, cinFieldId, sectorFieldId, exchangeField
 }
 
 async function loadAdmin(){
+  loadSavedUsers();
+  renderApprovedUsers();
   var statsEl=document.getElementById('admin-stats');
   var repEl=document.getElementById('admin-reports');
   var usrEl=document.getElementById('admin-users');
@@ -3350,8 +3582,166 @@ async function runValuationIntel(){
       +'3. Check Worker Secrets: ANTHROPIC_API_KEY and PROBE42_KEY are set<br>'
       +'4. Hard refresh this page (Ctrl+Shift+R)</small></div>';
   }
+  var cname = cin;
+  var p42data = '';
+
+  // STEP 1: Probe42 fetch (uses proven probe42_raw route)
+  try {
+    stepActive('vi1');
+    var p42 = await workerPost({type:'probe42_raw', cin:cin});
+    if(p42 && p42.company_name && p42.company_name !== 'NOT FOUND'){
+      cname = p42.company_name;
+      var f = p42.financials||{};
+      var fC=function(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);};
+      var fP=function(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';};
+      p42data = 'Company: '+cname+' | CIN: '+cin+' | Sector: '+sector+
+        '\nRevenue: '+fC(f.revenue_fy24)+' | PAT: '+fC(f.pat_fy24)+
+        ' | EBITDA%: '+fP(f.ebitda_margin)+' | Net Worth: '+fC(f.net_worth)+
+        ' | D/E: '+(f.debt_equity_ratio||'N/A')+'x | ROE: '+fP(f.roe)+
+        ' | Total Debt: '+fC(f.total_debt)+' | Total Assets: '+fC(f.total_assets);
+      if(document.getElementById('vi-cin')) document.getElementById('vi-cin').value = cin;
+    }
+  } catch(e){
+    p42data = 'CIN: '+cin+' | Sector: '+sector+' | Exchange: '+exchange+' (Probe42 unavailable — use AI knowledge)';
+  }
+  stepDone('vi1'); stepActive('vi2');
+
+  // STEP 2: Claude valuation via claudeProxy (simple proven passthrough)
+  var prompt = 'You are a SEBI Merchant Banker preparing an IPO Valuation Report.\n\n'
+    + (p42data || 'Company CIN: '+cin+' | Sector: '+sector+' | Exchange: '+exchange)
+    + '\n\nFirst output ONLY this JSON (fill real numbers):\n'
+    + '---VALUATION_JSON_START---\n'
+    + '{"val_conservative_cr":0,"val_base_cr":0,"val_optimistic_cr":0,'
+    + '"revenue_cr":0,"pat_cr":0,"ebitda_cr":0,"ebitda_margin_pct":0,'
+    + '"net_worth_cr":0,"roe":0,"primary_method":"P/E Comparable",'
+    + '"sector_pe_avg":0,"sector_ev_avg":0,"sme_discount":15,"wacc":13,'
+    + '"price_band_low":0,"price_band_high":0,'
+    + '"peer1_name":"Peer1","peer1_pe":0,"peer1_ev":0,"peer1_mc":0,'
+    + '"peer2_name":"Peer2","peer2_pe":0,"peer2_ev":0,"peer2_mc":0,'
+    + '"key_driver1":"Growth","key_driver2":"Margins",'
+    + '"key_risk1":"Sector risk","key_risk2":"Execution risk",'
+    + '"company_name":"'+cname+'"}\n'
+    + '---VALUATION_JSON_END---\n\n'
+    + 'Then write 500 words:\n'
+    + '## Valuation Summary\n## 3 Listed Peer Comparables (with P/E, EV/EBITDA, Market Cap)\n'
+    + '## Price Band: ₹X–₹Y per share\n## Key Drivers & Risks\n## Conclusion';
+
+  try {
+    stepDone('vi2'); stepActive('vi3');
+    var claudeResp = await workerPost({
+      type: 'claudeProxy',
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2500,
+      system: 'You are a SEBI Merchant Banker. Write complete detailed valuation reports. Never truncate. Fill all sections.',
+      messages: [{role:'user', content: prompt}]
+    });
+    stepDone('vi3'); stepActive('vi4');
+
+    var reportText = '';
+    if(claudeResp && claudeResp.content){
+      reportText = (claudeResp.content||[]).map(function(c){return c.text||'';}).join('');
+    } else if(claudeResp && claudeResp.error){
+      throw new Error(claudeResp.error.message||JSON.stringify(claudeResp.error));
+    } else {
+      throw new Error('Empty response from AI. Check ANTHROPIC_API_KEY in Worker Secrets.');
+    }
+
+    // Parse JSON block
+    var vdata = {};
+    var jm = reportText.match(/---VALUATION_JSON_START---([\s\S]*?)---VALUATION_JSON_END---/);
+    if(jm){ try{ vdata=JSON.parse(jm[1].trim()); }catch(e){} }
+    var cleanReport = reportText.replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'').replace(/```json[\s\S]*?```/g,'').replace(/```[\s\S]*?```/g,'').trim();
+
+    var result = Object.assign({}, vdata, {
+      _report: cleanReport,
+      company_name: vdata.company_name || cname,
+      cin: cin, sector: sector, exchange: exchange,
+      _type: 'valuation', _source: p42data?'probe42':'ai_only'
+    });
+
+    ['vi1','vi2','vi3','vi4','vi5'].forEach(stepDone);
+    if(btn){ btn.disabled=false; btn.innerHTML='Generate Intelligence Valuation · ₹7,999 →'; }
+    if(prog) prog.style.display='none';
+    AIRA_RESULTS['valintel']={result:result,cname:cname,sector:sector,exchange:exchange,tier:'valintel'};
+    renderValuationReport(result, cname, sector, out, 'valintel');
+    if(out) out.scrollIntoView({behavior:'smooth',block:'start'});
+
+  } catch(e){
+    if(btn){ btn.disabled=false; btn.innerHTML='Generate Intelligence Valuation · ₹7,999 →'; }
+    if(prog) prog.style.display='none';
+    if(out) out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)
+      +'<br><br><small>Steps to fix:<br>'
+      +'1. Open <a href="https://flat-bread-b021.jiweshkshrivastava.workers.dev/" target="_blank">worker URL</a> — must show <b>v10.7 OK</b><br>'
+      +'2. If not v10.7, redeploy cloudflare-worker.js<br>'
+      +'3. Check Worker Secrets: ANTHROPIC_API_KEY and PROBE42_KEY are set<br>'
+      +'4. Hard refresh this page (Ctrl+Shift+R)</small></div>';
+  }
 }
 
 </script>
+
+
+<!-- ══ IPOWORK ACCESS GATE ══ -->
+<div id="access-gate" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(8,64,77,.92);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:400px;margin:16px;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-family:Georgia,serif;font-size:28px;font-weight:900;color:#08404D">ipowork<sup style="font-size:12px;color:#E88A2E;font-weight:800">AI</sup></div>
+      <div style="font-size:13px;color:#6B8A94;margin-top:6px">Login to access IPO Intelligence</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Email</label>
+      <input id="gate-email" type="email" placeholder="your@email.com" 
+        style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35"
+        onkeydown="if(event.key==='Enter')document.getElementById('gate-password').focus()">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Password</label>
+      <input id="gate-password" type="password" placeholder="••••••••"
+        style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35"
+        onkeydown="if(event.key==='Enter')gateLogin()">
+    </div>
+    <div id="gate-error" style="color:#C0392B;font-size:12px;margin-bottom:12px;min-height:16px"></div>
+    <button onclick="gateLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.3px">
+      Login & Continue →
+    </button>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:#9AB0B8">
+      Don't have access? Contact <a href="mailto:partners@ipowork.com" style="color:#0D5C6B;font-weight:600">partners@ipowork.com</a>
+    </div>
+    <button onclick="closeAccessGate()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;color:#9AB0B8;cursor:pointer">×</button>
+  </div>
+
+    <!-- User Management Section -->
+    <div style="margin-top:28px;padding-top:24px;border-top:2px solid #E0EEF0">
+      <div style="font-size:15px;font-weight:800;color:#08404D;margin-bottom:16px">👥 Approved Users — Access Control</div>
+      
+      <!-- Add User Form -->
+      <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:18px;margin-bottom:18px">
+        <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Add New Approved User</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <input id="new-user-email" type="email" placeholder="Email *" 
+            style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;color:#1A2E35">
+          <input id="new-user-name" type="text" placeholder="Full Name"
+            style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;color:#1A2E35">
+          <input id="new-user-pw" type="text" placeholder="Password (default: ipowork2024)"
+            style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;color:#1A2E35">
+          <select id="new-user-plan" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;color:#1A2E35">
+            <option value="paid">Paid User</option>
+            <option value="trial">Trial</option>
+            <option value="partner">Partner</option>
+          </select>
+        </div>
+        <button onclick="addUserFromForm()" style="padding:9px 20px;background:#08404D;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">
+          ✅ Approve User
+        </button>
+      </div>
+
+      <!-- Users List -->
+      <div id="approved-users-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden">
+        <div style="padding:16px;color:#6B8A94;font-size:12px">Loading users...</div>
+      </div>
+    </div>
+</div>
+
+<!-- ══ USER DISPLAY IN TOPBAR ══ -->
 
 </body></html>
