@@ -1729,12 +1729,61 @@ function drIsLoggedIn(){ return !!(CURRENT_USER && CURRENT_USER.email); }
 
 function drShowGate(){
   var gate = document.getElementById('dr-access-gate');
-  if(gate) gate.style.display = 'flex';
+  if(gate){ gate.style.display='flex'; gate.style.alignItems='center'; gate.style.justifyContent='center'; }
 }
 
 function drCloseGate(){
   var gate = document.getElementById('dr-access-gate');
   if(gate) gate.style.display = 'none';
+}
+
+
+function drShowTab(tab){
+  var lp = document.getElementById('dr-panel-login');
+  var rp = document.getElementById('dr-panel-request');
+  var bl = document.getElementById('dr-tab-login');
+  var br = document.getElementById('dr-tab-request');
+  if(tab==='login'){
+    if(lp) lp.style.display=''; if(rp) rp.style.display='none';
+    if(bl){bl.style.background='#08404D';bl.style.color='#fff';}
+    if(br){br.style.background='#fff';br.style.color='#08404D';}
+  } else {
+    if(lp) lp.style.display='none'; if(rp) rp.style.display='';
+    if(br){br.style.background='#08404D';br.style.color='#fff';}
+    if(bl){bl.style.background='#fff';bl.style.color='#08404D';}
+  }
+}
+
+function drSubmitRequest(){
+  var name = ((document.getElementById('dr-req-name')||{}).value||'').trim();
+  var phone = ((document.getElementById('dr-req-phone')||{}).value||'').trim();
+  var email = ((document.getElementById('dr-req-email')||{}).value||'').trim();
+  var errEl = document.getElementById('dr-req-error');
+  if(!name){if(errEl)errEl.textContent='Enter your name.';return;}
+  if(!phone){if(errEl)errEl.textContent='Enter WhatsApp number.';return;}
+  if(!email||!email.includes('@')){if(errEl)errEl.textContent='Enter valid email.';return;}
+  
+  // Save request
+  try{
+    var reqs=JSON.parse(localStorage.getItem('ipowork_access_requests')||'[]');
+    reqs.push({name:name,phone:phone,email:email,org:'',purpose:'deep_research',ts:new Date().toISOString(),status:'pending'});
+    localStorage.setItem('ipowork_access_requests',JSON.stringify(reqs));
+  }catch(e){}
+
+  // Notify admin via WhatsApp
+  var adminPhone = '919827XXXXXX';
+  var msg = encodeURIComponent('🔔 *New ipowork Deep Research Request*\n\n👤 '+name+'\n📱 '+phone+'\n📧 '+email+'\n🎯 Deep Research (₹2,499)\n🕐 '+new Date().toLocaleString('en-IN'));
+  setTimeout(function(){window.open('https://wa.me/'+adminPhone+'?text='+msg,'_blank');},1500);
+
+  // Notify admin via email
+  fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type:'send_email',to:'jiweshkshrivastava@gmail.com',
+      subject:'🔔 Deep Research Request — '+name,
+      html:'<h2>New Deep Research Request</h2><p>Name: '+name+'</p><p>Phone: '+phone+'</p><p>Email: '+email+'</p><p>Service: Deep Research ₹2,499</p>'
+    })}).catch(function(){});
+
+  var rp = document.getElementById('dr-panel-request');
+  if(rp) rp.innerHTML = '<div style="text-align:center;padding:16px 0"><div style="font-size:40px;margin-bottom:12px">🎉</div><div style="font-size:16px;font-weight:900;color:#08404D;margin-bottom:8px">Request Submitted!</div><div style="font-size:12px;color:#6B8A94;line-height:1.8">Payment link will be sent to<br><b>'+phone+'</b> (WhatsApp)<br>and <b>'+email+'</b><br><br>Access activated after payment.<br>Typical time: 2-4 hours</div></div>';
 }
 
 function drLogin(){
@@ -1808,32 +1857,55 @@ document.addEventListener('DOMContentLoaded', function(){ updateUserBadge(); });
 </script>
 
 <!-- IPOWORK DEEP RESEARCH ACCESS GATE -->
-<div id="dr-access-gate" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(8,64,77,.92);backdrop-filter:blur(8px);align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:400px;margin:16px;box-shadow:0 24px 64px rgba(0,0,0,.3);position:relative">
-    <div style="text-align:center;margin-bottom:24px">
+<div id="dr-access-gate" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(8,64,77,.95);overflow-y:auto;padding:30px 16px;box-sizing:border-box">
+  <div style="max-width:440px;margin:0 auto;background:#fff;border-radius:20px;padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative">
+    <button onclick="drCloseGate()" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;color:#9AB0B8;cursor:pointer;line-height:1">×</button>
+    <div style="text-align:center;margin-bottom:20px">
       <div style="font-family:Georgia,serif;font-size:28px;font-weight:900;color:#08404D">ipowork<sup style="font-size:12px;color:#E88A2E;font-weight:800">AI</sup></div>
-      <div style="font-size:13px;color:#6B8A94;margin-top:6px">Login to run Deep Research</div>
+      <div style="font-size:13px;font-weight:700;color:#1A2E35;margin-top:6px">Deep Research · 15-Module Analysis</div>
+      <div style="font-size:12px;color:#E88A2E;font-weight:600;margin-top:4px">💳 Paid service · Admin approval required</div>
     </div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Email</label>
-      <input id="dr-gate-email" type="email" placeholder="your@email.com"
-        style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box"
-        onkeydown="if(event.key==='Enter')document.getElementById('dr-gate-pw').focus()">
+    <div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;margin-bottom:20px;overflow:hidden">
+      <button id="dr-tab-login" onclick="drShowTab('login')" style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Login</button>
+      <button id="dr-tab-request" onclick="drShowTab('request')" style="flex:1;padding:10px;border:none;background:#fff;color:#08404D;font-weight:700;font-size:13px;cursor:pointer">Request Access</button>
     </div>
-    <div style="margin-bottom:20px">
-      <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Password</label>
-      <input id="dr-gate-pw" type="password" placeholder="••••••••"
-        style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box"
-        onkeydown="if(event.key==='Enter')drLogin()">
+    <div id="dr-panel-login">
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Email</label>
+        <input id="dr-gate-email" type="email" placeholder="your@email.com" style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box" onkeydown="if(event.key==='Enter')document.getElementById('dr-gate-pw').focus()">
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Password</label>
+        <input id="dr-gate-pw" type="password" placeholder="••••••••" style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box" onkeydown="if(event.key==='Enter')drLogin()">
+      </div>
+      <div id="dr-gate-error" style="color:#C0392B;font-size:12px;margin-bottom:10px;min-height:16px"></div>
+      <button onclick="drLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Login &amp; Continue →</button>
+      <div style="text-align:center;margin-top:12px;font-size:12px;color:#9AB0B8">New user? <b style="color:#0D5C6B;cursor:pointer" onclick="drShowTab('request')">Request Access</b></div>
     </div>
-    <div id="dr-gate-error" style="color:#C0392B;font-size:12px;margin-bottom:12px;min-height:16px"></div>
-    <button onclick="drLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">
-      Login & Continue →
-    </button>
-    <div style="text-align:center;margin-top:16px;font-size:11px;color:#9AB0B8">
-      Need access? <a href="mailto:partners@ipowork.com" style="color:#0D5C6B;font-weight:600">partners@ipowork.com</a>
+    <div id="dr-panel-request" style="display:none">
+      <div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:10px;padding:14px;margin-bottom:14px;color:#fff;text-align:center">
+        <div style="font-size:11px;opacity:.7;margin-bottom:4px">💳 Paid Service</div>
+        <div style="font-size:20px;font-weight:900;font-family:Georgia,serif">₹2,499 <span style="font-size:12px;font-weight:400;opacity:.7">Deep Research</span></div>
+        <div style="font-size:11px;opacity:.6;margin-top:3px">15 modules · 50 parameters · Full company intelligence</div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Name *</label>
+        <input id="dr-req-name" type="text" placeholder="Full name" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Phone (WA) *</label>
+          <input id="dr-req-phone" type="tel" placeholder="+91 9XXXXXXXXX" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Email *</label>
+          <input id="dr-req-email" type="email" placeholder="your@email.com" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
+        </div>
+      </div>
+      <div id="dr-req-error" style="color:#C0392B;font-size:12px;margin-bottom:8px;min-height:14px"></div>
+      <button onclick="drSubmitRequest()" style="width:100%;padding:12px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer">🚀 Request Access &amp; Get Payment Link</button>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:#9AB0B8">Already approved? <b style="color:#0D5C6B;cursor:pointer" onclick="drShowTab('login')">Login</b></div>
     </div>
-    <button onclick="drCloseGate()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;color:#9AB0B8;cursor:pointer;line-height:1">×</button>
   </div>
 </div>
 
