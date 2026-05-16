@@ -47,7 +47,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 .tgt-name{font-size:11px;font-weight:700;color:#3A5560;line-height:1.2;white-space:nowrap}
 .tgt-price{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;line-height:1.4}
 /* IPO Readiness tab colors */
-.tgt-active,.tg-tab.active{background:var(--tld)!important;border-color:var(--tl)!important;box-shadow:0 3px 12px rgba(13,92,107,.25)!important}
+.tgt-active,.tg-tab.active{background:var(--tl)!important;border-color:var(--tl)!important;box-shadow:0 3px 12px rgba(13,92,107,.25)!important}
 .tg-tab.active .tgt-name,.tg-tab.active .tgt-icon{color:#fff!important}
 .tg-tab.active .tgt-price{background:rgba(255,255,255,.2)!important;color:rgba(255,255,255,.9)!important}
 .tgt-sme .tgt-price{background:rgba(201,147,42,.1);color:#8A5C00}
@@ -262,7 +262,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 .nav-brand .brand-sup{font-size:11px;color:#E88A2E;font-family:var(--sans);font-weight:700}
 .rp-wrap{flex:1;min-width:0;padding:24px 28px;overflow-y:auto}
 .topbar-right{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bd)}
-@media(max-width:768px){.pg{flex-direction:column}.lp{width:100%;height:auto;position:static;padding:12px}.rp-wrap{padding:16px 14px}}
+@media(max-width:900px){.pg{flex-direction:row}.lp{width:180px;min-width:180px;padding:12px 8px;height:100vh;overflow-y:auto}.rp-wrap{padding:16px 14px}}
 </style>
 </head>
 <body>
@@ -284,83 +284,31 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     <button onclick="closeAdminAuth()" style="width:100%;padding:10px;background:none;border:none;color:var(--mu);font-family:var(--font);font-size:13px;cursor:pointer;margin-top:6px">Cancel</button>
   </div>
 </div>
-
-<!-- Login Modal -->
-<div class="login-overlay" id="login-modal">
-  <div class="login-box">
-    <button class="login-close" onclick="closeLogin()">&#x2715;</button>
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:32px;margin-bottom:8px">🚀</div>
-      <div style="font-family:var(--serif);font-size:20px;font-weight:900;color:#08404D;margin-bottom:5px">Get Your IPO Readiness Score</div>
-      <div style="font-size:13px;color:#6B7E85">Enter your details to run AIRA · Takes 45 seconds</div>
+<div class="pg">
+  <div class="lp">
+    <div class="nav-brand">
+      <span style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--tld)">ipowork<sup style="font-size:9px;color:var(--am);font-weight:800">AI</sup></span>
     </div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6B7E85;display:block;margin-bottom:6px">Mobile Number <span style="color:#C0392B">*</span></label>
-      <div style="display:flex;align-items:center;gap:0;border:1.5px solid #C8D8DC;border-radius:9px;overflow:hidden;background:#FAFAF8;transition:.2s" id="phone-wrap">
-        <span style="padding:12px 12px 12px 14px;font-size:13px;font-weight:600;color:#08404D;background:#F0F7F8;border-right:1px solid #C8D8DC;flex-shrink:0">+91</span>
-        <input id="login-phone" type="tel" maxlength="10" placeholder="10-digit mobile number"
-          style="flex:1;border:none;outline:none;font-size:14px;padding:12px 14px;font-family:var(--sans);color:#2C3E47;background:transparent"
-          oninput="this.value=this.value.replace(/\D/g,'');document.getElementById('phone-wrap').style.borderColor=this.value.length===10?'var(--ok)':'#C8D8DC'"
-          onkeydown="if(event.key==='Enter')document.getElementById('login-email').focus()">
+    <div style="font-size:9px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 6px 2px">IPO Readiness</div>
+    <div class="tab-group-ipo">
+      <div class="tab-group-body tgb-ipo">
+        <button class="tg-tab" id="tab-free" onclick="switchTier('free')">
+          <span class="tgt-icon">&#128203;</span><span class="tgt-name">AIRA Score</span><span class="tgt-price">&#8377;499</span>
+        </button>
+        <button class="tg-tab tgt-sme" id="tab-paid" onclick="switchTier('paid')">
+          <span class="tgt-icon">&#127981;</span><span class="tgt-name">SME Intel</span><span class="tgt-price">&#8377;999</span>
+        </button>
+        <button class="tg-tab tgt-main" id="tab-mainboard" onclick="switchTier('mainboard')">
+          <span class="tgt-icon">&#127963;</span><span class="tgt-name">Mainboard</span><span class="tgt-price">&#8377;2,499</span>
+        </button>
+        <button class="tg-tab tgt-ca" id="tab-ca" onclick="switchTier('ca')">
+          <span class="tgt-icon">&#128193;</span><span class="tgt-name">CA/CS Bundle</span><span class="tgt-price">&#8377;4,999</span>
+        </button>
       </div>
     </div>
-    <div style="margin-bottom:22px">
-      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#6B7E85;display:block;margin-bottom:6px">Email Address</label>
-      <input id="login-email" type="email" placeholder="your@email.com"
-        style="width:100%;padding:12px 14px;border:1.5px solid #C8D8DC;border-radius:9px;font-size:14px;font-family:var(--sans);color:#2C3E47;background:#FAFAF8;outline:none"
-        onfocus="this.style.borderColor='var(--tl)'" onblur="this.style.borderColor='#C8D8DC'"
-        onkeydown="if(event.key==='Enter')submitLogin()"/>
-    </div>
-    <button onclick="submitLogin()" id="btn-login"
-      style="width:100%;padding:13px;background:linear-gradient(135deg,var(--tl),#0D7A8C);color:#fff;border:none;border-radius:10px;font-family:var(--sans);font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.2px;box-shadow:0 4px 14px rgba(13,92,107,.3)">
-      Get My AIRA Report &rarr;
-    </button>
-    <p style="font-size:11px;color:#8FA8B2;text-align:center;margin-top:12px">
-      Free to sign in &middot; No credit card needed
-    </p>
-  </div>
-</div>
 
-<!-- ═══ MAIN APP ═══════════════════════════════════════════ -->
-<div class="pg">
 
-<div class="lp">
-    <div class="nav-brand">
-      <span class="brand">ipowork<sup class="brand-sup">AI</sup></span>
-    </div>
-    <div class="tab-group-ipo">
 
-  <div class="tab-group-header tgh-ipo">
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M7 1L13 5v3c0 3.3-2.7 5.6-6 6.3C3.7 13.6 1 11.3 1 8V5L7 1z" fill="white" opacity=".9"/>
-    </svg>
-    <span>IPO Readiness</span>
-    <span class="tgh-note">4 products</span>
-  </div>
-
-  <div class="tab-group-body tgb-ipo">
-    <button class="tg-tab" id="tab-free" onclick="switchTier('free')">
-      <span class="tgt-icon">&#128203;</span>
-      <span class="tgt-name">AIRA Score</span>
-      <span class="tgt-price">&#8377;499</span>
-    </button>
-    <button class="tg-tab tgt-sme" id="tab-paid" onclick="switchTier('paid')">
-      <span class="tgt-icon">&#127981;</span>
-      <span class="tgt-name">SME Intel</span>
-      <span class="tgt-price">&#8377;999</span>
-    </button>
-    <button class="tg-tab tgt-main" id="tab-mainboard" onclick="switchTier('mainboard')">
-      <span class="tgt-icon">&#127963;</span>
-      <span class="tgt-name">Mainboard</span>
-      <span class="tgt-price">&#8377;2,499</span>
-    </button>
-    <button class="tg-tab tgt-ca" id="tab-ca" onclick="switchTier('ca')">
-      <span class="tgt-icon">&#128193;</span>
-      <span class="tgt-name">CA/CS Bundle</span>
-      <span class="tgt-price">&#8377;4,999</span>
-    </button>
-  </div>
-</div>
 
 <div id="group-clean-compliance" style="display:none">
   <div class="tab-group-header tgh-clean" style="margin-top:8px">
@@ -396,7 +344,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
         style="opacity:.8;padding:4px 8px;background:transparent;border:none;cursor:pointer;font-size:14px">&#9881;&#65039;</button>
     </div>
 
-<div class="tier-content active" id="content-free" class="tier-content"  >
+<div class="tier-content" id="content-free"  >
 
     <!-- Pricing banner -->
     <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(135deg,rgba(13,92,107,.06),rgba(13,92,107,.03));border:1px solid rgba(13,92,107,.15);border-radius:var(--r);margin-bottom:18px;flex-wrap:wrap">
@@ -593,10 +541,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     <div id="result-doc"></div>
   </div>
 
-<div class="tier-content" id="content-paid" >
-    <div class="form-card"
+<div class="tier-content" id="content-paid">
+  <div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0;margin-bottom:-2px"><span style="font-size:16px;font-weight:800">🏭 SME Intelligence</span><span style="font-size:12px;opacity:.7;margin-left:8px">Probe42 MCA + AI Analysis</span></div>
+    <div class="form-card" style="border-radius:0 0 18px 18px">
   <!-- WORKER TEST PANEL -->
-  <div id="worker-test-bar" style="background:#FFF8E7;border:1px solid #FAC775;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+  <div id="worker-test-bar" style="background:#FFF8E7;border:1px solid #FAC775;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
     <span style="font-size:12px;font-weight:700;color:#633806">🔧 Worker Test</span>
     <button onclick="testWorker()" style="padding:6px 14px;background:#C9932A;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans)">Test Connection</button>
     <span id="worker-test-result" style="font-size:12px;color:#633806;flex:1">Click to verify worker + API key</span>
@@ -677,8 +626,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     
   </div>
 
-<div class="tier-content" id="content-mainboard" >
-    <div class="form-card">
+<div class="tier-content" id="content-mainboard">
+  <div style="background:linear-gradient(135deg,#1A3A5C,#1A5C8A);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0;margin-bottom:-2px"><span style="font-size:16px;font-weight:800">🏛 Mainboard Intelligence</span><span style="font-size:12px;opacity:.7;margin-left:8px">ICDR Compliance + AI Analysis</span></div>
+    <div class="form-card" style="border-radius:0 0 18px 18px">
       <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(135deg,rgba(24,95,165,.07),rgba(24,95,165,.03));border:1px solid rgba(24,95,165,.2);border-radius:var(--r);margin-bottom:18px;flex-wrap:wrap">
         <div>
           <div style="font-size:13px;font-weight:800;color:#0C447C">🏛️ Mainboard Intelligence — ₹2,499 <span style="font-size:11px;font-weight:600;color:var(--mu)">(incl. GST)</span></div>
@@ -741,8 +691,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     
   </div>
 
-<div class="tier-content" id="content-ca" >
-    <div class="form-card">
+<div class="tier-content" id="content-ca">
+  <div style="background:linear-gradient(135deg,#1A6B3A,#1A9E6B);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0;margin-bottom:-2px"><span style="font-size:16px;font-weight:800">📁 CA/CS Compliance Bundle</span><span style="font-size:12px;opacity:.7;margin-left:8px">Secretarial + ROC + GST</span></div>
+    <div class="form-card" style="border-radius:0 0 18px 18px">
       <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(135deg,rgba(26,158,107,.07),rgba(26,158,107,.03));border:1px solid rgba(26,158,107,.2);border-radius:var(--r);margin-bottom:18px;flex-wrap:wrap">
         <div>
           <div style="font-size:13px;font-weight:800;color:#0F6E4A">📁 CA / CS Pro Bundle — ₹4,999 <span style="font-size:11px;font-weight:600;color:var(--mu)">(incl. GST)</span></div>
@@ -1281,12 +1232,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 
 </div>
 
-<div id="content-valdoc" class="tier-content" ><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128196; Document-Based Valuation &middot; &#8377;2,999</p><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Company Name <span class="req">*</span></label><input id="vd-cname" class="fi" placeholder="e.g. Sharma Textiles Pvt Ltd"/></div><div class="fg"><label class="fl">CIN (optional)</label><input id="vd-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN"/></div><div class="fg"><label class="fl">Sector</label><select id="vd-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vd-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Revenue (&#8377; Cr)</label><input id="vd-revenue" class="fi" placeholder="45.8"/></div><div class="fg"><label class="fl">PAT (&#8377; Cr)</label><input id="vd-pat" class="fi" placeholder="3.2"/></div><div class="fg"><label class="fl">EBITDA (&#8377; Cr)</label><input id="vd-ebitda" class="fi" placeholder="6.5"/></div><div class="fg"><label class="fl">Net Worth (&#8377; Cr)</label><input id="vd-networth" class="fi" placeholder="18.4"/></div></div><button class="btn-run btn-primary" id="btn-vd-run" style="background:linear-gradient(135deg,#5B4ED4,#7F77DD)" onclick="requireLoginThen(runValuationDoc)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg> Generate Valuation &middot; &#8377;2,999 &rarr;</button>
+<div class="tier-content" id="content-valdoc" ><div class="form-card"><p style="font-size:13px;font-weight:700;color:#5B4ED4;margin-bottom:12px">&#128196; Document-Based Valuation &middot; &#8377;2,999</p><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Company Name <span class="req">*</span></label><input id="vd-cname" class="fi" placeholder="e.g. Sharma Textiles Pvt Ltd"/></div><div class="fg"><label class="fl">CIN (optional)</label><input id="vd-cin" class="fi" maxlength="25" placeholder="CIN or LLPIN"/></div><div class="fg"><label class="fl">Sector</label><select id="vd-sector" class="fi"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>FMCG</option><option>Other</option></select></div><div class="fg"><label class="fl">Exchange</label><select id="vd-exchange" class="fi"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Mainboard</option><option>BSE Mainboard</option></select></div></div><div class="form-grid" style="margin-bottom:12px"><div class="fg"><label class="fl">Revenue (&#8377; Cr)</label><input id="vd-revenue" class="fi" placeholder="45.8"/></div><div class="fg"><label class="fl">PAT (&#8377; Cr)</label><input id="vd-pat" class="fi" placeholder="3.2"/></div><div class="fg"><label class="fl">EBITDA (&#8377; Cr)</label><input id="vd-ebitda" class="fi" placeholder="6.5"/></div><div class="fg"><label class="fl">Net Worth (&#8377; Cr)</label><input id="vd-networth" class="fi" placeholder="18.4"/></div></div><button class="btn-run btn-primary" id="btn-vd-run" style="background:linear-gradient(135deg,#5B4ED4,#7F77DD)" onclick="requireLoginThen(runValuationDoc)"><svg width="13" height="13" viewBox="0 0 15 15"><path d="M3 2L13 7.5L3 13V2Z" fill="white"/></svg> Generate Valuation &middot; &#8377;2,999 &rarr;</button>
         <button class="btn-run" id="btn-vd-dr" onclick="requireLoginThen(function(){runDeepResearchFor('valdoc','vd-cin','vd-sector','vd-exchange','vd')})" style="background:linear-gradient(135deg,#3B30B0,#5B4ED4);color:#fff;box-shadow:0 2px 8px rgba(91,78,212,.3)">🔬 Deep Research · 15 min →</button>
   <div class="prog-wrap" id="prog-valdoc" style="display:none"></div></div>
 
 <!-- Valuation Intelligence Tab -->
-<div id="content-valintel" class="tier-content">
+<div class="tier-content" id="content-valintel">
   <div class="form-card">
     <div class="fsec-lbl">💰 Valuation Intelligence — ₹7,999</div>
     <div class="fsec-sub">SEBI Merchant Banker grade IPO valuation · Probe42 live data · P/E, DCF, EV/EBITDA multiples</div>
@@ -1324,7 +1275,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 </div>
 
 <!-- Deep Research Tab -->
-<div id="content-deepresearch" class="tier-content">
+<div class="tier-content" id="content-deepresearch">
   <div class="form-card">
     <div class="fsec-lbl">🔬 Deep Research — opens in new tab</div>
     <div class="fsec-sub">15-module full company intelligence · 400+ data points</div>
@@ -1339,7 +1290,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 </div>
 
 <!-- Admin Tab -->
-<div id="content-admin" class="tier-content">
+<div class="tier-content" id="content-admin">
   <div class="form-card">
     <div class="fsec-lbl">📊 Admin Dashboard</div>
     <div id="admin-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0"></div>
@@ -1374,8 +1325,25 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   </div>
 </div>
 
+
+</div>
 <script>
 var AIRA_RESULTS={};
+
+/* ── Legacy login modal stubs (lead capture form) ── */
+function closeLogin(){
+  var m = document.getElementById('login-modal');
+  if(m) m.classList.remove('open');
+}
+function submitLogin(){
+  closeLogin();
+}
+function openLogin(){
+  var m = document.getElementById('login-modal');
+  if(m) m.classList.add('open');
+}
+
+
 
 /* ════ SESSION & INIT ════ */
 var SESS = {name:'', email:'', org:'', role:'', plan:'free'};
@@ -1599,7 +1567,8 @@ function gateLogin(){
 
   closeAccessGate();
   updateUserUI();
-
+  // Switch to the first active tab after login
+  if(!_loginCallback) switchTier('paid');
   if(_loginCallback){ var cb=_loginCallback; _loginCallback=null; cb(); }
 }
 
@@ -1926,12 +1895,11 @@ document.addEventListener('DOMContentLoaded', function(){
   // Init auth
   loadSavedUsers();
   updateUserUI();
+  // Init default tab
+  switchTier('paid');
 
-  // If not logged in, show gate immediately over everything
-  if(!isLoggedIn()){
-    var gate = document.getElementById('access-gate');
-    if(gate){ gate.style.display='flex'; gate.style.alignItems='center'; gate.style.justifyContent='center'; }
-  }
+  // Gate shows only when user tries to run a report (via requireLoginThen)
+  // Don't auto-show on page load - let users browse tabs freely
   
   // Hide admin content completely for non-admins
   var adminContent = document.getElementById('content-admin');
@@ -3869,18 +3837,16 @@ async function runValuationIntel(){
     if(out) out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
   }
 }
-
 </script>
-
 
 <!-- ══ IPOWORK ACCESS GATE ══ -->
 <div id="access-gate" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(8,64,77,.95);overflow-y:auto;padding:30px 16px;box-sizing:border-box">
   <div style="max-width:440px;margin:0 auto;background:#fff;border-radius:20px;padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative">
-    <button onclick="closeAccessGate()" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;color:#9AB0B8;cursor:pointer;line-height:1">×</button>
+    <button onclick="closeAccessGate()" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;color:#9AB0B8;cursor:pointer;line-height:1">&#x2715;</button>
     <div style="text-align:center;margin-bottom:28px">
       <div style="font-family:Georgia,serif;font-size:30px;font-weight:900;color:#08404D">ipowork<sup style="font-size:12px;color:#E88A2E;font-weight:800">AI</sup></div>
       <div style="font-size:14px;font-weight:700;color:#1A2E35;margin-top:8px">IPO Intelligence Platform</div>
-      <div style="font-size:12px;color:#6B8A94;margin-top:4px">💳 Paid service · ₹499/report · Admin approval required</div>
+      <div style="font-size:12px;color:#E88A2E;font-weight:600;margin-top:4px">&#128179; Paid service &#183; &#8377;499/report &#183; Admin approval required</div>
     </div>
     <div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;margin-bottom:24px;overflow:hidden">
       <button id="gate-tab-login" onclick="gateShowTab('login')" style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Login</button>
@@ -3893,43 +3859,42 @@ async function runValuationIntel(){
       </div>
       <div style="margin-bottom:20px">
         <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Password</label>
-        <input id="gate-password" type="password" placeholder="••••••••" style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box" onkeydown="if(event.key==='Enter')gateLogin()">
+        <input id="gate-password" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box" onkeydown="if(event.key==='Enter')gateLogin()">
       </div>
       <div id="gate-error" style="color:#C0392B;font-size:12px;margin-bottom:10px;min-height:16px"></div>
-      <button onclick="gateLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Login &amp; Continue →</button>
+      <button onclick="gateLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Login &amp; Continue &#8594;</button>
       <div style="text-align:center;margin-top:14px;font-size:12px;color:#9AB0B8">New user? <b style="color:#0D5C6B;cursor:pointer" onclick="gateShowTab('request')">Request Access</b></div>
     </div>
     <div id="gate-panel-request" style="display:none">
-      <!-- Pricing Banner -->
       <div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:10px;padding:14px 16px;margin-bottom:16px;color:#fff;text-align:center">
-        <div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">💳 Paid Service — Starting at</div>
-        <div style="font-size:22px;font-weight:900;font-family:Georgia,serif">₹499 <span style="font-size:13px;font-weight:400;opacity:.7">per report</span></div>
+        <div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">&#128179; Paid Service &#8212; Starting at</div>
+        <div style="font-size:22px;font-weight:900;font-family:Georgia,serif">&#8377;499 <span style="font-size:13px;font-weight:400;opacity:.7">per report</span></div>
         <div style="font-size:11px;opacity:.6;margin-top:4px">Access activated after payment &amp; admin approval</div>
       </div>
       <div style="background:#FDF6E8;border:1px solid #E8D4A0;border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:#8A6820;line-height:1.6">
-        📩 Submit your details → Admin reviews → Payment link sent to your WhatsApp &amp; email → Access activated
+        &#128233; Submit details &#8594; Admin reviews &#8594; Payment link on WhatsApp &amp; email &#8594; Access activated
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
         <div>
-          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Full Name *</label>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Full Name *</label>
           <input id="req-name" type="text" placeholder="Your name" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
         </div>
         <div>
-          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Phone (WhatsApp) *</label>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Phone (WhatsApp) *</label>
           <input id="req-phone" type="tel" placeholder="+91 9XXXXXXXXX" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
         </div>
       </div>
       <div style="margin-bottom:12px">
-        <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Email *</label>
+        <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Email *</label>
         <input id="req-email" type="email" placeholder="your@company.com" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
         <div>
-          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Organisation</label>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Organisation</label>
           <input id="req-org" type="text" placeholder="Company / CA Firm" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
         </div>
         <div>
-          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Purpose</label>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Purpose</label>
           <select id="req-purpose" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;color:#1A2E35;box-sizing:border-box">
             <option value="">Select</option>
             <option value="ca">CA / CS</option>
@@ -3941,10 +3906,11 @@ async function runValuationIntel(){
         </div>
       </div>
       <div id="req-error" style="color:#C0392B;font-size:12px;margin-bottom:10px;min-height:16px"></div>
-      <button onclick="submitAccessRequest()" style="width:100%;padding:13px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">
-        🚀 Request Access &amp; Get Payment Link
-      </button>
+      <button onclick="submitAccessRequest()" style="width:100%;padding:13px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">&#128640; Request Access &amp; Get Payment Link</button>
       <div style="text-align:center;margin-top:12px;font-size:11px;color:#9AB0B8">Already approved? <b style="color:#0D5C6B;cursor:pointer" onclick="gateShowTab('login')">Login here</b></div>
     </div>
   </div>
-</div>>
+</div>
+
+</body>
+</html>
