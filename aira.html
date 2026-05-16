@@ -1125,8 +1125,17 @@ function gateLogin(){
 
   closeAccessGate();
   updateUserUI();
-  // Switch to the first active tab after login
-  if(!_loginCallback) switchTier('paid');
+  // Switch to appropriate tab after login
+  if(!_loginCallback){
+    var loggedUser = IPOWORK_USERS[email];
+    if(loggedUser && loggedUser.plan === 'admin'){
+      var aTab = document.getElementById('tab-admin');
+      if(aTab) aTab.style.display = '';
+      switchTier('admin');
+    } else {
+      switchTier('paid');
+    }
+  }
   if(_loginCallback){ var cb=_loginCallback; _loginCallback=null; cb(); }
 }
 
@@ -1150,7 +1159,7 @@ function updateUserUI(){
     var adminTopBtn = document.querySelector('button[onclick*="openAdminAuth"]');
     if(adminTab) adminTab.style.display = isAdmin ? '' : 'none';
     if(adminContent && !isAdmin) adminContent.style.display = 'none';
-    if(adminTopBtn) adminTopBtn.style.display = isAdmin ? '' : 'none';
+    // Keep topbar admin button always visible - it handles auth itself
     // Update topbar
     userEl.innerHTML = '<span style="font-size:12px;color:var(--tl);font-weight:600">👤 '+esc(CURRENT_USER.name||CURRENT_USER.email)+'</span>'
       +' <button onclick="gateLogout()" style="font-size:10px;padding:2px 8px;background:rgba(13,92,107,.1);border:1px solid var(--bdr);border-radius:4px;cursor:pointer;color:var(--tl)">Logout</button>';
@@ -1161,6 +1170,7 @@ function updateUserUI(){
     var adminTopBtn2 = document.querySelector('button[onclick*="openAdminAuth"]');
     if(adminTab2) adminTab2.style.display = 'none';
     if(adminContent2) adminContent2.style.display = 'none';
+    // Topbar admin button stays visible for password-based access
     if(adminTopBtn2) adminTopBtn2.style.display = 'none';
     userEl.innerHTML = '<button onclick="showAccessGate(null)" style="font-size:11px;padding:4px 12px;background:var(--tl);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Login</button>';
   }
@@ -1502,15 +1512,21 @@ function sbFetch(path, opts) {
    UI HELPERS
 ═══════════════════════════ */
 function switchTier(t){
-  // Block admin access for non-admins
+  // Block admin access for non-admins (unless ADMIN_UNLOCKED via password)
   if(t==='admin'){
     var u = CURRENT_USER && IPOWORK_USERS[CURRENT_USER.email];
-    if(!u || u.plan !== 'admin'){
-      // If logged in but not admin, ignore
-      // If not logged in, show gate
-      if(!isLoggedIn()) showAccessGate(function(){ switchTier('admin'); });
+    var isAdm = (u && u.plan === 'admin') || ADMIN_UNLOCKED;
+    if(!isAdm){
+      if(!isLoggedIn()){
+        showAccessGate(function(){ switchTier('admin'); });
+      } else {
+        openAdminAuth();
+      }
       return;
     }
+    // Show admin tab in sidebar when accessing admin
+    var aTab = document.getElementById('tab-admin');
+    if(aTab) aTab.style.display = '';
   }
   ['free','paid','mainboard','ca','deepresearch','clearchit','dirscan','ddbundle','alert','valdoc','valintel','admin'].forEach(function(id){
     var c=document.getElementById('content-'+id);
