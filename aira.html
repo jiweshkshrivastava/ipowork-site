@@ -1344,36 +1344,63 @@ function gateShowTab(tab){
 }
 
 function submitAccessRequest(){
-  var name = (document.getElementById('req-name')||{}).value||'';
-  var email = (document.getElementById('req-email')||{}).value||'';
-  var org = (document.getElementById('req-org')||{}).value||'';
+  var name    = ((document.getElementById('req-name')||{}).value||'').trim();
+  var phone   = ((document.getElementById('req-phone')||{}).value||'').trim();
+  var email   = ((document.getElementById('req-email')||{}).value||'').trim().toLowerCase();
+  var org     = ((document.getElementById('req-org')||{}).value||'').trim();
   var purpose = (document.getElementById('req-purpose')||{}).value||'';
-  var errEl = document.getElementById('req-error');
+  var errEl   = document.getElementById('req-error');
   
-  if(!name.trim()){ if(errEl) errEl.textContent='Please enter your name.'; return; }
-  if(!email.trim() || !email.includes('@')){ if(errEl) errEl.textContent='Please enter a valid email.'; return; }
+  if(!name){ if(errEl) errEl.textContent='Please enter your full name.'; return; }
+  if(!phone){ if(errEl) errEl.textContent='Please enter your WhatsApp number.'; return; }
+  if(!email || !email.includes('@')){ if(errEl) errEl.textContent='Please enter a valid email.'; return; }
   
-  // Save request to localStorage for admin to see
+  var req = {
+    name: name, phone: phone, email: email, org: org, purpose: purpose,
+    ts: new Date().toISOString(), status: 'pending'
+  };
+
+  // Save to localStorage
   try {
     var requests = JSON.parse(localStorage.getItem('ipowork_access_requests')||'[]');
-    requests.push({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      org: org.trim(),
-      purpose: purpose,
-      ts: new Date().toISOString(),
-      status: 'pending'
-    });
+    requests.push(req);
     localStorage.setItem('ipowork_access_requests', JSON.stringify(requests));
   } catch(e){}
-  
-  // Show success message
+
+  // Send WhatsApp notification to admin (opens WA with pre-filled message)
+  var adminPhone = '919827XXXXXX'; // REPLACE with admin WhatsApp number
+  var waMsg = encodeURIComponent(
+    '🔔 *New ipowork Access Request*\n\n'
+    +'👤 *Name:* '+name+'\n'
+    +'📱 *Phone:* '+phone+'\n'
+    +'📧 *Email:* '+email+'\n'
+    +'🏢 *Org:* '+(org||'—')+'\n'
+    +'🎯 *Purpose:* '+(purpose||'—')+'\n'
+    +'🕐 *Time:* '+new Date().toLocaleString('en-IN')+'\n\n'
+    +'To approve, login to ipowork.com/aira.html → Admin → Approve'
+  );
+  // Open WA in background tab (don't disrupt user flow)
+  setTimeout(function(){
+    window.open('https://wa.me/'+adminPhone+'?text='+waMsg, '_blank');
+  }, 1500);
+
+  // Show success with instructions
   var panel = document.getElementById('gate-panel-request');
-  if(panel) panel.innerHTML = '<div style="text-align:center;padding:20px 0">'
-    +'<div style="font-size:40px;margin-bottom:14px">✅</div>'
-    +'<div style="font-size:16px;font-weight:800;color:#08404D;margin-bottom:8px">Request Submitted!</div>'
-    +'<div style="font-size:13px;color:#6B8A94;line-height:1.7">We\'ll review your request and send your login credentials to <b>'+esc(email)+'</b> within 24 hours.</div>'
-    +'<div style="margin-top:18px;font-size:12px;color:#9AB0B8">Questions? <a href="mailto:partners@ipowork.com" style="color:#0D5C6B">partners@ipowork.com</a></div>'
+  if(panel) panel.innerHTML = 
+    '<div style="text-align:center;padding:10px 0">'
+    +'<div style="font-size:48px;margin-bottom:14px">🎉</div>'
+    +'<div style="font-size:18px;font-weight:900;color:#08404D;margin-bottom:10px">Request Submitted!</div>'
+    +'<div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:10px;padding:16px;margin-bottom:16px;text-align:left">'
+    +'<div style="font-size:12px;font-weight:700;color:#08404D;margin-bottom:8px">What happens next:</div>'
+    +'<div style="font-size:12px;color:#1A2E35;line-height:2">'
+    +'1️⃣ Admin reviews your request<br>'
+    +'2️⃣ Payment link sent to <b>'+esc(phone)+'</b> (WhatsApp)<br>'
+    +'3️⃣ Payment link also emailed to <b>'+esc(email)+'</b><br>'
+    +'4️⃣ Access activated after payment confirmation'
+    +'</div></div>'
+    +'<div style="font-size:12px;color:#6B8A94;margin-bottom:14px">⏱ Typical activation: <b>2-4 hours</b></div>'
+    +'<a href="mailto:partners@ipowork.com?subject=Access Request - '+encodeURIComponent(name)+'&body=Hi, I submitted an access request for ipowork. My email: '+encodeURIComponent(email)+'" '
+    +'style="display:block;padding:10px;background:#08404D;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">📧 Also Email Us</a>'
     +'</div>';
 }
 
@@ -1537,9 +1564,14 @@ function renderAccessRequests(){
     if(!reqs.length){ el.innerHTML='<div style="padding:12px;color:#6B8A94;font-size:12px">No pending requests</div>'; return; }
     el.innerHTML = reqs.map(function(r, i){
       return '<div style="padding:10px 14px;border-bottom:1px solid #E0EEF0;display:flex;align-items:center;gap:12px">'
-        +'<div style="flex:1"><div style="font-size:12px;font-weight:700;color:#08404D">'+xe(r.name)+'</div>'
-        +'<div style="font-size:11px;color:#6B8A94">'+xe(r.email)+' · '+xe(r.org||'—')+'</div>'
-        +'<div style="font-size:10px;color:#9AB0B8;margin-top:2px">'+xe(r.purpose||'')+(r.ts?' · '+new Date(r.ts).toLocaleDateString('en-IN'):'')+'</div></div>'
+        +'<div style="flex:1">'
+        +'<div style="font-size:12px;font-weight:700;color:#08404D">'+xe(r.name)+'</div>'
+        +'<div style="font-size:11px;color:#6B8A94">📧 '+xe(r.email)+'</div>'
+        +'<div style="font-size:11px;color:#1A9E6B;font-weight:600">📱 '+xe(r.phone||'—')+'</div>'
+        +'<div style="font-size:11px;color:#6B8A94">🏢 '+xe(r.org||'—')+' · '+xe(r.purpose||'')+'</div>'
+        +'<div style="font-size:10px;color:#9AB0B8;margin-top:2px">'+(r.ts?new Date(r.ts).toLocaleString('en-IN'):'')+' · '
+        +'<a href="https://wa.me/'+encodeURIComponent((r.phone||'').replace(/[^0-9]/g,'').replace(/^0/,'91'))+'?text='+encodeURIComponent('Hi '+r.name+', Your ipowork access request is approved. Kindly pay ₹499 to activate: [PAYMENT LINK]. Reply to confirm.')+'" target="_blank" style="color:#1A9E6B;font-weight:700">📲 Send WA</a>'
+        +'</div></div>'
         +'<button onclick="approveRequest('+i+')" style="padding:5px 12px;background:#1A9E6B;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Approve</button>'
         +'</div>';
     }).join('');
@@ -3812,7 +3844,7 @@ async function runValuationIntel(){
     <div style="text-align:center;margin-bottom:28px">
       <div style="font-family:Georgia,serif;font-size:30px;font-weight:900;color:#08404D">ipowork<sup style="font-size:12px;color:#E88A2E;font-weight:800">AI</sup></div>
       <div style="font-size:14px;font-weight:700;color:#1A2E35;margin-top:8px">IPO Intelligence Platform</div>
-      <div style="font-size:12px;color:#6B8A94;margin-top:4px">Access is by admin approval only</div>
+      <div style="font-size:12px;color:#6B8A94;margin-top:4px">💳 Paid service · ₹499/report · Admin approval required</div>
     </div>
     <div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;margin-bottom:24px;overflow:hidden">
       <button id="gate-tab-login" onclick="gateShowTab('login')" style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Login</button>
@@ -3832,33 +3864,51 @@ async function runValuationIntel(){
       <div style="text-align:center;margin-top:14px;font-size:12px;color:#9AB0B8">New user? <b style="color:#0D5C6B;cursor:pointer" onclick="gateShowTab('request')">Request Access</b></div>
     </div>
     <div id="gate-panel-request" style="display:none">
-      <div style="background:#FDF6E8;border:1px solid #E8D4A0;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#8A6820;line-height:1.6">⚠️ Access is currently <b>by admin approval only</b>. Submit your details and our team will review within 24 hours.</div>
-      <div style="margin-bottom:12px">
-        <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Full Name *</label>
-        <input id="req-name" type="text" placeholder="Your full name" style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box">
+      <!-- Pricing Banner -->
+      <div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:10px;padding:14px 16px;margin-bottom:16px;color:#fff;text-align:center">
+        <div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">💳 Paid Service — Starting at</div>
+        <div style="font-size:22px;font-weight:900;font-family:Georgia,serif">₹499 <span style="font-size:13px;font-weight:400;opacity:.7">per report</span></div>
+        <div style="font-size:11px;opacity:.6;margin-top:4px">Access activated after payment &amp; admin approval</div>
+      </div>
+      <div style="background:#FDF6E8;border:1px solid #E8D4A0;border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:#8A6820;line-height:1.6">
+        📩 Submit your details → Admin reviews → Payment link sent to your WhatsApp &amp; email → Access activated
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Full Name *</label>
+          <input id="req-name" type="text" placeholder="Your name" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Phone (WhatsApp) *</label>
+          <input id="req-phone" type="tel" placeholder="+91 9XXXXXXXXX" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
+        </div>
       </div>
       <div style="margin-bottom:12px">
-        <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Email *</label>
-        <input id="req-email" type="email" placeholder="your@company.com" style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box">
+        <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Email *</label>
+        <input id="req-email" type="email" placeholder="your@company.com" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
       </div>
-      <div style="margin-bottom:12px">
-        <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Organisation</label>
-        <input id="req-org" type="text" placeholder="Company / CA firm / Bank" style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box">
-      </div>
-      <div style="margin-bottom:18px">
-        <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Purpose</label>
-        <select id="req-purpose" style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;color:#1A2E35;box-sizing:border-box">
-          <option value="">Select purpose</option>
-          <option value="ca">CA / CS Professional</option>
-          <option value="bank">Investment Banker / Merchant Banker</option>
-          <option value="company">Company (IPO Planning)</option>
-          <option value="vc">VC / PE Investor</option>
-          <option value="other">Other</option>
-        </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Organisation</label>
+          <input id="req-org" type="text" placeholder="Company / CA Firm" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;color:#1A2E35;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase;letter-spacing:.5px">Purpose</label>
+          <select id="req-purpose" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;color:#1A2E35;box-sizing:border-box">
+            <option value="">Select</option>
+            <option value="ca">CA / CS</option>
+            <option value="bank">Merchant Banker</option>
+            <option value="company">Company (IPO)</option>
+            <option value="vc">VC / PE</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
       </div>
       <div id="req-error" style="color:#C0392B;font-size:12px;margin-bottom:10px;min-height:16px"></div>
-      <button onclick="submitAccessRequest()" style="width:100%;padding:13px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Submit Access Request →</button>
-      <div style="text-align:center;margin-top:14px;font-size:12px;color:#9AB0B8">Already approved? <b style="color:#0D5C6B;cursor:pointer" onclick="gateShowTab('login')">Login</b></div>
+      <button onclick="submitAccessRequest()" style="width:100%;padding:13px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">
+        🚀 Request Access &amp; Get Payment Link
+      </button>
+      <div style="text-align:center;margin-top:12px;font-size:11px;color:#9AB0B8">Already approved? <b style="color:#0D5C6B;cursor:pointer" onclick="gateShowTab('login')">Login here</b></div>
     </div>
   </div>
 </div>>
