@@ -789,8 +789,37 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>var AIRA_RESULTS={};
 
 
+
+function saveReportToStore(tier, cname, sector, result){
+  try {
+    var store = JSON.parse(localStorage.getItem('aira_report_log')||'[]');
+    store.unshift({
+      tier: tier,
+      cname: cname,
+      sector: sector,
+      ts: new Date().toISOString(),
+      result: result,
+      user: CURRENT_USER ? CURRENT_USER.email : 'unknown'
+    });
+    if(store.length > 50) store = store.slice(0,50); // keep last 50
+    localStorage.setItem('aira_report_log', JSON.stringify(store));
+  } catch(e){}
+}
+
+function getStoredReports(){
+  try { return JSON.parse(localStorage.getItem('aira_report_log')||'[]'); } catch(e){ return []; }
+}
+
+
+function clearReportHistory(){
+  if(confirm('Clear all report history?')){
+    localStorage.removeItem('aira_report_log');
+    loadAdmin();
+  }
+}
 function loadAdmin(){
-  if(!CURRENT_USER || CURRENT_USER.plan !== 'admin') return;
+  var isAdm = (CURRENT_USER && CURRENT_USER.plan === 'admin') || ADMIN_UNLOCKED;
+  if(!isAdm) return;
   
   // Stats
   var statsEl = document.getElementById('admin-stats');
@@ -804,32 +833,74 @@ function loadAdmin(){
       +'<div style="background:#F0FFF4;border:1px solid #C0EDD6;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:#1A6B3A">'+reports+'</div><div style="font-size:11px;color:#6B8A94;margin-top:4px">Reports Generated</div></div>';
   }
 
-  // Reports generated this session
+  // Reports - both session + stored
   var reportsEl = document.getElementById('admin-reports');
   if(reportsEl){
-    var reportKeys = Object.keys(AIRA_RESULTS);
-    if(reportKeys.length === 0){
-      reportsEl.innerHTML = '<div style="font-size:13px;font-weight:700;color:#08404D;margin:16px 0 8px">Reports This Session</div><div style="padding:16px;background:#F8F9FA;border-radius:8px;font-size:12px;color:#9AB0B8;text-align:center">No reports generated yet this session</div>';
+    var stored = getStoredReports();
+    var sessionKeys = Object.keys(AIRA_RESULTS);
+    var tierLabel = {free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard',ca:'CA/CS',clearchit:'Clean Chit',dirscan:'Dir Scan',ddbundle:'DD Bundle',alert:'AIRA Alert',valdoc:'Valuation Doc',valintel:'Val Intel',deepresearch:'Deep Research'};
+    
+    var html = '<div style="font-size:13px;font-weight:700;color:#08404D;margin:16px 0 8px">📊 Report Log ('+stored.length+' stored)</div>';
+    
+    if(stored.length === 0 && sessionKeys.length === 0){
+      html += '<div style="padding:16px;background:#F8F9FA;border-radius:8px;font-size:12px;color:#9AB0B8;text-align:center">No reports generated yet</div>';
     } else {
-      var html = '<div style="font-size:13px;font-weight:700;color:#08404D;margin:16px 0 8px">Reports This Session ('+reportKeys.length+')</div>';
       html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-      html += '<tr style="background:#F0F9FB"><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Company</th><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Type</th><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Sector</th><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Action</th></tr>';
-      reportKeys.forEach(function(key){
+      html += '<tr style="background:#F0F9FB"><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Date/Time</th><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Company</th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">Type</th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">User</th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">Action</th></tr>';
+      
+      // Show stored reports first (persistent)
+      stored.forEach(function(r, idx){
+        var dt = r.ts ? new Date(r.ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : 'N/A';
+        var label = tierLabel[r.tier] || r.tier || 'Report';
+        html += '<tr style="border-bottom:1px solid #F0F0F0">'
+          +'<td style="padding:8px 10px;color:#6B8A94;font-size:11px">'+dt+'</td>'
+          +'<td style="padding:8px 10px;font-weight:600;color:#1A2E35">'+esc(r.cname||'Unknown')+'</td>'
+          +'<td style="padding:8px 10px;text-align:center"><span style="padding:2px 8px;background:#E8F4FF;color:#1A5C8A;border-radius:20px;font-size:11px;font-weight:600">'+label+'</span></td>'
+          +'<td style="padding:8px 10px;font-size:11px;color:#6B8A94">'+esc((r.user||'').split('@')[0])+'</td>'
+          +'<td style="padding:8px 10px"><button class="adm-view" data-idx="'+idx+'" style="padding:3px 10px;background:#08404D;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">View</button></td>'
+          +'</tr>';
+      });
+      
+      // Also show current session reports not yet stored
+      sessionKeys.forEach(function(key){
         var r = AIRA_RESULTS[key];
         var tier = r.tier || key;
         var cname = r.cname || (r.result && r.result.company_name) || 'Unknown';
-        var sector = r.sector || 'N/A';
-        var tierLabel = {free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard',ca:'CA/CS',clearchit:'Clean Chit',dirscan:'Dir Scan',ddbundle:'DD Bundle',alert:'Alert',valdoc:'Valuation Doc',valintel:'Val Intel'}[tier] || tier;
-        html += '<tr style="border-bottom:1px solid #F0F0F0">'
+        // Check not already in stored
+        var alreadyStored = stored.some(function(s){ return s.cname === cname && s.tier === tier; });
+        if(alreadyStored) return;
+        var label = tierLabel[tier] || tier;
+        html += '<tr style="border-bottom:1px solid #F0F0F0;background:#FFFBF0">'
+          +'<td style="padding:8px 10px;color:#6B8A94;font-size:11px">This session</td>'
           +'<td style="padding:8px 10px;font-weight:600;color:#1A2E35">'+esc(cname)+'</td>'
-          +'<td style="padding:8px 10px"><span style="padding:2px 8px;background:#E8F4FF;color:#1A5C8A;border-radius:20px;font-size:11px;font-weight:600">'+tierLabel+'</span></td>'
-          +'<td style="padding:8px 10px;color:#6B8A94">'+esc(sector)+'</td>'
-          +'<td style="padding:8px 10px"><button class="adm-view" data-k="'+key+'" style="padding:3px 10px;background:#08404D;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">View</button></td>';
+          +'<td style="padding:8px 10px;text-align:center"><span style="padding:2px 8px;background:#FFF5E0;color:#8A4A1A;border-radius:20px;font-size:11px;font-weight:600">'+label+'</span></td>'
+          +'<td style="padding:8px 10px;font-size:11px;color:#6B8A94">current</td>'
+          +'<td style="padding:8px 10px"><button class="adm-view" data-k="'+key+'" style="padding:3px 10px;background:#08404D;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">View</button></td>'
           +'</tr>';
       });
+      
       html += '</table></div>';
-      reportsEl.innerHTML = html;
+      html += '<div style="text-align:right;margin-top:8px"><button onclick="clearReportHistory()" style="padding:4px 12px;background:#C0392B;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">Clear History</button></div>';
     }
+    reportsEl.innerHTML = html;
+    
+    // Event delegation - handle both data-k (session) and data-idx (stored)
+    reportsEl.addEventListener('click', function(e){
+      var b = e.target.closest('.adm-view');
+      if(!b) return;
+      if(b.dataset.k) reloadReport(b.dataset.k);
+      else if(b.dataset.idx !== undefined){
+        var rep = getStoredReports()[parseInt(b.dataset.idx)];
+        if(rep && rep.result){
+          var out = document.getElementById('result-'+rep.tier);
+          if(!out){ switchTier(rep.tier); setTimeout(function(){ loadAdmin(); }, 300); return; }
+          if(rep.tier==='valdoc'||rep.tier==='valintel') renderValuationReport(rep.result, rep.cname, rep.sector, out, rep.tier);
+          else renderSimpleReport(rep.result, rep.cname, rep.sector||'', out, rep.tier);
+          switchTier(rep.tier);
+          out.scrollIntoView({behavior:'smooth',block:'start'});
+        }
+      }
+    });
   }
 
   // Users table
@@ -863,13 +934,6 @@ function loadAdmin(){
   },100);
 }
 
-  // Event delegation for admin buttons
-  document.getElementById('admin-reports').addEventListener('click',function(e){
-    if(e.target.classList.contains('admin-view-btn')) reloadReport(e.target.dataset.key);
-  });
-  document.getElementById('admin-users').addEventListener('click',function(e){
-    if(e.target.classList.contains('admin-rm-btn')) removeUser(e.target.dataset.email);
-  });
 function reloadReport(key){
   var r = AIRA_RESULTS[key];
   if(!r) return;
@@ -2404,6 +2468,7 @@ async function runFreeCore(){
     if(btn){btn.disabled=false;btn.innerHTML='Run AIRA →';}
     var coName=cname||result.company_name||cin;
     AIRA_RESULTS['free']={result:result,cname:coName,sector:sector,exchange:exchange,tier:'free'};
+    saveReportToStore('free', cname, sector, AIRA_RESULTS['free'].result||{});
     if(out){renderAIRAReport(result,coName,sector,exchange,out,'free');out.scrollIntoView({behavior:'smooth',block:'start'});}
   }catch(e){
     if(prog)prog.style.display='none';
@@ -2481,6 +2546,7 @@ async function runDeepResearch(){
     if(prog)prog.style.display='none';
     var cname=result.company_name||cin;
     AIRA_RESULTS['paid']={result:result,cname:cname,sector:sector,exchange:exchange,tier:'paid'};
+    saveReportToStore('paid', cname, sector, AIRA_RESULTS['paid'].result||{});
     renderAIRAReport(result,cname,sector,exchange,out,'paid');
     out.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){
@@ -2905,6 +2971,7 @@ async function runValuationDoc(){
     var rep=txt.replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'').trim();
     var result=Object.assign({},vdata,{_report:rep,company_name:vdata.company_name||cname,cin:cin,sector:sector,exchange:exchange,_type:'valuation'});
     AIRA_RESULTS['valdoc']={result:result,cname:cname,sector:sector,tier:'valdoc'};
+    saveReportToStore('valdoc', cname, sector, AIRA_RESULTS['valdoc'].result||{});
     renderValuationReport(result,cname,sector,out,'valdoc');
     if(out)out.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){
@@ -2940,6 +3007,7 @@ async function runValuationIntel(){
     var rep=txt.replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'').trim();
     var result=Object.assign({},vdata,{_report:rep,company_name:vdata.company_name||cname,cin:cin,sector:sector,exchange:exchange,_type:'valuation'});
     AIRA_RESULTS['valintel']={result:result,cname:cname,sector:sector,tier:'valintel'};
+    saveReportToStore('valintel', cname, sector, AIRA_RESULTS['valintel'].result||{});
     renderValuationReport(result,cname,sector,out,'valintel');
     if(out)out.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){
