@@ -2760,6 +2760,9 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     var pat23=+(parseFloat(f.pat_fy23)||0).toFixed(2);
     var rev22=+(parseFloat(f.revenue_fy22)||0).toFixed(2);
     var pat22=+(parseFloat(f.pat_fy22)||0).toFixed(2);
+    // Validate: PAT should be > 0.1 Cr to be meaningful (filter out near-zero noise)
+    if(pat23>0&&pat23<0.5) pat23=0;
+    if(pat22>0&&pat22<0.5) pat22=0;
     var yr24=f.fy24_year||'FY24', yr23=f.fy23_year||'FY23', yr22=f.fy22_year||'FY22';
     var fixYrF=function(yr){if(!yr)return null;var s=String(yr);if(s.indexOf('FY')===0&&s.length===4){var y=parseInt(s.slice(2));if(y>0&&y<30)return yr;}if(/^\d{4}$/.test(s)){var y2=parseInt(s.slice(2));return 'FY'+y2;}return yr;};
     yr24=fixYrF(yr24)||'FY24';yr23=fixYrF(yr23)||'FY23';yr22=fixYrF(yr22)||'FY22';
@@ -2900,6 +2903,10 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     }
 
     // AI narrative sections
+    // Remove ## artifacts from all sections
+    var cleanSection=function(t){ return (t||'').replace(/^#{1,3}\s*/gm,'').replace(/\*\*([^*]+)\*\*/g,'$1').trim(); };
+    overview=cleanSection(overview); financials=cleanSection(financials);
+    governance=cleanSection(governance); recommendation=cleanSection(recommendation);
     var secs=[['Business Overview',overview,'#F0F9FF'],['Financial Analysis',financials,'#F0FFF4'],
       ['Governance Assessment',governance,'#FFF5F0'],['IPO Readiness Verdict',recommendation,'#F5F0FF']];
     secs.forEach(function(s){
@@ -3262,9 +3269,12 @@ async function runValuationIntel(){
     var roce=+(parseFloat(f.roce)||0).toFixed(1);
     var netM=+(rev>0?pat/rev*100:0).toFixed(1);
     var rev23=+(parseFloat(f.revenue_fy23)||0).toFixed(2);
-    var pat23=+(parseFloat(f.pat_fy23)||0).toFixed(2);
+    var pat23raw=parseFloat(f.pat_fy23)||0;
+    var pat23=+(pat23raw>0.5?pat23raw:0).toFixed(2);
     var rev22=+(parseFloat(f.revenue_fy22)||0).toFixed(2);
     var yr24=f.fy24_year||'FY24',yr23lbl=f.fy23_year||'FY23',yr22lbl=f.fy22_year||'FY22';
+    var fixYrVI=function(yr,dflt){if(!yr)return dflt;var s=String(yr).replace(/FY/i,'').trim();var n=parseInt(s);if(isNaN(n))return dflt;if(n>=2000)n=n%100;if(n>=18&&n<=30)return 'FY'+n;return dflt;};
+    yr24=fixYrVI(yr24,'FY24');yr23lbl=fixYrVI(yr23lbl,'FY23');yr22lbl=fixYrVI(yr22lbl,'FY22');
     // Fix year labels - should be FY22/23/24 not FY31 etc
     var fixYr=function(yr){if(!yr)return null;var s=String(yr);if(s.indexOf('FY')===0&&s.length===4){var y=parseInt(s.slice(2));if(y>0&&y<30)return yr;}if(/^\d{4}$/.test(s)){var y2=parseInt(s.slice(2));return 'FY'+y2;}return yr;};
     yr24=fixYr(yr24)||'FY24';yr23lbl=fixYr(yr23lbl)||'FY23';yr22lbl=fixYr(yr22lbl)||'FY22';
@@ -3320,9 +3330,10 @@ async function runValuationIntel(){
     var ntxt=(nr&&nr.content||[]).map(function(c){return c.text||'';}).join('');
 
     var getS=function(t,k){var m=t.match(new RegExp('\\['+k+'\\]([\\s\\S]*?)(?=\\[[A-Z]+\\]|$)'));return m?m[1].trim():'';};
-    var thesis=getS(ntxt,'THESIS')||'Strong financial profile with exceptional return ratios.';
-    var competitive=getS(ntxt,'COMPETITIVE')||'Specialized player in '+sector+' with established market position.';
-    var risks=getS(ntxt,'RISKS')||'Scale risk, governance maturity, sector cyclicality.';
+    var cleanVI=function(t){return (t||'').replace(/^#{1,3}\s*/gm,'').trim();};
+    var thesis=cleanVI(getS(ntxt,'THESIS'))||'Strong financial profile with exceptional return ratios.';
+    var competitive=cleanVI(getS(ntxt,'COMPETITIVE'))||'Specialized player in '+sector+' with established market position.';
+    var risks=cleanVI(getS(ntxt,'RISKS'))||'Scale risk, governance maturity, sector cyclicality.';
 
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#128200; Generate Intelligence Valuation \xb7 \u20b97,999 \u2192';}
