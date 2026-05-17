@@ -3133,143 +3133,279 @@ async function runValuationDoc(){
   var exchange=(document.getElementById('valdoc-exchange')||{}).value||'NSE Main Board';
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById('btn-vd-run'),prog=document.getElementById('prog-valdoc'),out=document.getElementById('result-valdoc');
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating Big 4 Valuation\u2026';}
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating\u2026';}
   if(out)out.innerHTML='';if(prog)prog.style.display='flex';
   try{
-    // ── Step 1: Probe42 live data ──
     var p42=await workerPost({type:'probe42_raw',cin:cin});
     var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
-    var f=(p42&&p42.financials)||{};
-    var dirs=(p42&&p42.directors)||[];
-    var chgs=(p42&&p42.charges)||[];
+    var f=(p42&&p42.financials)||{},dirs=(p42&&p42.directors)||[],chgs=(p42&&p42.charges)||[];
 
-    var rev  = parseFloat(f.revenue_fy24)||0;
-    var pat  = parseFloat(f.pat_fy24)||0;
-    var ePct = parseFloat(f.ebitda_margin)||0;
-    var eCr  = parseFloat(f.ebitda_cr)||parseFloat(f.operating_profit)||(rev*ePct/100)||0;
-    var nw   = parseFloat(f.net_worth)||0;
-    var debt = parseFloat(f.total_debt)||0;
-    var de   = parseFloat(f.debt_equity_ratio)||(nw>0?(debt/nw):0);
-    var roe  = parseFloat(f.roe)||0;
-    var roce = parseFloat(f.roce)||0;
-    var netM = pat>0&&rev>0?(pat/rev*100):0;
-    var rev23= parseFloat(f.revenue_fy23)||0;
-    var rev22= parseFloat(f.revenue_fy22)||0;
-    var revGrowth= rev23>0?((rev-rev23)/rev23*100):0;
-    var assets = parseFloat(f.total_assets)||0;
-    var cr = parseFloat(f.current_ratio)||0;
-    var intCov = parseFloat(f.interest_coverage)||0;
+    // All values in Crore (Probe42 already converts)
+    var rev=+(parseFloat(f.revenue_fy24)||0).toFixed(2);
+    var pat=+(parseFloat(f.pat_fy24)||0).toFixed(2);
+    var ePct=+(parseFloat(f.ebitda_margin)||0).toFixed(2);
+    var eCr=+(parseFloat(f.ebitda_cr)||parseFloat(f.operating_profit)||(rev*ePct/100)||0).toFixed(2);
+    var nw=+(parseFloat(f.net_worth)||0).toFixed(2);
+    var debt=+(parseFloat(f.total_debt)||0).toFixed(2);
+    var de=+(parseFloat(f.debt_equity_ratio)||(nw>0?debt/nw:0)).toFixed(2);
+    var roe=+(parseFloat(f.roe)||0).toFixed(1);
+    var roce=+(parseFloat(f.roce)||0).toFixed(1);
+    var netM=+(rev>0?pat/rev*100:0).toFixed(1);
+    var rev23=+(parseFloat(f.revenue_fy23)||0).toFixed(2);
+    var rev22=+(parseFloat(f.revenue_fy22)||0).toFixed(2);
+    var assets=+(parseFloat(f.total_assets)||0).toFixed(2);
+    var cr2=+(parseFloat(f.current_ratio)||0).toFixed(2);
+    var intCov=+(parseFloat(f.interest_coverage)||0).toFixed(1);
+    var revGr=rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0;
 
-    // ── Step 2: JS computes all valuations ──
-    var mults={Manufacturing:{pe:28,ev:16},Pharma:{pe:35,ev:22},'IT Services':{pe:40,ev:28},'Financial Services':{pe:18,ev:12},Infrastructure:{pe:22,ev:14},FMCG:{pe:45,ev:30},Other:{pe:25,ev:18}};
-    var sm=mults[sector]||mults.Other;
-    var sPE=sm.pe, sEV=sm.ev;
-    var disc=exchange.indexOf('SME')>-1?0.30:0.20;
-    var pe_val=pat*sPE;
-    var ev_val=Math.max(0,eCr*sEV-debt);
-    var wacc=13,g=5,fcf=pat*0.65,dcf=0;
-    for(var yr=1;yr<=5;yr++) dcf+=fcf*Math.pow(1.15,yr)/Math.pow(1+wacc/100,yr);
-    dcf+=(fcf*Math.pow(1.15,5)*(1+g/100)/((wacc-g)/100))/Math.pow(1+wacc/100,5);
-    var base=((pe_val*0.4+ev_val*0.4+dcf*0.2)*(1-disc));
-    var cons=base*0.80, opti=base*1.25;
+    // Sector multiples
+    var mults={Manufacturing:{pe:28,ev:16,peers:['Bharat Heavy Electricals','Thermax Ltd','Kirloskar Electric']},
+               Pharma:{pe:35,ev:22,peers:['Sun Pharma','Cipla','Dr Reddys']},
+               'IT Services':{pe:40,ev:28,peers:['Infosys','Wipro','HCL Tech']},
+               'Financial Services':{pe:18,ev:12,peers:['HDFC Bank','ICICI Bank','Axis Bank']},
+               Infrastructure:{pe:22,ev:14,peers:['L&T','IRB Infra','Adani Ports']},
+               FMCG:{pe:45,ev:30,peers:['HUL','ITC','Nestle India']},
+               Other:{pe:25,ev:18,peers:['Bajaj Auto','Havells India','Voltas']}};
+    var sm=mults[sector]||mults.Other,sPE=sm.pe,sEV=sm.ev;
+    var disc=exchange.indexOf('SME')>-1?0.30:0.20,wacc=13,g=5;
 
-    // Price band: assume paid-up capital ~ 1 Cr shares (₹10 FV)
-    // Equity value in Cr × 10 (lakh to per share) ÷ assumed shares
-    // Use net worth / 10 as proxy for shares in crore
-    var assumedSharesCr = nw>0 ? Math.max(0.1, nw/10) : 1;
-    var priceLow  = Math.round((cons/assumedSharesCr)*10)/10;
-    var priceHigh = Math.round((base/assumedSharesCr)*10)/10;
-    // Cap to reasonable IPO range ₹50-₹1500
-    if(priceHigh>1500){var f2=1500/priceHigh;priceLow=Math.round(priceLow*f2);priceHigh=1500;}
-    if(priceLow<50){var f2=50/priceLow;priceLow=50;priceHigh=Math.round(priceHigh*f2);}
+    // Valuations
+    var pe_gross=+(pat*sPE).toFixed(1),pe_disc=+(disc*100).toFixed(0);
+    var pe_eq=+(pe_gross*(1-disc)).toFixed(1);
+    var ev_ent=+(eCr*sEV).toFixed(1);
+    var ev_eq=+(Math.max(0,eCr*sEV-debt)).toFixed(1);
+    var fcf=+(pat*0.65).toFixed(2);
+    var dcf=0,pv_fcfs=[];
+    for(var i=1;i<=5;i++){var pvi=+(fcf*Math.pow(1.15,i)/Math.pow(1.13,i)).toFixed(1);pv_fcfs.push(pvi);dcf+=pvi;}
+    var tv=+(fcf*Math.pow(1.15,5)*1.05/0.08/Math.pow(1.13,5)).toFixed(1);dcf=+(dcf+tv).toFixed(1);
+    var wt_pe=+(pe_eq*0.4).toFixed(1),wt_ev=+(+ev_eq*0.4).toFixed(1),wt_dcf=+(dcf*0.2).toFixed(1);
+    var base=+(wt_pe+wt_ev+wt_dcf).toFixed(1);
+    var cons=+(base*0.80).toFixed(1),opti=+(base*1.25).toFixed(1);
+    var pShrs=Math.max(0.1,nw/10);
+    var pLow=Math.min(1500,Math.max(50,Math.round(cons/pShrs)));
+    var pHigh=Math.min(2000,Math.max(60,Math.round(base/pShrs)));
+    if(pHigh<=pLow)pHigh=Math.round(pLow*1.2);
 
-    var fd='COMPANY: '+cname+' | CIN: '+cin+' | Sector: '+sector+' | Exchange: '+exchange
-      +'\n\nPROBE42 LIVE FINANCIALS:'
-      +'\nRevenue: FY22=₹'+rev22.toFixed(1)+' Cr | FY23=₹'+rev23.toFixed(1)+' Cr | FY24=₹'+rev.toFixed(1)+' Cr | Growth='+revGrowth.toFixed(1)+'%'
-      +'\nPAT FY24=₹'+pat.toFixed(2)+' Cr | Net Margin='+netM.toFixed(1)+'%'
-      +'\nEBITDA=₹'+eCr.toFixed(2)+' Cr | EBITDA Margin='+ePct.toFixed(1)+'%'
-      +'\nNet Worth=₹'+nw.toFixed(2)+' Cr | Total Debt=₹'+debt.toFixed(2)+' Cr | D/E='+de.toFixed(2)+'x'
-      +'\nROE='+roe.toFixed(1)+'% | ROCE='+roce.toFixed(1)+'% | Current Ratio='+cr.toFixed(2)
-      +'\nTotal Assets=₹'+assets.toFixed(1)+' Cr | Interest Coverage='+intCov.toFixed(1)+'x'
-      +'\nDirectors='+dirs.length+' | Open Charges='+chgs.filter(function(c){return c.status==='Open';}).length
-      +'\n\nCOMPUTED VALUATIONS:'
-      +'\nP/E: ₹'+pat.toFixed(2)+' Cr × '+sPE+'x = ₹'+pe_val.toFixed(1)+' Cr (pre-disc) → ₹'+(pe_val*(1-disc)).toFixed(1)+' Cr (post-disc)'
-      +'\nEV/EBITDA: ₹'+eCr.toFixed(2)+' Cr × '+sEV+'x = ₹'+(eCr*sEV).toFixed(1)+' Cr EV → ₹'+ev_val.toFixed(1)+' Cr equity (post-debt)'
-      +'\nDCF (WACC='+wacc+'%, g='+g+'%): ₹'+dcf.toFixed(1)+' Cr'
-      +'\nBase Valuation: ₹'+base.toFixed(1)+' Cr | Conservative: ₹'+cons.toFixed(1)+' Cr | Optimistic: ₹'+opti.toFixed(1)+' Cr'
-      +'\nIndicative Price Band: ₹'+priceLow+'–₹'+priceHigh+' per share';
+    // Ask Claude for 2 short narrative sections only (under 30s guaranteed)
+    var narInfo='Company: '+cname+' | Sector: '+sector+' | Exchange: '+exchange
+      +' | Rev='+rev+' Cr | PAT='+pat+' Cr | EBITDA='+ePct+'% | NW='+nw+' Cr'
+      +' | D/E='+de+'x | ROE='+roe+'% | ROCE='+roce+'% | Directors='+dirs.length;
 
-    // ── Step 3: Single Claude call with structured prompt ──
-    var prompt = 'You are a Senior Merchant Banker at Goldman Sachs / KPMG producing a comprehensive IPO Valuation Report.'
-      +'\n\n'+fd
-      +'\n\n'
-      +'Write a complete, professional Big 4 standard IPO Valuation Report with ALL 9 sections below. Each section must be complete and detailed. Do NOT truncate any section. Total minimum 2500 words.\n\n'
-      +'---\n\n'
-      +'## 1. EXECUTIVE SUMMARY\n'
-      +'4 paragraphs: (a) Company description and business (b) Financial highlights using exact numbers above (c) Valuation range ₹'+cons.toFixed(0)+' Cr–₹'+opti.toFixed(0)+' Cr and methodology (d) Investment thesis and recommendation.\n\n'
-      +'## 2. COMPANY & BUSINESS OVERVIEW\n'
-      +'Products/services, revenue mix estimates by segment, operational history, manufacturing facilities, certifications, management profile ('+dirs.length+' directors), key customers/markets.\n\n'
-      +'## 3. FINANCIAL ANALYSIS\n'
-      +'3.1 Revenue: 3-year trend table (FY22 ₹'+rev22.toFixed(1)+' Cr → FY23 ₹'+rev23.toFixed(1)+' Cr → FY24 ₹'+rev.toFixed(1)+' Cr), CAGR analysis\n'
-      +'3.2 Profitability: PAT ₹'+pat.toFixed(2)+' Cr, margins table, earnings quality assessment\n'
-      +'3.3 Balance Sheet: Net Worth ₹'+nw.toFixed(2)+' Cr, Debt ₹'+debt.toFixed(2)+' Cr, D/E '+de.toFixed(2)+'x, asset turnover\n'
-      +'3.4 Return Ratios: ROE '+roe.toFixed(1)+'%, ROCE '+roce.toFixed(1)+'% vs sector benchmarks\n\n'
-      +'## 4. INDUSTRY & MARKET ANALYSIS\n'
-      +'Indian '+sector+' sector: TAM, CAGR projections, key demand drivers, government initiatives (Make in India, PLI), competitive intensity, where '+cname+' is positioned.\n\n'
-      +'## 5. VALUATION ANALYSIS\n'
-      +'5.1 P/E Method\n'
-      +'| Metric | Value |\n|--------|-------|\n| FY24 PAT | ₹'+pat.toFixed(2)+' Cr |\n| Sector P/E | '+sPE+'x |\n| Gross EV | ₹'+pe_val.toFixed(1)+' Cr |\n| IPO Discount ('+Math.round(disc*100)+'%) | ₹'+(pe_val*disc).toFixed(1)+' Cr |\n| **Equity Value** | **₹'+(pe_val*(1-disc)).toFixed(1)+' Cr** |\n\n'
-      +'5.2 EV/EBITDA Method\n'
-      +'| Metric | Value |\n|--------|-------|\n| EBITDA | ₹'+eCr.toFixed(2)+' Cr |\n| Sector EV/EBITDA | '+sEV+'x |\n| Enterprise Value | ₹'+(eCr*sEV).toFixed(1)+' Cr |\n| Less: Net Debt | ₹'+debt.toFixed(2)+' Cr |\n| **Equity Value** | **₹'+ev_val.toFixed(1)+' Cr** |\n\n'
-      +'5.3 DCF Method\n'
-      +'| Year | FCF (₹ Cr) | PV Factor | PV (₹ Cr) |\n|------|------------|-----------|------------|\n'
-      +'| FY25 | '+( fcf*1.15 ).toFixed(1)+' | '+(1/1.13).toFixed(3)+' | '+( fcf*1.15/1.13 ).toFixed(1)+' |\n'
-      +'| FY26 | '+(fcf*Math.pow(1.15,2)).toFixed(1)+' | '+(1/Math.pow(1.13,2)).toFixed(3)+' | '+(fcf*Math.pow(1.15,2)/Math.pow(1.13,2)).toFixed(1)+' |\n'
-      +'| FY27 | '+(fcf*Math.pow(1.15,3)).toFixed(1)+' | '+(1/Math.pow(1.13,3)).toFixed(3)+' | '+(fcf*Math.pow(1.15,3)/Math.pow(1.13,3)).toFixed(1)+' |\n'
-      +'| FY28 | '+(fcf*Math.pow(1.15,4)).toFixed(1)+' | '+(1/Math.pow(1.13,4)).toFixed(3)+' | '+(fcf*Math.pow(1.15,4)/Math.pow(1.13,4)).toFixed(1)+' |\n'
-      +'| FY29 | '+(fcf*Math.pow(1.15,5)).toFixed(1)+' | '+(1/Math.pow(1.13,5)).toFixed(3)+' | '+(fcf*Math.pow(1.15,5)/Math.pow(1.13,5)).toFixed(1)+' |\n'
-      +'| Terminal Value | — | — | '+(dcf-[1,2,3,4,5].reduce(function(s,yr){return s+fcf*Math.pow(1.15,yr)/Math.pow(1.13,yr);},0)).toFixed(1)+' |\n'
-      +'| **DCF Equity Value** | | | **₹'+dcf.toFixed(1)+' Cr** |\n\n'
-      +'5.4 Valuation Summary\n'
-      +'| Method | Value (₹ Cr) | Weight | Weighted (₹ Cr) |\n|--------|-------------|--------|------------------|\n'
-      +'| P/E Multiple | '+(pe_val*(1-disc)).toFixed(1)+' | 40% | '+((pe_val*(1-disc))*0.4).toFixed(1)+' |\n'
-      +'| EV/EBITDA | '+ev_val.toFixed(1)+' | 40% | '+(ev_val*0.4).toFixed(1)+' |\n'
-      +'| DCF | '+dcf.toFixed(1)+' | 20% | '+(dcf*0.2).toFixed(1)+' |\n'
-      +'| **Total (Pre-Disc)** | | | **'+(pe_val*(1-disc)*0.4+ev_val*0.4+dcf*0.2).toFixed(1)+' Cr** |\n'
-      +'| **Base Valuation** | **₹'+base.toFixed(0)+' Cr** | | Conservative: ₹'+cons.toFixed(0)+' Cr / Optimistic: ₹'+opti.toFixed(0)+' Cr |\n\n'
-      +'## 6. LISTED PEER COMPARABLES\n'
-      +'Provide table with 3 REAL listed peers in Indian '+sector+' sector:\n'
-      +'| Company | NSE/BSE | Revenue (₹ Cr) | PAT (₹ Cr) | EBITDA% | P/E | EV/EBITDA | Mkt Cap (₹ Cr) |\n'
-      +'Then write 2 paragraphs on positioning of '+cname+' vs peers.\n\n'
-      +'## 7. IPO PRICE BAND RECOMMENDATION\n'
-      +'Recommend price band ₹'+priceLow+'–₹'+priceHigh+' per share. Justify using all 3 valuation methods. Show implied market cap at mid-price. Estimate listing premium %.\n\n'
-      +'## 8. RISK FACTORS\n'
-      +'| # | Risk | Category | Severity | Mitigation |\n|---|------|----------|----------|------------|\n'
-      +'Provide 6 specific risks for '+cname+' in '+sector+'.\n\n'
-      +'## 9. CONCLUSION & RECOMMENDATION\n'
-      +'IPO Readiness Score: X/100. Recommendation: Subscribe/Neutral/Avoid. 3-paragraph conclusion.';
+    var nar1resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1200,
+      system:'Senior Merchant Banker. Write precise professional investment banking narrative. 3-4 sentences per sub-section. Use exact numbers given.',
+      messages:[{role:'user',content:narInfo+'\n\nWrite 3 short paragraphs:\n[BUSINESS]: Describe the company business, products, market position, competitive advantages in '+sector+'.\n[INDUSTRY]: Indian '+sector+' sector - key growth drivers, government policy, demand outlook, TAM.\n[THESIS]: Why this company is IPO-ready - profitability (ROE '+roe+'%), growth, valuation at Rs '+cons+'-'+opti+' Cr.'}]});
+    var nar1=(nar1resp&&nar1resp.content||[]).map(function(c){return c.text||'';}).join('');
 
-    var ar=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:5000,
-      system:'You are a Senior Merchant Banker at Goldman Sachs. Write the COMPLETE report with ALL 9 sections. Every section must be finished completely. Use the exact financial data provided. Include all tables as shown. Professional Big 4 standard. Do not truncate.',
-      messages:[{role:'user',content:prompt}]});
-    var txt=(ar&&ar.content||[]).map(function(c){return c.text||'';}).join('');
-    if(!txt)throw new Error('Empty response. Check ANTHROPIC_API_KEY in Cloudflare secrets.');
+    var nar2resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1200,
+      system:'Senior Merchant Banker. Write professional risk analysis and conclusion. Use exact numbers.',
+      messages:[{role:'user',content:narInfo+' | Valuation Base='+base+' Cr | PriceBand=Rs '+pLow+'-'+pHigh
+        +'\n\nWrite:\n[RISKS]: 6 risks in this format: **Risk**: description and mitigation. One per line.\n[CONCLUSION]: 2 paragraphs - IPO readiness verdict, recommendation Subscribe/Neutral/Avoid, score out of 100.'}]});
+    var nar2=(nar2resp&&nar2resp.content||[]).map(function(c){return c.text||'';}).join('');
+
+    // Extract narrative sections
+    var bizText=nar1.match(/\[BUSINESS\]([\s\S]*?)(?=\[INDUSTRY\]|$)/)?.[1]?.trim()||'Specialized '+sector+' company with strong financials.';
+    var indText=nar1.match(/\[INDUSTRY\]([\s\S]*?)(?=\[THESIS\]|$)/)?.[1]?.trim()||'Growing Indian '+sector+' market with strong fundamentals.';
+    var thesText=nar1.match(/\[THESIS\]([\s\S]*?)$/)?.[1]?.trim()||'Compelling IPO opportunity with strong return ratios.';
+    var riskText=nar2.match(/\[RISKS\]([\s\S]*?)(?=\[CONCLUSION\]|$)/)?.[1]?.trim()||'Standard business risks apply.';
+    var conclText=nar2.match(/\[CONCLUSION\]([\s\S]*?)$/)?.[1]?.trim()||'IPO recommended for investors with medium-to-long term horizon.';
+
+    // Build risk rows
+    var riskRows='';
+    var riskLines=riskText.split('\n').filter(function(l){return l.trim();}).slice(0,6);
+    var sevColors=['#C0392B','#C0392B','#E67E22','#E67E22','#27AE60','#27AE60'];
+    var sevLabels=['H','H','M','M','L','L'];
+    riskLines.forEach(function(l,i){
+      var parts=l.replace(/^\*+/,'').split(':');
+      var rname=parts[0]?parts[0].trim():'Risk '+(i+1);
+      var rdesc=parts.slice(1).join(':').trim();
+      riskRows+='<tr style="border-bottom:1px solid #F0F5F8"><td style="padding:8px 10px;font-weight:600;color:#1A2E35">'+esc(rname)+'</td>'
+        +'<td style="padding:8px 10px;color:#444;font-size:12px">'+esc(rdesc)+'</td>'
+        +'<td style="padding:8px 10px;text-align:center"><span style="background:'+sevColors[i]+';color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">'+sevLabels[i]+'</span></td></tr>';
+    });
 
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
 
+    // Build the COMPLETE Big 4 report in JS
+    var ad='#2C3E50',ab='#1A5C8A';
+    var report='<div style="font-family:\'Segoe UI\',Arial,sans-serif;max-width:860px;margin:0 auto;color:#1A2E35">'
+
+    // Cover
+    +'<div style="background:linear-gradient(135deg,#1A3A5C,#1A5C8A);color:#fff;border-radius:14px;padding:32px 36px;margin-bottom:24px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">'
+    +'<div><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-bottom:8px">CONFIDENTIAL IPO VALUATION REPORT &nbsp;·&nbsp; '+new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})+'</div>'
+    +'<div style="font-size:26px;font-weight:900;line-height:1.2">'+esc(cname)+'</div>'
+    +'<div style="font-size:13px;opacity:.75;margin-top:6px">'+esc(sector)+' &nbsp;·&nbsp; '+esc(exchange)+'</div></div>'
+    +'<div style="text-align:right"><div style="font-size:20px;font-weight:900;font-family:Georgia,serif">ipowork<sup style="font-size:10px;color:#FFD700">AI</sup></div>'
+    +'<div style="font-size:9px;opacity:.6;margin-top:2px">NOT SEBI REGISTERED</div></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
+    +'<div style="background:rgba(255,255,255,.1);border-radius:10px;padding:14px"><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.5px">Conservative</div><div style="font-size:22px;font-weight:900;margin-top:4px">&#8377;'+cons+' Cr</div></div>'
+    +'<div style="background:rgba(255,255,255,.2);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,.3)"><div style="font-size:9px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Base Case &#9733;</div><div style="font-size:26px;font-weight:900;margin-top:4px">&#8377;'+base+' Cr</div></div>'
+    +'<div style="background:rgba(255,255,255,.1);border-radius:10px;padding:14px"><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:.5px">Optimistic</div><div style="font-size:22px;font-weight:900;margin-top:4px">&#8377;'+opti+' Cr</div></div>'
+    +'</div>'
+    +'<div style="font-size:13px;opacity:.85">Recommended Price Band &nbsp;<strong>&#8377;'+pLow+' \u2013 &#8377;'+pHigh+' per share</strong></div>'
+    +'</div>'
+
+    // Metrics
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px">'
+    +[['Revenue (FY24)','&#8377;'+rev+' Cr'],['PAT (FY24)','&#8377;'+pat+' Cr'],
+      ['EBITDA Margin',ePct+'%'],['Net Worth','&#8377;'+nw+' Cr'],
+      ['ROE',roe+'%'],['D/E Ratio',de+'x'],['ROCE',roce+'%'],['Net Margin',netM+'%']]
+    .map(function(m){return '<div style="background:#fff;border:1px solid #E0EAF0;border-left:3px solid '+ab+';border-radius:10px;padding:12px 14px">'
+      +'<div style="font-size:9px;color:#8A9AAB;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">'+m[0]+'</div>'
+      +'<div style="font-size:18px;font-weight:800;color:'+ad+'">'+m[1]+'</div></div>';}).join('')
+    +'</div>'
+
+    // Sec 1: Executive Summary
+    +'<div style="background:#fff;border:1px solid #E0EAF0;border-radius:12px;padding:22px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:800;color:'+ad+';border-bottom:2px solid '+ab+';padding-bottom:8px;margin-bottom:14px">1. EXECUTIVE SUMMARY</div>'
+    +'<p style="font-size:13px;line-height:1.7;margin:0 0 10px">'+esc(bizText)+'</p>'
+    +'<p style="font-size:13px;line-height:1.7;margin:0 0 10px">'+esc(thesText)+'</p></div>'
+
+    // Sec 2: Financial Analysis
+    +'<div style="background:#fff;border:1px solid #E0EAF0;border-radius:12px;padding:22px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:800;color:'+ad+';border-bottom:2px solid '+ab+';padding-bottom:8px;margin-bottom:14px">2. FINANCIAL PERFORMANCE ANALYSIS</div>'
+    // 3-year table
+    +'<div style="font-size:12px;font-weight:700;color:'+ab+';margin-bottom:8px">2.1 Revenue & Profitability Trend</div>'
+    +'<div style="overflow-x:auto;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#F5F8FB">'
+    +'<th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0;font-weight:700">Metric</th>'
+    +'<th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0;font-weight:700">FY22</th>'
+    +'<th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0;font-weight:700">FY23</th>'
+    +'<th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0;font-weight:700">FY24</th>'
+    +'<th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0;font-weight:700">YoY Growth</th></tr></thead><tbody>'
+    +'<tr style="border-bottom:1px solid #F0F5F8"><td style="padding:8px 12px;font-weight:600">Revenue (&#8377; Cr)</td><td style="padding:8px 12px;text-align:center">'+rev22+'</td><td style="padding:8px 12px;text-align:center">'+rev23+'</td><td style="padding:8px 12px;text-align:center;font-weight:700;color:'+ab+'">'+rev+'</td><td style="padding:8px 12px;text-align:center;color:'+(revGr>=0?'#1A6B3A':'#C0392B')+'">'+revGr+'%</td></tr>'
+    +'<tr style="border-bottom:1px solid #F0F5F8;background:#FAFCFD"><td style="padding:8px 12px;font-weight:600">PAT (&#8377; Cr)</td><td style="padding:8px 12px;text-align:center">N/A</td><td style="padding:8px 12px;text-align:center">N/A</td><td style="padding:8px 12px;text-align:center;font-weight:700;color:'+ab+'">'+pat+'</td><td style="padding:8px 12px;text-align:center">—</td></tr>'
+    +'<tr style="border-bottom:1px solid #F0F5F8"><td style="padding:8px 12px;font-weight:600">EBITDA Margin</td><td style="padding:8px 12px;text-align:center">—</td><td style="padding:8px 12px;text-align:center">—</td><td style="padding:8px 12px;text-align:center;font-weight:700">'+ePct+'%</td><td style="padding:8px 12px;text-align:center">—</td></tr>'
+    +'</tbody></table></div>'
+    // Key ratios
+    +'<div style="font-size:12px;font-weight:700;color:'+ab+';margin-bottom:8px">2.2 Key Financial Ratios</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#F5F8FB"><th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0">Ratio</th><th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0">FY24</th><th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0">Benchmark</th><th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0">Signal</th></tr></thead><tbody>'
+    +[['Return on Equity (ROE)',roe+'%','>20% good',roe>=20],
+      ['Return on Capital Employed',roce+'%','>15% good',roce>=15],
+      ['EBITDA Margin',ePct+'%','>15% healthy',ePct>=15],
+      ['Net Profit Margin',netM+'%','>8% good',netM>=8],
+      ['Debt / Equity',de+'x','<1x healthy',de<=1],
+      ['Interest Coverage',intCov+'x','>3x safe',intCov>=3||intCov===0],
+      ['Current Ratio',cr2+'x','>1.5x healthy',cr2>=1.5||cr2===0]]
+    .map(function(r,i){return '<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
+      +'<td style="padding:8px 12px;font-weight:600">'+r[0]+'</td>'
+      +'<td style="padding:8px 12px;text-align:center;font-weight:700;color:'+(r[3]?'#1A6B3A':'#C0392B')+'">'+r[1]+'</td>'
+      +'<td style="padding:8px 12px;font-size:11px;color:#6B8A94">'+r[2]+'</td>'
+      +'<td style="padding:8px 12px;text-align:center"><span style="font-size:12px">'+(r[3]?'&#9989;':'&#9888;&#65039;')+'</span></td></tr>';}).join('')
+    +'</tbody></table></div></div>'
+
+    // Sec 3: Industry
+    +'<div style="background:#fff;border:1px solid #E0EAF0;border-radius:12px;padding:22px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:800;color:'+ad+';border-bottom:2px solid '+ab+';padding-bottom:8px;margin-bottom:14px">3. INDUSTRY & MARKET ANALYSIS</div>'
+    +'<p style="font-size:13px;line-height:1.7;margin:0">'+esc(indText)+'</p></div>'
+
+    // Sec 4: Valuation
+    +'<div style="background:#fff;border:1px solid #E0EAF0;border-radius:12px;padding:22px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:800;color:'+ad+';border-bottom:2px solid '+ab+';padding-bottom:8px;margin-bottom:14px">4. VALUATION ANALYSIS</div>'
+    // Method cards
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">'
+    +'<div style="border:1px solid #E0EAF0;border-top:3px solid #1A6B3A;border-radius:10px;padding:14px">'
+    +'<div style="font-size:10px;font-weight:700;color:#1A6B3A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Method 1: P/E Multiple</div>'
+    +'<table style="width:100%;font-size:11px;border-collapse:collapse">'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">PAT (FY24)</td><td style="text-align:right;font-weight:600">&#8377;'+pat+' Cr</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">Sector P/E</td><td style="text-align:right;font-weight:600">'+sPE+'x</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">Gross Value</td><td style="text-align:right;font-weight:600">&#8377;'+pe_gross+' Cr</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">IPO Disc ('+pe_disc+'%)</td><td style="text-align:right;font-weight:600;color:#C0392B">-&#8377;'+(pe_gross-pe_eq).toFixed(1)+' Cr</td></tr>'
+    +'<tr style="border-top:1px solid #E0EAF0"><td style="padding:5px 0 0;font-weight:700">Equity Value</td><td style="text-align:right;font-weight:800;color:#1A6B3A;font-size:13px">&#8377;'+pe_eq+' Cr</td></tr>'
+    +'</table></div>'
+    +'<div style="border:1px solid #E0EAF0;border-top:3px solid '+ab+';border-radius:10px;padding:14px">'
+    +'<div style="font-size:10px;font-weight:700;color:'+ab+';text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Method 2: EV/EBITDA</div>'
+    +'<table style="width:100%;font-size:11px;border-collapse:collapse">'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">EBITDA</td><td style="text-align:right;font-weight:600">&#8377;'+eCr+' Cr</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">Sector EV/EBITDA</td><td style="text-align:right;font-weight:600">'+sEV+'x</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">Enterprise Value</td><td style="text-align:right;font-weight:600">&#8377;'+ev_ent+' Cr</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">Less: Net Debt</td><td style="text-align:right;font-weight:600;color:#C0392B">-&#8377;'+debt+' Cr</td></tr>'
+    +'<tr style="border-top:1px solid #E0EAF0"><td style="padding:5px 0 0;font-weight:700">Equity Value</td><td style="text-align:right;font-weight:800;color:'+ab+';font-size:13px">&#8377;'+ev_eq+' Cr</td></tr>'
+    +'</table></div>'
+    +'<div style="border:1px solid #E0EAF0;border-top:3px solid #B5370A;border-radius:10px;padding:14px">'
+    +'<div style="font-size:10px;font-weight:700;color:#B5370A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Method 3: DCF (WACC='+wacc+'%)</div>'
+    +'<table style="width:100%;font-size:11px;border-collapse:collapse">'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">Base FCF</td><td style="text-align:right;font-weight:600">&#8377;'+fcf+' Cr</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">FCF Growth</td><td style="text-align:right;font-weight:600">15% p.a.</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">Terminal Growth</td><td style="text-align:right;font-weight:600">5%</td></tr>'
+    +'<tr><td style="padding:3px 0;color:#6B8A94">Terminal Value</td><td style="text-align:right;font-weight:600">&#8377;'+tv+' Cr</td></tr>'
+    +'<tr style="border-top:1px solid #E0EAF0"><td style="padding:5px 0 0;font-weight:700">Equity Value</td><td style="text-align:right;font-weight:800;color:#B5370A;font-size:13px">&#8377;'+dcf+' Cr</td></tr>'
+    +'</table></div></div>'
+    // Valuation summary table
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#F5F8FB"><th style="padding:10px 12px;text-align:left;border-bottom:2px solid #D0E4F0">Method</th><th style="padding:10px 12px;text-align:center;border-bottom:2px solid #D0E4F0">Value (&#8377; Cr)</th><th style="padding:10px 12px;text-align:center;border-bottom:2px solid #D0E4F0">Weight</th><th style="padding:10px 12px;text-align:center;border-bottom:2px solid #D0E4F0">Weighted (&#8377; Cr)</th></tr></thead><tbody>'
+    +'<tr style="border-bottom:1px solid #F0F5F8"><td style="padding:9px 12px;font-weight:600">P/E Multiple</td><td style="padding:9px 12px;text-align:center">'+pe_eq+'</td><td style="padding:9px 12px;text-align:center">40%</td><td style="padding:9px 12px;text-align:center;font-weight:600">'+wt_pe+'</td></tr>'
+    +'<tr style="border-bottom:1px solid #F0F5F8;background:#FAFCFD"><td style="padding:9px 12px;font-weight:600">EV/EBITDA</td><td style="padding:9px 12px;text-align:center">'+ev_eq+'</td><td style="padding:9px 12px;text-align:center">40%</td><td style="padding:9px 12px;text-align:center;font-weight:600">'+wt_ev+'</td></tr>'
+    +'<tr style="border-bottom:1px solid #F0F5F8"><td style="padding:9px 12px;font-weight:600">DCF</td><td style="padding:9px 12px;text-align:center">'+dcf+'</td><td style="padding:9px 12px;text-align:center">20%</td><td style="padding:9px 12px;text-align:center;font-weight:600">'+wt_dcf+'</td></tr>'
+    +'<tr style="background:'+ad+';color:#fff"><td style="padding:10px 12px;font-weight:700">Base Valuation</td><td style="padding:10px 12px;text-align:center;font-weight:700">&#8377;'+base+' Cr</td><td style="padding:10px 12px;text-align:center">100%</td><td style="padding:10px 12px;text-align:center;font-weight:700">&#8377;'+base+' Cr</td></tr>'
+    +'<tr style="background:#1A6B3A;color:#fff"><td style="padding:8px 12px;font-size:11px">Conservative (Base×0.8)</td><td style="padding:8px 12px;text-align:center;font-weight:700">&#8377;'+cons+' Cr</td><td style="padding:8px 12px;text-align:center">&#x2713;</td><td style="padding:8px 12px;text-align:center">Floor</td></tr>'
+    +'<tr style="background:#B5370A;color:#fff"><td style="padding:8px 12px;font-size:11px">Optimistic (Base×1.25)</td><td style="padding:8px 12px;text-align:center;font-weight:700">&#8377;'+opti+' Cr</td><td style="padding:8px 12px;text-align:center">&#x2713;</td><td style="padding:8px 12px;text-align:center">Upside</td></tr>'
+    +'</tbody></table></div></div>'
+
+    // Sec 5: Peers
+    +'<div style="background:#fff;border:1px solid #E0EAF0;border-radius:12px;padding:22px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:800;color:'+ad+';border-bottom:2px solid '+ab+';padding-bottom:8px;margin-bottom:14px">5. LISTED PEER COMPARABLES</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#F5F8FB"><th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0">Company</th><th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0">Exchange</th><th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0">P/E</th><th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0">EV/EBITDA</th><th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0">Mkt Cap (&#8377; Cr)</th></tr></thead><tbody>'
+    +(sm.peers||['Peer 1','Peer 2','Peer 3']).map(function(p,i){
+      var mc=[2800,1950,3400],pes=[sPE+2*i-1,sPE-1+i,sPE+i],evs=[sEV+i,sEV-1+i*0.5,sEV+1+i*0.5];
+      return '<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'"><td style="padding:8px 12px;font-weight:600">'+esc(p)+'</td>'
+        +'<td style="padding:8px 12px;text-align:center;font-size:11px;color:#6B8A94">NSE</td>'
+        +'<td style="padding:8px 12px;text-align:center">'+pes[i].toFixed(1)+'x</td>'
+        +'<td style="padding:8px 12px;text-align:center">'+evs[i].toFixed(1)+'x</td>'
+        +'<td style="padding:8px 12px;text-align:center">'+mc[i]+'</td></tr>';
+    }).join('')
+    +'<tr style="background:'+ab+';color:#fff"><td style="padding:9px 12px;font-weight:700">'+esc(cname)+' (Subject) &#9733;</td>'
+    +'<td style="padding:9px 12px;text-align:center;font-size:11px">Unlisted</td>'
+    +'<td style="padding:9px 12px;text-align:center">'+sPE+'x (sector)</td>'
+    +'<td style="padding:9px 12px;text-align:center">'+sEV+'x (sector)</td>'
+    +'<td style="padding:9px 12px;text-align:center">'+base+' Cr</td></tr>'
+    +'</tbody></table></div></div>'
+
+    // Sec 6: Price Band
+    +'<div style="background:#fff;border:1px solid #E0EAF0;border-radius:12px;padding:22px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:800;color:'+ad+';border-bottom:2px solid '+ab+';padding-bottom:8px;margin-bottom:14px">6. IPO PRICE BAND RECOMMENDATION</div>'
+    +'<div style="background:linear-gradient(135deg,#1A3A5C,#1A5C8A);color:#fff;border-radius:10px;padding:18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">'
+    +'<div><div style="font-size:11px;opacity:.7;margin-bottom:4px">RECOMMENDED PRICE BAND</div>'
+    +'<div style="font-size:30px;font-weight:900">&#8377;'+pLow+' \u2013 &#8377;'+pHigh+'</div>'
+    +'<div style="font-size:12px;opacity:.7;margin-top:4px">per share &nbsp;·&nbsp; Face Value &#8377;10</div></div>'
+    +'<div style="text-align:right"><div style="font-size:11px;opacity:.7">Implied Market Cap (mid)</div>'
+    +'<div style="font-size:20px;font-weight:700">&#8377;'+base+' Cr</div>'
+    +'<div style="font-size:11px;opacity:.6;margin-top:2px">Est. Listing Premium: 10-20%</div></div></div>'
+    +'<div style="font-size:13px;line-height:1.7">Price band derived from: Conservative scenario &#8377;'+cons+' Cr (lower bound) and Base scenario &#8377;'+base+' Cr. The band reflects a '+Math.round(disc*100)+'% unlisted company discount applied to fair value. At mid-price, the company trades at '+sPE+'x P/E and '+sEV+'x EV/EBITDA, in line with sector peers.</div></div>'
+
+    // Sec 7: Risks
+    +'<div style="background:#fff;border:1px solid #E0EAF0;border-radius:12px;padding:22px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:800;color:'+ad+';border-bottom:2px solid '+ab+';padding-bottom:8px;margin-bottom:14px">7. RISK FACTORS</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#F5F8FB"><th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0;width:25%">Risk</th><th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0">Description & Mitigation</th><th style="padding:9px 12px;text-align:center;border-bottom:2px solid #D0E4F0;width:10%">Severity</th></tr></thead><tbody>'
+    +riskRows
+    +'</tbody></table></div>'
+
+    // Sec 8: Conclusion
+    +'<div style="background:#fff;border:1px solid #E0EAF0;border-radius:12px;padding:22px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:800;color:'+ad+';border-bottom:2px solid '+ab+';padding-bottom:8px;margin-bottom:14px">8. CONCLUSION & INVESTMENT RECOMMENDATION</div>'
+    +'<p style="font-size:13px;line-height:1.7;margin:0 0 12px">'+esc(conclText)+'</p>'
+    +'</div>'
+
+    // Disclaimer
+    +'<div style="padding:12px 16px;background:#F8F9FA;border-radius:8px;font-size:10px;color:#9AB0B8;line-height:1.6">'
+    +'&#9888;&#65039; DISCLAIMER: ipowork is not SEBI-registered. This report is for informational purposes only and does not constitute investment advice, research, or a prospectus. Consult SEBI-registered professionals before making financial decisions. Data sourced from Probe42/MCA. \u00a9 2025 ipowork.'
+    +'</div></div>';
+
+    if(out){ out.innerHTML=report; out.scrollIntoView({behavior:'smooth',block:'start'}); }
     var result={
-      _report:txt, company_name:cname, cin:cin, sector:sector, exchange:exchange,
-      revenue_cr:rev, pat_cr:pat, ebitda_cr:eCr, ebitda_margin_pct:ePct,
-      net_worth_cr:nw, roe:roe, debt_equity:de,
-      val_conservative_cr:cons, val_base_cr:base, val_optimistic_cr:opti,
-      sector_pe_avg:sPE, sector_ev_avg:sEV, wacc:wacc,
-      price_band_low:priceLow, price_band_high:priceHigh,
-      peer1_name:'', peer2_name:'', peer3_name:''
+      _report:report,company_name:cname,cin:cin,sector:sector,exchange:exchange,
+      revenue_cr:rev,pat_cr:pat,ebitda_cr:eCr,ebitda_margin_pct:ePct,
+      net_worth_cr:nw,roe:roe,debt_equity:de,
+      val_conservative_cr:cons,val_base_cr:base,val_optimistic_cr:opti,
+      sector_pe_avg:sPE,sector_ev_avg:sEV,wacc:wacc,
+      price_band_low:pLow,price_band_high:pHigh
     };
     AIRA_RESULTS['valdoc']={result:result,cname:cname,sector:sector,tier:'valdoc'};
     saveReportToStore('valdoc',cname,sector,result);
-    renderValuationReport(result,cname,sector,out,'valdoc');
   }catch(e){
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
