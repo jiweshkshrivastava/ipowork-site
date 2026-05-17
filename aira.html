@@ -387,7 +387,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 
   <div class="rp-wrap">
     <div class="topbar-right">
-      <div id="user-display" style="margin-right:8px;display:inline-flex;align-items:center;gap:6px"></div>
+      <button onclick="generateFullReport()" id="btn-full-report" title="Combine all reports into one PDF" style="display:none;padding:6px 14px;background:linear-gradient(135deg,#1A6B3A,#27AE60);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px">&#128196; Full Report PDF</button>
+<div id="user-display" style="margin-right:8px;display:inline-flex;align-items:center;gap:6px"></div>
       <button onclick="testWorkerNow()" style="font-size:11px;padding:3px 10px;background:rgba(13,92,107,.1);border:1px solid rgba(13,92,107,.3);border-radius:5px;cursor:pointer;color:var(--tl);font-weight:600">&#128268; Test</button>
       <button onclick="handleAdminClick()" style="padding:4px 10px;background:transparent;border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:13px;color:var(--mu)">&#128202; Admin</button>
       <button onclick="toggleDevGroups()" style="padding:4px 8px;background:transparent;border:none;cursor:pointer;font-size:14px">&#9881;&#65039;</button>
@@ -782,17 +783,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <!-- Two tabs -->
 <div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;margin:16px 0 0;overflow:hidden">
   <button id="atab-reports" onclick="showAdminTab('reports')"
-    style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weight:700;font-size:13px;cursor:pointer">
-    &#128202; Report History
-  </button>
-  <button id="atab-approvals" onclick="showAdminTab('approvals')"
-    style="flex:1;padding:10px;border:none;background:#fff;color:#08404D;font-weight:700;font-size:13px;cursor:pointer">
-    &#9989; Approvals &amp; Users
-  </button>
-</div>
-
-
-<script>
+    style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weigh
 console.log('ipowork v3.1 loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 var ADMIN_UNLOCKED = false;
@@ -817,6 +808,7 @@ var CURRENT_USER = null;
 
 function saveReportToStore(tier, cname, sector, result){
   try {
+    updateFullReportBtn();
     var store = JSON.parse(localStorage.getItem('aira_report_log')||'[]');
     store.unshift({
       tier: tier,
@@ -3963,6 +3955,139 @@ function renderValuationReport(result, cname, sector, out, tier){
   // ── DISCLAIMER ──────────────────────────────────────────────
   html += '<div style="padding:10px 14px;background:#F8F9FA;border-radius:8px;font-size:10px;color:#9AB0B8;line-height:1.6">'
     +'&#9888;&#65039; Disclaimer: ipowork is not SEBI-registered. This report is for informational purposes only and does not constitute investment advice, research, or a prospectus. Consult SEBI-registered professionals before making any financial decisions. Data sourced from Probe42/MCA. © 2025 ipowork.'
+    +'</div>'
+    +'</div>';
+
+  out.innerHTML = html;
+  out.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function generateFullReport(){
+  var keys = Object.keys(AIRA_RESULTS);
+  if(keys.length === 0){
+    alert('No reports generated yet. Please generate at least one report first.');
+    return;
+  }
+
+  var tierOrder = ['free','paid','mainboard','ca','clearchit','dirscan','ddbundle','valdoc','valintel','deepresearch','alert'];
+  var tierLabels = {free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard',ca:'CA/CS Bundle',clearchit:'Clean Chit',dirscan:'Director Scan',ddbundle:'Due Diligence',valdoc:'Valuation (Doc)',valintel:'Val. Intelligence',deepresearch:'Deep Research',alert:'AIRA Alert'};
+
+  // Sort reports in logical order
+  var sortedKeys = keys.slice().sort(function(a,b){
+    return (tierOrder.indexOf(a)||99) - (tierOrder.indexOf(b)||99);
+  });
+
+  // Get company name from first report
+  var firstResult = AIRA_RESULTS[sortedKeys[0]];
+  var cname = (firstResult && (firstResult.cname || (firstResult.result && firstResult.result.company_name))) || 'Company';
+
+  var w = window.open('','_blank','width=1000,height=800');
+  if(!w){ alert('Please allow popups to generate the PDF report.'); return; }
+
+  var reportDate = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+
+  var pageHTML = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ipowork Full Report \u2013 ' + cname + '</' + 'title>'
+    + '<style>'
+    + '*{box-sizing:border-box;margin:0;padding:0}'
+    + 'body{font-family:"Segoe UI",Arial,sans-serif;font-size:13px;color:#1A2E35;background:#fff}'
+    + '.page-break{page-break-before:always;padding-top:20px}'
+    + '.cover{background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:60px;}'
+    + '.section{padding:30px 40px;max-width:900px;margin:0 auto}'
+    + '.sec-header{font-size:16px;font-weight:800;color:#08404D;border-bottom:3px solid #1A5C8A;padding-bottom:8px;margin-bottom:18px;text-transform:uppercase;letter-spacing:.5px}'
+    + 'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}'
+    + 'th{background:#F5F8FB;padding:8px 10px;text-align:left;border-bottom:2px solid #D0E4F0;font-weight:700}'
+    + 'td{padding:8px 10px;border-bottom:1px solid #F0F5F8}'
+    + 'tr:nth-child(even){background:#FAFCFD}'
+    + '.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}'
+    + '.metric-card{background:#F5F8FB;border-left:3px solid #1A5C8A;border-radius:8px;padding:12px}'
+    + '.metric-val{font-size:18px;font-weight:800;color:#08404D}'
+    + '.metric-lbl{font-size:10px;color:#6B8A94;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}'
+    + '.ai-body h2{font-size:14px;font-weight:700;color:#08404D;margin:16px 0 8px;border-bottom:1px solid #E0EAF0;padding-bottom:4px}'
+    + '.ai-body h3{font-size:13px;font-weight:700;color:#1A5C8A;margin:12px 0 6px}'
+    + '.ai-body p{line-height:1.7;margin-bottom:10px}'
+    + '.ai-body ul{padding-left:18px;line-height:1.8}'
+    + '.ai-body table{font-size:11px}'
+    + '.toc{background:#F5F8FB;border-radius:10px;padding:20px;margin:30px 0}'
+    + '.toc-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dotted #D0E4F0;font-size:13px}'
+    + '.no-print{display:none}'
+    + '@media print{.page-break{page-break-before:always}.no-print{display:none}body{font-size:12px}}'
+    + '</' + 'style>'
+    + '</' + 'head><body>';
+
+  // Print button (hidden in print)
+  pageHTML += '<div class="no-print" style="position:fixed;top:15px;right:15px;z-index:999">'
+    + '<button onclick="window.print()" style="padding:10px 24px;background:linear-gradient(135deg,#08404D,#1A5C8A);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2)">&#128438; Print / Save PDF</' + 'button></div>';
+
+  // COVER PAGE
+  pageHTML += '<div class="cover">'
+    + '<div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;opacity:.5;margin-bottom:16px">CONFIDENTIAL &nbsp;\u00b7&nbsp; IPO READINESS REPORT &nbsp;\u00b7&nbsp; ' + reportDate + '</div>'
+    + '<div style="font-size:48px;font-weight:900;line-height:1.1;margin-bottom:12px">' + esc(cname) + '</div>'
+    + '<div style="font-size:16px;opacity:.7;margin-bottom:40px">' + (firstResult && firstResult.sector ? esc(firstResult.sector) : '') + '</div>'
+    + '<div style="width:60px;height:4px;background:rgba(255,255,255,.4);margin-bottom:40px"></div>'
+    + '<div style="font-size:14px;opacity:.6;margin-bottom:8px">PREPARED BY</div>'
+    + '<div style="font-size:32px;font-weight:900;font-family:Georgia,serif">ipowork<sup style="font-size:14px;color:#FFD700">AI</sup></div>'
+    + '<div style="font-size:12px;opacity:.5;margin-top:6px">AI-Powered IPO Readiness Platform &nbsp;\u00b7&nbsp; Not SEBI-registered</div>'
+    + '<div style="margin-top:60px;padding-top:30px;border-top:1px solid rgba(255,255,255,.2)">'
+    + '<div style="font-size:11px;opacity:.5">This report covers ' + sortedKeys.length + ' analysis modules generated on ' + reportDate + '</div></div>'
+    + '</div>';
+
+  // TABLE OF CONTENTS
+  pageHTML += '<div class="page-break section">'
+    + '<div class="sec-header">Table of Contents</' + 'div>'
+    + '<div class="toc">';
+  sortedKeys.forEach(function(key, i){
+    pageHTML += '<div class="toc-item">'
+      + '<span><strong>' + (i+1) + '.</strong> &nbsp;' + (tierLabels[key] || key) + '</' + 'span>'
+      + '<span style="color:#1A5C8A;font-weight:600">' + (AIRA_RESULTS[key] && AIRA_RESULTS[key].cname ? esc(AIRA_RESULTS[key].cname) : cname) + '</' + 'span>'
+      + '</' + 'div>';
+  });
+  pageHTML += '</div></div>';
+
+  // EACH REPORT SECTION
+  sortedKeys.forEach(function(key, i){
+    var rep = AIRA_RESULTS[key];
+    if(!rep) return;
+    var label = tierLabels[key] || key;
+    var content = '';
+
+    // Get rendered HTML from the DOM if available
+    var outEl = document.getElementById('result-' + key);
+    if(outEl && outEl.innerHTML && outEl.innerHTML.trim().length > 100){
+      content = outEl.innerHTML;
+    } else if(rep.result && rep.result._report){
+      content = '<div class="ai-body">' + md2html(rep.result._report) + '</div>';
+    }
+
+    if(!content) return;
+
+    pageHTML += '<div class="page-break section">'
+      + '<div style="font-size:11px;color:#6B8A94;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Module ' + (i+1) + ' of ' + sortedKeys.length + '</div>'
+      + '<div class="sec-header">' + label + '</' + 'div>'
+      + content
+      + '</div>';
+  });
+
+  // DISCLAIMER
+  pageHTML += '<div class="section" style="margin-top:40px;padding:20px;background:#F8F9FA;border-radius:10px">'
+    + '<div style="font-size:10px;color:#9AB0B8;line-height:1.7">'
+    + '<strong>DISCLAIMER:</strong> ipowork is not registered with SEBI. This report is for informational purposes only and does not constitute investment advice, a research report, or a prospectus. The data sourced from Probe42/MCA may not be complete or up to date. All valuations are indicative and based on AI analysis. Consult SEBI-registered investment advisors, merchant bankers, and legal professionals before making any financial decisions related to IPO. &copy; 2025 ipowork.'
+    + '</' + 'div></div>'
+    + '</' + 'body></' + 'html>';
+
+  w.document.open();
+  w.document.write(pageHTML);
+  w.document.close();
+  setTimeout(function(){ w.focus(); }, 500);
+}
+
+// Show/hide Full Report button based on whether reports exist
+function updateFullReportBtn(){
+  var btn = document.getElementById('btn-full-report');
+  if(btn) btn.style.display = Object.keys(AIRA_RESULTS).length > 0 ? 'inline-block' : 'none';
+}
+
+
+onal purposes only and does not constitute investment advice, research, or a prospectus. Consult SEBI-registered professionals before making any financial decisions. Data sourced from Probe42/MCA. © 2025 ipowork.'
     +'</div>'
     +'</div>';
 
