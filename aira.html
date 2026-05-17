@@ -3133,131 +3133,123 @@ async function runValuationDoc(){
   var exchange=(document.getElementById('valdoc-exchange')||{}).value||'NSE Main Board';
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById('btn-vd-run'),prog=document.getElementById('prog-valdoc'),out=document.getElementById('result-valdoc');
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Fetching data & generating report\u2026';}
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Analysing\u2026';}
   if(out)out.innerHTML='';if(prog)prog.style.display='flex';
   try{
-    // Step 1: Probe42 live data
     var p42=await workerPost({type:'probe42_raw',cin:cin});
     var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
     var f=(p42&&p42.financials)||{},dirs=(p42&&p42.directors)||[],chgs=(p42&&p42.charges)||[];
-    var fC=function(v){if(!v||isNaN(v))return null;return Number(v);};
 
-    // Extract all available financials
-    var rev24=fC(f.revenue_fy24), rev23=fC(f.revenue_fy23), rev22=fC(f.revenue_fy22);
-    var pat24=fC(f.pat_fy24), pat23=fC(f.pat_fy23);
-    var ebitda=fC(f.ebitda), ebitdaM=fC(f.ebitda_margin), netWorth=fC(f.net_worth);
-    var totalAssets=fC(f.total_assets), totalDebt=fC(f.total_debt), de=fC(f.debt_equity_ratio);
-    var roe=fC(f.roe), roce=fC(f.roce), cagr=fC(f.revenue_cagr_3y);
+    var n=function(v){return v&&!isNaN(v)?Number(v):null;};
+    var cr=function(v){return v?'&#8377;'+(v/10000000).toFixed(2)+' Cr':'N/A';};
+    var pc=function(v){return v!=null?v.toFixed(2)+'%':'N/A';};
 
-    var fmt=function(v,unit){ if(v==null)return 'Data not available'; var n=Number(v); 
-      if(unit==='cr') return n>=10000000?(n/10000000).toFixed(2)+' Cr':n>=100000?(n/100000).toFixed(2)+' L':n.toFixed(0);
-      if(unit==='pct') return n.toFixed(2)+'%'; return n.toFixed(2); };
+    var rev24=n(f.revenue_fy24),rev23=n(f.revenue_fy23),rev22=n(f.revenue_fy22);
+    var pat24=n(f.pat_fy24),ebitdaV=n(f.ebitda),ebitdaM=n(f.ebitda_margin);
+    var nw=n(f.net_worth),debt=n(f.total_debt),assets=n(f.total_assets);
+    var roe=n(f.roe),de=n(f.debt_equity_ratio),cagr=n(f.revenue_cagr_3y);
 
-    var fd = 'COMPANY: '+cname+'\nCIN: '+cin+'\nSector: '+sector+'\nExchange: '+exchange+'\n\n'
-      +'FINANCIAL DATA (from Probe42 MCA live data):\n'
-      +'Revenue FY24: '+(rev24?fmt(rev24,'cr'):'Not available in Probe42')+'\n'
-      +'Revenue FY23: '+(rev23?fmt(rev23,'cr'):'Not available')+'\n'
-      +'Revenue FY22: '+(rev22?fmt(rev22,'cr'):'Not available')+'\n'
-      +'PAT FY24: '+(pat24?fmt(pat24,'cr'):'Not available')+'\n'
-      +'PAT FY23: '+(pat23?fmt(pat23,'cr'):'Not available')+'\n'
-      +'EBITDA: '+(ebitda?fmt(ebitda,'cr'):'Not available')+'\n'
-      +'EBITDA Margin: '+(ebitdaM?fmt(ebitdaM,'pct'):'Not available')+'\n'
-      +'Net Worth: '+(netWorth?fmt(netWorth,'cr'):'Not available')+'\n'
-      +'Total Assets: '+(totalAssets?fmt(totalAssets,'cr'):'Not available')+'\n'
-      +'Total Debt: '+(totalDebt?fmt(totalDebt,'cr'):'Not available')+'\n'
-      +'D/E Ratio: '+(de!=null?de.toFixed(2)+'x':'Not available')+'\n'
-      +'ROE: '+(roe?fmt(roe,'pct'):'Not available')+'\n'
-      +'ROCE: '+(roce?fmt(roce,'pct'):'Not available')+'\n'
-      +'Revenue CAGR 3Y: '+(cagr?fmt(cagr,'pct'):'Not available')+'\n'
-      +'Directors: '+dirs.length+' | Open Charges: '+chgs.filter(function(c){return c.status==='Open';}).length+'\n';
+    var fd='Company: '+cname+'\nCIN: '+cin+'\nSector: '+sector+'\nExchange: '+exchange
+      +'\nRevenue FY24: '+cr(rev24)+' | FY23: '+cr(rev23)+' | FY22: '+cr(rev22)
+      +'\nPAT FY24: '+cr(pat24)
+      +'\nEBITDA: '+cr(ebitdaV)+' | EBITDA Margin: '+pc(ebitdaM)
+      +'\nNet Worth: '+cr(nw)+' | Total Debt: '+cr(debt)+' | Total Assets: '+cr(assets)
+      +'\nROE: '+pc(roe)+' | D/E: '+(de!=null?de.toFixed(2)+'x':'N/A')
+      +'\nRevenue CAGR 3Y: '+pc(cagr)
+      +'\nDirectors: '+dirs.length+' | Open Charges: '+chgs.filter(function(c){return c.status==='Open';}).length;
 
-    // Step 2: Claude generates the complete report with values
-    var prompt = 'You are a Senior Merchant Banker at a top investment bank preparing an IPO Valuation Report.\n\n'
-      +'COMPANY DATA FROM PROBE42 (MCA LIVE DATA):\n'+fd+'\n\n'
-      +'IMPORTANT INSTRUCTIONS:\n'
-      +'1. You MUST output the JSON block FIRST, before any other text\n'
-      +'2. Fill ALL numeric fields with your best estimates based on the data and sector knowledge\n'
-      +'3. If Probe42 data shows a value, USE IT. If not available, ESTIMATE based on sector benchmarks\n'
-      +'4. For '+sector+' sector companies targeting '+exchange+', use realistic P/E multiples\n\n'
-      +'OUTPUT FORMAT - JSON BLOCK FIRST (mandatory):\n'
-      +'---VALUATION_JSON_START---\n'
-      +'{\n'
-      +'"company_name": "'+cname+'",\n'
-      +'"revenue_cr": '+(rev24?(rev24/10000000).toFixed(2):0)+',\n'
-      +'"pat_cr": '+(pat24?(pat24/10000000).toFixed(2):0)+',\n'
-      +'"ebitda_cr": '+(ebitda?(ebitda/10000000).toFixed(2):0)+',\n'
-      +'"ebitda_margin_pct": '+(ebitdaM?ebitdaM.toFixed(2):0)+',\n'
-      +'"net_worth_cr": '+(netWorth?(netWorth/10000000).toFixed(2):0)+',\n'
-      +'"roe": '+(roe?roe.toFixed(2):0)+',\n'
-      +'"debt_equity": '+(de?de.toFixed(2):0)+',\n'
-      +'"wacc": 13,\n'
-      +'"primary_method": "EV/EBITDA",\n'
-      +'"sector_pe_avg": 0,\n'
-      +'"sector_ev_avg": 0,\n'
-      +'"val_conservative_cr": 0,\n'
-      +'"val_base_cr": 0,\n'
-      +'"val_optimistic_cr": 0,\n'
-      +'"price_band_low": 0,\n'
-      +'"price_band_high": 0,\n'
-      +'"peer1_name": "",\n"peer1_pe": 0,\n"peer1_ev": 0,\n"peer1_mc_cr": 0,\n'
-      +'"peer2_name": "",\n"peer2_pe": 0,\n"peer2_ev": 0,\n"peer2_mc_cr": 0,\n'
-      +'"peer3_name": "",\n"peer3_pe": 0,\n"peer3_ev": 0,\n"peer3_mc_cr": 0,\n'
-      +'"key_driver1": "",\n"key_driver2": "",\n"key_driver3": "",\n'
-      +'"key_risk1": "",\n"key_risk2": "",\n"key_risk3": ""\n'
-      +'}\n'
-      +'---VALUATION_JSON_END---\n\n'
-      +'FILL IN ALL ZERO VALUES with realistic numbers. Then write the full report (1500+ words):\n'
+    var prompt='You are a SEBI Merchant Banker. Write an IPO Valuation Report for:\n\n'+fd
+      +'\n\nWrite the following sections (1500+ words total):\n\n'
       +'## 1. Executive Summary\n'
-      +'## 2. Company Overview & Business Profile\n'
-      +'## 3. Financial Analysis (3-year trend, margins, ratios)\n'
+      +'## 2. Company & Business Overview\n'
+      +'## 3. Financial Performance Analysis\n'
       +'## 4. Industry & Market Context\n'
-      +'## 5. Valuation (P/E, EV/EBITDA, DCF with full calculations)\n'
-      +'## 6. Listed Peer Comparables\n'
-      +'## 7. IPO Price Band Recommendation\n'
+      +'## 5. Valuation (P/E, EV/EBITDA, DCF) - include sector P/E multiple, EV/EBITDA multiple, and computed equity value in each method\n'
+      +'## 6. Listed Peer Comparables (table with 3 peers: Name | Revenue Cr | PAT Cr | P/E | EV/EBITDA | Market Cap Cr)\n'
+      +'## 7. Recommended IPO Price Band (₹X - ₹Y per share, justify)\n'
       +'## 8. Key Risks\n'
-      +'## 9. Conclusion';
+      +'## 9. Conclusion\n\n'
+      +'At the end, add a section EXACTLY like this (fill real numbers):\n'
+      +'VALUATION_SUMMARY:\n'
+      +'conservative_cr=[number]\n'
+      +'base_cr=[number]\n'
+      +'optimistic_cr=[number]\n'
+      +'price_low=[number]\n'
+      +'price_high=[number]\n'
+      +'sector_pe=[number]\n'
+      +'sector_ev=[number]\n'
+      +'wacc=[number]\n'
+      +'peer1=[name]|[pe]|[ev]|[mc_cr]\n'
+      +'peer2=[name]|[pe]|[ev]|[mc_cr]\n'
+      +'peer3=[name]|[pe]|[ev]|[mc_cr]\n'
+      +'driver1=[text]\n'
+      +'driver2=[text]\n'
+      +'risk1=[text]\n'
+      +'risk2=[text]\n'
+      +'END_VALUATION_SUMMARY';
 
     var ar=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:4000,
-      system:'You are a Senior Merchant Banker. Output the JSON block EXACTLY as specified with ALL values filled in. Then write a complete professional valuation report.',
+      system:'You are a SEBI Merchant Banker. Write complete professional IPO valuation reports. At the end include VALUATION_SUMMARY section with exact key=value format. No markdown in the summary section.',
       messages:[{role:'user',content:prompt}]});
     var txt=(ar&&ar.content||[]).map(function(c){return c.text||'';}).join('');
-    if(!txt)throw new Error('Empty response. Check ANTHROPIC_API_KEY in Cloudflare secrets.');
+    if(!txt)throw new Error('Empty response. Check ANTHROPIC_API_KEY.');
 
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
 
-    // Parse JSON - more robust extraction
+    // Parse the simple key=value summary
     var vdata = {};
-    var jm = txt.match(/---VALUATION_JSON_START---\s*([\s\S]*?)\s*---VALUATION_JSON_END---/);
-    if(jm){
-      try{ vdata = JSON.parse(jm[1].trim()); }
-      catch(e){
-        // Try to fix common JSON issues
-        try{ vdata = JSON.parse(jm[1].trim().replace(/,\s*}/g,'}')); }catch(e2){}
-      }
+    var sm = txt.match(/VALUATION_SUMMARY:\n([\s\S]*?)END_VALUATION_SUMMARY/);
+    if(sm){
+      var lines = sm[1].split('\n');
+      lines.forEach(function(line){
+        var kv = line.split('=');
+        if(kv.length < 2) return;
+        var k = kv[0].trim(), v = kv.slice(1).join('=').trim().replace(/\[|\]/g,'');
+        if(k.indexOf('peer') === 0 && v.indexOf('|') > -1){
+          var parts = v.split('|');
+          vdata[k+'_name'] = parts[0]||'';
+          vdata[k+'_pe'] = parseFloat(parts[1])||0;
+          vdata[k+'_ev'] = parseFloat(parts[2])||0;
+          vdata[k+'_mc_cr'] = parseFloat(parts[3])||0;
+        } else {
+          vdata[k] = isNaN(parseFloat(v)) ? v : parseFloat(v);
+        }
+      });
     }
 
-    // Clean report text
-    var rep = txt
-      .replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'')
-      .replace(/```json[\s\S]*?```/g,'')
-      .replace(/```[\s\S]*?```/g,'')
-      .trim();
+    // Clean report - remove summary section
+    var rep = txt.replace(/VALUATION_SUMMARY:[\s\S]*?END_VALUATION_SUMMARY/g,'').trim();
 
-    // Merge Probe42 data into vdata (ensure real values used)
-    if(rev24 && !vdata.revenue_cr) vdata.revenue_cr = (rev24/10000000);
-    if(pat24 && !vdata.pat_cr) vdata.pat_cr = (pat24/10000000);
-    if(ebitda && !vdata.ebitda_cr) vdata.ebitda_cr = (ebitda/10000000);
-    if(ebitdaM && !vdata.ebitda_margin_pct) vdata.ebitda_margin_pct = ebitdaM;
-    if(netWorth && !vdata.net_worth_cr) vdata.net_worth_cr = (netWorth/10000000);
-    if(roe && !vdata.roe) vdata.roe = roe;
-    if(de!=null && !vdata.debt_equity) vdata.debt_equity = de;
+    // Build result from Probe42 real data + Claude estimates
+    var result = {
+      _report: rep,
+      company_name: cname, cin: cin, sector: sector, exchange: exchange,
+      revenue_cr: rev24 ? (rev24/10000000) : 0,
+      pat_cr: pat24 ? (pat24/10000000) : 0,
+      ebitda_cr: ebitdaV ? (ebitdaV/10000000) : 0,
+      ebitda_margin_pct: ebitdaM || 0,
+      net_worth_cr: nw ? (nw/10000000) : 0,
+      roe: roe || 0,
+      debt_equity: de || 0,
+      val_conservative_cr: vdata.conservative_cr || 0,
+      val_base_cr: vdata.base_cr || 0,
+      val_optimistic_cr: vdata.optimistic_cr || 0,
+      price_band_low: vdata.price_low || 0,
+      price_band_high: vdata.price_high || 0,
+      sector_pe_avg: vdata.sector_pe || 0,
+      sector_ev_avg: vdata.sector_ev || 0,
+      wacc: vdata.wacc || 13,
+      peer1_name: vdata.peer1_name||'', peer1_pe: vdata.peer1_pe||0, peer1_ev: vdata.peer1_ev||0, peer1_mc_cr: vdata.peer1_mc_cr||0,
+      peer2_name: vdata.peer2_name||'', peer2_pe: vdata.peer2_pe||0, peer2_ev: vdata.peer2_ev||0, peer2_mc_cr: vdata.peer2_mc_cr||0,
+      peer3_name: vdata.peer3_name||'', peer3_pe: vdata.peer3_pe||0, peer3_ev: vdata.peer3_ev||0, peer3_mc_cr: vdata.peer3_mc_cr||0,
+      key_driver1: vdata.driver1||'', key_driver2: vdata.driver2||'',
+      key_risk1: vdata.risk1||'', key_risk2: vdata.risk2||''
+    };
 
-    var result = Object.assign({}, vdata, {_report:rep, company_name:vdata.company_name||cname, cin:cin, sector:sector, exchange:exchange, _type:'valuation'});
-    AIRA_RESULTS['valdoc'] = {result:result, cname:cname, sector:sector, tier:'valdoc'};
-    saveReportToStore('valdoc', cname, sector, result);
-    renderValuationReport(result, cname, sector, out, 'valdoc');
-
+    AIRA_RESULTS['valdoc']={result:result,cname:cname,sector:sector,tier:'valdoc'};
+    saveReportToStore('valdoc',cname,sector,result);
+    renderValuationReport(result,cname,sector,out,'valdoc');
   }catch(e){
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
@@ -3284,13 +3276,19 @@ async function runValuationIntel(){
     var jTpl='{"val_conservative_cr":0,"val_base_cr":0,"val_optimistic_cr":0,"revenue_cr":0,"pat_cr":0,"ebitda_cr":0,"ebitda_margin_pct":0,"net_worth_cr":0,"roe":0,"primary_method":"EV/EBITDA","sector_pe_avg":0,"sector_ev_avg":0,"wacc":13,"price_band_low":0,"price_band_high":0,"listing_premium_pct":15,"peer1_name":"","peer1_pe":0,"peer1_ev":0,"peer1_mc_cr":0,"peer2_name":"","peer2_pe":0,"peer2_ev":0,"peer2_mc_cr":0,"peer3_name":"","peer3_pe":0,"peer3_ev":0,"peer3_mc_cr":0,"key_driver1":"","key_driver2":"","key_driver3":"","key_risk1":"","key_risk2":"","key_risk3":"","ipo_readiness_score":0,"company_name":"'+cname+'"}';
     var secs='## 1. Executive Summary and Investment Thesis (4-5 detailed paragraphs covering company overview, IPO rationale, valuation summary, price band, key investment thesis)\n## 2. Business Overview and Competitive Position (products/services, revenue mix, customer concentration, geographic presence, market share, competitive moats, management pedigree)\n## 3. Financial Deep-Dive (3-year revenue/PAT/EBITDA trends with CAGR commentary, margin profile and trends, working capital efficiency, debt structure and coverage ratios, ROE/ROCE/ROIC analysis, cash flow quality assessment)\n## 4. Industry Analysis and Market Opportunity (TAM/SAM/SOM sizing, industry growth drivers, regulatory tailwinds/headwinds, competitive landscape, industry lifecycle stage)\n## 5. Valuation Framework - THREE methods with complete calculations: (a) P/E Multiple Approach - identify sector P/E average with 3 listed peer references, company-specific premium/discount justification, equity value computation; (b) EV/EBITDA Approach - sector EV/EBITDA benchmarks, enterprise to equity bridge showing net debt adjustment; (c) DCF Analysis - 5-year revenue projections with growth assumptions, EBITDA margin assumptions, WACC computation showing cost of equity + cost of debt, terminal value using Gordon Growth Model, NPV of free cash flows\n## 6. Listed Peer Benchmarking Table (3 peers format: Company|Revenue Cr|PAT Cr|EBITDA%|P/E|EV/EBITDA|Mkt Cap Cr|P/B ratio)\n## 7. IPO Structure and Price Band (Conservative/Base/Optimistic scenarios, recommended price band in rupees, implied market cap, listing premium estimate, suggested fresh issue vs OFS ratio)\n## 8. SEBI IPO Eligibility Assessment (3-year profitability track record check, net worth criteria, net tangible assets criteria, DRHP readiness assessment, estimated timeline to IPO listing)\n## 9. Risk Matrix Table (minimum 6 risks: Risk|Severity H/M/L|Probability|Mitigation Strategy)\n## 10. Conclusion and IPO Readiness Score (score out of 100 with breakdown, Green/Amber/Red overall rating, specific 90-day action plan with timeline)\nMinimum 2200 words. Reference actual Probe42 data with specific numbers throughout. Investment banking standard.';
     var prompt='You are a Managing Director at a Bulge Bracket Investment Bank preparing a comprehensive IPO Intelligence Valuation Report for listing on '+exchange+'.\n\nLIVE PROBE42 DATA:\n'+fd+'\n\nOutput JSON first:\n---VALUATION_JSON_START---\n'+jTpl+'\n---VALUATION_JSON_END---\n\nThen write:\n'+secs;
-    var ar=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:4000,system:'You are a Managing Director at a Bulge Bracket Investment Bank. Write comprehensive professional IPO valuation reports at Goldman Sachs and Big 4 standard. Minimum 2200 words. Every section must be complete with actual numbers. Never truncate. Use tables where appropriate.',messages:[{role:'user',content:prompt}]});
+    var ar=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:4000,system:'You are a Managing Director at a Bulge Bracket Investment Bank. CRITICAL: Output the JSON markers EXACTLY as shown with NO backticks or markdown around them. Fill ALL numeric values. Then write comprehensive IPO valuation report, minimum 2000 words.',messages:[{role:'user',content:prompt}]});
     var txt=(ar&&ar.content||[]).map(function(c){return c.text||'';}).join('');
     if(!txt)throw new Error('Empty response. Check ANTHROPIC_API_KEY.');
     if(prog)prog.style.display='none';if(btn){btn.disabled=false;btn.innerHTML='\u128200 Generate Intelligence Valuation \xb7 \u20b97,999 \u2192';}
     var vdata={};var jm=txt.match(/---VALUATION_JSON_START---([\s\S]*?)---VALUATION_JSON_END---/);
     if(jm){try{vdata=JSON.parse(jm[1].trim());}catch(e){}}
-    var rep=txt.replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'').trim();
+    var rep=txt;
+    rep=rep.replace(/\`\`\`json\s*---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---\s*\`\`\`/g,'');
+    rep=rep.replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'');
+    rep=rep.replace(/\`\`\`json[\s\S]*?\`\`\`/g,'').replace(/\`\`\`[\s\S]*?\`\`\`/g,'');
+    rep=rep.replace(/---VALUATION_JSON_START---/g,'').replace(/---VALUATION_JSON_END---/g,'');
+    rep=rep.replace(/^\`\`\`\w*\n?/gm,'').replace(/^\`\`\`$/gm,'');
+    rep=rep.trim();
     var result=Object.assign({},vdata,{_report:rep,company_name:vdata.company_name||cname,cin:cin,sector:sector,exchange:exchange,_type:'valuation'});
     AIRA_RESULTS['valintel']={result:result,cname:cname,sector:sector,tier:'valintel'};
     saveReportToStore('valintel', cname, sector, AIRA_RESULTS['valintel'].result||{});
