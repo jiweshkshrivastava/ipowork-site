@@ -858,6 +858,86 @@ function clearReportHistory(){
     loadAdmin();
   }
 }
+
+function getPendingRequests(){
+  try {
+    return JSON.parse(localStorage.getItem('aira_access_requests')||'[]');
+  } catch(e){ return []; }
+}
+
+function loadPendingRequests(){
+  var el = document.getElementById('access-requests-list');
+  if(!el) return;
+  var reqs = getPendingRequests();
+  if(reqs.length === 0){
+    el.innerHTML = '<div style="padding:16px;font-size:12px;color:#9AB0B8;text-align:center">No pending requests</div>';
+    return;
+  }
+  var html = '';
+  reqs.forEach(function(r, idx){
+    html += '<div style="padding:12px 16px;border-bottom:1px solid #F0F0F0;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:600;color:#1A2E35">'+esc(r.name||'')+'</div>'
+      +'<div style="font-size:11px;color:#6B8A94">'+esc(r.email||'')+' · '+esc(r.phone||'')+' · '+esc(r.org||'')+' · '+esc(r.purpose||'')+'</div>'
+      +'<div style="font-size:10px;color:#9AB0B8;margin-top:2px">'+new Date(r.ts||Date.now()).toLocaleString('en-IN')+'</div></div>'
+      +'<button onclick="approveRequest('+idx+')" style="padding:5px 12px;background:#1A6B3A;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Approve</button>'
+      +'<button onclick="rejectRequest('+idx+')" style="padding:5px 12px;background:#C0392B;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer">Reject</button>'
+      +'</div>';
+  });
+  el.innerHTML = html;
+}
+
+function loadApprovedUsers(){
+  var el = document.getElementById('approved-users-list');
+  if(!el) return;
+  var users = Object.keys(IPOWORK_USERS);
+  if(users.length === 0){
+    el.innerHTML = '<div style="padding:16px;font-size:12px;color:#9AB0B8;text-align:center">No approved users</div>';
+    return;
+  }
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<tr style="background:#F0F9FB"><th style="padding:8px 12px;text-align:left">Email</th><th style="padding:8px 12px">Plan</th><th style="padding:8px 12px">Status</th><th style="padding:8px 12px">Action</th></tr>';
+  users.forEach(function(email){
+    var u = IPOWORK_USERS[email];
+    html += '<tr style="border-bottom:1px solid #F5F5F5">'
+      +'<td style="padding:8px 12px;font-weight:600;color:#1A2E35">'+esc(email)+'</td>'
+      +'<td style="padding:8px 12px;text-align:center"><span style="padding:2px 8px;background:'+(u.plan==='admin'?'#FFE8E8':'#E8F8EE')+';color:'+(u.plan==='admin'?'#C0392B':'#1A6B3A')+';border-radius:20px;font-size:11px;font-weight:600">'+u.plan+'</span></td>'
+      +'<td style="padding:8px 12px;text-align:center;color:'+(u.approved?'#1A6B3A':'#8A6820')+'">'+( u.approved?'● Active':'○ Pending')+'</td>'
+      +'<td style="padding:8px 12px;text-align:center"><button class="rm-user-btn" data-email="'+email+'" style="padding:3px 10px;background:#C0392B;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">Remove</button></td>'
+      +'</tr>';
+  });
+  html += '</table>';
+  el.innerHTML = html;
+  el.addEventListener('click',function(e){
+    var b=e.target.closest('.rm-user-btn');
+    if(b) removeUser(b.dataset.email);
+  });
+}
+
+function approveRequest(idx){
+  try {
+    var reqs = getPendingRequests();
+    var r = reqs[idx];
+    if(!r) return;
+    // Add to IPOWORK_USERS
+    IPOWORK_USERS[r.email] = {name:r.name||'',password:'ipowork2024',approved:true,plan:'paid',free:false};
+    // Remove from requests
+    reqs.splice(idx,1);
+    localStorage.setItem('aira_access_requests', JSON.stringify(reqs));
+    loadPendingRequests();
+    loadApprovedUsers();
+    alert('User approved: ' + r.email);
+  } catch(e){ alert('Error: '+e.message); }
+}
+
+function rejectRequest(idx){
+  try {
+    var reqs = getPendingRequests();
+    reqs.splice(idx,1);
+    localStorage.setItem('aira_access_requests', JSON.stringify(reqs));
+    loadPendingRequests();
+  } catch(e){}
+}
+
 function loadAdmin(){
   var isAdm = (CURRENT_USER && CURRENT_USER.plan === 'admin') || ADMIN_UNLOCKED;
   if(!isAdm) return;
@@ -875,7 +955,7 @@ function loadAdmin(){
     // Revenue estimate from stored reports
     var PRICES = {free:499,paid:999,mainboard:2499,ca:4999,clearchit:1499,dirscan:299,ddbundle:9999,alert:4999,valdoc:2999,valintel:7999,deepresearch:999};
     var revenue = stored.reduce(function(sum,r){ return sum + (PRICES[r.tier]||0); }, 0);
-    var fmtINR = function(n){ return n>=100000 ? '&#8377;'+(n/100000).toFixed(1)+'L' : '&#8377;'+n.toLocaleString('en-IN'); };
+    var fmtINR = function(n){ return n>=100000 ? '₹'+(n/100000).toFixed(1)+'L' : '₹'+n.toLocaleString('en-IN'); };
     
     // Today's reports
     var today = new Date().toDateString();
