@@ -3133,63 +3133,105 @@ async function runValuationDoc(){
   var exchange=(document.getElementById('valdoc-exchange')||{}).value||'NSE Main Board';
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById('btn-vd-run'),prog=document.getElementById('prog-valdoc'),out=document.getElementById('result-valdoc');
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Analysing\u2026';}
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating valuation\u2026';}
   if(out)out.innerHTML='';if(prog)prog.style.display='flex';
   try{
     var p42=await workerPost({type:'probe42_raw',cin:cin});
     var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
-    var f=(p42&&p42.financials)||{},dirs=(p42&&p42.directors)||[],chgs=(p42&&p42.charges)||[];
+    var f=(p42&&p42.financials)||{};
+    var dirs=(p42&&p42.directors)||[];
+    var chgs=(p42&&p42.charges)||[];
 
-    var n=function(v){return v&&!isNaN(v)?Number(v):null;};
-    var cr=function(v){return v!=null&&v!==0?'&#8377;'+Number(v).toFixed(2)+' Cr':'N/A';}; // Probe42 returns Cr already
-    var pc=function(v){return v!=null?v.toFixed(2)+'%':'N/A';};
+    // All Probe42 values already in Crore
+    var rev = parseFloat(f.revenue_fy24)||0;
+    var pat = parseFloat(f.pat_fy24)||0;
+    var ebitdaPct = parseFloat(f.ebitda_margin)||0;
+    var ebitdaCr = parseFloat(f.ebitda_cr)||parseFloat(f.operating_profit)||(rev*ebitdaPct/100)||0;
+    var nw  = parseFloat(f.net_worth)||0;
+    var debt= parseFloat(f.total_debt)||0;
+    var de  = parseFloat(f.debt_equity_ratio)||(nw>0?debt/nw:0);
+    var roe = parseFloat(f.roe)||0;
+    var roce= parseFloat(f.roce)||0;
 
-    var rev24=n(f.revenue_fy24),rev23=n(f.revenue_fy23),rev22=n(f.revenue_fy22);
-    var pat24=n(f.pat_fy24),ebitdaV=n(f.ebitda),ebitdaM=n(f.ebitda_margin);
-    var nw=n(f.net_worth),debt=n(f.total_debt),assets=n(f.total_assets);
-    var roe=n(f.roe),de=n(f.debt_equity_ratio),cagr=n(f.revenue_cagr_3y);
+    // JavaScript computes valuation multiples based on sector
+    var sectorPE = {Manufacturing:28,Pharma:35,IT:40,Financial:18,Infrastructure:22,FMCG:45,Other:25}[sector]||28;
+    var sectorEV = {Manufacturing:16,Pharma:22,IT:28,Financial:12,Infrastructure:14,FMCG:30,Other:18}[sector]||16;
 
-    var fd='Company: '+cname+'\nCIN: '+cin+'\nSector: '+sector+'\nExchange: '+exchange
-      +'\nRevenue FY24: '+cr(rev24)+' | FY23: '+cr(rev23)+' | FY22: '+cr(rev22)
-      +'\nPAT FY24: '+cr(pat24)
-      +'\nEBITDA: '+cr(ebitdaV)+' | EBITDA Margin: '+pc(ebitdaM)
-      +'\nNet Worth: '+cr(nw)+' | Total Debt: '+cr(debt)+' | Total Assets: '+cr(assets)
-      +'\nROE: '+pc(roe)+' | D/E: '+(de!=null?de.toFixed(2)+'x':'N/A')
-      +'\nRevenue CAGR 3Y: '+pc(cagr)
-      +'\nDirectors: '+dirs.length+' | Open Charges: '+chgs.filter(function(c){return c.status==='Open';}).length;
+    // Valuation computations
+    var pe_val   = pat * sectorPE;
+    var ev_val   = ebitdaCr * sectorEV - debt;
+    var wacc     = 13;
+    var g        = 5;
+    // DCF: 5-yr FCF at 15% growth, terminal value
+    var fcf = pat * 0.7; // free cash flow approx
+    var dcf_val  = 0;
+    for(var yr=1;yr<=5;yr++){ dcf_val += fcf*Math.pow(1.15,yr)/Math.pow(1+wacc/100,yr); }
+    dcf_val += (fcf*Math.pow(1.15,5)*(1+g/100)/(wacc/100-g/100))/Math.pow(1+wacc/100,5);
 
-    var prompt='You are a SEBI Merchant Banker. Write an IPO Valuation Report for:\n\n'+fd
-      +'\n\nWrite the following sections (1500+ words total):\n\n'
+    var base_val = (pe_val*0.4 + ev_val*0.4 + dcf_val*0.2);
+    var cons_val = base_val * 0.80;
+    var opti_val = base_val * 1.25;
+
+    // Sector-appropriate discount for unlisted/SME
+    var discount = exchange.indexOf('SME')>-1 ? 0.25 : 0.20;
+    cons_val *= (1-discount*1.5);
+    base_val *= (1-discount);
+    opti_val *= (1-discount*0.5);
+
+    // Price band (assume 1 Cr shares as proxy)
+    var shares = (nw*10)/10; // rough shares estimate
+    var priceLow  = Math.round(cons_val*1000000/10000000);
+    var priceHigh = Math.round(base_val*1000000/10000000);
+
+    var fd = 'Company: '+cname+' | CIN: '+cin+' | Sector: '+sector+' | Exchange: '+exchange
+      +'\n\nFINANCIAL DATA (Probe42 Live MCA):'
+      +'\nRevenue FY24: ₹'+rev.toFixed(2)+' Cr'
+      +'\nPAT FY24: ₹'+pat.toFixed(2)+' Cr'
+      +'\nEBITDA Margin: '+ebitdaPct.toFixed(2)+'%'
+      +'\nEBITDA: ₹'+ebitdaCr.toFixed(2)+' Cr'
+      +'\nNet Worth: ₹'+nw.toFixed(2)+' Cr'
+      +'\nTotal Debt: ₹'+debt.toFixed(2)+' Cr'
+      +'\nD/E Ratio: '+de.toFixed(2)+'x'
+      +'\nROE: '+roe.toFixed(2)+'%'
+      +'\nROCE: '+roce.toFixed(2)+'%'
+      +'\nDirectors: '+dirs.length+' | Open Charges: '+chgs.filter(function(c){return c.status==='Open';}).length
+      +'\n\nCOMPUTED VALUATION (use these numbers in the report):'
+      +'\nP/E Method Value: ₹'+pe_val.toFixed(1)+' Cr (using '+sectorPE+'x sector P/E)'
+      +'\nEV/EBITDA Method Value: ₹'+ev_val.toFixed(1)+' Cr (using '+sectorEV+'x sector EV/EBITDA)'
+      +'\nDCF Value: ₹'+dcf_val.toFixed(1)+' Cr (WACC: '+wacc+'%, terminal growth: '+g+'%)'
+      +'\nConservative Valuation: ₹'+cons_val.toFixed(1)+' Cr'
+      +'\nBase Case Valuation: ₹'+base_val.toFixed(1)+' Cr'
+      +'\nOptimistic Valuation: ₹'+opti_val.toFixed(1)+' Cr';
+
+    var prompt = 'You are a Senior Merchant Banker at a Big 4 firm. Write a COMPLETE, ELABORATE IPO Valuation Report.'
+      +'\n\n'+fd
+      +'\n\nIMPORTANT: Use ALL the numbers provided above in your report. Do NOT say data is unavailable.'
+      +'\n\nWrite the following sections (2000+ words total, each section 200+ words):\n\n'
       +'## 1. Executive Summary\n'
+      +'Include: company description, IPO rationale, valuation range (₹'+cons_val.toFixed(0)+' Cr - ₹'+opti_val.toFixed(0)+' Cr), investment thesis.\n\n'
       +'## 2. Company & Business Overview\n'
+      +'Include: business description, products/services, market position, competitive advantages, management, operational history.\n\n'
       +'## 3. Financial Performance Analysis\n'
-      +'## 4. Industry & Market Context\n'
-      +'## 5. Valuation (P/E, EV/EBITDA, DCF) - include sector P/E multiple, EV/EBITDA multiple, and computed equity value in each method\n'
-      +'## 6. Listed Peer Comparables (table with 3 peers: Name | Revenue Cr | PAT Cr | P/E | EV/EBITDA | Market Cap Cr)\n'
-      +'## 7. Recommended IPO Price Band (₹X - ₹Y per share, justify)\n'
-      +'## 8. Key Risks\n'
-      +'## 9. Conclusion\n\n'
-      +'At the end, add a section EXACTLY like this (fill real numbers):\n'
-      +'VALUATION_SUMMARY:\n'
-      +'conservative_cr=[number]\n'
-      +'base_cr=[number]\n'
-      +'optimistic_cr=[number]\n'
-      +'price_low=[number]\n'
-      +'price_high=[number]\n'
-      +'sector_pe=[number]\n'
-      +'sector_ev=[number]\n'
-      +'wacc=[number]\n'
-      +'peer1=[name]|[pe]|[ev]|[mc_cr]\n'
-      +'peer2=[name]|[pe]|[ev]|[mc_cr]\n'
-      +'peer3=[name]|[pe]|[ev]|[mc_cr]\n'
-      +'driver1=[text]\n'
-      +'driver2=[text]\n'
-      +'risk1=[text]\n'
-      +'risk2=[text]\n'
-      +'END_VALUATION_SUMMARY';
+      +'Include: Revenue ₹'+rev.toFixed(2)+' Cr, PAT ₹'+pat.toFixed(2)+' Cr, EBITDA '+ebitdaPct.toFixed(1)+'%, Net Worth ₹'+nw.toFixed(2)+' Cr, ROE '+roe.toFixed(1)+'%. Analyze trends, margins, return ratios, capital structure with D/E of '+de.toFixed(2)+'x.\n\n'
+      +'## 4. Industry & Market Analysis\n'
+      +'Include: sector overview for '+sector+', market opportunity, growth drivers, competitive landscape, regulatory environment.\n\n'
+      +'## 5. Valuation Analysis\n'
+      +'### 5.1 P/E Multiple Method\n'
+      +'Sector P/E: '+sectorPE+'x | PAT: ₹'+pat.toFixed(2)+' Cr | Equity Value: ₹'+pe_val.toFixed(1)+' Cr | Show full calculation.\n\n'
+      +'### 5.2 EV/EBITDA Method\n'
+      +'Sector EV/EBITDA: '+sectorEV+'x | EBITDA: ₹'+ebitdaCr.toFixed(2)+' Cr | Enterprise Value: ₹'+(ebitdaCr*sectorEV).toFixed(1)+' Cr | Less Debt: ₹'+debt.toFixed(2)+' Cr | Equity: ₹'+ev_val.toFixed(1)+' Cr.\n\n'
+      +'### 5.3 DCF Analysis\n'
+      +'WACC: '+wacc+'% | Terminal Growth: '+g+'% | 5-yr FCF projections | DCF Equity Value: ₹'+dcf_val.toFixed(1)+' Cr. Show projections table.\n\n'
+      +'## 6. Listed Peer Comparables\n'
+      +'Provide a table with 3 real listed peers in '+sector+' sector: Company | Revenue (Cr) | PAT (Cr) | P/E | EV/EBITDA | Market Cap (Cr).\n\n'
+      +'## 7. IPO Price Band Recommendation\n'
+      +'Conservative: ₹'+cons_val.toFixed(0)+' Cr | Base: ₹'+base_val.toFixed(0)+' Cr | Optimistic: ₹'+opti_val.toFixed(0)+' Cr. Suggest per-share price band.\n\n'
+      +'## 8. Risk Factors\n'
+      +'List 6 specific risks with mitigation strategies.\n\n'
+      +'## 9. Conclusion & Investment Recommendation';
 
     var ar=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:4000,
-      system:'You are a SEBI Merchant Banker. Write complete professional IPO valuation reports. At the end include VALUATION_SUMMARY section with exact key=value format. No markdown in the summary section.',
+      system:'You are a Senior Merchant Banker at a Big 4 firm. Write complete elaborate professional IPO valuation reports using the exact financial data provided. Every section must be detailed and use actual numbers. Minimum 2000 words.',
       messages:[{role:'user',content:prompt}]});
     var txt=(ar&&ar.content||[]).map(function(c){return c.text||'';}).join('');
     if(!txt)throw new Error('Empty response. Check ANTHROPIC_API_KEY.');
@@ -3197,57 +3239,14 @@ async function runValuationDoc(){
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
 
-    // Parse the simple key=value summary
-    var vdata = {};
-    var sm = txt.match(/VALUATION_SUMMARY:\n([\s\S]*?)END_VALUATION_SUMMARY/);
-    if(sm){
-      var lines = sm[1].split('\n');
-      lines.forEach(function(line){
-        var kv = line.split('=');
-        if(kv.length < 2) return;
-        var k = kv[0].trim(), v = kv.slice(1).join('=').trim().replace(/\[|\]/g,'');
-        if(k.indexOf('peer') === 0 && v.indexOf('|') > -1){
-          var parts = v.split('|');
-          vdata[k+'_name'] = parts[0]||'';
-          vdata[k+'_pe'] = parseFloat(parts[1])||0;
-          vdata[k+'_ev'] = parseFloat(parts[2])||0;
-          vdata[k+'_mc_cr'] = parseFloat(parts[3])||0;
-        } else {
-          vdata[k] = isNaN(parseFloat(v)) ? v : parseFloat(v);
-        }
-      });
-    }
-
-    // Clean report - remove summary section
-    var rep = txt.replace(/VALUATION_SUMMARY:[\s\S]*?END_VALUATION_SUMMARY/g,'').trim();
-
-    // Build result from Probe42 real data + Claude estimates
-    // Note: Probe42 financials already in Crore (extractProbe42 uses toCr)
-    var result = {
-      _report: rep,
-      company_name: cname, cin: cin, sector: sector, exchange: exchange,
-      revenue_cr: rev24 || 0,
-      pat_cr: pat24 || 0,
-      ebitda_cr: ebitdaV || 0,
-      ebitda_margin_pct: ebitdaM || 0,
-      net_worth_cr: nw || 0,
-      roe: roe || 0,
-      debt_equity: de || 0,
-      val_conservative_cr: vdata.conservative_cr || 0,
-      val_base_cr: vdata.base_cr || 0,
-      val_optimistic_cr: vdata.optimistic_cr || 0,
-      price_band_low: vdata.price_low || 0,
-      price_band_high: vdata.price_high || 0,
-      sector_pe_avg: vdata.sector_pe || 0,
-      sector_ev_avg: vdata.sector_ev || 0,
-      wacc: vdata.wacc || 13,
-      peer1_name: vdata.peer1_name||'', peer1_pe: vdata.peer1_pe||0, peer1_ev: vdata.peer1_ev||0, peer1_mc_cr: vdata.peer1_mc_cr||0,
-      peer2_name: vdata.peer2_name||'', peer2_pe: vdata.peer2_pe||0, peer2_ev: vdata.peer2_ev||0, peer2_mc_cr: vdata.peer2_mc_cr||0,
-      peer3_name: vdata.peer3_name||'', peer3_pe: vdata.peer3_pe||0, peer3_ev: vdata.peer3_ev||0, peer3_mc_cr: vdata.peer3_mc_cr||0,
-      key_driver1: vdata.driver1||'', key_driver2: vdata.driver2||'',
-      key_risk1: vdata.risk1||'', key_risk2: vdata.risk2||''
+    var result={
+      _report:txt, company_name:cname, cin:cin, sector:sector, exchange:exchange,
+      revenue_cr:rev, pat_cr:pat, ebitda_cr:ebitdaCr, ebitda_margin_pct:ebitdaPct,
+      net_worth_cr:nw, roe:roe, debt_equity:de,
+      val_conservative_cr:cons_val, val_base_cr:base_val, val_optimistic_cr:opti_val,
+      price_band_low:priceLow, price_band_high:priceHigh,
+      sector_pe_avg:sectorPE, sector_ev_avg:sectorEV, wacc:wacc
     };
-
     AIRA_RESULTS['valdoc']={result:result,cname:cname,sector:sector,tier:'valdoc'};
     saveReportToStore('valdoc',cname,sector,result);
     renderValuationReport(result,cname,sector,out,'valdoc');
