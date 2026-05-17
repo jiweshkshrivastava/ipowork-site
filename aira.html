@@ -2750,15 +2750,24 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     var rev=+(parseFloat(f.revenue_fy24)||0).toFixed(2);
     var pat=+(parseFloat(f.pat_fy24)||0).toFixed(2);
     var ePct=+(parseFloat(f.ebitda_margin)||0).toFixed(1);
+    var eCr=+(parseFloat(f.ebitda_cr)||parseFloat(f.operating_profit)||(rev*ePct/100)||0).toFixed(2);
     var nw=+(parseFloat(f.net_worth)||0).toFixed(2);
     var debt=+(parseFloat(f.total_debt)||0).toFixed(2);
     var de=+(parseFloat(f.debt_equity_ratio)||(nw>0?debt/nw:0)).toFixed(2);
     var roe=+(parseFloat(f.roe)||0).toFixed(1);
     var roce=+(parseFloat(f.roce)||0).toFixed(1);
     var rev23=+(parseFloat(f.revenue_fy23)||0).toFixed(2);
+    var pat23=+(parseFloat(f.pat_fy23)||0).toFixed(2);
     var rev22=+(parseFloat(f.revenue_fy22)||0).toFixed(2);
+    var pat22=+(parseFloat(f.pat_fy22)||0).toFixed(2);
+    var yr24=f.fy24_year||'FY24', yr23=f.fy23_year||'FY23', yr22=f.fy22_year||'FY22';
+    var revGr=rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0;
+    var patGr=pat23>0?+((pat-pat23)/pat23*100).toFixed(1):0;
     var openChgs=chgs.filter(function(c){return c.status==='Open';}).length;
     var netM=+(rev>0?pat/rev*100:0).toFixed(1);
+    var cr2=+(parseFloat(f.current_ratio)||0).toFixed(2);
+    var intCov=+(parseFloat(f.interest_coverage)||0).toFixed(1);
+    var assets=+(parseFloat(f.total_assets)||0).toFixed(2);
 
     // Step 2: Claude writes SHORT narrative only (800 tokens = <10s guaranteed)
     var sysPrompt = customSystem||'You are AIRA, India IPO Readiness AI. Be concise and specific. Use exact numbers.';
