@@ -3312,6 +3312,78 @@ function printReport(tier){
   setTimeout(function(){ w.focus(); w.print(); }, 800);
 }
 
+
+function renderValuationReport(result, cname, sector, out, tier){
+  if(!out) return;
+  var r = result || {};
+  var report = r._report || '';
+  var fC = function(v){ if(!v||isNaN(v))return 'N/A'; var n=Number(v); return n>=10000000?'&#8377;'+(n/10000000).toFixed(2)+' Cr':n>=100000?'&#8377;'+(n/100000).toFixed(2)+' L':'&#8377;'+n.toFixed(0); };
+
+  // Build metric cards
+  var metrics = [
+    {label:'Revenue', val: fC(r.revenue_cr*10000000||0)},
+    {label:'PAT', val: fC(r.pat_cr*10000000||0)},
+    {label:'EBITDA%', val: (r.ebitda_margin_pct||0).toFixed(1)+'%'},
+    {label:'Net Worth', val: fC(r.net_worth_cr*10000000||0)},
+    {label:'ROE', val: (r.roe||0).toFixed(1)+'%'},
+    {label:'D/E Ratio', val: (r.debt_equity||0).toFixed(2)+'x'},
+  ];
+
+  var metricsHtml = metrics.map(function(m){
+    return '<div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:10px;padding:12px;text-align:center">'
+      +'<div style="font-size:18px;font-weight:800;color:#08404D">'+m.val+'</div>'
+      +'<div style="font-size:11px;color:#6B8A94;margin-top:4px">'+m.label+'</div>'
+      +'</div>';
+  }).join('');
+
+  // Valuation summary
+  var valHtml = '';
+  if(r.val_conservative_cr || r.val_base_cr) {
+    valHtml = '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border-radius:12px;padding:16px 20px;margin:16px 0">'
+      +'<div style="font-size:12px;opacity:.7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Valuation Range</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">'
+      +'<div><div style="font-size:11px;opacity:.6">Conservative</div><div style="font-size:18px;font-weight:800">&#8377;'+((r.val_conservative_cr||0)).toFixed(0)+' Cr</div></div>'
+      +'<div><div style="font-size:11px;opacity:.6">Base Case</div><div style="font-size:20px;font-weight:900">&#8377;'+((r.val_base_cr||0)).toFixed(0)+' Cr</div></div>'
+      +'<div><div style="font-size:11px;opacity:.6">Optimistic</div><div style="font-size:18px;font-weight:800">&#8377;'+((r.val_optimistic_cr||0)).toFixed(0)+' Cr</div></div>'
+      +'</div>'
+      +(r.price_band_low ? '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);font-size:13px">Price Band: <strong>&#8377;'+r.price_band_low+' – &#8377;'+r.price_band_high+' per share</strong></div>' : '')
+      +'</div>';
+  }
+
+  // Peer table
+  var peerHtml = '';
+  if(r.peer1_name) {
+    peerHtml = '<div style="margin:16px 0"><div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">Listed Peer Comparables</div>'
+      +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<tr style="background:#F0F9FB"><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Company</th>'
+      +'<th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">P/E</th>'
+      +'<th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">EV/EBITDA</th>'
+      +'<th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">Mkt Cap (Cr)</th></tr>';
+    [[r.peer1_name,r.peer1_pe,r.peer1_ev,r.peer1_mc_cr],
+     [r.peer2_name,r.peer2_pe,r.peer2_ev,r.peer2_mc_cr],
+     [r.peer3_name,r.peer3_pe,r.peer3_ev,r.peer3_mc_cr]].forEach(function(p){
+      if(p[0]) peerHtml += '<tr style="border-bottom:1px solid #F5F5F5">'
+        +'<td style="padding:8px 10px;font-weight:600">'+esc(p[0])+'</td>'
+        +'<td style="padding:8px 10px;text-align:center">'+(p[1]||'–')+'x</td>'
+        +'<td style="padding:8px 10px;text-align:center">'+(p[2]||'–')+'x</td>'
+        +'<td style="padding:8px 10px;text-align:center">'+(p[3]||'–')+'</td></tr>';
+    });
+    peerHtml += '</table></div></div>';
+  }
+
+  out.innerHTML = '<div class="report-card">'
+    +'<div style="background:linear-gradient(135deg,#3B30B0,#5B4ED4);color:#fff;padding:16px 20px;border-radius:10px 10px 0 0;margin:-20px -20px 16px;display:flex;align-items:center;justify-content:space-between">'
+    +'<div><div style="font-size:15px;font-weight:800">&#128200; '+(tier==='valintel'?'Valuation Intelligence':'Valuation Report')+'</div>'
+    +'<div style="font-size:12px;opacity:.7;margin-top:3px">'+esc(cname||'')+' · '+esc(sector||'')+' · Probe42 + AI</div></div>'
+    +'<button onclick="printReport(\''+tier+'\')" style="padding:5px 14px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;font-size:11px;cursor:pointer">&#128438; Print</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+metricsHtml+'</div>'
+    + valHtml
+    + peerHtml
+    +'<div class="ai-body">'+md2html(report)+'</div>'
+    +'</div>';
+}
+
 document.addEventListener('DOMContentLoaded', function(){
   loadSavedUsers();
   updateUserUI();
