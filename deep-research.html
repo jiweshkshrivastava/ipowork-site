@@ -1335,7 +1335,7 @@ function renderSkeletons(){
 }
 
 async function runAll(){
-  var toks=S.depth==='quick'?1200:S.depth==='deep'?4500:2500;
+  var toks=S.depth==='quick'?600:S.depth==='deep'?1200:900; // Reduced to avoid worker timeout
   for(var i=0;i<MODULES.length;i++){
     await runModule(MODULES[i],toks);
     S.done++; updateProgress();
@@ -1356,7 +1356,7 @@ function runModule(m,toks){
     var p42note=P42&&P42.ok?'PROBE42 MCA DATA above is primary source. Use exact numbers. ':'';
     var prompt='Analyse ['+m.name+'] for '+S.co+' ('+S.sec+')\n\n'+S.ctx+'\n\n'+p42note+(hasDocs?'ALL attached docs = PRIMARY. ':'No docs — use sector knowledge. ')+'Be specific and quantitative.';
     fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:toks,system:m.sys,messages:[{role:'user',content:buildContent(prompt)}]})
+      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:toks,system:m.sys,messages:[{role:'user',content:buildContent(prompt)}]})
     })
     .then(function(r){ return r.json(); })
     .then(function(d){ var txt=(d.content||[]).map(function(c){ return c.text||''; }).join(''); if(!txt) txt='Analysis unavailable. Please retry.'; onDone(m,txt); resolve(); })
