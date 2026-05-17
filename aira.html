@@ -865,13 +865,38 @@ function loadAdmin(){
   // Stats
   var statsEl = document.getElementById('admin-stats');
   if(statsEl){
-    var users = Object.keys(IPOWORK_USERS).length;
-    var reports = Object.keys(AIRA_RESULTS).length;
+    var allUsers = Object.keys(IPOWORK_USERS);
+    var users = allUsers.length;
+    var stored = getStoredReports();
+    var sessionReports = Object.keys(AIRA_RESULTS).length;
+    var totalReports = stored.length || sessionReports;
     var pending = getPendingRequests().length;
-    statsEl.innerHTML = 
-      '<div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:#08404D">'+users+'<' + '/div><div style="font-size:11px;color:#6B8A94;margin-top:4px">Approved Users<' + '/div><' + '/div>'
-      +'<div style="background:#FFF5E8;border:1px solid #FCDAC8;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:#B5370A">'+pending+'<' + '/div><div style="font-size:11px;color:#6B8A94;margin-top:4px">Pending Requests<' + '/div><' + '/div>'
-      +'<div style="background:#F0FFF4;border:1px solid #C0EDD6;border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:#1A6B3A">'+reports+'<' + '/div><div style="font-size:11px;color:#6B8A94;margin-top:4px">Reports Generated<' + '/div><' + '/div>';
+    
+    // Revenue estimate from stored reports
+    var PRICES = {free:499,paid:999,mainboard:2499,ca:4999,clearchit:1499,dirscan:299,ddbundle:9999,alert:4999,valdoc:2999,valintel:7999,deepresearch:999};
+    var revenue = stored.reduce(function(sum,r){ return sum + (PRICES[r.tier]||0); }, 0);
+    var fmtINR = function(n){ return n>=100000 ? '&#8377;'+(n/100000).toFixed(1)+'L' : '&#8377;'+n.toLocaleString('en-IN'); };
+    
+    // Today's reports
+    var today = new Date().toDateString();
+    var todayReports = stored.filter(function(r){ return r.ts && new Date(r.ts).toDateString()===today; }).length;
+    
+    statsEl.innerHTML =
+      '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border-radius:12px;padding:16px 18px">'
+        +'<div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Total Revenue</div>'
+        +'<div style="font-size:28px;font-weight:900;margin-top:4px">'+fmtINR(revenue)+'</div>'
+        +'<div style="font-size:11px;opacity:.6;margin-top:4px">'+totalReports+' reports generated</div>'
+      +'</div>'
+      +'<div style="background:#FFF5E8;border:1px solid #FCDAC8;border-radius:12px;padding:16px 18px">'
+        +'<div style="font-size:11px;color:#8A4A1A;text-transform:uppercase;letter-spacing:.5px">Today</div>'
+        +'<div style="font-size:28px;font-weight:900;color:#B5370A;margin-top:4px">'+todayReports+'</div>'
+        +'<div style="font-size:11px;color:#8A6820;margin-top:4px">reports generated</div>'
+      +'</div>'
+      +'<div style="background:#F0FFF4;border:1px solid #C0EDD6;border-radius:12px;padding:16px 18px">'
+        +'<div style="font-size:11px;color:#1A4A2A;text-transform:uppercase;letter-spacing:.5px">Users</div>'
+        +'<div style="font-size:28px;font-weight:900;color:#1A6B3A;margin-top:4px">'+users+'</div>'
+        +'<div style="font-size:11px;color:#2D7A46;margin-top:4px">'+(pending>0?pending+' pending approval':'all active')+'</div>'
+      +'</div>';
   }
 
   // Reports - both session + stored
