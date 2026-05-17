@@ -2764,10 +2764,15 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     var assets=+(parseFloat(f.total_assets)||0).toFixed(2);
 
     // Multi-year revenue (only show if > 1 Cr to filter noise)
-    var rev23=parseFloat(f.revenue_fy23)||0; if(rev23<1)rev23=0;
-    var rev22=parseFloat(f.revenue_fy22)||0; if(rev22<1)rev22=0;
-    var pat23=parseFloat(f.pat_fy23)||0; if(pat23<1||pat23>rev23)pat23=0;
-    var pat22=parseFloat(f.pat_fy22)||0; if(pat22<1||pat22>rev22)pat22=0;
+    var rev23raw=parseFloat(f.revenue_fy23)||0;
+    var rev22raw=parseFloat(f.revenue_fy22)||0;
+    var rev23=rev23raw>=1?+rev23raw.toFixed(2):0;
+    var rev22=rev22raw>=1?+rev22raw.toFixed(2):0;
+    var pat23raw=parseFloat(f.pat_fy23)||0;
+    var pat22raw=parseFloat(f.pat_fy22)||0;
+    // Show PAT if > 0.1 Cr and < revenue (plausibility check)
+    var pat23=pat23raw>=0.1&&(rev23===0||pat23raw<=rev23)?+pat23raw.toFixed(2):0;
+    var pat22=pat22raw>=0.1&&(rev22===0||pat22raw<=rev22)?+pat22raw.toFixed(2):0;
     var revGr=rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0;
     var yr24=f.fy24_year||'FY24', yr23=f.fy23_year||'FY23', yr22=f.fy22_year||'FY22';
     var fixYr=function(yr,d){if(!yr)return d;var s=String(yr).replace(/FY/i,'').trim();var n=parseInt(s);if(isNaN(n))return d;if(n>=2000)n=n%100;return(n>=18&&n<=30)?'FY'+n:d;};
@@ -2829,7 +2834,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     if(btn){btn.disabled=false;btn.innerHTML='&#9654; Run Analysis';}
 
     // Build complete report in JS
-    var tierColors={free:'#0D5C6B',paid:'#1A5C8A',mainboard:'#1A3A5C',ca:'#1A4A2A',
+    var tierColors={free:'#0D5C6B',paid:'#1A5C8A',mainboard:'#1A3A5C',mb:'#1A3A5C',ca:'#1A4A2A',
       clearchit:'#3A1A5C',dirscan:'#5C3A1A',ddbundle:'#1A1A5C',alert:'#5C1A1A',deepresearch:'#3B30B0'};
     var ac=tierColors[tier]||'#08404D';
     var tierNames={free:'AIRA IPO Score',paid:'SME Intel',mainboard:'Mainboard ICDR',
@@ -2852,7 +2857,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       +'</div></div></div>';
 
     // 8 Metric cards
-    var cards=[['Revenue ('+yr24+')','&#8377;'+rev+' Cr'],['PAT','&#8377;'+pat+' Cr'],
+    var cards=[['Revenue ('+yr24+')','&#8377;'+rev+' Cr'],['PAT ('+yr24+')','&#8377;'+pat+' Cr'],
       ['EBITDA Margin',ePct+'%'],['Net Worth','&#8377;'+nw+' Cr'],
       ['ROE',roe+'%'],['ROCE',roce+'%'],['D/E Ratio',de+'x'],
       ['Open Charges',openChgs+(openChgs===0?' &#9989;':' &#9888;&#65039;')]];
@@ -2926,31 +2931,30 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       +'<div style="font-size:11px;font-weight:700;color:'+ac+';margin-bottom:10px">&#129309; AI Analysis ('+rTitle+')</div>'
       +'<div style="font-size:13px;line-height:1.75;color:#1A2E35" class="ai-body">'+md2html(analysis)+'</div></div>';
 
-    // Gaps & Red Flags (JS computed)
-    if(gaps.length>0||redFlags.length>0){
-      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">';
-      if(gaps.length>0){
-        html+='<div style="background:#FFF5E8;border:1px solid #FCDAC8;border-radius:10px;padding:14px">'
-          +'<div style="font-size:11px;font-weight:700;color:#B5370A;margin-bottom:8px">&#9650; GAPS TO ADDRESS</div>'
-          +'<ul style="margin:0;padding-left:16px;font-size:12px;color:#1A2E35;line-height:1.9">'
-          +gaps.map(function(g){return '<li>'+esc(g)+'</li>';}).join('')+'</ul></div>';
-      }
-      if(redFlags.length>0){
-        html+='<div style="background:#FFF5F0;border:1px solid #F5C6C0;border-radius:10px;padding:14px">'
-          +'<div style="font-size:11px;font-weight:700;color:#C0392B;margin-bottom:8px">&#128683; RED FLAGS</div>'
-          +'<ul style="margin:0;padding-left:16px;font-size:12px;color:#1A2E35;line-height:1.9">'
-          +redFlags.map(function(g){return '<li>'+esc(g)+'</li>';}).join('')+'</ul></div>';
-      }
-      html+='</div>';
-    }
-
-    // Action Items
-    if(actions.length>0){
-      html+='<div style="background:#F0FFF4;border:1px solid #C0EDD6;border-radius:10px;padding:14px;margin-bottom:12px">'
-        +'<div style="font-size:11px;font-weight:700;color:#1A6B3A;margin-bottom:8px">&#9989; PRE-IPO ACTION PLAN</div>'
-        +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1A2E35;line-height:1.9">'
-        +actions.map(function(a){return '<li>'+esc(a)+'</li>';}).join('')+'</ol></div>';
-    }
+    // Gaps, Red Flags & Actions - Big 4 style
+    html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:16px;margin-bottom:12px">'
+      +'<div style="font-size:11px;font-weight:800;color:#08404D;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">IPO Readiness Assessment</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">';
+    // Gaps
+    html+='<div style="background:#FFFBF0;border-left:3px solid #E88A2E;border-radius:0 8px 8px 0;padding:12px">'
+      +'<div style="font-size:10px;font-weight:700;color:#8A4A1A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">&#128204; Gaps to Address</div>'
+      +(gaps.length>0
+        ?'<ul style="margin:0;padding-left:14px;font-size:12px;color:#1A2E35;line-height:1.8">'+gaps.map(function(g){return '<li>'+esc(g)+'</li>';}).join('')+'</ul>'
+        :'<p style="font-size:12px;color:#1A6B3A;margin:0">&#9989; No significant gaps identified</p>')
+      +'</div>';
+    // Red Flags
+    html+='<div style="background:#FFF5F0;border-left:3px solid #C0392B;border-radius:0 8px 8px 0;padding:12px">'
+      +'<div style="font-size:10px;font-weight:700;color:#C0392B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">&#128683; Red Flags</div>'
+      +(redFlags.length>0&&redFlags[0].indexOf('No major')!==0
+        ?'<ul style="margin:0;padding-left:14px;font-size:12px;color:#1A2E35;line-height:1.8">'+redFlags.map(function(g){return '<li>'+esc(g)+'</li>';}).join('')+'</ul>'
+        :'<p style="font-size:12px;color:#1A6B3A;margin:0">&#9989; Clean compliance record</p>')
+      +'</div>';
+    html+='</div>';
+    // Action Plan
+    html+='<div style="background:#F0FFF4;border:1px solid #C0EDD6;border-radius:8px;padding:12px">'
+      +'<div style="font-size:10px;font-weight:700;color:#1A6B3A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">&#9989; Pre-IPO Action Plan</div>'
+      +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1A2E35;line-height:1.9">'+actions.map(function(a){return '<li>'+esc(a)+'</li>';}).join('')+'</ol>'
+      +'</div></div>';
 
     // Directors table
     if(dirs.length>0){
@@ -3002,6 +3006,16 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     saveReportToStore(tier,cname,sector,result);
     updateFullReportBtn();
   }catch(e){
+    // Clean AI text: remove [TAG] labels, ## headers, ** bold markers
+    analysis = analysis
+      .replace(/\[(OVERVIEW|FINANCIALS|FINANCIALS|GOVERNANCE|RECOMMENDATION|VERDICT|SECTION\s*\d*)\]/gi, '')
+      .replace(/^#{1,3}\s*/gm, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\n{3,}/g, '\n\n')
+
+
+      .trim();
+
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#9654; Run';}
     if(out)out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
@@ -4020,6 +4034,42 @@ function checkAdminPwd(pwdArg){
   }
 }
 
+
+async function runMainboardCore(){
+  return runTab('mainboard-cin','mainboard-sector','mainboard-exchange',
+    'result-mainboard','prog-mainboard','btn-ma-run','mainboard',
+    'You are a SEBI ICDR expert and Merchant Banker. Write a detailed NSE/BSE Main Board IPO eligibility and compliance report.',
+    'Write a comprehensive Mainboard ICDR compliance report covering:\nSection 1 (Business & Eligibility): Company overview, NSE/BSE Main Board eligibility check (net worth, profitability track record, no pending litigations).\nSection 2 (Financial Analysis): 3-year financials analysis, ICDR minimum thresholds check (profitability for 3 years, net tangible assets > Rs 3 Cr, net worth > Rs 1 Cr).\nSection 3 (Governance & SEBI): Board composition vs SEBI LODR requirements, independent directors ratio, committee mandates, promoter lock-in requirements.\nSection 4 (Verdict): ICDR Regulation 6 eligibility verdict, specific conditions to meet, timeline to IPO.',
+    900);
+}
+
+async function runCACore(){
+  return runTab('ca-cin','ca-sector','ca-exchange','result-ca','prog-ca','btn-ca-run','ca',
+    'You are an ICAI CA and ICSI CS specialising in IPO compliance. Write precise CA/CS compliance assessment.',
+    'Write a comprehensive CA/CS IPO Compliance report covering:\nSection 1 (Corporate Compliance): ROC filing status, MCA compliance, statutory registers, secretarial records, auditor details and qualifications.\nSection 2 (Financial Compliance): Audit quality, related party transactions, tax compliance, GST status, pending demands.\nSection 3 (Governance): Board meetings, AGM compliance, director disqualification check under Section 164, charge register analysis.\nSection 4 (Verdict): Pre-IPO compliance actions, SEBI observation risk, estimated timeline for compliance completion.',
+    900);
+}
+
+async function runCleanChitCore(){
+  return runTab('clearchit-cin','clearchit-sector','clearchit-exchange','result-clearchit','prog-clearchit','btn-cc-run','clearchit',
+    'You are a SEBI compliance expert and corporate lawyer. Write a precise compliance clean chit assessment.',
+    'Write a Clean Chit Compliance report covering:\nSection 1 (MCA & ROC Status): Filing compliance history, company active status, charge register summary.\nSection 2 (Financial Clean Chit): Auditor reports quality, statutory compliance, pending tax/legal demands.\nSection 3 (Governance Clean Chit): Director DIN status, disqualification check, related party disclosures, secretarial compliance.\nSection 4 (Verdict): GREEN/AMBER/RED clean chit rating with specific remediation items and urgency.',
+    900);
+}
+
+async function runDDBundle(){
+  return runTab('ddbundle-cin','ddbundle-sector','ddbundle-exchange','result-ddbundle','prog-ddbundle','btn-dd-run','ddbundle',
+    'You are a Senior Partner at a Big 4 advisory firm conducting IPO Due Diligence. Write investment banking standard DD.',
+    'Write a comprehensive Due Diligence report covering:\nSection 1 (Business DD): Business model quality, revenue composition, customer concentration, growth drivers, competitive positioning.\nSection 2 (Financial DD): Quality of earnings, working capital analysis, accounting policies, audit qualifications, off-balance sheet items.\nSection 3 (Legal & Governance DD): Litigation risk, charge analysis, board independence, related party transactions, director credentials.\nSection 4 (Verdict): DD rating GREEN/AMBER/RED, material weaknesses, conditions precedent to IPO filing, recommended actions.',
+    900);
+}
+
+async function runDirScan(){
+  return runTab('dirscan-cin','dirscan-sector','dirscan-exchange','result-dirscan','prog-dirscan','btn-ds-run','dirscan',
+    'You are a SEBI corporate governance expert. Write precise director scan and governance assessment.',
+    'Write a Director Scan and Governance report covering:\nSection 1 (Board Overview): Board composition analysis, director profiles, qualifications, industry experience.\nSection 2 (Compliance Check): DIN status, disqualification under Section 164/167, other directorships, potential conflicts.\nSection 3 (Governance Assessment): Board independence ratio vs SEBI LODR, committee composition, related party oversight.\nSection 4 (Verdict): Governance rating, specific board strengthening recommendations, independent director requirements.',
+    900);
+}
 document.addEventListener('DOMContentLoaded', function(){
   loadSavedUsers();
   updateUserUI();
@@ -4045,6 +4095,11 @@ document.addEventListener('DOMContentLoaded', function(){
   window.runValuationDoc=runValuationDoc;
   window.runValuationIntel=runValuationIntel;
   window.runDeepResearchFull=runDeepResearchFull;
+  window.runMainboardCore=runMainboardCore;
+  window.runCACore=runCACore;
+  window.runCleanChitCore=runCleanChitCore;
+  window.runDDBundle=runDDBundle;
+  window.runDirScan=runDirScan;
   window.printReport=printReport;
   window.addUserFromForm=addUserFromForm;
   window.removeUser=removeUser;
@@ -4056,6 +4111,11 @@ document.addEventListener('DOMContentLoaded', function(){
   window.loadAdmin=loadAdmin;
   window.toggleDevGroups=toggleDevGroups;
   window.runDeepResearchFull=runDeepResearchFull;
+  window.runMainboardCore=runMainboardCore;
+  window.runCACore=runCACore;
+  window.runCleanChitCore=runCleanChitCore;
+  window.runDDBundle=runDDBundle;
+  window.runDirScan=runDirScan;
   window.showAdminTab=showAdminTab;
   updateFullReportBtn();
 });
