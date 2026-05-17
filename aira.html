@@ -2740,13 +2740,15 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
   var exchange=(document.getElementById(excId)||{}).value||'NSE Emerge (SME)';
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById(btnId),prog=document.getElementById(progId),out=document.getElementById(outId);
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"><'+ '/span> Analysing\u2026';}
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Analysing\u2026';}
   if(out)out.innerHTML='';if(prog)prog.style.display='flex';
   try{
-    // Step 1: Probe42
     var p42=await workerPost({type:'probe42_raw',cin:cin});
     var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
     var f=(p42&&p42.financials)||{},dirs=(p42&&p42.directors)||[],chgs=(p42&&p42.charges)||[];
+    var comp=(p42&&p42.compliance)||{};
+
+    // Extract financials - all already in Crore from worker
     var rev=+(parseFloat(f.revenue_fy24)||0).toFixed(2);
     var pat=+(parseFloat(f.pat_fy24)||0).toFixed(2);
     var ePct=+(parseFloat(f.ebitda_margin)||0).toFixed(1);
@@ -2756,206 +2758,255 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     var de=+(parseFloat(f.debt_equity_ratio)||(nw>0?debt/nw:0)).toFixed(2);
     var roe=+(parseFloat(f.roe)||0).toFixed(1);
     var roce=+(parseFloat(f.roce)||0).toFixed(1);
-    var rev23=+(parseFloat(f.revenue_fy23)||0).toFixed(2);
-    var pat23=+(parseFloat(f.pat_fy23)||0).toFixed(2);
-    var rev22=+(parseFloat(f.revenue_fy22)||0).toFixed(2);
-    var pat22=+(parseFloat(f.pat_fy22)||0).toFixed(2);
-    // Validate: PAT should be > 0.1 Cr to be meaningful (filter out near-zero noise)
-    if(pat23>0&&pat23<0.5) pat23=0;
-    if(pat22>0&&pat22<0.5) pat22=0;
-    var yr24=f.fy24_year||'FY24', yr23=f.fy23_year||'FY23', yr22=f.fy22_year||'FY22';
-    var fixYrF=function(yr){if(!yr)return null;var s=String(yr);if(s.indexOf('FY')===0&&s.length===4){var y=parseInt(s.slice(2));if(y>0&&y<30)return yr;}if(/^\d{4}$/.test(s)){var y2=parseInt(s.slice(2));return 'FY'+y2;}return yr;};
-    yr24=fixYrF(yr24)||'FY24';yr23=fixYrF(yr23)||'FY23';yr22=fixYrF(yr22)||'FY22';
-    var revGr=rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0;
-    var patGr=pat23>0?+((pat-pat23)/pat23*100).toFixed(1):0;
-    var openChgs=chgs.filter(function(c){return c.status==='Open';}).length;
     var netM=+(rev>0?pat/rev*100:0).toFixed(1);
     var cr2=+(parseFloat(f.current_ratio)||0).toFixed(2);
     var intCov=+(parseFloat(f.interest_coverage)||0).toFixed(1);
     var assets=+(parseFloat(f.total_assets)||0).toFixed(2);
 
-    // Step 2: Claude writes SHORT narrative only (800 tokens = <10s guaranteed)
-    var sysPrompt = customSystem||'You are AIRA, India IPO Readiness AI. Be concise and specific. Use exact numbers.';
-    var fd='Company: '+cname+' | CIN: '+cin+' | Sector: '+sector+' | Exchange: '+exchange
-      +'\nRevenue FY24: '+rev+' Cr | FY23: '+rev23+' Cr | FY22: '+rev22+' Cr'
-      +'\nPAT: '+pat+' Cr | EBITDA: '+ePct+'% | Net Worth: '+nw+' Cr'
-      +'\nDebt: '+debt+' Cr | D/E: '+de+'x | ROE: '+roe+'% | ROCE: '+roce+'%'
-      +'\nDirectors: '+dirs.length+' | Open Charges: '+openChgs;
-    var userPrompt = customPromptSuffix
-      ? fd+'\n\n'+customPromptSuffix
-      : fd+'\n\nWrite 4 paragraphs:\n[OVERVIEW]: Business description, products, market position.\n[FINANCIALS]: Analysis of the financial data above with specific insights.\n[GOVERNANCE]: Board quality, compliance, open charges assessment.\n[RECOMMENDATION]: IPO readiness verdict with specific actions needed.';
+    // Multi-year revenue (only show if > 1 Cr to filter noise)
+    var rev23=parseFloat(f.revenue_fy23)||0; if(rev23<1)rev23=0;
+    var rev22=parseFloat(f.revenue_fy22)||0; if(rev22<1)rev22=0;
+    var pat23=parseFloat(f.pat_fy23)||0; if(pat23<1||pat23>rev23)pat23=0;
+    var pat22=parseFloat(f.pat_fy22)||0; if(pat22<1||pat22>rev22)pat22=0;
+    var revGr=rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0;
+    var yr24=f.fy24_year||'FY24', yr23=f.fy23_year||'FY23', yr22=f.fy22_year||'FY22';
+    var fixYr=function(yr,d){if(!yr)return d;var s=String(yr).replace(/FY/i,'').trim();var n=parseInt(s);if(isNaN(n))return d;if(n>=2000)n=n%100;return(n>=18&&n<=30)?'FY'+n:d;};
+    yr24=fixYr(yr24,'FY24');yr23=fixYr(yr23,'FY23');yr22=fixYr(yr22,'FY22');
 
-    var resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:800,
-      system:sysPrompt,messages:[{role:'user',content:userPrompt}]});
-    var txt=(resp&&resp.content||[]).map(function(c){return c.text||'';}).join('');
+    var openChgs=chgs.filter(function(c){return c.status==='Open';}).length;
 
-    // Parse narrative sections
-    var getSection=function(txt,key){
-      // Try [TAG] format first
-      var m=txt.match(new RegExp('\\['+key+'\\][\\s\\S]*?([\\s\\S]*?)(?=\\[[A-Z]+\\]|$)'));
-      if(!m) m=txt.match(new RegExp('\\['+key+'\\]([\\s\\S]*?)(?=\\[[A-Z]+\\]|$)'));
-      if(m&&m[1]&&m[1].trim()) return m[1].trim();
-      // Try ### Header format (Claude often uses this)
-      var keyLower=key.toLowerCase();
-      var headerMap={OVERVIEW:'overview|business|company',FINANCIALS:'financial|analysis',
-        GOVERNANCE:'governance|compliance|board',RECOMMENDATION:'recommendation|verdict|readiness',
-        THESIS:'thesis|investment|summary',COMPETITIVE:'competitive|market|position',
-        RISKS:'risk|risks|outlook'};
-      var pattern=headerMap[key]||keyLower;
-      var hm=txt.match(new RegExp('###?\\s*(?:[\\w\\s]*(?:'+pattern+')[\\w\\s]*)\\s*\\*?\\n([\\s\\S]*?)(?=###?\\s*[A-Z]|$)','i'));
-      if(hm&&hm[1]&&hm[1].trim()) return hm[1].trim();
-      // Fallback: split by sections
-      var parts=txt.split(/#{1,3}\s+/);
-      if(parts.length>1){
-        for(var pi=0;pi<parts.length;pi++){
-          if(new RegExp(pattern,'i').test(parts[pi].split('\n')[0])) return parts[pi].split('\n').slice(1).join('\n').trim();
-        }
-      }
-      return '';
+    // JS computes IPO readiness score
+    var gaps=[],redFlags=[],actions=[];
+    var score=0;
+    if(roe>=20){score+=15;}else{score+=5;gaps.push('ROE '+roe+'% below 20% benchmark');}
+    if(roce>=15){score+=15;}else{score+=5;gaps.push('ROCE '+roce+'% below 15% benchmark');}
+    if(rev>=50){score+=10;}else{score+=3;gaps.push('Revenue ₹'+rev+' Cr — scale up before IPO');}
+    if(pat>=5){score+=10;}else{score+=3;gaps.push('PAT ₹'+pat+' Cr needs 3-yr profitability track');}
+    if(nw>=10){score+=10;}else{score+=3;gaps.push('Net Worth ₹'+nw+' Cr may need enhancement');}
+    if(ePct>=15){score+=10;}else{score+=5;gaps.push('EBITDA Margin '+ePct+'% below 15% healthy range');}
+    if(de<=1){score+=10;}else{gaps.push('D/E '+de+'x above 1x — reduce debt pre-IPO');actions.push('Reduce debt to D/E < 1.0x before filing DRHP');}
+    if(openChgs===0){score+=10;}else{score+=2;redFlags.push('⚠️ '+openChgs+' open charges on MCA — must resolve before DRHP');actions.push('Obtain charge satisfaction certificates for all '+openChgs+' open charges');}
+    if(dirs.length>=3){score+=5;}if(dirs.length<5){gaps.push('Board has only '+dirs.length+' directors — need min 5 for Main Board (3 for SME)');actions.push('Appoint '+Math.max(0,5-dirs.length)+' independent directors before listing');}
+    score=Math.min(100,score);
+    var scoreColor=score>=75?'#1A6B3A':score>=50?'#E67E22':'#C0392B';
+    var scoreLabel=score>=75?'IPO READY':'AMBER — WORK NEEDED';
+    // Add standard actions
+    if(actions.length<3)actions.push('Prepare 3-year audited financial statements (CA-certified)');
+    if(actions.length<4)actions.push('File DRHP with SEBI / Stock Exchange for review');
+    if(redFlags.length===0)redFlags.push('✅ No major red flags found — clean compliance record');
+
+    // Claude writes ONE comprehensive analysis (~700 tokens, always fits)
+    var tierContexts={
+      free:'AIRA IPO Score assessment',paid:'SME Intel full report',mainboard:'NSE Main Board ICDR compliance report',
+      ca:'CA/CS statutory compliance report',clearchit:'Clean Chit compliance due diligence report',
+      dirscan:'Director background and governance report',ddbundle:'Due Diligence comprehensive report',
+      deepresearch:'Deep Research 15-module intelligence report',alert:'AIRA Alert monitoring report'
     };
-    var overview=getSection(txt,'OVERVIEW');
-    var financials=getSection(txt,'FINANCIALS');
-    var governance=getSection(txt,'GOVERNANCE');
-    var recommendation=getSection(txt,'RECOMMENDATION');
-    // If tags not found, split txt into 4 equal parts
-    if(!overview&&!financials&&txt.length>50){
-      var paras=txt.split(/\n\n+/).filter(function(p){return p.trim().length>20;});
-      var qtr=Math.ceil(paras.length/4);
-      overview=paras.slice(0,qtr).join('\n\n');
-      financials=paras.slice(qtr,qtr*2).join('\n\n');
-      governance=paras.slice(qtr*2,qtr*3).join('\n\n');
-      recommendation=paras.slice(qtr*3).join('\n\n');
-    }
-    overview=overview||'Specialized '+sector+' company with operations in '+exchange+'.';
-    financials=financials||'Revenue: ₹'+rev+' Cr | PAT: ₹'+pat+' Cr | ROE: '+roe+'% | D/E: '+de+'x';
-    governance=governance||dirs.length+' directors | '+openChgs+' open charges';
-    recommendation=recommendation||'IPO readiness assessment pending detailed review.';
+    var ctx=tierContexts[tier]||'IPO readiness report';
+    var sysP=customSystem||'You are a Senior SEBI Merchant Banker. Write precise professional '+ctx+'. Use exact numbers. No generic content.';
+    var fd='Company: '+cname+' | CIN: '+cin+' | Sector: '+sector+' | Exchange: '+exchange
+      +'\nRevenue: '+yr22+'='+rev22+' Cr, '+yr23+'='+rev23+' Cr, '+yr24+'='+rev+' Cr'+(revGr?' ('+revGr+'% YoY)':'')
+      +'\nPAT '+yr24+'='+pat+' Cr ('+netM+'% margin) | EBITDA='+ePct+'% ('+eCr+' Cr)'
+      +'\nNet Worth='+nw+' Cr | Debt='+debt+' Cr | D/E='+de+'x | Assets='+assets+' Cr'
+      +'\nROE='+roe+'% | ROCE='+roce+'% | Current Ratio='+cr2+' | Int Coverage='+intCov+'x'
+      +'\nDirectors='+dirs.length+' | Open Charges='+openChgs+'/'+chgs.length+' total'
+      +'\nIPO Score='+score+'/100';
+
+    var defaultPrompt='DATA:\n'+fd
+      +'\n\nWrite a comprehensive '+ctx+' for '+cname+'.'
+      +'\nSection 1 (Business & Market): Describe the company business, products, market position, competitive advantages in '+sector+'. Reference actual financials.'
+      +'\nSection 2 (Financial Analysis): Analyse: Revenue CAGR, PAT quality, EBITDA margins, ROE/ROCE vs sector, D/E structure, working capital. Use exact numbers.'
+      +'\nSection 3 (Compliance & Governance): Assess the '+dirs.length+'-director board, '+openChgs+' open charges, MCA compliance status, pre-IPO governance actions required.'
+      +'\nSection 4 (IPO Verdict): Specific IPO readiness verdict for '+exchange+', eligibility criteria met/unmet, priority actions.';
+    var prompt=customPromptSuffix?'DATA:\n'+fd+'\n\n'+customPromptSuffix:defaultPrompt;
+
+    var resp=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1000,
+      system:sysP,messages:[{role:'user',content:prompt}]});
+    var analysis=(resp&&resp.content||[]).map(function(c){return c.text||'';}).join('')
+      .replace(/^#{1,3}\s*/gm,'').replace(/\*\*/g,'').trim();
 
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#9654; Run Analysis';}
 
-    // Step 3: Build complete HTML report in JS
+    // Build complete report in JS
     var tierColors={free:'#0D5C6B',paid:'#1A5C8A',mainboard:'#1A3A5C',ca:'#1A4A2A',
-      clearchit:'#3A1A5C',dirscan:'#5C3A1A',ddbundle:'#1A1A5C',alert:'#5C1A1A'};
+      clearchit:'#3A1A5C',dirscan:'#5C3A1A',ddbundle:'#1A1A5C',alert:'#5C1A1A',deepresearch:'#3B30B0'};
     var ac=tierColors[tier]||'#08404D';
-    var tierNames={free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard ICDR',ca:'CA/CS Compliance',
-      clearchit:'Clean Chit',dirscan:'Director Scan',ddbundle:'Due Diligence',alert:'AIRA Alert'};
-    var reportTitle=tierNames[tier]||tier.toUpperCase();
-
+    var tierNames={free:'AIRA IPO Score',paid:'SME Intel',mainboard:'Mainboard ICDR',
+      ca:'CA/CS Compliance',clearchit:'Clean Chit',dirscan:'Director Scan',
+      ddbundle:'Due Diligence',deepresearch:'Deep Research',alert:'AIRA Alert'};
+    var rTitle=tierNames[tier]||tier.toUpperCase();
+    var na='<span style="color:#C0C8D0">N/A</span>';
     var html='<div style="font-family:\'Segoe UI\',Arial,sans-serif;max-width:860px">';
 
     // Header
-    html+='<div style="background:linear-gradient(135deg,'+ac+','+ac+'CC);color:#fff;border-radius:12px;padding:20px 24px;margin-bottom:16px">'
+    html+='<div style="background:linear-gradient(135deg,'+ac+','+ac+'CC);color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:14px">'
       +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
-      +'<div><div style="font-size:9px;letter-spacing:2px;opacity:.6;text-transform:uppercase;margin-bottom:4px">'+reportTitle+' REPORT</div>'
+      +'<div><div style="font-size:9px;letter-spacing:2px;opacity:.6;text-transform:uppercase;margin-bottom:4px">'+rTitle+' REPORT</div>'
       +'<div style="font-size:20px;font-weight:900">'+esc(cname)+'</div>'
       +'<div style="font-size:11px;opacity:.7;margin-top:3px">'+esc(sector)+' \xb7 '+esc(exchange)+'</div></div>'
-      +'<button onclick="printReport(\''+tier+'\')" style="padding:5px 12px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;font-size:11px;cursor:pointer">&#128438; Print PDF</button>'
-      +'</div></div>';
+      +'<div style="text-align:center">'
+      +'<div style="font-size:32px;font-weight:900;color:'+scoreColor+'">'+score+'</div>'
+      +'<div style="font-size:9px;opacity:.7">/100 \xb7 '+scoreLabel+'</div>'
+      +'<button onclick="printReport(\''+tier+'\')" style="margin-top:6px;padding:4px 10px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;font-size:10px;cursor:pointer">&#128438; Print</button>'
+      +'</div></div></div>';
 
-    // Metric cards
-    var metrics=[['Revenue (FY24)','\u20b9'+rev+' Cr'],[' PAT (FY24)','\u20b9'+pat+' Cr'],
-      ['EBITDA Margin',ePct+'%'],['Net Worth','\u20b9'+nw+' Cr'],
-      ['ROE',roe+'%'],['D/E Ratio',de+'x'],['ROCE',roce+'%'],['Open Charges',openChgs+' '+(openChgs===0?'\u2705':'⚠️')]];
-    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">';
-    metrics.forEach(function(m){
+    // 8 Metric cards
+    var cards=[['Revenue ('+yr24+')','&#8377;'+rev+' Cr'],['PAT','&#8377;'+pat+' Cr'],
+      ['EBITDA Margin',ePct+'%'],['Net Worth','&#8377;'+nw+' Cr'],
+      ['ROE',roe+'%'],['ROCE',roce+'%'],['D/E Ratio',de+'x'],
+      ['Open Charges',openChgs+(openChgs===0?' &#9989;':' &#9888;&#65039;')]];
+    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">';
+    cards.forEach(function(c){
       html+='<div style="background:#fff;border:1px solid #E0EAF0;border-left:3px solid '+ac+';border-radius:8px;padding:10px 12px">'
-        +'<div style="font-size:9px;color:#8A9AAB;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">'+m[0]+'</div>'
-        +'<div style="font-size:16px;font-weight:800;color:#1A2E35">'+m[1]+'</div></div>';
+        +'<div style="font-size:9px;color:#8A9AAB;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">'+c[0]+'</div>'
+        +'<div style="font-size:16px;font-weight:800;color:#1A2E35">'+c[1]+'</div></div>';
     });
     html+='</div>';
 
-    // 3-year revenue table
-    html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:16px;margin-bottom:14px">'
-      +'<div style="font-size:12px;font-weight:700;color:'+ac+';margin-bottom:10px">3-Year Financial Trend</div>'
+    // 3-year table
+    html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:14px;margin-bottom:12px">'
+      +'<div style="font-size:11px;font-weight:700;color:'+ac+';margin-bottom:10px">3-Year Financial Performance (Source: Probe42/MCA)</div>'
       +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
-      +'<thead><tr style="background:#F5F8FB"><th style="padding:7px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Metric</th>'
-      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">FY22</th>'
-      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">FY23</th>'
-      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">FY24</th></tr></thead><tbody>'
-      +'<tr style="border-bottom:1px solid #F0F5F8"><td style="padding:7px 10px;font-weight:600">Revenue (\u20b9 Cr)</td>'
-      +'<td style="padding:7px 10px;text-align:center">'+rev22+'</td>'
-      +'<td style="padding:7px 10px;text-align:center">'+rev23+'</td>'
-      +'<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+ac+'">'+rev+'</td></tr>'
-      +'<tr style="background:#FAFCFD;border-bottom:1px solid #F0F5F8"><td style="padding:7px 10px;font-weight:600">PAT (\u20b9 Cr)</td>'
-      +'<td style="padding:7px 10px;text-align:center">\u2013</td><td style="padding:7px 10px;text-align:center">\u2013</td>'
-      +'<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+ac+'">'+pat+'</td></tr>'
-      +'<tr><td style="padding:7px 10px;font-weight:600">EBITDA Margin</td>'
-      +'<td style="padding:7px 10px;text-align:center">\u2013</td><td style="padding:7px 10px;text-align:center">\u2013</td>'
-      +'<td style="padding:7px 10px;text-align:center;font-weight:700">'+ePct+'%</td></tr>'
+      +'<thead><tr style="background:#F5F8FB">'
+      +'<th style="padding:7px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Metric</th>'
+      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">'+yr22+'</th>'
+      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">'+yr23+'</th>'
+      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">'+yr24+'</th>'
+      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">YoY</th></tr></thead><tbody>'
+      +'<tr style="border-bottom:1px solid #F0F5F8">'
+      +'<td style="padding:7px 10px;font-weight:600">Revenue (&#8377; Cr)</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+(rev22>0?rev22:na)+'</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+(rev23>0?rev23:na)+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+ac+'">'+rev+'</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+(revGr>0?'<span style="color:#1A6B3A">&#9650;'+revGr+'%</span>':revGr<0?'<span style="color:#C0392B">&#9660;'+Math.abs(revGr)+'%</span>':na)+'</td></tr>'
+      +'<tr style="background:#FAFCFD;border-bottom:1px solid #F0F5F8">'
+      +'<td style="padding:7px 10px;font-weight:600">PAT (&#8377; Cr)</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+(pat22>0?pat22:na)+'</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+(pat23>0?pat23:na)+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+ac+'">'+pat+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-size:10px;color:#6B8A94">'+netM+'% margin</td></tr>'
+      +'<tr style="border-bottom:1px solid #F0F5F8">'
+      +'<td style="padding:7px 10px;font-weight:600">EBITDA (&#8377; Cr)</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+na+'</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+na+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-weight:700">'+eCr+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-size:10px;color:#6B8A94">'+ePct+'% margin</td></tr>'
+      +'<tr style="background:#FAFCFD">'
+      +'<td style="padding:7px 10px;font-weight:600">Net Worth (&#8377; Cr)</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+na+'</td>'
+      +'<td style="padding:7px 10px;text-align:center">'+na+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-weight:700">'+nw+'</td>'
+      +'<td style="padding:7px 10px;text-align:center;font-size:10px;color:#6B8A94">D/E: '+de+'x</td></tr>'
       +'</tbody></table></div>';
+
+    // Key ratios table
+    html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:14px;margin-bottom:12px">'
+      +'<div style="font-size:11px;font-weight:700;color:'+ac+';margin-bottom:10px">Key Financial Ratios vs Benchmarks</div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+      +'<thead><tr style="background:#F5F8FB"><th style="padding:7px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Ratio</th>'
+      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">FY24 Actual</th>'
+      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">Benchmark</th>'
+      +'<th style="padding:7px 10px;text-align:center;border-bottom:2px solid #D0E4F0">Signal</th></tr></thead><tbody>';
+    var ratios=[['ROE',roe+'%','\u003e20%',roe>=20],['ROCE',roce+'%','\u003e15%',roce>=15],
+      ['EBITDA Margin',ePct+'%','\u003e15%',ePct>=15],['Net Margin',netM+'%','\u003e8%',netM>=8],
+      ['D/E Ratio',de+'x','\u003c1x',de<=1],['Interest Coverage',intCov>0?intCov+'x':'N/A','\u003e3x',intCov>=3||intCov===0],
+      ['Current Ratio',cr2>0?cr2+'x':'N/A','\u003e1.5x',cr2>=1.5||cr2===0]];
+    ratios.forEach(function(r,i){
+      html+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
+        +'<td style="padding:7px 10px;font-weight:600">'+r[0]+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;font-weight:700;color:'+(r[3]?'#1A6B3A':'#C0392B')+'">'+r[1]+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;font-size:11px;color:#6B8A94">'+r[2]+'</td>'
+        +'<td style="padding:7px 10px;text-align:center">'+(r[3]?'&#9989;':'&#9888;&#65039;')+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+
+    // AI Analysis (full text rendered with md2html)
+    html+='<div style="background:#F0F9FF;border:1px solid #D0E8F0;border-radius:10px;padding:16px;margin-bottom:12px">'
+      +'<div style="font-size:11px;font-weight:700;color:'+ac+';margin-bottom:10px">&#129309; AI Analysis ('+rTitle+')</div>'
+      +'<div style="font-size:13px;line-height:1.75;color:#1A2E35" class="ai-body">'+md2html(analysis)+'</div></div>';
+
+    // Gaps & Red Flags (JS computed)
+    if(gaps.length>0||redFlags.length>0){
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">';
+      if(gaps.length>0){
+        html+='<div style="background:#FFF5E8;border:1px solid #FCDAC8;border-radius:10px;padding:14px">'
+          +'<div style="font-size:11px;font-weight:700;color:#B5370A;margin-bottom:8px">&#9650; GAPS TO ADDRESS</div>'
+          +'<ul style="margin:0;padding-left:16px;font-size:12px;color:#1A2E35;line-height:1.9">'
+          +gaps.map(function(g){return '<li>'+esc(g)+'</li>';}).join('')+'</ul></div>';
+      }
+      if(redFlags.length>0){
+        html+='<div style="background:#FFF5F0;border:1px solid #F5C6C0;border-radius:10px;padding:14px">'
+          +'<div style="font-size:11px;font-weight:700;color:#C0392B;margin-bottom:8px">&#128683; RED FLAGS</div>'
+          +'<ul style="margin:0;padding-left:16px;font-size:12px;color:#1A2E35;line-height:1.9">'
+          +redFlags.map(function(g){return '<li>'+esc(g)+'</li>';}).join('')+'</ul></div>';
+      }
+      html+='</div>';
+    }
+
+    // Action Items
+    if(actions.length>0){
+      html+='<div style="background:#F0FFF4;border:1px solid #C0EDD6;border-radius:10px;padding:14px;margin-bottom:12px">'
+        +'<div style="font-size:11px;font-weight:700;color:#1A6B3A;margin-bottom:8px">&#9989; PRE-IPO ACTION PLAN</div>'
+        +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1A2E35;line-height:1.9">'
+        +actions.map(function(a){return '<li>'+esc(a)+'</li>';}).join('')+'</ol></div>';
+    }
 
     // Directors table
     if(dirs.length>0){
-      html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:16px;margin-bottom:14px">'
-        +'<div style="font-size:12px;font-weight:700;color:'+ac+';margin-bottom:10px">Board of Directors</div>'
-        +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
-        +'<thead><tr style="background:#F5F8FB"><th style="padding:7px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Name</th>'
-        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Designation</th>'
-        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">DIN</th></tr></thead><tbody>';
-      dirs.slice(0,6).forEach(function(d,i){
+      html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:14px;margin-bottom:12px">'
+        +'<div style="font-size:11px;font-weight:700;color:'+ac+';margin-bottom:8px">Board of Directors ('+dirs.length+')</div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:11px">'
+        +'<thead><tr style="background:#F5F8FB"><th style="padding:6px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Name</th>'
+        +'<th style="padding:6px 10px;border-bottom:2px solid #D0E4F0">Designation</th>'
+        +'<th style="padding:6px 10px;border-bottom:2px solid #D0E4F0">DIN</th></tr></thead><tbody>';
+      dirs.slice(0,8).forEach(function(d,i){
         html+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
-          +'<td style="padding:7px 10px;font-weight:600">'+esc(d.name||'')+'</td>'
-          +'<td style="padding:7px 10px;color:#444">'+esc(d.designation||'')+'</td>'
-          +'<td style="padding:7px 10px;font-size:11px;color:#6B8A94">'+esc(d.din||'N/A')+'</td></tr>';
+          +'<td style="padding:6px 10px;font-weight:600">'+esc(d.name||'')+'</td>'
+          +'<td style="padding:6px 10px;color:#444">'+esc(d.designation||'')+'</td>'
+          +'<td style="padding:6px 10px;color:#6B8A94">'+esc(d.din||'')+'</td></tr>';
       });
       html+='</tbody></table></div>';
     }
 
-    // AI narrative sections
-    // Remove ## artifacts from all sections
-    var cleanSection=function(t){ return (t||'').replace(/^#{1,3}\s*/gm,'').replace(/\*\*([^*]+)\*\*/g,'$1').trim(); };
-    overview=cleanSection(overview); financials=cleanSection(financials);
-    governance=cleanSection(governance); recommendation=cleanSection(recommendation);
-    var secs=[['Business Overview',overview,'#F0F9FF'],['Financial Analysis',financials,'#F0FFF4'],
-      ['Governance Assessment',governance,'#FFF5F0'],['IPO Readiness Verdict',recommendation,'#F5F0FF']];
-    secs.forEach(function(s){
-      if(!s[1]) return;
-      html+='<div style="background:'+s[2]+';border:1px solid #E0EAF0;border-radius:10px;padding:16px;margin-bottom:12px">'
-        +'<div style="font-size:12px;font-weight:700;color:'+ac+';margin-bottom:8px">'+s[0]+'</div>'
-        +'<div style="font-size:13px;line-height:1.7;color:#1A2E35" class="ai-body">'+md2html(s[1])+'</div></div>';
-    });
-
-    // Charges if any
+    // Charges table
     if(chgs.length>0){
-      html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:16px;margin-bottom:12px">'
-        +'<div style="font-size:12px;font-weight:700;color:'+ac+';margin-bottom:10px">Charge Register ('+chgs.length+' total, '+openChgs+' open)</div>'
+      html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:14px;margin-bottom:12px">'
+        +'<div style="font-size:11px;font-weight:700;color:'+ac+';margin-bottom:8px">Charge Register ('+chgs.length+' total, '+openChgs+' open)</div>'
         +'<table style="width:100%;border-collapse:collapse;font-size:11px">'
-        +'<thead><tr style="background:#F5F8FB"><th style="padding:6px 8px;text-align:left;border-bottom:1px solid #D0E4F0">Holder</th>'
-        +'<th style="padding:6px 8px;border-bottom:1px solid #D0E4F0">Status</th>'
-        +'<th style="padding:6px 8px;border-bottom:1px solid #D0E4F0">Date</th></tr></thead><tbody>';
-      chgs.slice(0,5).forEach(function(c,i){
-        html+='<tr style="background:'+(i%2?'#FAFCFD':'#fff')+';border-bottom:1px solid #F5F5F5">'
-          +'<td style="padding:6px 8px">'+esc(c.charge_holder||'N/A')+'</td>'
-          +'<td style="padding:6px 8px"><span style="color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+'">'+esc(c.status||'')+'</span></td>'
-          +'<td style="padding:6px 8px;color:#6B8A94">'+esc(c.date_of_creation||'')+'</td></tr>';
+        +'<thead><tr style="background:#F5F8FB"><th style="padding:6px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Charge Holder</th>'
+        +'<th style="padding:6px 10px;border-bottom:2px solid #D0E4F0">Status</th>'
+        +'<th style="padding:6px 10px;border-bottom:2px solid #D0E4F0">Amount</th>'
+        +'<th style="padding:6px 10px;border-bottom:2px solid #D0E4F0">Date</th></tr></thead><tbody>';
+      chgs.slice(0,8).forEach(function(c,i){
+        var holder=c.charge_holder||c.holder||c.lender_name||c.bank||'Not disclosed';
+        var amt=c.amount?(+(parseFloat(c.amount)/100000).toFixed(1)+' L'):'—';
+        html+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
+          +'<td style="padding:6px 10px;font-weight:600">'+esc(holder)+'</td>'
+          +'<td style="padding:6px 10px"><span style="color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600">'+esc(c.status||'')+'</span></td>'
+          +'<td style="padding:6px 10px;color:#444">'+amt+'</td>'
+          +'<td style="padding:6px 10px;color:#6B8A94">'+esc(c.date_of_creation||'')+'</td></tr>';
       });
       html+='</tbody></table></div>';
     }
 
     html+='<div style="padding:8px 12px;background:#F8F9FA;border-radius:6px;font-size:9px;color:#9AB0B8">'
-      +'ipowork is not SEBI-registered. For informational use only. Data: Probe42/MCA. \u00a9 2025 ipowork.</div></div>';
+      +'ipowork is not SEBI-registered. Informational use only. Not investment advice. Data: Probe42/MCA. \u00a9 2025 ipowork.</div></div>';
 
     if(out){out.innerHTML=html;out.scrollIntoView({behavior:'smooth',block:'start'});}
 
-    var result={_report:txt,company_name:cname,cin:cin,sector:sector,exchange:exchange,tier:tier,
-      revenue_cr:rev,pat_cr:pat,ebitda_margin_pct:ePct,net_worth_cr:nw,roe:roe,debt_equity:de};
+    var result={_report:html,company_name:cname,cin:cin,sector:sector,exchange:exchange,tier:tier,
+      revenue_cr:rev,pat_cr:pat,ebitda_margin_pct:ePct,net_worth_cr:nw,roe:roe,debt_equity:de,
+      ipo_score:score};
     AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,tier:tier};
     saveReportToStore(tier,cname,sector,result);
     updateFullReportBtn();
-
   }catch(e){
     if(prog)prog.style.display='none';
-    if(btn){btn.disabled=false;btn.innerHTML='&#9654; Run Analysis';}
+    if(btn){btn.disabled=false;btn.innerHTML='&#9654; Run';}
     if(out)out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
   }
 }
-async function runMainboardCore(){
-  var _sys = 'You are a SEBI-registered Merchant Banker and ICDR compliance expert. Write complete detailed Mainboard IPO readiness reports covering all ICDR regulations. Minimum 1500 words. Never truncate.';
-  var _p = 'Write a COMPLETE ICDR Compliance and Mainboard IPO Readiness Report: ## 1. Executive Summary ## 2. ICDR Eligibility Check with actual numbers (profitability track record 3 years, net worth minimum, net tangible assets) ## 3. Financial Performance 3-year analysis with tables ## 4. Promoter and Shareholding Pattern Analysis ## 5. Corporate Governance Assessment (board composition, independent directors ratio, committees) ## 6. DRHP Key Sections Analysis ## 7. Timeline to IPO (estimated months) ## 8. Key Gaps and Action Plan (specific items to resolve before filing) ## 9. Overall Readiness Rating Green Amber Red with justification. Minimum 1500 words. Use actual Probe42 data throughout.';
-  return runTab('mainboard-cin','mainboard-sector','mainboard-exchange','result-mainboard','prog-mainboard','btn-ma-run','mainboard',_sys,_p,4000);
-}
-
 async function runValuationDoc(){
   var cin=(document.getElementById('valdoc-cin')||{}).value||'';
   cin=cin.trim().toUpperCase();
