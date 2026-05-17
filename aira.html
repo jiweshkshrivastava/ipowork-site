@@ -2761,6 +2761,8 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     var rev22=+(parseFloat(f.revenue_fy22)||0).toFixed(2);
     var pat22=+(parseFloat(f.pat_fy22)||0).toFixed(2);
     var yr24=f.fy24_year||'FY24', yr23=f.fy23_year||'FY23', yr22=f.fy22_year||'FY22';
+    var fixYrF=function(yr){if(!yr)return null;var s=String(yr);if(s.indexOf('FY')===0&&s.length===4){var y=parseInt(s.slice(2));if(y>0&&y<30)return yr;}if(/^\d{4}$/.test(s)){var y2=parseInt(s.slice(2));return 'FY'+y2;}return yr;};
+    yr24=fixYrF(yr24)||'FY24';yr23=fixYrF(yr23)||'FY23';yr22=fixYrF(yr22)||'FY22';
     var revGr=rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0;
     var patGr=pat23>0?+((pat-pat23)/pat23*100).toFixed(1):0;
     var openChgs=chgs.filter(function(c){return c.status==='Open';}).length;
@@ -2786,13 +2788,45 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
 
     // Parse narrative sections
     var getSection=function(txt,key){
-      var m=txt.match(new RegExp('\\['+key+'\\]([\\s\\S]*?)(?=\\[[A-Z]+\\]|$)'));
-      return m?m[1].trim():'';
+      // Try [TAG] format first
+      var m=txt.match(new RegExp('\\['+key+'\\][\\s\\S]*?([\\s\\S]*?)(?=\\[[A-Z]+\\]|$)'));
+      if(!m) m=txt.match(new RegExp('\\['+key+'\\]([\\s\\S]*?)(?=\\[[A-Z]+\\]|$)'));
+      if(m&&m[1]&&m[1].trim()) return m[1].trim();
+      // Try ### Header format (Claude often uses this)
+      var keyLower=key.toLowerCase();
+      var headerMap={OVERVIEW:'overview|business|company',FINANCIALS:'financial|analysis',
+        GOVERNANCE:'governance|compliance|board',RECOMMENDATION:'recommendation|verdict|readiness',
+        THESIS:'thesis|investment|summary',COMPETITIVE:'competitive|market|position',
+        RISKS:'risk|risks|outlook'};
+      var pattern=headerMap[key]||keyLower;
+      var hm=txt.match(new RegExp('###?\\s*(?:[\\w\\s]*(?:'+pattern+')[\\w\\s]*)\\s*\\*?\\n([\\s\\S]*?)(?=###?\\s*[A-Z]|$)','i'));
+      if(hm&&hm[1]&&hm[1].trim()) return hm[1].trim();
+      // Fallback: split by sections
+      var parts=txt.split(/#{1,3}\s+/);
+      if(parts.length>1){
+        for(var pi=0;pi<parts.length;pi++){
+          if(new RegExp(pattern,'i').test(parts[pi].split('\n')[0])) return parts[pi].split('\n').slice(1).join('\n').trim();
+        }
+      }
+      return '';
     };
-    var overview=getSection(txt,'OVERVIEW')||txt.split('\n').slice(0,3).join('\n');
-    var financials=getSection(txt,'FINANCIALS')||'';
-    var governance=getSection(txt,'GOVERNANCE')||'';
-    var recommendation=getSection(txt,'RECOMMENDATION')||'';
+    var overview=getSection(txt,'OVERVIEW');
+    var financials=getSection(txt,'FINANCIALS');
+    var governance=getSection(txt,'GOVERNANCE');
+    var recommendation=getSection(txt,'RECOMMENDATION');
+    // If tags not found, split txt into 4 equal parts
+    if(!overview&&!financials&&txt.length>50){
+      var paras=txt.split(/\n\n+/).filter(function(p){return p.trim().length>20;});
+      var qtr=Math.ceil(paras.length/4);
+      overview=paras.slice(0,qtr).join('\n\n');
+      financials=paras.slice(qtr,qtr*2).join('\n\n');
+      governance=paras.slice(qtr*2,qtr*3).join('\n\n');
+      recommendation=paras.slice(qtr*3).join('\n\n');
+    }
+    overview=overview||'Specialized '+sector+' company with operations in '+exchange+'.';
+    financials=financials||'Revenue: ₹'+rev+' Cr | PAT: ₹'+pat+' Cr | ROE: '+roe+'% | D/E: '+de+'x';
+    governance=governance||dirs.length+' directors | '+openChgs+' open charges';
+    recommendation=recommendation||'IPO readiness assessment pending detailed review.';
 
     if(prog)prog.style.display='none';
     if(btn){btn.disabled=false;btn.innerHTML='&#9654; Run Analysis';}
@@ -2872,7 +2906,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       if(!s[1]) return;
       html+='<div style="background:'+s[2]+';border:1px solid #E0EAF0;border-radius:10px;padding:16px;margin-bottom:12px">'
         +'<div style="font-size:12px;font-weight:700;color:'+ac+';margin-bottom:8px">'+s[0]+'</div>'
-        +'<p style="font-size:13px;line-height:1.7;color:#1A2E35;margin:0">'+esc(s[1])+'</p></div>';
+        +'<div style="font-size:13px;line-height:1.7;color:#1A2E35" class="ai-body">'+md2html(s[1])+'</div></div>';
     });
 
     // Charges if any
@@ -3231,6 +3265,9 @@ async function runValuationIntel(){
     var pat23=+(parseFloat(f.pat_fy23)||0).toFixed(2);
     var rev22=+(parseFloat(f.revenue_fy22)||0).toFixed(2);
     var yr24=f.fy24_year||'FY24',yr23lbl=f.fy23_year||'FY23',yr22lbl=f.fy22_year||'FY22';
+    // Fix year labels - should be FY22/23/24 not FY31 etc
+    var fixYr=function(yr){if(!yr)return null;var s=String(yr);if(s.indexOf('FY')===0&&s.length===4){var y=parseInt(s.slice(2));if(y>0&&y<30)return yr;}if(/^\d{4}$/.test(s)){var y2=parseInt(s.slice(2));return 'FY'+y2;}return yr;};
+    yr24=fixYr(yr24)||'FY24';yr23lbl=fixYr(yr23lbl)||'FY23';yr22lbl=fixYr(yr22lbl)||'FY22';
     var revGr=rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0;
     var cr2=+(parseFloat(f.current_ratio)||0).toFixed(2);
     var intCov=+(parseFloat(f.interest_coverage)||0).toFixed(1);
