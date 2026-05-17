@@ -875,6 +875,19 @@ function loadAdmin(){
   }
 
   // Reports - both session + stored
+  // Refresh button
+  var statsParent = document.getElementById('admin-stats');
+  if(statsParent && statsParent.parentNode){
+    var existingRefresh = document.getElementById('admin-refresh-btn');
+    if(!existingRefresh){
+      var refreshBtn = document.createElement('button');
+      refreshBtn.id = 'admin-refresh-btn';
+      refreshBtn.innerHTML = '&#8635; Refresh';
+      refreshBtn.style.cssText = 'float:right;padding:4px 12px;background:#08404D;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-bottom:8px';
+      refreshBtn.onclick = loadAdmin;
+      statsParent.parentNode.insertBefore(refreshBtn, statsParent.nextSibling);
+    }
+  }
   var reportsEl = document.getElementById('admin-reports');
   if(reportsEl){
     var stored = getStoredReports();
@@ -2219,6 +2232,7 @@ function downloadReport(tier){
 function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   if(!out) return;
   AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,exchange:exchange,tier:tier};
+    saveReportToStore(tier, cname, sector, result);
 
   var report  = result._report || result.report || '';
   var score   = result.score || 0;
