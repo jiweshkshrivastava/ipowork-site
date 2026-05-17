@@ -783,7 +783,51 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <!-- Two tabs -->
 <div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;margin:16px 0 0;overflow:hidden">
   <button id="atab-reports" onclick="showAdminTab('reports')"
-    style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weigh
+    style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weight:700;cursor:pointer">
+    &#128202; Report History
+  </button>
+  <button id="atab-approvals" onclick="showAdminTab('approvals')"
+    style="flex:1;padding:10px;border:none;background:#fff;color:#08404D;font-weight:700;font-size:13px;cursor:pointer">
+    &#9989; Approvals &amp; Users
+  </button>
+</div>
+
+<!-- Report History Panel -->
+<div id="admin-panel-reports" style="display:block">
+  <div id="admin-reports" style="margin-top:4px"></div>
+</div>
+
+<!-- Approvals Panel -->
+<div id="admin-panel-approvals" style="display:none">
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin:16px 0 8px">&#128235; Pending Access Requests</div>
+  <div id="access-requests-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:20px">
+    <div style="padding:12px;color:#6B8A94;font-size:12px">Loading...</div>
+  </div>
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#10003; Approved Users</div>
+  <div id="approved-users-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:20px">
+    <div style="padding:16px;color:#6B8A94;font-size:12px">Loading...</div>
+  </div>
+  <div id="admin-users" style="overflow-x:auto"></div>
+  <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:16px;margin-top:8px">
+    <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:10px">&#10133; Add Approved User</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <input id="new-user-email" type="email" placeholder="Email *" style="padding:8px 10px;border:1.5px solid #D8EDF0;border-radius:7px;font-size:12px;outline:none"/>
+      <input id="new-user-name" type="text" placeholder="Full Name" style="padding:8px 10px;border:1.5px solid #D8EDF0;border-radius:7px;font-size:12px;outline:none"/>
+      <input id="new-user-pw" type="text" placeholder="Password" style="padding:8px 10px;border:1.5px solid #D8EDF0;border-radius:7px;font-size:12px;outline:none"/>
+      <select id="new-user-plan" style="padding:8px 10px;border:1.5px solid #D8EDF0;border-radius:7px;font-size:12px">
+        <option value="paid">Paid User</option>
+        <option value="trial">Trial</option>
+        <option value="partner">Partner</option>
+      </select>
+    </div>
+    <button onclick="addUserFromForm()" style="padding:8px 18px;background:#08404D;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">&#10003; Approve User</button>
+  </div>
+</div>
+</div>
+</div>
+
+</div>
+<script>
 console.log('ipowork v3.1 loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 var ADMIN_UNLOCKED = false;
@@ -4087,13 +4131,74 @@ function updateFullReportBtn(){
 }
 
 
-onal purposes only and does not constitute investment advice, research, or a prospectus. Consult SEBI-registered professionals before making any financial decisions. Data sourced from Probe42/MCA. © 2025 ipowork.'
-    +'</div>'
-    +'</div>';
 
-  out.innerHTML = html;
-  out.scrollIntoView({behavior:'smooth', block:'start'});
+
+
+
+
+
+
+
+
+
+
+function removeUser(email){
+  if(!email) return;
+  if(!confirm('Remove user: ' + email + '?')) return;
+  if(IPOWORK_USERS[email]){
+    delete IPOWORK_USERS[email];
+    loadAdmin();
+  }
 }
+
+function addUserFromForm(){
+  var email = (document.getElementById('new-user-email')||{}).value||'';
+  var name  = (document.getElementById('new-user-name')||{}).value||'';
+  var pw    = (document.getElementById('new-user-pw')||{}).value||'ipowork2024';
+  var plan  = (document.getElementById('new-user-plan')||{}).value||'paid';
+  email = email.trim().toLowerCase();
+  if(!email){ alert('Email is required.'); return; }
+  IPOWORK_USERS[email] = {name:name, password:pw, approved:true, plan:plan, free:false};
+  alert('User added: ' + email);
+  loadApprovedUsers();
+  if(document.getElementById('admin-users'))
+    document.getElementById('new-user-email').value = '';
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  loadSavedUsers();
+  updateUserUI();
+  switchTier('paid');
+  window.switchTier=switchTier;
+  window.toggleDevGroups=toggleDevGroups;
+  window.handleAdminClick=handleAdminClick;
+  window.openAdminAuth=openAdminAuth;
+  window.closeAdminAuth=closeAdminAuth;
+  window.checkAdminPwd=checkAdminPwd;
+  window.gateLogin=gateLogin;
+  window.gateShowTab=gateShowTab;
+  window.closeAccessGate=closeAccessGate;
+  window.showAdminTab=showAdminTab;
+  window.searchZauba=searchZauba;
+  window.requireLoginThen=requireLoginThen;
+  window.testWorkerNow=testWorkerNow;
+  window.generateFullReport=generateFullReport;
+  window.updateFullReportBtn=updateFullReportBtn;
+  window.runValuationDoc=runValuationDoc;
+  window.runValuationIntel=runValuationIntel;
+  window.runDeepResearchFull=runDeepResearchFull;
+  window.printReport=printReport;
+  window.addUserFromForm=addUserFromForm;
+  window.removeUser=removeUser;
+  window.submitAccessRequest=submitAccessRequest;
+  window.clearReportHistory=clearReportHistory;
+  window.doSearch=doSearch;
+  window.renderValuationReport=renderValuationReport;
+  window.renderSimpleReport=renderSimpleReport;
+  window.loadAdmin=loadAdmin;
+  window.showAdminTab=showAdminTab;
+  updateFullReportBtn();
+});
 
 </script>
 </body>
