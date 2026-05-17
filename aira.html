@@ -3133,33 +3133,135 @@ async function runValuationDoc(){
   var exchange=(document.getElementById('valdoc-exchange')||{}).value||'NSE Main Board';
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById('btn-vd-run'),prog=document.getElementById('prog-valdoc'),out=document.getElementById('result-valdoc');
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"><' + '/span> Generating…';}
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Fetching data & generating report\u2026';}
   if(out)out.innerHTML='';if(prog)prog.style.display='flex';
   try{
+    // Step 1: Probe42 live data
     var p42=await workerPost({type:'probe42_raw',cin:cin});
     var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
     var f=(p42&&p42.financials)||{},dirs=(p42&&p42.directors)||[],chgs=(p42&&p42.charges)||[];
-    var fC=function(v){if(!v||isNaN(v))return 'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(2)+' Cr':n>=100000?'₹'+(n/100000).toFixed(2)+' L':'₹'+n.toFixed(0);};
-    var fP=function(v){return(v!=null&&!isNaN(v))?parseFloat(v).toFixed(2)+'%':'N/A';};
-    var fd='Company: '+cname+' | CIN: '+cin+' | Sector: '+sector+' | Exchange: '+exchange+'\nRevenue: FY24='+fC(f.revenue_fy24)+' | FY23='+fC(f.revenue_fy23)+' | FY22='+fC(f.revenue_fy22)+'\nPAT: FY24='+fC(f.pat_fy24)+' | FY23='+fC(f.pat_fy23)+'\nEBITDA Margin='+fP(f.ebitda_margin)+' | Net Margin='+fP(f.net_profit_margin)+'\nNet Worth='+fC(f.net_worth)+' | Assets='+fC(f.total_assets)+' | Debt='+fC(f.total_debt)+'\nD/E='+(f.debt_equity_ratio||'N/A')+'x | ROE='+fP(f.roe)+' | ROCE='+fP(f.roce)+'\nRevenue CAGR='+fP(f.revenue_cagr_3y)+' | PAT CAGR='+fP(f.pat_cagr_3y)+'\nDirectors: '+dirs.length+' | Open Charges: '+chgs.filter(function(c){return c.status==='Open';}).length;
-    var jTpl='{"val_conservative_cr":0,"val_base_cr":0,"val_optimistic_cr":0,"revenue_cr":0,"pat_cr":0,"ebitda_cr":0,"ebitda_margin_pct":0,"net_worth_cr":0,"roe":0,"primary_method":"EV/EBITDA","sector_pe_avg":0,"sector_ev_avg":0,"wacc":13,"price_band_low":0,"price_band_high":0,"peer1_name":"","peer1_pe":0,"peer1_ev":0,"peer1_mc_cr":0,"peer2_name":"","peer2_pe":0,"peer2_ev":0,"peer2_mc_cr":0,"peer3_name":"","peer3_pe":0,"peer3_ev":0,"peer3_mc_cr":0,"key_driver1":"","key_driver2":"","key_risk1":"","key_risk2":"","company_name":"'+cname+'"}';
-    var secs='## 1. Executive Summary\n## 2. Company Overview and Business Profile\n## 3. Financial Performance Analysis (3-year trend, CAGR, ratios, working capital, debt)\n## 4. Industry and Market Context (TAM, growth drivers, competitive landscape)\n## 5. Valuation Methodology - THREE methods with full calculations: (a) P/E Multiple - sector avg, company premium/discount, equity value; (b) EV/EBITDA - enterprise to equity bridge; (c) DCF Analysis - 5-year projections, WACC computation, terminal value, NPV\n## 6. Listed Peer Comparables Table (3 peers: Company|Revenue Cr|PAT Cr|EBITDA%|P/E|EV/EBITDA|Mkt Cap Cr)\n## 7. IPO Price Band Recommendation (Conservative/Base/Optimistic scenarios with rationale)\n## 8. Key Investment Risks (minimum 6 risks with specific mitigations)\n## 9. Conclusion and Investment Merit\nMinimum 1800 words. Use actual numbers. Professional Big 4 advisory tone.';
-    var prompt='You are a Senior Merchant Banker at a Big 4 advisory firm preparing a comprehensive IPO Valuation Report.\n\nCOMPANY DATA (Probe42 live):\n'+fd+'\n\nOutput JSON first:\n---VALUATION_JSON_START---\n'+jTpl+'\n---VALUATION_JSON_END---\n\nThen write:\n'+secs;
-    var ar=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:4000,system:'You are a Senior Merchant Banker at a Big 4 advisory firm. Write complete professional IPO valuation reports. Minimum 1800 words. Never truncate. Cover every section fully with actual numbers.',messages:[{role:'user',content:prompt}]});
+    var fC=function(v){if(!v||isNaN(v))return null;return Number(v);};
+
+    // Extract all available financials
+    var rev24=fC(f.revenue_fy24), rev23=fC(f.revenue_fy23), rev22=fC(f.revenue_fy22);
+    var pat24=fC(f.pat_fy24), pat23=fC(f.pat_fy23);
+    var ebitda=fC(f.ebitda), ebitdaM=fC(f.ebitda_margin), netWorth=fC(f.net_worth);
+    var totalAssets=fC(f.total_assets), totalDebt=fC(f.total_debt), de=fC(f.debt_equity_ratio);
+    var roe=fC(f.roe), roce=fC(f.roce), cagr=fC(f.revenue_cagr_3y);
+
+    var fmt=function(v,unit){ if(v==null)return 'Data not available'; var n=Number(v); 
+      if(unit==='cr') return n>=10000000?(n/10000000).toFixed(2)+' Cr':n>=100000?(n/100000).toFixed(2)+' L':n.toFixed(0);
+      if(unit==='pct') return n.toFixed(2)+'%'; return n.toFixed(2); };
+
+    var fd = 'COMPANY: '+cname+'\nCIN: '+cin+'\nSector: '+sector+'\nExchange: '+exchange+'\n\n'
+      +'FINANCIAL DATA (from Probe42 MCA live data):\n'
+      +'Revenue FY24: '+(rev24?fmt(rev24,'cr'):'Not available in Probe42')+'\n'
+      +'Revenue FY23: '+(rev23?fmt(rev23,'cr'):'Not available')+'\n'
+      +'Revenue FY22: '+(rev22?fmt(rev22,'cr'):'Not available')+'\n'
+      +'PAT FY24: '+(pat24?fmt(pat24,'cr'):'Not available')+'\n'
+      +'PAT FY23: '+(pat23?fmt(pat23,'cr'):'Not available')+'\n'
+      +'EBITDA: '+(ebitda?fmt(ebitda,'cr'):'Not available')+'\n'
+      +'EBITDA Margin: '+(ebitdaM?fmt(ebitdaM,'pct'):'Not available')+'\n'
+      +'Net Worth: '+(netWorth?fmt(netWorth,'cr'):'Not available')+'\n'
+      +'Total Assets: '+(totalAssets?fmt(totalAssets,'cr'):'Not available')+'\n'
+      +'Total Debt: '+(totalDebt?fmt(totalDebt,'cr'):'Not available')+'\n'
+      +'D/E Ratio: '+(de!=null?de.toFixed(2)+'x':'Not available')+'\n'
+      +'ROE: '+(roe?fmt(roe,'pct'):'Not available')+'\n'
+      +'ROCE: '+(roce?fmt(roce,'pct'):'Not available')+'\n'
+      +'Revenue CAGR 3Y: '+(cagr?fmt(cagr,'pct'):'Not available')+'\n'
+      +'Directors: '+dirs.length+' | Open Charges: '+chgs.filter(function(c){return c.status==='Open';}).length+'\n';
+
+    // Step 2: Claude generates the complete report with values
+    var prompt = 'You are a Senior Merchant Banker at a top investment bank preparing an IPO Valuation Report.\n\n'
+      +'COMPANY DATA FROM PROBE42 (MCA LIVE DATA):\n'+fd+'\n\n'
+      +'IMPORTANT INSTRUCTIONS:\n'
+      +'1. You MUST output the JSON block FIRST, before any other text\n'
+      +'2. Fill ALL numeric fields with your best estimates based on the data and sector knowledge\n'
+      +'3. If Probe42 data shows a value, USE IT. If not available, ESTIMATE based on sector benchmarks\n'
+      +'4. For '+sector+' sector companies targeting '+exchange+', use realistic P/E multiples\n\n'
+      +'OUTPUT FORMAT - JSON BLOCK FIRST (mandatory):\n'
+      +'---VALUATION_JSON_START---\n'
+      +'{\n'
+      +'"company_name": "'+cname+'",\n'
+      +'"revenue_cr": '+(rev24?(rev24/10000000).toFixed(2):0)+',\n'
+      +'"pat_cr": '+(pat24?(pat24/10000000).toFixed(2):0)+',\n'
+      +'"ebitda_cr": '+(ebitda?(ebitda/10000000).toFixed(2):0)+',\n'
+      +'"ebitda_margin_pct": '+(ebitdaM?ebitdaM.toFixed(2):0)+',\n'
+      +'"net_worth_cr": '+(netWorth?(netWorth/10000000).toFixed(2):0)+',\n'
+      +'"roe": '+(roe?roe.toFixed(2):0)+',\n'
+      +'"debt_equity": '+(de?de.toFixed(2):0)+',\n'
+      +'"wacc": 13,\n'
+      +'"primary_method": "EV/EBITDA",\n'
+      +'"sector_pe_avg": 0,\n'
+      +'"sector_ev_avg": 0,\n'
+      +'"val_conservative_cr": 0,\n'
+      +'"val_base_cr": 0,\n'
+      +'"val_optimistic_cr": 0,\n'
+      +'"price_band_low": 0,\n'
+      +'"price_band_high": 0,\n'
+      +'"peer1_name": "",\n"peer1_pe": 0,\n"peer1_ev": 0,\n"peer1_mc_cr": 0,\n'
+      +'"peer2_name": "",\n"peer2_pe": 0,\n"peer2_ev": 0,\n"peer2_mc_cr": 0,\n'
+      +'"peer3_name": "",\n"peer3_pe": 0,\n"peer3_ev": 0,\n"peer3_mc_cr": 0,\n'
+      +'"key_driver1": "",\n"key_driver2": "",\n"key_driver3": "",\n'
+      +'"key_risk1": "",\n"key_risk2": "",\n"key_risk3": ""\n'
+      +'}\n'
+      +'---VALUATION_JSON_END---\n\n'
+      +'FILL IN ALL ZERO VALUES with realistic numbers. Then write the full report (1500+ words):\n'
+      +'## 1. Executive Summary\n'
+      +'## 2. Company Overview & Business Profile\n'
+      +'## 3. Financial Analysis (3-year trend, margins, ratios)\n'
+      +'## 4. Industry & Market Context\n'
+      +'## 5. Valuation (P/E, EV/EBITDA, DCF with full calculations)\n'
+      +'## 6. Listed Peer Comparables\n'
+      +'## 7. IPO Price Band Recommendation\n'
+      +'## 8. Key Risks\n'
+      +'## 9. Conclusion';
+
+    var ar=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:4000,
+      system:'You are a Senior Merchant Banker. Output the JSON block EXACTLY as specified with ALL values filled in. Then write a complete professional valuation report.',
+      messages:[{role:'user',content:prompt}]});
     var txt=(ar&&ar.content||[]).map(function(c){return c.text||'';}).join('');
-    if(!txt)throw new Error('Empty response. Check ANTHROPIC_API_KEY.');
-    if(prog)prog.style.display='none';if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
-    var vdata={};var jm=txt.match(/---VALUATION_JSON_START---([\s\S]*?)---VALUATION_JSON_END---/);
-    if(jm){try{vdata=JSON.parse(jm[1].trim());}catch(e){}}
-    var rep=txt.replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'').trim();
-    var result=Object.assign({},vdata,{_report:rep,company_name:vdata.company_name||cname,cin:cin,sector:sector,exchange:exchange,_type:'valuation'});
-    AIRA_RESULTS['valdoc']={result:result,cname:cname,sector:sector,tier:'valdoc'};
-    saveReportToStore('valdoc', cname, sector, AIRA_RESULTS['valdoc'].result||{});
-    renderValuationReport(result,cname,sector,out,'valdoc');
-    if(out)out.scrollIntoView({behavior:'smooth',block:'start'});
+    if(!txt)throw new Error('Empty response. Check ANTHROPIC_API_KEY in Cloudflare secrets.');
+
+    if(prog)prog.style.display='none';
+    if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
+
+    // Parse JSON - more robust extraction
+    var vdata = {};
+    var jm = txt.match(/---VALUATION_JSON_START---\s*([\s\S]*?)\s*---VALUATION_JSON_END---/);
+    if(jm){
+      try{ vdata = JSON.parse(jm[1].trim()); }
+      catch(e){
+        // Try to fix common JSON issues
+        try{ vdata = JSON.parse(jm[1].trim().replace(/,\s*}/g,'}')); }catch(e2){}
+      }
+    }
+
+    // Clean report text
+    var rep = txt
+      .replace(/---VALUATION_JSON_START---[\s\S]*?---VALUATION_JSON_END---/g,'')
+      .replace(/```json[\s\S]*?```/g,'')
+      .replace(/```[\s\S]*?```/g,'')
+      .trim();
+
+    // Merge Probe42 data into vdata (ensure real values used)
+    if(rev24 && !vdata.revenue_cr) vdata.revenue_cr = (rev24/10000000);
+    if(pat24 && !vdata.pat_cr) vdata.pat_cr = (pat24/10000000);
+    if(ebitda && !vdata.ebitda_cr) vdata.ebitda_cr = (ebitda/10000000);
+    if(ebitdaM && !vdata.ebitda_margin_pct) vdata.ebitda_margin_pct = ebitdaM;
+    if(netWorth && !vdata.net_worth_cr) vdata.net_worth_cr = (netWorth/10000000);
+    if(roe && !vdata.roe) vdata.roe = roe;
+    if(de!=null && !vdata.debt_equity) vdata.debt_equity = de;
+
+    var result = Object.assign({}, vdata, {_report:rep, company_name:vdata.company_name||cname, cin:cin, sector:sector, exchange:exchange, _type:'valuation'});
+    AIRA_RESULTS['valdoc'] = {result:result, cname:cname, sector:sector, tier:'valdoc'};
+    saveReportToStore('valdoc', cname, sector, result);
+    renderValuationReport(result, cname, sector, out, 'valdoc');
+
   }catch(e){
-    if(prog)prog.style.display='none';if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
-    if(out)out.innerHTML='<div class="err-card"><b>Error:<' + '/b> '+esc(e.message)+'<' + '/div>';
+    if(prog)prog.style.display='none';
+    if(btn){btn.disabled=false;btn.innerHTML='&#128196; Generate Valuation Report \xb7 \u20b92,999 \u2192';}
+    if(out)out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
   }
 }
 
