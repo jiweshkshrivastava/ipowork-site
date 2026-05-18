@@ -2960,6 +2960,33 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
           +'(8) Overall DD verdict: PROCEED/CONDITIONAL/DEFER with score '+score+'/100'
       }
 
+
+      ,dirscan:{
+        p1:'Write Section 1 - BOARD COMPOSITION & DIRECTOR PROFILES (400 words):\n'
+          +'(1) Board composition table: Director Name|DIN|Designation|Appointment Date|Independence\n'
+          +'(2) Director-wise profile: qualifications, industry experience, other directorships\n'
+          +'(3) Board size assessment: '+dirs.length+' directors vs SEBI requirements\n'
+          +'(4) Promoter vs independent ratio analysis\n'
+          +'(5) Gender diversity on board',
+        p2:'Write Section 2 - DIRECTOR COMPLIANCE & DIN STATUS (400 words):\n'
+          +'(1) DIN compliance table for all directors\n'
+          +'(2) Section 164 disqualification check: Undischarged insolvency, conviction, fraud\n'
+          +'(3) Section 167 disqualification: Non-filing defaults\n'
+          +'(4) Multiple directorships: conflicts of interest assessment\n'
+          +'(5) Director remuneration disclosure requirements',
+        p3:'Write Section 3 - GOVERNANCE ASSESSMENT (400 words):\n'
+          +'(1) Board independence ratio vs SEBI LODR Regulation 17\n'
+          +'(2) Audit Committee - Regulation 18 status\n'
+          +'(3) Nomination & Remuneration Committee\n'
+          +'(4) Related party transaction oversight\n'
+          +'(5) Succession planning and key-person risk assessment',
+        p4:'Write Section 4 - GOVERNANCE VERDICT & RECOMMENDATIONS (400 words):\n'
+          +'(1) Governance scorecard table: 10 parameters, score out of 10\n'
+          +'(2) Critical actions before IPO filing\n'
+          +'(3) Independent director appointment requirements\n'
+          +'(4) Board committee setup timeline\n'
+          +'(5) Governance rating: STRONG/ADEQUATE/WEAK with justification'
+      }
     };  // end tierPrompts
 
     var tp=tierPrompts[tier]||tierPrompts.free;
@@ -3318,7 +3345,191 @@ async function runValuationIntel(){
   }
 }
 
-async function runDeepResearchFull(){ return runTab('dr-cin','dr-sector','dr-exchange','result-deepresearch','prog-deepresearch','btn-dr-run','deepresearch',null,null,null); }
+async function runDeepResearchFull(){
+  var cin=(document.getElementById('dr-cin')||{}).value||'';
+  cin=cin.trim().toUpperCase();
+  var sector=(document.getElementById('dr-sector')||{}).value||'Manufacturing';
+  var exchange=(document.getElementById('dr-exchange')||{}).value||'NSE Main Board';
+  var depth=(document.getElementById('dr-depth')||{}).value||'standard';
+  if(!cin){alert('Please enter CIN.');return;}
+  var btn=document.getElementById('btn-dr-run'),prog=document.getElementById('prog-deepresearch'),out=document.getElementById('result-deepresearch');
+  if(btn){btn.disabled=true;}
+  if(out)out.innerHTML='<div style="padding:30px;text-align:center;font-family:\'Segoe UI\',Arial,sans-serif"><div class="status-msg" style="font-size:14px;font-weight:700;color:#3B30B0;margin-bottom:12px">Deep Research Engine Starting\u2026</div><div style="background:#F0EEFF;border-radius:8px;padding:2px;margin-bottom:12px"><div class="dr-progress-bar" style="background:linear-gradient(90deg,#3B30B0,#5B4ED4);height:8px;border-radius:6px;width:3%;transition:width .5s"></div></div></div>';
+  if(prog)prog.style.display='flex';
+
+  var tokPerMod=depth==='quick'?700:depth==='deep'?1300:1000;
+  var modCount=depth==='quick'?8:depth==='deep'?15:12;
+
+  var setPct=function(pct,msg){
+    if(btn)btn.innerHTML='<span class="spinner"></span> ['+pct+'%] '+msg;
+    var pb=out&&out.querySelector('.dr-progress-bar');
+    if(pb)pb.style.width=pct+'%';
+    var sm=out&&out.querySelector('.status-msg');
+    if(sm)sm.textContent=msg;
+  };
+
+  try{
+    setPct(3,'Fetching company data from Probe42\u2026');
+    var p42=await workerPost({type:'probe42_raw',cin:cin});
+    var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
+    var f=(p42&&p42.financials)||{},dirs=(p42&&p42.directors)||[],chgs=(p42&&p42.charges)||[];
+    var rev=+(parseFloat(f.revenue_fy24)||0).toFixed(2),pat=+(parseFloat(f.pat_fy24)||0).toFixed(2);
+    var ePct=+(parseFloat(f.ebitda_margin)||0).toFixed(1);
+    var eCr=+(parseFloat(f.ebitda_cr)||(rev*ePct/100)||0).toFixed(2);
+    var nw=+(parseFloat(f.net_worth)||0).toFixed(2),debt=+(parseFloat(f.total_debt)||0).toFixed(2);
+    var de=+(parseFloat(f.debt_equity_ratio)||(nw>0?debt/nw:0)).toFixed(2);
+    var roe=+(parseFloat(f.roe)||0).toFixed(1),roce=+(parseFloat(f.roce)||0).toFixed(1);
+    var netM=+(rev>0?pat/rev*100:0).toFixed(1);
+    var cr2=+(parseFloat(f.current_ratio)||0).toFixed(2);
+    var intCov=+(parseFloat(f.interest_coverage)||0).toFixed(1);
+    var assets=+(parseFloat(f.total_assets)||0).toFixed(2);
+    var rev23r=parseFloat(f.revenue_fy23)||0,rev22r=parseFloat(f.revenue_fy22)||0;
+    var rev23=rev23r>=1?+rev23r.toFixed(2):0,rev22=rev22r>=1?+rev22r.toFixed(2):0;
+    var yr24=f.fy24_year||'FY24',yr23lbl=f.fy23_year||'FY23',yr22lbl=f.fy22_year||'FY22';
+    var fixYr=function(yr,d){var s=String(yr||'').replace(/FY/i,'').trim();var n=parseInt(s);if(isNaN(n))return d;if(n>=2000)n=n%100;return(n>=18&&n<=30)?'FY'+n:d;};
+    yr24=fixYr(yr24,'FY24');yr23lbl=fixYr(yr23lbl,'FY23');yr22lbl=fixYr(yr22lbl,'FY22');
+    var openChgs=chgs.filter(function(c){return c.status==='Open';}).length;
+    var revGr=rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0;
+
+    // IPO score
+    var score=0;
+    if(roe>=20)score+=15;else if(roe>=12)score+=8;
+    if(roce>=15)score+=15;else if(roce>=10)score+=8;
+    if(rev>=50)score+=10;else if(rev>=20)score+=5;
+    if(pat>=5)score+=10;if(nw>=10)score+=10;if(ePct>=15)score+=10;
+    if(de<=1)score+=10;if(openChgs===0)score+=10;if(dirs.length>=3)score+=5;
+    score=Math.min(100,score);
+    var ipoColor=score>=75?'#1A6B3A':score>=50?'#E67E22':'#C0392B';
+
+    var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED (Pre-IPO)'
+      +'\n'+yr22lbl+'=\u20b9'+rev22+' Cr | '+yr23lbl+'=\u20b9'+rev23+' Cr | '+yr24+'=\u20b9'+rev+' Cr ('+revGr+'% YoY)'
+      +'\nPAT=\u20b9'+pat+' Cr ('+netM+'%) | EBITDA='+ePct+'% (\u20b9'+eCr+' Cr)'
+      +'\nNW=\u20b9'+nw+' Cr | Debt=\u20b9'+debt+' Cr | D/E='+de+'x | Assets=\u20b9'+assets+' Cr'
+      +'\nROE='+roe+'% | ROCE='+roce+'% | CurrRatio='+cr2+'x | IntCov='+intCov+'x'
+      +'\nDirectors='+dirs.length+' | Open Charges='+openChgs+'/'+chgs.length;
+
+    var sys='You are a Senior Partner at McKinsey & KPMG IPO Advisory. Write detailed, data-driven analysis with tables and specific regulatory references.';
+
+    var allModules=[
+      {id:'M01',t:'Executive Intelligence Summary',p:fd+'\n\nWrite Executive Intelligence Summary:\n(1) Company snapshot table: key metrics\n(2) Investment thesis: 4 key reasons\n(3) IPO readiness score breakdown table (score '+score+'/100)\n(4) Key highlights and material concerns\n(5) Comparable listed companies benchmarks table'},
+      {id:'M02',t:'Business Model & Competitive Analysis',p:fd+'\n\nWrite Business Model & Competitive Analysis:\n(1) Business model canvas: revenue streams, cost structure, value proposition\n(2) Products/services portfolio with margins\n(3) Porter\'s 5 Forces analysis table for '+sector+'\n(4) Competitive landscape: top 5 competitors table\n(5) Competitive moat assessment: Moat Factor|Strength|Score/10'},
+      {id:'M03',t:'Market & Industry Intelligence',p:fd+'\n\nWrite Market & Industry Intelligence for '+sector+':\n(1) TAM/SAM/SOM sizing with methodology\n(2) Market growth drivers table: Driver|Impact|Timeline\n(3) Government policy: PLI schemes, MSME support, Make in India\n(4) Import/export dynamics and China+1 opportunity\n(5) 5-year sector outlook with growth projections'},
+      {id:'M04',t:'Financial Performance Deep-Dive',p:fd+'\n\nWrite Financial Performance Deep-Dive:\n(1) 3-year P&L table: '+yr22lbl+'/'+yr23lbl+'/'+yr24+' Revenue/EBITDA/PAT with CAGR\n(2) DuPont ROE analysis: '+roe+'% = Margin x Turnover x Leverage\n(3) EBITDA bridge: Revenue -> EBITDA -> EBIT -> PBT -> PAT\n(4) Margin trend analysis and quality assessment\n(5) Financial red flag screening checklist'},
+      {id:'M05',t:'Balance Sheet & Capital Structure',p:fd+'\n\nWrite Balance Sheet & Capital Structure analysis:\n(1) Asset composition table: Fixed/Current/Intangible breakdown\n(2) Liability structure: Bank loans, Trade payables, provisions\n(3) Net Worth adequacy: \u20b9'+nw+' Cr vs listing requirements\n(4) '+openChgs+' open charges: lender-wise assessment, encumbrance ratio\n(5) Debt capacity headroom and post-IPO leverage target'},
+      {id:'M06',t:'Return Metrics & Shareholder Value',p:fd+'\n\nWrite Return Metrics analysis:\n(1) DuPont ROE decomposition table for '+roe+'%\n(2) ROCE '+roce+'% decomposition and sustainability\n(3) Economic Value Added (EVA) calculation\n(4) Return metrics vs sector benchmarks table (10 companies)\n(5) FCF yield and dividend capacity assessment'},
+      {id:'M07',t:'Governance & Board Assessment',p:fd+'\n\nWrite Governance & Board Assessment:\n(1) Board composition scorecard: '+dirs.length+' directors assessment table\n(2) Director-wise: Name|DIN|Independence|Experience|Other Directorships\n(3) SEBI LODR Regulation 17 compliance checklist\n(4) Board committees status vs listing requirements\n(5) Corporate governance maturity matrix: Dimension|Current|Required|Gap'},
+      {id:'M08',t:'Regulatory & Compliance Deep-Dive',p:fd+'\n\nWrite Regulatory & Compliance assessment:\n(1) MCA/ROC compliance scorecard: Annual returns, forms filed\n(2) SEBI ICDR Regulation 6 eligibility check: full table\n(3) Tax compliance: Income Tax, GST, TDS status\n(4) Labour law: PF, ESI, Factories Act compliance\n(5) Environmental clearances and industry-specific licences for '+sector},
+      {id:'M09',t:'IPO Valuation Assessment',p:fd+'\n\nWrite IPO Valuation Assessment:\n(1) P/E method detailed workings\n(2) EV/EBITDA method\n(3) DCF model: 5-yr FCF projection table, WACC, terminal value\n(4) P/B valuation method\n(5) Valuation summary: Method|Equity Value|Weight|Weighted\n(6) Sensitivity analysis table: +/-20% on key assumptions\n(7) Price band recommendation with rationale'},
+      {id:'M10',t:'Risk Intelligence Matrix',p:fd+'\n\nWrite Risk Intelligence Matrix:\n(1) Full risk register table: Risk|Category|Probability(H/M/L)|Impact(H/M/L)|Severity|Mitigation (12 risks)\n(2) Top 3 critical risks: detailed analysis each\n(3) Industry-specific risks for '+sector+'\n(4) Governance risks: '+dirs.length+' directors, '+openChgs+' charges\n(5) Macro risks: interest rates, competition, regulatory'},
+      {id:'M11',t:'Due Diligence Checklist',p:fd+'\n\nWrite comprehensive IPO Due Diligence Checklist:\n(1) Business DD: 15 items with status (Done/Pending/N/A)\n(2) Financial DD: 12 items (audits, restatements, working capital)\n(3) Legal DD: 10 items (litigation, contracts, IP, charges)\n(4) Tax DD: 8 key items\n(5) HR & Operational DD: 8 items\n(6) Priority matrix table: Critical vs High vs Medium'},
+      {id:'M12',t:'SWOT & Strategic Analysis',p:fd+'\n\nWrite SWOT & Strategic Analysis:\n(1) Full SWOT table: 5 items per quadrant\n(2) TOWS matrix: SO/ST/WO/WT strategies\n(3) Post-IPO growth strategy and capex plan\n(4) Export opportunity assessment for '+sector+'\n(5) Technology and innovation roadmap'},
+      {id:'M13',t:'Listed Peer Benchmarking',p:fd+'\n\nWrite Listed Peer Benchmarking Report:\n(1) Peer selection methodology and criteria\n(2) 8 listed peers table: Company|NSE|Rev(Cr)|PAT|EBITDA%|PE|EV/EBITDA|ROE%|MktCap\n(3) '+cname+' relative positioning: premium/discount to peers\n(4) Financial benchmarking table: 10 ratios vs peer median\n(5) Valuation gap analysis and re-rating catalysts'},
+      {id:'M14',t:'IPO Process Roadmap',p:fd+'\n\nWrite IPO Process Roadmap:\n(1) Phase-wise timeline table: Phase|Key Activities|Duration|Owner|Dependencies\n(2) Pre-IPO restructuring: 90-day action plan table\n(3) DRHP preparation: complete checklist with timelines\n(4) SEBI filing and observation response process\n(5) Book building, listing, and post-listing obligations\n(6) Total estimated IPO cost breakdown table'},
+      {id:'M15',t:'Investment Verdict & Recommendation',p:fd+'\n\nWrite Investment Verdict:\n(1) IPO readiness final scorecard: 12 parameters, score out of 10 each\n(2) Top 5 investment positives\n(3) Top 5 risks and concerns\n(4) Valuation verdict and price band recommendation\n(5) SUBSCRIBE/NEUTRAL/AVOID with full rationale\n(6) 12-month post-listing price target and catalysts\n(7) Conditions that would change the recommendation'}
+    ];
+
+    var activeModules=allModules.slice(0,modCount);
+    var results=[];
+
+    for(var mi=0;mi<activeModules.length;mi++){
+      var mod=activeModules[mi];
+      var pct=Math.round(5+(mi/activeModules.length)*88);
+      setPct(pct,'Module '+(mi+1)+'/'+activeModules.length+': '+mod.t+'\u2026');
+      try{
+        var mr=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:tokPerMod,
+          system:sys,messages:[{role:'user',content:mod.p}]});
+        var mtxt=(mr&&mr.content||[]).map(function(c){return c.text||'';}).join('').trim();
+        results.push({id:mod.id,title:mod.t,content:mtxt});
+      }catch(me){
+        results.push({id:mod.id,title:mod.t,content:'[Analysis pending — '+me.message+']'});
+      }
+    }
+
+    setPct(96,'Building report\u2026');
+    if(prog)prog.style.display='none';
+    if(btn){btn.disabled=false;btn.innerHTML='&#128269; Generate Deep Research';}
+
+    // Build report
+    var ac='#3B30B0';
+    var reportDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    var report='<div style="font-family:\'Segoe UI\',Arial,sans-serif;max-width:940px;color:#1A2E35">';
+
+    // Cover
+    report+='<div style="background:linear-gradient(135deg,#3B30B0,#5B4ED4);color:#fff;border-radius:14px;padding:26px 30px;margin-bottom:18px">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">'
+      +'<div><div style="font-size:9px;letter-spacing:2px;opacity:.6;text-transform:uppercase;margin-bottom:6px">DEEP RESEARCH INTELLIGENCE \xb7 '+activeModules.length+' MODULES \xb7 '+depth.toUpperCase()+' \xb7 '+reportDate+'</div>'
+      +'<div style="font-size:24px;font-weight:900;line-height:1.2">'+esc(cname)+'</div>'
+      +'<div style="font-size:12px;opacity:.75;margin-top:4px">'+esc(sector)+' \xb7 Target: '+esc(exchange)+' \xb7 Private Unlisted</div>'
+      +'<div style="font-size:10px;opacity:.5;margin-top:3px">CIN: '+esc(cin)+'</div></div>'
+      +'<div style="text-align:center;min-width:90px">'
+      +'<div style="font-size:44px;font-weight:900;color:'+ipoColor+';line-height:1">'+score+'</div>'
+      +'<div style="font-size:10px;opacity:.7">/100 IPO Score</div>'
+      +'<button onclick="printReport(\'deepresearch\')" style="margin-top:6px;padding:4px 12px;background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;font-size:10px;cursor:pointer">&#128438; Print</button>'
+      +'</div></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'
+      +[['Revenue','\u20b9'+rev+' Cr'],['PAT','\u20b9'+pat+' Cr'],['EBITDA',ePct+'%'],['ROE',roe+'%']]
+      .map(function(m){return '<div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px 12px"><div style="font-size:9px;opacity:.6;text-transform:uppercase;margin-bottom:3px">'+m[0]+'</div><div style="font-size:18px;font-weight:800">'+m[1]+'</div></div>';}).join('')
+      +'</div></div>';
+
+    // Module TOC
+    report+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:14px;margin-bottom:16px">'
+      +'<div style="font-size:11px;font-weight:700;color:#3B30B0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Research Modules ('+activeModules.length+')</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">';
+    results.forEach(function(r){
+      report+='<div style="font-size:11px;color:#1A2E35;padding:3px 0;border-bottom:1px solid #F5F5F5">'
+        +'<span style="color:#5B4ED4;font-weight:700;margin-right:6px">'+r.id+'</span>'+esc(r.title)+'</div>';
+    });
+    report+='</div></div>';
+
+    // Each module
+    var modColors=['#EFF6FF','#F0FFF4','#FFF5E8','#F5F0FF','#FFF8F0','#F0F8FF','#FFFDF0',
+                   '#F5FFF5','#F8F0FF','#FFF0F0','#F0FFFF','#FFFFF0','#FFF5FF','#F0F5FF','#FAFFF0'];
+    var modBdr=['#1A5C8A','#1A6B3A','#B5370A','#5B4ED4','#E88A2E','#0D5C6B','#8A8A00',
+                '#2A6B3A','#7B30B0','#C0392B','#0D7C6B','#8A8000','#8A3AB0','#1A3A8A','#3A8A2A'];
+
+    results.forEach(function(r,i){
+      report+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;overflow:hidden;margin-bottom:14px">'
+        +'<div style="background:'+modBdr[i%modBdr.length]+';padding:10px 16px;display:flex;align-items:center;gap:10px">'
+        +'<div style="background:rgba(255,255,255,.25);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">'+r.id+'</div>'
+        +'<div style="font-size:12px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.3px">'+esc(r.title)+'</div>'
+        +'</div>'
+        +'<div style="padding:16px 18px;background:'+modColors[i%modColors.length]+'" class="ai-body">'+md2html(r.content)+'</div>'
+        +'</div>';
+    });
+
+    // Directors & Charges at end
+    if(dirs.length){
+      report+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:14px;margin-bottom:12px">'
+        +'<div style="font-size:11px;font-weight:700;color:#3B30B0;text-transform:uppercase;margin-bottom:8px">Board of Directors ('+dirs.length+')</div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#F5F8FB"><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0;text-align:left">Name</th><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Designation</th><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">DIN</th></tr></thead><tbody>';
+      dirs.forEach(function(d,i){report+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'"><td style="padding:7px 10px;font-weight:600">'+esc(d.name||'')+'</td><td style="padding:7px 10px">'+esc(d.designation||'')+'</td><td style="padding:7px 10px;color:#6B8A94;font-size:11px">'+esc(d.din||'')+'</td></tr>';});
+      report+='</tbody></table></div>';
+    }
+    if(chgs.length){
+      report+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:14px;margin-bottom:12px">'
+        +'<div style="font-size:11px;font-weight:700;color:#3B30B0;text-transform:uppercase;margin-bottom:8px">Charge Register ('+chgs.length+' total \xb7 '+openChgs+' open)</div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#F5F8FB"><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0;text-align:left">Holder</th><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Status</th><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Amount</th><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Date</th></tr></thead><tbody>';
+      chgs.forEach(function(c,i){
+        var holder=c.charge_holder||c.holder||c.lender_name||c.bank||'Financial Institution';
+        var amt=c.amount?(+(parseFloat(c.amount)/100000).toFixed(1)+' L'):'N/D';
+        report+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'"><td style="padding:7px 10px;font-weight:600">'+esc(holder)+'</td><td style="padding:7px 10px"><span style="color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600">'+esc(c.status||'')+'</span></td><td style="padding:7px 10px">'+esc(amt)+'</td><td style="padding:7px 10px;color:#6B8A94;font-size:11px">'+esc(c.date_of_creation||'')+'</td></tr>';
+      });
+      report+='</tbody></table></div>';
+    }
+
+    report+='<div style="padding:8px 14px;background:#F8F9FA;border-radius:6px;font-size:10px;color:#9AB0B8">\u26a0\ufe0f ipowork is not SEBI-registered. Informational use only. Not investment advice. Data: Probe42/MCA. \u00a9 2025 ipowork.</div></div>';
+
+    if(out){out.innerHTML=report;out.scrollIntoView({behavior:'smooth',block:'start'});}
+    var res={_report:report,company_name:cname,cin:cin,sector:sector,exchange:exchange,revenue_cr:rev,pat_cr:pat,ipo_score:score};
+    AIRA_RESULTS['deepresearch']={result:res,cname:cname,sector:sector,tier:'deepresearch'};
+    saveReportToStore('deepresearch',cname,sector,res);
+    updateFullReportBtn();
+  }catch(e){
+    if(prog)prog.style.display='none';
+    if(btn){btn.disabled=false;btn.innerHTML='&#128269; Generate Deep Research';}
+    if(out)out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
+  }
+}
 
 // ===== HELPER FUNCTIONS =====
 function toggleDevGroups(){
