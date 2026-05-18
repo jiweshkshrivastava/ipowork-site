@@ -1796,7 +1796,7 @@ function switchTier(t){
     if(c) c.style.display = (id===t) ? 'block' : 'none';
     if(tb) tb.classList.toggle('active',id===t);
   });
-  if(t==='admin'){ setTimeout(loadAdmin, 100); }
+  if(t==='admin'){ setTimeout(function(){ loadAdmin(); showAdminTab('reports'); }, 100); }
 }
 function resetAll(){
   ['f-cin','f-cname','p-cin','p-cname','zauba-search','zauba-search-p'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
@@ -3639,18 +3639,16 @@ function checkAdminPwd(pwdArg){
 
 
 function showAdminTab(tab){
-  var panels={'reports':'admin-panel-reports','approvals':'admin-panel-approvals'};
-  Object.keys(panels).forEach(function(k){
-    var el=document.getElementById(panels[k]);
-    if(el) el.style.display=(k===tab)?'block':'none';
-  });
-  var btns={'reports':'atab-reports','approvals':'atab-approvals'};
-  Object.keys(btns).forEach(function(k){
-    var b=document.getElementById(btns[k]);
-    if(b){b.style.background=k===tab?'#fff':'#08404D';b.style.color=k===tab?'#08404D':'#fff';}
-  });
-  if(tab==='reports') loadAdmin();
-  if(tab==='approvals') loadApprovedUsers();
+  // Show/hide panels
+  var panelReports=document.getElementById('admin-panel-reports');
+  var panelApprovals=document.getElementById('admin-panel-approvals');
+  if(panelReports) panelReports.style.display=(tab==='reports')?'block':'none';
+  if(panelApprovals) panelApprovals.style.display=(tab==='approvals')?'block':'none';
+  // Active/inactive button styling
+  var btnR=document.getElementById('atab-reports');
+  var btnA=document.getElementById('atab-approvals');
+  if(btnR){btnR.style.background=(tab==='reports')?'#08404D':'#fff';btnR.style.color=(tab==='reports')?'#fff':'#08404D';}
+  if(btnA){btnA.style.background=(tab==='approvals')?'#08404D':'#fff';btnA.style.color=(tab==='approvals')?'#fff':'#08404D';}
 }
 
 function doSearch(){
