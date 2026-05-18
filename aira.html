@@ -785,58 +785,71 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 </div>
 </div>
 
-<div id="content-admin" style="display:none">
-<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
-  <span style="font-size:16px;font-weight:800">&#128202; Admin Dashboard</span>
-  <span id="admin-version-badge" style="font-size:11px;opacity:.7;margin-left:8px">ipowork AI Platform</span>
+<div id="content-admin" style="display:none;font-family:'Segoe UI',Arial,sans-serif">
+
+<!-- Header -->
+<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border-radius:12px;padding:18px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+  <div>
+    <div style="font-size:18px;font-weight:900">&#128202; Admin Dashboard</div>
+    <div id="admin-version-badge" style="font-size:11px;opacity:.65;margin-top:2px">ipowork.com AI Platform</div>
+  </div>
+  <div id="admin-user-info" style="font-size:12px;opacity:.75;text-align:right"></div>
 </div>
 
 <!-- Stats Row -->
-<div id="admin-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 0"></div>
+<div id="admin-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
 
-<!-- Two tabs -->
-<div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;margin:16px 0 0;overflow:hidden">
+<!-- Tab buttons -->
+<div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;overflow:hidden;margin-bottom:14px">
   <button id="atab-reports" onclick="showAdminTab('reports')"
-    style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weight:700;cursor:pointer">
+    style="flex:1;padding:10px 0;border:none;background:#08404D;color:#fff;font-weight:700;font-size:13px;cursor:pointer">
     &#128202; Report History
   </button>
   <button id="atab-approvals" onclick="showAdminTab('approvals')"
-    style="flex:1;padding:10px;border:none;background:#fff;color:#08404D;font-weight:700;font-size:13px;cursor:pointer">
-    &#9989; Approvals &amp; Users
+    style="flex:1;padding:10px 0;border:none;background:#fff;color:#08404D;font-weight:700;font-size:13px;cursor:pointer">
+    &#128101; Users & Access
   </button>
 </div>
 
 <!-- Report History Panel -->
 <div id="admin-panel-reports" style="display:block">
-  <div id="admin-reports" style="margin-top:4px"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="font-size:13px;font-weight:700;color:#08404D">All Generated Reports</div>
+    <button id="btn-clear-history" onclick="clearReportHistory()" style="display:none;padding:5px 12px;background:#FFF5F0;color:#C0392B;border:1px solid #F5C6C0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Clear History</button>
+  </div>
+  <div id="admin-reports" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;min-height:80px"></div>
 </div>
 
-<!-- Approvals Panel -->
+<!-- Users & Access Panel -->
 <div id="admin-panel-approvals" style="display:none">
-  <div style="font-size:13px;font-weight:700;color:#08404D;margin:16px 0 8px">&#128235; Pending Access Requests</div>
-  <div id="access-requests-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:20px">
-    <div style="padding:12px;color:#6B8A94;font-size:12px">Loading...</div>
-  </div>
-  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#10003; Approved Users</div>
-  <div id="approved-users-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:20px">
-    <div style="padding:16px;color:#6B8A94;font-size:12px">Loading...</div>
-  </div>
-  <div id="admin-users" style="overflow-x:auto"></div>
-  <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:16px;margin-top:8px">
-    <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:10px">&#10133; Add Approved User</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <input id="new-user-email" type="email" placeholder="Email *" style="padding:8px 10px;border:1.5px solid #D8EDF0;border-radius:7px;font-size:12px;outline:none"/>
-      <input id="new-user-name" type="text" placeholder="Full Name" style="padding:8px 10px;border:1.5px solid #D8EDF0;border-radius:7px;font-size:12px;outline:none"/>
-      <input id="new-user-pw" type="text" placeholder="Password" style="padding:8px 10px;border:1.5px solid #D8EDF0;border-radius:7px;font-size:12px;outline:none"/>
-      <select id="new-user-plan" style="padding:8px 10px;border:1.5px solid #D8EDF0;border-radius:7px;font-size:12px">
+
+  <!-- Pending requests -->
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#128235; Pending Access Requests</div>
+  <div id="access-requests-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:18px"></div>
+
+  <!-- Users list -->
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#9989; Approved Users</div>
+  <div id="approved-users-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:18px"></div>
+
+  <!-- Add User form -->
+  <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:18px">
+    <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:12px">&#10133; Add / Approve New User</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <input id="new-user-email" type="email" placeholder="Email address *" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
+      <input id="new-user-name" type="text" placeholder="Full Name" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
+      <input id="new-user-pw" type="text" placeholder="Password (default: ipowork2024)" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
+      <select id="new-user-plan" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none">
         <option value="paid">Paid User</option>
-        <option value="trial">Trial</option>
-        <option value="partner">Partner</option>
+        <option value="trial">Trial (7 days)</option>
+        <option value="partner">Partner Firm</option>
+        <option value="ca">CA/CS Partner</option>
+        <option value="mb">Merchant Banker</option>
       </select>
     </div>
-    <button onclick="addUserFromForm()" style="padding:8px 18px;background:#08404D;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">&#10003; Approve User</button>
+    <button onclick="addUserFromForm()" style="padding:9px 20px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">&#9989; Add & Approve User</button>
   </div>
 </div>
+
 </div>
 </div>
 
@@ -980,88 +993,132 @@ function rejectRequest(idx){
 
 function loadAdmin(){
   var isAdm=(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL))||ADMIN_UNLOCKED;
-  if(!isAdm){ console.warn('loadAdmin: not admin'); return; }
+  if(!isAdm){ return; }
 
-  // ── Stats ──────────────────────────────────────────────
+  // Show admin user info
+  var infoEl=document.getElementById('admin-user-info');
+  if(infoEl&&CURRENT_USER){ infoEl.innerHTML='Logged in as<br><strong>'+esc(CURRENT_USER.email)+'</strong>'; }
+
+  var stored=getStoredReports();
+  var allUsers=Object.keys(IPOWORK_USERS);
+  var pending=getPendingRequests();
+
+  // Price map
+  var PRICES={free:0,paid:999,mainboard:2499,ca:4999,clearchit:1999,
+              dirscan:1499,ddbundle:4999,valdoc:2999,valintel:7999,deepresearch:4999};
+  var TIER_NAMES={free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard ICDR',
+    ca:'CA/CS Bundle',clearchit:'Clean Chit',dirscan:'Director Scan',
+    ddbundle:'Due Diligence',valdoc:'Valuation Doc',valintel:'Val Intelligence',
+    deepresearch:'Deep Research'};
+
+  var revenue=stored.reduce(function(s,r){return s+(PRICES[r.tier]||0);},0);
+  var todayStr=new Date().toDateString();
+  var todayReports=stored.filter(function(r){return r.timestamp&&new Date(r.timestamp).toDateString()===todayStr;}).length;
+
+  // ── Stats cards ─────────────────────────────────────
   var statsEl=document.getElementById('admin-stats');
   if(statsEl){
-    var stored=getStoredReports();
-    var users=Object.keys(IPOWORK_USERS).length;
-    var pending=getPendingRequests().length;
-    var PRICES={free:0,paid:999,mainboard:2499,ca:4999,clearchit:1999,dirscan:1499,
-                ddbundle:4999,valdoc:2999,valintel:7999,deepresearch:4999};
-    var revenue=stored.reduce(function(s,r){return s+(PRICES[r.tier]||0);},0);
-    statsEl.innerHTML=
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">'
-      +[['Total Revenue','₹'+Math.round(revenue/100)*100+'+','#08404D'],
-        ['Reports Generated',stored.length,'#1A5C8A'],
-        ['Registered Users',users,'#1A6B3A'],
-        ['Pending Requests',pending,pending>0?'#C0392B':'#1A6B3A']]
-      .map(function(s){return '<div style="background:'+s[2]+';color:#fff;border-radius:10px;padding:14px 16px">'
-        +'<div style="font-size:24px;font-weight:900">'+s[1]+'</div>'
-        +'<div style="font-size:11px;opacity:.7;margin-top:3px">'+s[0]+'</div></div>';}).join('')
-      +'</div>';
+    var statData=[
+      {icon:'&#8377;',val:(revenue>=100000?'₹'+(revenue/100000).toFixed(1)+'L':revenue>0?'₹'+revenue:'₹0'),lbl:'Est. Revenue',bg:'linear-gradient(135deg,#08404D,#0D5C6B)'},
+      {icon:'&#128196;',val:stored.length,lbl:'Total Reports',bg:'linear-gradient(135deg,#1A3A5C,#1A5C8A)'},
+      {icon:'&#128101;',val:allUsers.length,lbl:'Registered Users',bg:'linear-gradient(135deg,#1A4A2A,#1A7B3A)'},
+      {icon:'&#8987;',val:todayReports,lbl:'Reports Today',bg:todayReports>0?'linear-gradient(135deg,#5C3A1A,#B5370A)':'linear-gradient(135deg,#2C4A5C,#1A5C8A)'}
+    ];
+    statsEl.innerHTML=statData.map(function(s){
+      return '<div style="background:'+s.bg+';color:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 3px 10px rgba(0,0,0,.1)">'
+        +'<div style="font-size:28px;font-weight:900;line-height:1">'+s.val+'</div>'
+        +'<div style="font-size:11px;opacity:.7;margin-top:5px;text-transform:uppercase;letter-spacing:.5px">'+s.lbl+'</div>'
+        +'</div>';
+    }).join('');
   }
 
-  // ── Reports list ──────────────────────────────────────
+  // ── Reports table ────────────────────────────────────
   var rEl=document.getElementById('admin-reports');
+  var clearBtn=document.getElementById('btn-clear-history');
   if(rEl){
-    var reports=getStoredReports();
-    if(!reports.length){
-      rEl.innerHTML='<div style="padding:20px;text-align:center;color:#9AB0B8;font-size:13px">No reports generated yet. Generate reports from the main tabs to see them here.</div>';
+    if(!stored.length){
+      rEl.innerHTML='<div style="padding:30px;text-align:center;color:#9AB0B8;font-size:13px">'
+        +'&#128202; No reports generated yet.<br><span style="font-size:11px">Generate reports from the main tabs — they appear here automatically.</span></div>';
+      if(clearBtn) clearBtn.style.display='none';
     } else {
+      if(clearBtn) clearBtn.style.display='inline-block';
       var tbl='<table style="width:100%;border-collapse:collapse;font-size:12px">'
-        +'<thead><tr style="background:#F5F8FB"><th style="padding:8px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Date</th>'
-        +'<th style="padding:8px 10px;border-bottom:2px solid #D0E4F0">Company</th>'
-        +'<th style="padding:8px 10px;border-bottom:2px solid #D0E4F0">Report Type</th>'
-        +'<th style="padding:8px 10px;border-bottom:2px solid #D0E4F0">Sector</th>'
-        +'<th style="padding:8px 10px;text-align:center;border-bottom:2px solid #D0E4F0">Revenue</th>'
+        +'<thead><tr style="background:#F0F6F8">'
+        +'<th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">#</th>'
+        +'<th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Date & Time</th>'
+        +'<th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Company</th>'
+        +'<th style="padding:9px 12px;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Report Type</th>'
+        +'<th style="padding:9px 12px;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Sector</th>'
+        +'<th style="padding:9px 12px;text-align:right;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Value</th>'
         +'</tr></thead><tbody>';
-      reports.slice().reverse().forEach(function(r,i){
-        var prices={free:0,paid:999,mainboard:2499,ca:4999,clearchit:1999,dirscan:1499,
-                    ddbundle:4999,valdoc:2999,valintel:7999,deepresearch:4999};
-        var tierNames={free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard',ca:'CA/CS',
-                       clearchit:'Clean Chit',dirscan:'Dir Scan',ddbundle:'DD Bundle',
-                       valdoc:'Valuation',valintel:'Val Intel',deepresearch:'Deep Research'};
-        var ts=r.timestamp?new Date(r.timestamp).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      stored.slice().reverse().forEach(function(r,i){
+        var ts=r.timestamp?new Date(r.timestamp).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+        var price=PRICES[r.tier]||0;
+        var tierColor={free:'#6B8A94',paid:'#1A5C8A',mainboard:'#1A3A5C',ca:'#1A4A2A',
+          clearchit:'#3A1A5C',dirscan:'#5C3A1A',ddbundle:'#1A1A5C',
+          valdoc:'#1A3A5C',valintel:'#3B30B0',deepresearch:'#3B30B0'}[r.tier]||'#6B8A94';
         tbl+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
-          +'<td style="padding:7px 10px;color:#6B8A94">'+ts+'</td>'
-          +'<td style="padding:7px 10px;font-weight:600">'+esc(r.company||r.cname||'Unknown')+'</td>'
-          +'<td style="padding:7px 10px"><span style="background:#E8F5F7;color:#0D5C6B;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">'+(tierNames[r.tier]||r.tier||'—')+'</span></td>'
-          +'<td style="padding:7px 10px;color:#444">'+esc(r.sector||'—')+'</td>'
-          +'<td style="padding:7px 10px;text-align:center;color:#1A6B3A;font-weight:600">'+((prices[r.tier]||0)>0?'₹'+(prices[r.tier]||0):'Free')+'</td>'
+          +'<td style="padding:8px 12px;color:#9AB0B8;font-size:11px">'+(stored.length-i)+'</td>'
+          +'<td style="padding:8px 12px;color:#6B8A94;font-size:11px">'+ts+'</td>'
+          +'<td style="padding:8px 12px;font-weight:600;color:#1A2E35">'+esc(r.company||r.cname||'—')+'</td>'
+          +'<td style="padding:8px 12px;text-align:center"><span style="background:'+tierColor+';color:#fff;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700">'+(TIER_NAMES[r.tier]||r.tier||'—')+'</span></td>'
+          +'<td style="padding:8px 12px;color:#444">'+esc(r.sector||'—')+'</td>'
+          +'<td style="padding:8px 12px;text-align:right;font-weight:700;color:'+(price>0?'#1A6B3A':'#9AB0B8')+'">'+(price>0?'₹'+price.toLocaleString('en-IN'):'Free')+'</td>'
           +'</tr>';
       });
       tbl+='</tbody></table>';
       rEl.innerHTML=tbl;
-      var clearBtn=document.getElementById('btn-clear-history');
-      if(clearBtn) clearBtn.style.display='inline-block';
     }
   }
 
-  // ── Approved Users ────────────────────────────────────
+  // ── Pending requests ─────────────────────────────────
+  var reqEl=document.getElementById('access-requests-list');
+  if(reqEl){
+    if(!pending.length){
+      reqEl.innerHTML='<div style="padding:16px 18px;color:#9AB0B8;font-size:12px;text-align:center">&#10003; No pending access requests</div>';
+    } else {
+      reqEl.innerHTML=pending.map(function(r,i){
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
+          +'<div><div style="font-weight:600;font-size:13px;color:#1A2E35">'+esc(r.name||'Unknown')+'</div>'
+          +'<div style="font-size:11px;color:#6B8A94;margin-top:2px">'+esc(r.email||'—')
+          +(r.firm?' &nbsp;·&nbsp; '+esc(r.firm):'')
+          +(r.message?' &nbsp;·&nbsp; <em>'+esc(r.message.slice(0,60))+'</em>':'')
+          +'</div></div>'
+          +'<div style="display:flex;gap:8px;flex-shrink:0">'
+          +'<button class="approve-req" data-email="'+esc(r.email||'')+'" data-name="'+esc(r.name||'')+'" style="padding:6px 14px;background:#1A6B3A;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">&#9989; Approve</button>'
+          +'<button class="reject-req" data-email="'+esc(r.email||'')+'" style="padding:6px 10px;background:#FFF5F0;color:#C0392B;border:1px solid #F5C6C0;border-radius:7px;font-size:11px;cursor:pointer">&#10007;</button>'
+          +'</div></div>';
+      }).join('');
+    }
+  }
+
+  // ── Users table ──────────────────────────────────────
   var uEl=document.getElementById('approved-users-list');
   if(uEl){
-    var users2=Object.keys(IPOWORK_USERS);
-    if(!users2.length){
-      uEl.innerHTML='<div style="padding:16px;color:#9AB0B8;font-size:12px">No users registered.</div>';
+    if(!allUsers.length){
+      uEl.innerHTML='<div style="padding:16px 18px;color:#9AB0B8;font-size:12px">No users registered yet.</div>';
     } else {
+      var PLAN_COLORS={admin:'#08404D',paid:'#1A5C8A',trial:'#B5370A',partner:'#3B30B0',ca:'#1A4A2A',mb:'#5C3A1A'};
       var utbl='<table style="width:100%;border-collapse:collapse;font-size:12px">'
-        +'<thead><tr style="background:#F5F8FB"><th style="padding:7px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Email</th>'
-        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Name</th>'
-        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Plan</th>'
-        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Status</th>'
-        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Action</th>'
+        +'<thead><tr style="background:#F0F6F8">'
+        +'<th style="padding:9px 12px;text-align:left;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Email</th>'
+        +'<th style="padding:9px 12px;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Name</th>'
+        +'<th style="padding:9px 12px;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Plan</th>'
+        +'<th style="padding:9px 12px;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Status</th>'
+        +'<th style="padding:9px 12px;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Action</th>'
         +'</tr></thead><tbody>';
-      users2.forEach(function(email,i){
+      allUsers.forEach(function(email,i){
         var u=IPOWORK_USERS[email];
+        var pc=PLAN_COLORS[u.plan]||'#6B8A94';
         utbl+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
-          +'<td style="padding:7px 10px;font-weight:600">'+esc(email)+'</td>'
-          +'<td style="padding:7px 10px">'+esc(u.name||'—')+'</td>'
-          +'<td style="padding:7px 10px"><span style="background:#E8F5F7;color:#0D5C6B;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">'+(u.plan||'paid').toUpperCase()+'</span></td>'
-          +'<td style="padding:7px 10px"><span style="color:'+(u.approved?'#1A6B3A':'#C0392B')+';font-weight:600">'+(u.approved?'✅ Active':'⏳ Pending')+'</span></td>'
-          +'<td style="padding:7px 10px">'
-          +'<td style="padding:7px 10px">'+(email!==ADMIN_EMAIL?'<button class="adm-rm" data-e="'+email+'" style="padding:3px 10px;background:#FFF5F0;color:#C0392B;border:1px solid #F5C6C0;border-radius:5px;font-size:10px;cursor:pointer">Remove</button>':'<span style="color:#9AB0B8;font-size:10px">Owner</span>')
+          +'<td style="padding:9px 12px;font-weight:600;color:#1A2E35">'+esc(email)+'</td>'
+          +'<td style="padding:9px 12px;color:#444">'+esc(u.name||'—')+'</td>'
+          +'<td style="padding:9px 12px;text-align:center"><span style="background:'+pc+';color:#fff;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700">'+(u.plan||'paid').toUpperCase()+'</span></td>'
+          +'<td style="padding:9px 12px"><span style="color:'+(u.approved?'#1A6B3A':'#E67E22')+';font-weight:600;font-size:12px">'+(u.approved?'&#9989; Active':'&#9203; Pending')+'</span></td>'
+          +'<td style="padding:9px 12px">'
+          +(email!==ADMIN_EMAIL
+            ?'<button class="adm-rm" data-e="'+email+'" style="padding:4px 12px;background:#FFF5F0;color:#C0392B;border:1px solid #F5C6C0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Remove</button>'
+            :'<span style="color:#9AB0B8;font-size:11px;font-style:italic">Owner</span>')
           +'</td></tr>';
       });
       utbl+='</tbody></table>';
@@ -1069,35 +1126,24 @@ function loadAdmin(){
     }
   }
 
-  // ── Pending access requests ──────────────────────────
-  var reqEl=document.getElementById('access-requests-list');
-  if(reqEl){
-    var reqs=getPendingRequests();
-    if(!reqs.length){
-      reqEl.innerHTML='<div style="padding:16px;color:#9AB0B8;font-size:12px">No pending access requests.</div>';
-    } else {
-      reqEl.innerHTML=reqs.map(function(r,i){
-        return '<div style="padding:10px 14px;border-bottom:1px solid #F0F5F8;display:flex;justify-content:space-between;align-items:center">'
-          +'<div><div style="font-weight:600;font-size:12px">'+esc(r.name||'—')+'</div>'
-          +'<div style="font-size:11px;color:#6B8A94">'+esc(r.email||'—')+' · '+esc(r.firm||'—')+'</div></div>'
-          +'<button class="approve-req" data-email="'+esc(r.email||'')+'" data-name="'+esc(r.name||'')+'" style="padding:5px 14px;background:#1A6B3A;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer">Approve</button>'
-          +'</div>';
-      }).join('');
-    }
+  // Event delegation
+  var adminEl=document.getElementById('content-admin');
+  if(adminEl){
+    adminEl.onclick=function(e){
+      var rm=e.target.closest('.adm-rm');
+      if(rm) removeUser(rm.dataset.e);
+      var ap=e.target.closest('.approve-req');
+      if(ap) approveRequest(ap.dataset.email,ap.dataset.name||'');
+      var rj=e.target.closest('.reject-req');
+      if(rj){
+        var reqs=getPendingRequests().filter(function(r){return r.email!==rj.dataset.email;});
+        try{localStorage.setItem('aira_access_requests',JSON.stringify(reqs));}catch(ex){}
+        loadAdmin();
+      }
+    };
   }
 
   showAdminTab('reports');
-
-  // Event delegation for action buttons
-  var adminContent=document.getElementById('content-admin');
-  if(adminContent){
-    adminContent.onclick=function(e){
-      var rmBtn=e.target.closest('.adm-rm');
-      if(rmBtn&&rmBtn.dataset.e) removeUser(rmBtn.dataset.e);
-      var apBtn=e.target.closest('.approve-req');
-      if(apBtn&&apBtn.dataset.email) approveRequest(apBtn.dataset.email, apBtn.dataset.name||'');
-    };
-  }
 }
 
 
