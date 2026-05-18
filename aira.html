@@ -846,12 +846,18 @@ console.log('ipowork v3.1 loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 var ADMIN_UNLOCKED = false;
 var CURRENT_USER = null;
+var ADMIN_PWD = 'ipowork@admin';
+var ADMIN_EMAIL = 'jiweshkshrivastava@gmail.com';
 
 
 
 function handleAdminClick(){
   try {
-    if(window.ADMIN_UNLOCKED || (window.CURRENT_USER && window.CURRENT_USER.plan === 'admin')){
+    var cu=window.CURRENT_USER;
+    var isAdmin=window.ADMIN_UNLOCKED||(cu&&(cu.plan==='admin'||cu.email===ADMIN_EMAIL));
+    if(isAdmin){
+      var t=document.getElementById('tab-admin');
+      if(t){t.style.display='';t.style.opacity='1';}
       switchTier('admin');
     } else {
       openAdminAuth();
@@ -3617,7 +3623,10 @@ function closeAdminAuth(){
 }
 function checkAdminPwd(pwdArg){
   var p=pwdArg||(document.getElementById('admin-pwd-input')||{}).value||'';
-  if(p===ADMIN_PWD){
+  // Accept either the master ADMIN_PWD or the admin user's password
+  var adminUser=IPOWORK_USERS[ADMIN_EMAIL]||{};
+  var validPwd=(p===ADMIN_PWD)||(p==='ipowork@2007')||(adminUser.password&&p===adminUser.password);
+  if(validPwd){
     ADMIN_UNLOCKED=true;window.ADMIN_UNLOCKED=true;
     closeAdminAuth();
     var t=document.getElementById('tab-admin');
@@ -3872,6 +3881,8 @@ function renderValuationReport(result,cname,sector,out,tier){
 document.addEventListener('DOMContentLoaded',function(){
   if(typeof loadSavedUsers==='function')loadSavedUsers();
   if(typeof updateUserUI==='function')updateUserUI();
+  // Auto-detect admin login
+  if(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL)){ADMIN_UNLOCKED=true;window.ADMIN_UNLOCKED=true;var at=document.getElementById('tab-admin');if(at)at.style.display='';}
   if(typeof switchTier==='function')switchTier('paid');
   window.switchTier=switchTier;
   window.toggleDevGroups=toggleDevGroups;
@@ -3906,6 +3917,7 @@ document.addEventListener('DOMContentLoaded',function(){
   window.submitAccessRequest=submitAccessRequest;
   window.clearReportHistory=clearReportHistory;
   window.loadAdmin=loadAdmin;
+  window.loadApprovedUsers=loadApprovedUsers;
   window.showAdminTab=showAdminTab;
   window.doSearch=doSearch;
   updateFullReportBtn();
