@@ -1186,24 +1186,8 @@ var IPOWORK_USERS = {
 
 
 // Load saved session
-(function(){
-  try {
-    var saved = localStorage.getItem('ipowork_session');
-    if(saved){
-      var sess = JSON.parse(saved);
-      if(sess && sess.email && sess.token && IPOWORK_USERS[sess.email]) {
-        var u = IPOWORK_USERS[sess.email];
-        if(u.approved && sess.token === btoa(sess.email + u.password)) {
-          CURRENT_USER = {email: sess.email, name: u.name, plan: u.plan, free: u.free};
-          SESS.email = sess.email;
-          SESS.name = u.name;
-          SESS.plan = u.plan;
-          if(u.plan === 'admin'){ ADMIN_UNLOCKED = true; window.ADMIN_UNLOCKED = true; }
-        }
-      }
-    }
-  } catch(e){}
-})();
+// Session restored via restoreSession() in DOMContentLoaded
+
 
 function isLoggedIn(){ return !!CURRENT_USER && CURRENT_USER.email; }
 
@@ -1775,7 +1759,7 @@ function switchTier(t){
   // Block admin access for non-admins (unless ADMIN_UNLOCKED via password)
   if(t==='admin'){
     var u = CURRENT_USER && IPOWORK_USERS[CURRENT_USER.email];
-    var isAdm = (u && u.plan === 'admin') || ADMIN_UNLOCKED;
+    var isAdm = (u && (u.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL)) || ADMIN_UNLOCKED;
     if(!isAdm){
       if(!isLoggedIn()){
         showAccessGate(function(){ switchTier('admin'); });
@@ -1784,6 +1768,7 @@ function switchTier(t){
       }
       return;
     }
+    ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true;
     // Show admin tab in sidebar when accessing admin
     var aTab = document.getElementById('tab-admin');
     if(aTab) aTab.style.display = '';
@@ -3878,10 +3863,35 @@ function renderValuationReport(result,cname,sector,out,tier){
   if(out&&result&&result._report) out.innerHTML=result._report;
 }
 
+
+function restoreSession(){
+  try {
+    var saved = localStorage.getItem('ipowork_session');
+    if(!saved) return;
+    var sess = JSON.parse(saved);
+    if(!sess || !sess.email) return;
+    // Reload saved users first so token check works for all users
+    loadSavedUsers();
+    var u = IPOWORK_USERS[sess.email];
+    if(!u || !u.approved) return;
+    // Accept saved session if token matches OR if within 30-day window (relaxed check)
+    var tokenOk = sess.token === btoa(sess.email + u.password);
+    var ageOk = sess.ts && (Date.now() - sess.ts) < 30*24*60*60*1000;
+    if(tokenOk || ageOk){
+      CURRENT_USER = {email: sess.email, name: u.name||sess.email, plan: u.plan||'paid', free: u.free||false};
+      SESS.email = sess.email; SESS.name = u.name||''; SESS.plan = u.plan||'paid';
+      if(u.plan==='admin'||sess.email===ADMIN_EMAIL){
+        ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true;
+      }
+    }
+  } catch(e){ console.warn('Session restore error:', e); }
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   if(typeof loadSavedUsers==='function')loadSavedUsers();
+  restoreSession();
   if(typeof updateUserUI==='function')updateUserUI();
-  // Auto-detect admin login
+  // Auto-detect admin after session restore
   if(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL)){ADMIN_UNLOCKED=true;window.ADMIN_UNLOCKED=true;var at=document.getElementById('tab-admin');if(at)at.style.display='';}
   if(typeof switchTier==='function')switchTier('paid');
   window.switchTier=switchTier;
