@@ -979,154 +979,125 @@ function rejectRequest(idx){
 }
 
 function loadAdmin(){
-  var isAdm = (CURRENT_USER && CURRENT_USER.plan === 'admin') || ADMIN_UNLOCKED;
-  if(!isAdm) return;
-  
-  // Stats
-  var statsEl = document.getElementById('admin-stats');
+  var isAdm=(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL))||ADMIN_UNLOCKED;
+  if(!isAdm){ console.warn('loadAdmin: not admin'); return; }
+
+  // ── Stats ──────────────────────────────────────────────
+  var statsEl=document.getElementById('admin-stats');
   if(statsEl){
-    var allUsers = Object.keys(IPOWORK_USERS);
-    var users = allUsers.length;
-    var stored = getStoredReports();
-    var sessionReports = Object.keys(AIRA_RESULTS).length;
-    var totalReports = stored.length || sessionReports;
-    var pending = getPendingRequests().length;
-    
-    // Revenue estimate from stored reports
-    var PRICES = {free:499,paid:999,mainboard:2499,ca:4999,clearchit:1499,dirscan:299,ddbundle:9999,alert:4999,valdoc:2999,valintel:7999,deepresearch:999};
-    var revenue = stored.reduce(function(sum,r){ return sum + (PRICES[r.tier]||0); }, 0);
-    var fmtINR = function(n){ return n>=100000 ? '₹'+(n/100000).toFixed(1)+'L' : '₹'+n.toLocaleString('en-IN'); };
-    
-    // Today's reports
-    var today = new Date().toDateString();
-    var todayReports = stored.filter(function(r){ return r.ts && new Date(r.ts).toDateString()===today; }).length;
-    
-    statsEl.innerHTML =
-      '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border-radius:12px;padding:16px 18px">'
-        +'<div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px">Total Revenue</div>'
-        +'<div style="font-size:28px;font-weight:900;margin-top:4px">'+fmtINR(revenue)+'</div>'
-        +'<div style="font-size:11px;opacity:.6;margin-top:4px">'+totalReports+' reports generated</div>'
-      +'</div>'
-      +'<div style="background:#FFF5E8;border:1px solid #FCDAC8;border-radius:12px;padding:16px 18px">'
-        +'<div style="font-size:11px;color:#8A4A1A;text-transform:uppercase;letter-spacing:.5px">Today</div>'
-        +'<div style="font-size:28px;font-weight:900;color:#B5370A;margin-top:4px">'+todayReports+'</div>'
-        +'<div style="font-size:11px;color:#8A6820;margin-top:4px">reports generated</div>'
-      +'</div>'
-      +'<div style="background:#F0FFF4;border:1px solid #C0EDD6;border-radius:12px;padding:16px 18px">'
-        +'<div style="font-size:11px;color:#1A4A2A;text-transform:uppercase;letter-spacing:.5px">Users</div>'
-        +'<div style="font-size:28px;font-weight:900;color:#1A6B3A;margin-top:4px">'+users+'</div>'
-        +'<div style="font-size:11px;color:#2D7A46;margin-top:4px">'+(pending>0?pending+' pending approval':'all active')+'</div>'
+    var stored=getStoredReports();
+    var users=Object.keys(IPOWORK_USERS).length;
+    var pending=getPendingRequests().length;
+    var PRICES={free:0,paid:999,mainboard:2499,ca:4999,clearchit:1999,dirscan:1499,
+                ddbundle:4999,valdoc:2999,valintel:7999,deepresearch:4999};
+    var revenue=stored.reduce(function(s,r){return s+(PRICES[r.tier]||0);},0);
+    statsEl.innerHTML=
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">'
+      +[['Total Revenue','₹'+Math.round(revenue/100)*100+'+','#08404D'],
+        ['Reports Generated',stored.length,'#1A5C8A'],
+        ['Registered Users',users,'#1A6B3A'],
+        ['Pending Requests',pending,pending>0?'#C0392B':'#1A6B3A']]
+      .map(function(s){return '<div style="background:'+s[2]+';color:#fff;border-radius:10px;padding:14px 16px">'
+        +'<div style="font-size:24px;font-weight:900">'+s[1]+'</div>'
+        +'<div style="font-size:11px;opacity:.7;margin-top:3px">'+s[0]+'</div></div>';}).join('')
       +'</div>';
   }
 
-  // Reports - both session + stored
-  // Refresh button
-  var statsParent = document.getElementById('admin-stats');
-  if(statsParent && statsParent.parentNode){
-    var existingRefresh = document.getElementById('admin-refresh-btn');
-    if(!existingRefresh){
-      var refreshBtn = document.createElement('button');
-      refreshBtn.id = 'admin-refresh-btn';
-      refreshBtn.innerHTML = '&#8635; Refresh';
-      refreshBtn.style.cssText = 'float:right;padding:4px 12px;background:#08404D;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-bottom:8px';
-      refreshBtn.onclick = loadAdmin;
-      statsParent.parentNode.insertBefore(refreshBtn, statsParent.nextSibling);
-    }
-  }
-  var reportsEl = document.getElementById('admin-reports');
-  if(reportsEl){
-    var stored = getStoredReports();
-    var sessionKeys = Object.keys(AIRA_RESULTS);
-    var tierLabel = {free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard',ca:'CA/CS',clearchit:'Clean Chit',dirscan:'Dir Scan',ddbundle:'DD Bundle',alert:'AIRA Alert',valdoc:'Valuation Doc',valintel:'Val Intel',deepresearch:'Deep Research'};
-    
-    var html = '<div style="font-size:13px;font-weight:700;color:#08404D;margin:16px 0 8px">📊 Report Log ('+stored.length+' stored)<' + '/div>';
-    
-    if(stored.length === 0 && sessionKeys.length === 0){
-      html += '<div style="padding:16px;background:#F8F9FA;border-radius:8px;font-size:12px;color:#9AB0B8;text-align:center">No reports generated yet<' + '/div>';
+  // ── Reports list ──────────────────────────────────────
+  var rEl=document.getElementById('admin-reports');
+  if(rEl){
+    var reports=getStoredReports();
+    if(!reports.length){
+      rEl.innerHTML='<div style="padding:20px;text-align:center;color:#9AB0B8;font-size:13px">No reports generated yet. Generate reports from the main tabs to see them here.</div>';
     } else {
-      html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-      html += '<tr style="background:#F0F9FB"><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Date/Time<' + '/th><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Company<' + '/th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">Type<' + '/th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">User<' + '/th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">Action<' + '/th><' + '/tr>';
-      
-      // Show stored reports first (persistent)
-      stored.forEach(function(r, idx){
-        var dt = r.ts ? new Date(r.ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : 'N/A';
-        var label = tierLabel[r.tier] || r.tier || 'Report';
-        html += '<tr style="border-bottom:1px solid #F0F0F0">'
-          +'<td style="padding:8px 10px;color:#6B8A94;font-size:11px">'+dt+'<' + '/td>'
-          +'<td style="padding:8px 10px;font-weight:600;color:#1A2E35">'+esc(r.cname||'Unknown')+'<' + '/td>'
-          +'<td style="padding:8px 10px;text-align:center"><span style="padding:2px 8px;background:#E8F4FF;color:#1A5C8A;border-radius:20px;font-size:11px;font-weight:600">'+label+'<' + '/span><' + '/td>'
-          +'<td style="padding:8px 10px;font-size:11px;color:#6B8A94">'+esc((r.user||'').split('@')[0])+'<' + '/td>'
-          +'<td style="padding:8px 10px"><button class="adm-view" data-idx="'+idx+'" style="padding:3px 10px;background:#08404D;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">View<' + '/button><' + '/td>'
-          +'<' + '/tr>';
+      var tbl='<table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:#F5F8FB"><th style="padding:8px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Date</th>'
+        +'<th style="padding:8px 10px;border-bottom:2px solid #D0E4F0">Company</th>'
+        +'<th style="padding:8px 10px;border-bottom:2px solid #D0E4F0">Report Type</th>'
+        +'<th style="padding:8px 10px;border-bottom:2px solid #D0E4F0">Sector</th>'
+        +'<th style="padding:8px 10px;text-align:center;border-bottom:2px solid #D0E4F0">Revenue</th>'
+        +'</tr></thead><tbody>';
+      reports.slice().reverse().forEach(function(r,i){
+        var prices={free:0,paid:999,mainboard:2499,ca:4999,clearchit:1999,dirscan:1499,
+                    ddbundle:4999,valdoc:2999,valintel:7999,deepresearch:4999};
+        var tierNames={free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard',ca:'CA/CS',
+                       clearchit:'Clean Chit',dirscan:'Dir Scan',ddbundle:'DD Bundle',
+                       valdoc:'Valuation',valintel:'Val Intel',deepresearch:'Deep Research'};
+        var ts=r.timestamp?new Date(r.timestamp).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';
+        tbl+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
+          +'<td style="padding:7px 10px;color:#6B8A94">'+ts+'</td>'
+          +'<td style="padding:7px 10px;font-weight:600">'+esc(r.company||r.cname||'Unknown')+'</td>'
+          +'<td style="padding:7px 10px"><span style="background:#E8F5F7;color:#0D5C6B;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">'+(tierNames[r.tier]||r.tier||'—')+'</span></td>'
+          +'<td style="padding:7px 10px;color:#444">'+esc(r.sector||'—')+'</td>'
+          +'<td style="padding:7px 10px;text-align:center;color:#1A6B3A;font-weight:600">'+((prices[r.tier]||0)>0?'₹'+(prices[r.tier]||0):'Free')+'</td>'
+          +'</tr>';
       });
-      
-      // Also show current session reports not yet stored
-      sessionKeys.forEach(function(key){
-        var r = AIRA_RESULTS[key];
-        var tier = r.tier || key;
-        var cname = r.cname || (r.result && r.result.company_name) || 'Unknown';
-        // Check not already in stored
-        var alreadyStored = stored.some(function(s){ return s.cname === cname && s.tier === tier; });
-        if(alreadyStored) return;
-        var label = tierLabel[tier] || tier;
-        html += '<tr style="border-bottom:1px solid #F0F0F0;background:#FFFBF0">'
-          +'<td style="padding:8px 10px;color:#6B8A94;font-size:11px">This session<' + '/td>'
-          +'<td style="padding:8px 10px;font-weight:600;color:#1A2E35">'+esc(cname)+'<' + '/td>'
-          +'<td style="padding:8px 10px;text-align:center"><span style="padding:2px 8px;background:#FFF5E0;color:#8A4A1A;border-radius:20px;font-size:11px;font-weight:600">'+label+'<' + '/span><' + '/td>'
-          +'<td style="padding:8px 10px;font-size:11px;color:#6B8A94">current<' + '/td>'
-          +'<td style="padding:8px 10px"><button class="adm-view" data-k="'+key+'" style="padding:3px 10px;background:#08404D;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">View<' + '/button><' + '/td>'
-          +'<' + '/tr>';
-      });
-      
-      html += '<' + '/table><' + '/div>';
-      html += '<div style="text-align:right;margin-top:8px"><button onclick="clearReportHistory()" style="padding:4px 12px;background:#C0392B;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">Clear History<' + '/button><' + '/div>';
+      tbl+='</tbody></table>';
+      rEl.innerHTML=tbl;
+      var clearBtn=document.getElementById('btn-clear-history');
+      if(clearBtn) clearBtn.style.display='inline-block';
     }
-    reportsEl.innerHTML = html;
-    
-    // Event delegation - handle both data-k (session) and data-idx (stored)
-    reportsEl.addEventListener('click', function(e){
-      var b = e.target.closest('.adm-view');
-      if(!b) return;
-      if(b.dataset.k) reloadReport(b.dataset.k);
-      else if(b.dataset.idx !== undefined){
-        var rep = getStoredReports()[parseInt(b.dataset.idx)];
-        if(rep && rep.result){
-          var out = document.getElementById('result-'+rep.tier);
-          if(!out){ switchTier(rep.tier); setTimeout(function(){ loadAdmin(); }, 300); return; }
-          if(rep.tier==='valdoc'||rep.tier==='valintel') renderValuationReport(rep.result, rep.cname, rep.sector, out, rep.tier);
-          else renderSimpleReport(rep.result, rep.cname, rep.sector||'', out, rep.tier);
-          switchTier(rep.tier);
-          out.scrollIntoView({behavior:'smooth',block:'start'});
-        }
-      }
-    });
   }
 
-  // Users table in approvals panel
-  var usersEl = document.getElementById('admin-users');
-  if(usersEl){
-    var html2 = '<div style="font-size:13px;font-weight:700;color:#08404D;margin:16px 0 8px">All Users<' + '/div>';
-    html2 += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-    html2 += '<tr style="background:#F0F9FB"><th style="padding:8px 10px;text-align:left;border-bottom:1px solid #D8EDF0">Email<' + '/th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">Plan<' + '/th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">Status<' + '/th><th style="padding:8px 10px;border-bottom:1px solid #D8EDF0">Action<' + '/th><' + '/tr>';
-    Object.keys(IPOWORK_USERS).forEach(function(email){
-      var u = IPOWORK_USERS[email];
-      html2 += '<tr style="border-bottom:1px solid #F0F0F0">'
-        +'<td style="padding:8px 10px;font-weight:600;color:#1A2E35">'+esc(email)+'<' + '/td>'
-        +'<td style="padding:8px 10px;text-align:center"><span style="padding:2px 8px;background:'+(u.plan==='admin'?'#FFE8E8':'#E8F8EE')+';color:'+(u.plan==='admin'?'#C0392B':'#1A6B3A')+';border-radius:20px;font-size:11px;font-weight:600">'+u.plan+'<' + '/span><' + '/td>'
-        +'<td style="padding:8px 10px;text-align:center"><span style="color:'+(u.approved?'#1A6B3A':'#8A6820')+'">●<' + '/span> '+(u.approved?'Active':'Pending')+'<' + '/td>'
-        +'<td style="padding:8px 10px"><button class="adm-rm" data-e="'+email+'" style="padding:3px 10px;background:#C0392B;color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer">Remove<' + '/button><' + '/td>'
-        +'<' + '/tr>';
-    });
-    html2 += '<' + '/table><' + '/div>';
-    usersEl.innerHTML = html2;
-    usersEl.addEventListener('click', function(e){
-      var b = e.target.closest('.adm-rm');
-      if(b) removeUser(b.dataset.e);
-    });
+  // ── Approved Users ────────────────────────────────────
+  var uEl=document.getElementById('approved-users-list');
+  if(uEl){
+    var users2=Object.keys(IPOWORK_USERS);
+    if(!users2.length){
+      uEl.innerHTML='<div style="padding:16px;color:#9AB0B8;font-size:12px">No users registered.</div>';
+    } else {
+      var utbl='<table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:#F5F8FB"><th style="padding:7px 10px;text-align:left;border-bottom:2px solid #D0E4F0">Email</th>'
+        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Name</th>'
+        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Plan</th>'
+        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Status</th>'
+        +'<th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Action</th>'
+        +'</tr></thead><tbody>';
+      users2.forEach(function(email,i){
+        var u=IPOWORK_USERS[email];
+        utbl+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
+          +'<td style="padding:7px 10px;font-weight:600">'+esc(email)+'</td>'
+          +'<td style="padding:7px 10px">'+esc(u.name||'—')+'</td>'
+          +'<td style="padding:7px 10px"><span style="background:#E8F5F7;color:#0D5C6B;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700">'+(u.plan||'paid').toUpperCase()+'</span></td>'
+          +'<td style="padding:7px 10px"><span style="color:'+(u.approved?'#1A6B3A':'#C0392B')+';font-weight:600">'+(u.approved?'✅ Active':'⏳ Pending')+'</span></td>'
+          +'<td style="padding:7px 10px">'
+          +'<td style="padding:7px 10px">'+(email!==ADMIN_EMAIL?'<button class="adm-rm" data-e="'+email+'" style="padding:3px 10px;background:#FFF5F0;color:#C0392B;border:1px solid #F5C6C0;border-radius:5px;font-size:10px;cursor:pointer">Remove</button>':'<span style="color:#9AB0B8;font-size:10px">Owner</span>')
+          +'</td></tr>';
+      });
+      utbl+='</tbody></table>';
+      uEl.innerHTML=utbl;
+    }
   }
 
-  // Default: show reports tab
+  // ── Pending access requests ──────────────────────────
+  var reqEl=document.getElementById('access-requests-list');
+  if(reqEl){
+    var reqs=getPendingRequests();
+    if(!reqs.length){
+      reqEl.innerHTML='<div style="padding:16px;color:#9AB0B8;font-size:12px">No pending access requests.</div>';
+    } else {
+      reqEl.innerHTML=reqs.map(function(r,i){
+        return '<div style="padding:10px 14px;border-bottom:1px solid #F0F5F8;display:flex;justify-content:space-between;align-items:center">'
+          +'<div><div style="font-weight:600;font-size:12px">'+esc(r.name||'—')+'</div>'
+          +'<div style="font-size:11px;color:#6B8A94">'+esc(r.email||'—')+' · '+esc(r.firm||'—')+'</div></div>'
+          +'<button class="approve-req" data-email="'+esc(r.email||'')+'" data-name="'+esc(r.name||'')+'" style="padding:5px 14px;background:#1A6B3A;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer">Approve</button>'
+          +'</div>';
+      }).join('');
+    }
+  }
+
   showAdminTab('reports');
+
+  // Event delegation for action buttons
+  var adminContent=document.getElementById('content-admin');
+  if(adminContent){
+    adminContent.onclick=function(e){
+      var rmBtn=e.target.closest('.adm-rm');
+      if(rmBtn&&rmBtn.dataset.e) removeUser(rmBtn.dataset.e);
+      var apBtn=e.target.closest('.approve-req');
+      if(apBtn&&apBtn.dataset.email) approveRequest(apBtn.dataset.email, apBtn.dataset.name||'');
+    };
+  }
 }
 
 
