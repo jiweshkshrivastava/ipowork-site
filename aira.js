@@ -1,3 +1,4 @@
+
 console.log('ipowork v3.1 loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 var ADMIN_UNLOCKED = false;
@@ -2561,8 +2562,9 @@ async function runDeepResearchFull(){
     var openChgs = chgs.filter(function(c){return c.status==='Open';}).length;
 
     // ── CAGRs — COMPUTED ONCE, LOCKED ────────────────────────────────────
-    var rev2yrCagr = rev22>0 ? +(Math.pow(rev/rev22,0.5)*100-100).toFixed(2) : 0;
-    var pat2yrCagr = pat22>0 ? +(Math.pow(pat/pat22,0.5)*100-100).toFixed(2) : 0;
+    var rev2yrCagr = (rev22>0&&rev22!==rev) ? +(Math.pow(rev/rev22,0.5)*100-100).toFixed(2) : (rev23>0&&rev23!==rev ? +(rev/rev23*100-100).toFixed(2) : 'N/A');
+    var pat2yrCagr = (pat22>0&&pat22!==pat) ? +(Math.pow(pat/pat22,0.5)*100-100).toFixed(2) : (pat23>0&&pat23!==pat ? +(pat/pat23*100-100).toFixed(2) : 'N/A');
+    var hasHistorical = (rev22>0&&rev22!==rev) || (rev23>0&&rev23!==rev); // flag if no real historical data
     var revYoY     = rev23>0  ? +(( rev -rev23)/rev23*100).toFixed(2) : 0;
     var patYoY     = pat23>0  ? +((pat -pat23)/pat23*100).toFixed(2) : 0;
     var ebitdaYoY  = ebitda23>0 ? +((eCr-ebitda23)/ebitda23*100).toFixed(2) : 0;
@@ -2633,10 +2635,11 @@ async function runDeepResearchFull(){
       +'\n║  LOCKED FINANCIAL DATA — DO NOT CONTRADICT ANY FIGURE HERE  ║'
       +'\n╚══════════════════════════════════════════════════════════════╝'
       +'\n'
-      +'\nP&L STATEMENT (₹ Crore):'
-      +'\n  Revenue:  '+yr22lbl+'='+rev22+'  '+yr23lbl+'='+rev23+'  '+yr24+'='+rev
-      +'\n  EBITDA:   '+yr22lbl+'='+(ebitda22||'NA')+'  '+yr23lbl+'='+ebitda23+'  '+yr24+'='+eCr+' (margin '+ePct+'%)'
-      +'\n  PAT:      '+yr22lbl+'='+pat22+'  '+yr23lbl+'='+pat23+'  '+yr24+'='+pat+' (net margin '+netM+'%)'
+      +'\nP&L STATEMENT (₹ Crore) — only available years shown, DO NOT repeat FY24 for missing years:'
+      +'\n  Revenue:  '+yr22lbl+'='+(rev22>0?rev22:'DATA UNAVAILABLE')+'  '+yr23lbl+'='+(rev23>0?rev23:'DATA UNAVAILABLE')+'  '+yr24+'='+rev
+      +'\n  EBITDA:   '+yr22lbl+'='+(ebitda22>0?ebitda22:'N/A')+'  '+yr23lbl+'='+(ebitda23>0?ebitda23:'N/A')+'  '+yr24+'='+eCr+' (margin '+ePct+'%)'
+      +'\n  PAT:      '+yr22lbl+'='+(pat22>0?pat22:'DATA UNAVAILABLE')+'  '+yr23lbl+'='+(pat23>0?pat23:'DATA UNAVAILABLE')+'  '+yr24+'='+pat+' (net margin '+netM+'%)'
+      +'\n  RULE: If a year shows DATA UNAVAILABLE, write "Data not available" for that year. DO NOT carry forward FY24 figures.'
       +'\n'
       +'\nCAGRs (use ONLY these, never recompute):'
       +'\n  Revenue 2yr CAGR: '+rev2yrCagr+'%  |  Revenue YoY: '+revYoY+'%'
@@ -2668,16 +2671,34 @@ async function runDeepResearchFull(){
       +'\n  P/B (1.5x book): ₹'+pbVal+' Cr'
       +'\n  BASE VALUATION (40/40/20 weighted): ₹'+baseVal+' Cr'
       +'\n'
-      +(isNBFC?'NBFC-SPECIFIC REQUIREMENTS (mandatory fields for RBI/SEBI compliance):\n  GNPA%, NNPA%, CRAR%, AUM breakup, NIM, Cost of Funds — extract from website if available, else flag as gap\n':'')
+      +(isNBFC
+      ?'\nNBFC/LENDING COMPANY — MANDATORY FIELDS (RBI + SEBI ICDR requirement):'
+       +'\n  These MUST appear in every financial module or be explicitly flagged as data gaps:'
+       +'\n  GNPA% (Gross NPA as % of loan book)'
+       +'\n  NNPA% (Net NPA after provisions)'
+       +'\n  CRAR% (Capital Adequacy Ratio — RBI minimum 15%)'
+       +'\n  NIM% (Net Interest Margin = Yield on Advances − Cost of Funds)'
+       +'\n  AUM breakup by product (secured/unsecured, segment-wise)'
+       +'\n  PCR% (Provision Coverage Ratio)'
+       +'\n  If any metric is unavailable from Probe42 data, write: "[DATA GAP: X not available — management to confirm before DRHP filing]"'
+       +'\n  DO NOT use equity multiplier benchmarks appropriate for manufacturing companies — NBFC D/E of 3-7x is NORMAL and REGULATED.\n'
+      :'')
       +'╔══════════════════════════════════════════════════════════════╗'
       +'\n║              END LOCKED DATA                                 ║'
+      +'\n'
+      +'\nDATA QUALITY FLAGS:'
+      +((!rev22||rev22===rev)?'\n  ⚠ FY22 revenue unavailable from MCA — do not fabricate or repeat FY24 figure':'\n  ✓ FY22 revenue available')
+      +((!rev23||rev23===rev)?'\n  ⚠ FY23 revenue unavailable from MCA — write "Not Available" in tables':'\n  ✓ FY23 revenue available')
+      +((!pat22||pat22===pat)?'\n  ⚠ FY22 PAT unavailable — do not repeat FY24 PAT figure':'\n  ✓ FY22 PAT available')
+      +'\n  Charge register: '+chgs.length+' charges — lender names from MCA only (not inferred)'
+      +(isNBFC?'\n  ⚠ NBFC: NPA/CRAR/NIM not in Probe42 — must be sourced from website or flagged as data gap':'')
       +'\n╚══════════════════════════════════════════════════════════════╝'
     );
 
     var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED (Pre-IPO)'
       +VERIFIED_FINANCIALS;
 
-    var sys='You are a Senior Partner at McKinsey & KPMG IPO Advisory. Write detailed, data-driven analysis using ONLY the verified financial data provided. CRITICAL: Use exact figures given — never contradict them. Every CAGR, margin, ratio must match the verified data exactly. Write tables, cite specific regulations, provide actionable insights.';
+    var sys='You are a Senior SEBI-registered IPO Analyst and Merchant Banker. Do NOT attribute this analysis to any specific firm (McKinsey, KPMG, Goldman Sachs, etc.) as that would be misleading. Write detailed, data-driven analysis using ONLY the verified financial data provided. CRITICAL: Use exact figures given — never contradict them. Every CAGR, margin, ratio must match the verified data exactly. Write tables, cite specific regulations, provide actionable insights.';
 
     // ── SECTOR-SPECIFIC MODULE OVERRIDES ───────────────────────────────
     var nbfcOverride={
@@ -2693,9 +2714,9 @@ async function runDeepResearchFull(){
       {id:'M04',t:'Financial Performance Deep-Dive',p:fd+'\n\n'+(isNBFC?nbfcOverride.M04:'Write M04 - FINANCIAL PERFORMANCE DEEP-DIVE:\n(1) 3-year P&L reconstruction table: '+yr22lbl+'/'+yr23lbl+'/'+yr24+' — Revenue/EBITDA/PAT — using VERIFIED figures ONLY\n(2) Revenue CAGR: MUST use '+rev2yrCagr+'% (2-year, '+yr22lbl+'-'+yr24+') — do not compute differently\n(3) DuPont ROE analysis: '+roe+'% = Net Margin '+netM+'% × Asset Turnover × Equity Multiplier\n(4) EBITDA bridge: Revenue → Gross Profit → EBITDA → EBIT → PBT → PAT — reconcile to \u20b9'+pat+' Cr PAT\n(5) Working capital efficiency: estimated DSO, DPO, DIO, Cash Conversion Cycle\n(6) FCF quality: Operating CF \u20b9'+cashflow+' Cr vs PAT \u20b9'+pat+' Cr — conversion ratio and quality analysis\n(7) Financial red flags screening: 5 items checked')},
       {id:'M05',t:'Balance Sheet & Capital Structure',p:fd+'\n\n'+(isNBFC?nbfcOverride.M05:'Write M05 - BALANCE SHEET & CAPITAL STRUCTURE:\n(1) Asset composition table: Fixed Assets/Current Assets/Investments/Other — % share\n(2) Liability structure: Bank Debt/Bonds/Trade Payables/Other\n(3) Net Worth \u20b9'+nw+' Cr adequacy vs listing requirements\n(4) Debt profile: '+openChgs+' open charges — lender-wise amounts (from MCA filings)\n(5) Debt serviceability: Interest Coverage '+intCov+'x — stress test at rates +200bps\n(6) Post-IPO capital structure: target D/E after fresh issue proceeds\n(7) Off-balance sheet items: guarantees, contingent liabilities')},
       {id:'M06',t:'Return Metrics & Shareholder Value',p:fd+'\n\nWrite M06 - RETURN METRICS (use ONLY pre-computed DuPont values from locked data):\n(1) DuPont ROE table: ROE '+roe+'% = Net Margin '+netM+'% × Asset Turnover '+assetTurnover+'x × Equity Multiplier '+equityMultiplier+'x — show each component and trend\nCRITICAL: Interest expense = EBIT − PBT = ₹'+interestExpense+' Cr. DO NOT compute interest as Debt × rate or EBITDA × rate.\n(2) ROCE '+roce+'% decomposition: EBIT ₹'+ebitFromRoce+' Cr ÷ Capital Employed ₹'+capEmployed+' Cr\n(3) EVA: ROCE '+roce+'% − WACC 13% = '+(+(parseFloat(roce)-13).toFixed(2))+'% spread × ₹'+capEmployed+' Cr = ₹'+(+(capEmployed*(parseFloat(roce)-13)/100).toFixed(1))+' Cr value created\n(4) Cash conversion quality: OCF ₹'+ocf+' Cr vs PAT ₹'+pat+' Cr = '+ocfPat+'x ratio (quality assessment)\n(5) Historical ROE/ROCE trend table: '+yr22lbl+'/'+yr23lbl+'/'+yr24+' — use locked figures only\n(6) 8 listed '+sector+' peers: Company|ROE|ROCE|Net Margin|Asset Turn|EV Multiplier\n(7) Value creation scorecard: 5 metrics GREEN/AMBER/RED with specific thresholds'},
-      {id:'M07',t:'Governance & Board Assessment',p:fd+'\n\nWrite M07 - GOVERNANCE & BOARD ASSESSMENT:\n(1) Board composition scorecard: '+dirs.length+' total directors — Independence ratio vs SEBI LODR Reg 17\n(2) Director-by-director table: Name|DIN|Independence|Qualification|Other Directorships\n(3) Board committees: Audit/NRC/CSR/Risk — status vs LODR requirements\n(4) Related party transactions: assessment and arm\'s-length compliance\n(5) Promoter shareholding and pledge status\n(6) Governance maturity matrix: Dimension|Current|Required|Gap|Timeline\n(7) Pre-IPO governance action plan with SEBI ICDR deadlines'},
+      {id:'M07',t:'Governance & Board Assessment',p:fd+'\n\nWrite M07 - GOVERNANCE & BOARD ASSESSMENT:\n(1) Board composition scorecard: '+dirs.length+' total directors — Independence ratio vs SEBI LODR Reg 17\n(2) Director-by-director table: Name|DIN|Independence|Qualification|Other Directorships\nCRITICAL: Only mark as Independent if DIN is provided and confirmed. Unknown directors = mark as "Details Pending" NOT as Independent. Overstating board independence is an ICDR violation.\n(3) Board committees: Audit/NRC/CSR/Risk — status vs LODR requirements\n(4) Related party transactions: assessment and arm\'s-length compliance\n(5) Promoter shareholding and pledge status\n(6) Governance maturity matrix: Dimension|Current|Required|Gap|Timeline\n(7) Pre-IPO governance action plan with SEBI ICDR deadlines'},
       {id:'M08',t:'Regulatory & Compliance Deep-Dive',p:fd+'\n\nWrite M08 - REGULATORY & COMPLIANCE:\n(1) SEBI ICDR Regulation 6 eligibility checklist: full table all criteria\n(2) MCA/ROC compliance: Annual returns, ROC forms, filing status\n(3) Tax compliance: Income Tax, GST, TDS, transfer pricing\n(4) Labour law: PF, ESI, Shops & Establishments\n(5) Industry-specific: '+sector+' licences, certifications, regulatory approvals'+(isNBFC?' + RBI Certificate of Registration, SBR compliance, Fair Practices Code':'')+'\n(6) Environmental: factory/premises approvals, PCB NOC if applicable\n(7) Litigation screening: civil, criminal, regulatory — materiality assessment'},
-      {id:'M09',t:'IPO Valuation Assessment',p:fd+'\n\nWrite M09 - IPO VALUATION (use ONLY the pre-computed values):\n(1) P/E Valuation: PAT \u20b9'+pat+' Cr × '+sPE+'x sector PE × (1-'+Math.round(disc*100)+'% discount) = \u20b9'+pe_eq+' Cr equity\n(2) EV/EBITDA: EBITDA \u20b9'+eCr+' Cr × '+sEV+'x - Debt \u20b9'+debt+' Cr = \u20b9'+ev_eq+' Cr equity\n(3) DCF (WACC 13%, g=5%): 5-yr FCF table, terminal value \u20b9'+tvVal+' Cr, equity = \u20b9'+dcfVal+' Cr\n(4) P/B Method: Book Value \u20b9'+nw+' Cr × 1.5x sector avg = \u20b9'+pbVal+' Cr\n(5) Weighted valuation table: Method|Equity Value|Weight|Weighted (Base = \u20b9'+baseVal+' Cr)\n(6) Sensitivity analysis: ±20% PAT / ±2x multiple impact on valuation table\n(7) Peer multiples table: 6 listed '+sector+' companies P/E, EV/EBITDA, P/B, ROE\n(8) Recommended price band with per-share calculation and rationale\nDo NOT invent different valuation figures. Use only the pre-computed values above.'},
+      {id:'M09',t:'IPO Valuation Assessment',p:fd+'\n\nWrite M09 - IPO VALUATION (use ONLY the pre-computed values):\n(1) P/E Valuation: PAT \u20b9'+pat+' Cr × '+sPE+'x sector PE × (1-'+Math.round(disc*100)+'% discount) = \u20b9'+pe_eq+' Cr equity\n(2) EV/EBITDA: EBITDA \u20b9'+eCr+' Cr × '+sEV+'x - Debt \u20b9'+debt+' Cr = \u20b9'+ev_eq+' Cr equity\n(3) DCF (WACC 13%, g=5%): 5-yr FCF table, terminal value \u20b9'+tvVal+' Cr, equity = \u20b9'+dcfVal+' Cr\n(4) P/B Method: Book Value \u20b9'+nw+' Cr × 1.5x sector avg = \u20b9'+pbVal+' Cr\n(5) Weighted valuation table: Method|Equity Value|Weight|Weighted (Base = \u20b9'+baseVal+' Cr)\n(6) Sensitivity analysis: ±20% PAT / ±2x multiple impact on valuation table\n(7) Peer multiples table: 6 listed '+sector+' companies P/E, EV/EBITDA, P/B, ROE\n(8) Price band per share: if shares outstanding unknown, use Net Worth ₹'+nw+' Cr as proxy for market cap denominator. CRITICAL UNIT: equity value is in CRORES. To get price per share = (Equity Value Cr × 10,000,000) ÷ (shares outstanding). DO NOT mix crore and rupee units.\n(9) State shares outstanding assumption explicitly. If unknown, note it clearly.\nDo NOT invent different valuation figures. Use only the pre-computed values above.'},
       {id:'M10',t:'Risk Intelligence Matrix',p:fd+'\n\nWrite M10 - RISK INTELLIGENCE MATRIX:\n(1) Full risk register: Risk|Category|Probability(H/M/L)|Impact(H/M/L)|Severity|Mitigation|Owner (12 rows minimum)\n(2) Top 3 critical risks: detailed analysis each with financial quantification\n(3) '+sector+'-specific regulatory risks'+(isNBFC?' — RBI rate actions, NPA deterioration, funding squeeze':'')+'  \n(4) Governance risks: '+openChgs+' open charges, '+dirs.length+' director board gap analysis\n(5) Macro risks: interest rate, FX, competition, demand\n(6) Post-IPO risks: lock-in expiry, promoter selling pressure, earnings miss'},
       {id:'M11',t:'Due Diligence Checklist (SEBI ICDR)',p:fd+'\n\nWrite M11 - COMPLETE DUE DILIGENCE CHECKLIST (mark ALL as Done/Pending/N/A):\n(1) Financial DD — 15 items: audited financials 3yr, restatements, revenue recognition, working capital, off-balance sheet\n(2) Legal DD — 10 items: title deeds, IP, litigation, material contracts, change of control\n(3) Tax DD — 8 items: direct tax, GST, TDS, transfer pricing, DTA/DTL\n(4) Business/Commercial DD — 10 items: customer contracts, supplier agreements, order book\n(5) HR/People DD — 6 items: key man, ESOP, labour compliance, PF/ESI\n(6) Technical/Operational DD — 6 items: plant visit, capacity utilization, tech systems\n(7) Priority matrix: Critical(must close before filing) | High | Medium\nDo not leave items as Pending without explanation. All 55 items must have a status.'},
       {id:'M12',t:'SWOT & Strategic Analysis',p:fd+'\n\nWrite M12 - SWOT & STRATEGIC ANALYSIS:\n(1) SWOT table: 5 specific items per quadrant with financial data support\n(2) TOWS matrix: SO/ST/WO/WT strategies — 2 each with specific actions\n(3) Post-IPO growth strategy: capex deployment plan, capacity expansion\n(4) Product/geography expansion roadmap with revenue targets\n(5) Technology and digital transformation plan'+(websiteCtx?'\n(6) Strategic priorities from company website — validate against financial capability':'')},
@@ -2792,7 +2813,14 @@ async function runDeepResearchFull(){
         +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#F5F8FB"><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0;text-align:left">Holder</th><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Status</th><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Amount</th><th style="padding:7px 10px;border-bottom:2px solid #D0E4F0">Date</th></tr></thead><tbody>';
       chgs.forEach(function(c,i){
         var holder=c.charge_holder||c.holder||c.lender_name||c.bank||'See MCA Filings';
-        var amt=c.amount?(+(parseFloat(c.amount)/100000).toFixed(1)+' L'):'Check MCA';
+        var rawAmt=parseFloat(c.amount)||0;
+        // Probe42 returns charge amounts in various units — normalize to Crores
+        var amt='Check MCA';
+        if(rawAmt>0){
+          if(rawAmt>=10000000) amt='\u20b9'+(rawAmt/10000000).toFixed(2)+' Cr'; // absolute rupees
+          else if(rawAmt>=100000) amt='\u20b9'+(rawAmt/100000).toFixed(2)+' L';  // lakhs
+          else amt='\u20b9'+rawAmt.toFixed(1)+' Cr'; // already in Cr
+        }
         report+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'"><td style="padding:7px 10px;font-weight:600">'+esc(holder)+'</td><td style="padding:7px 10px"><span style="color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600">'+esc(c.status||'')+'</span></td><td style="padding:7px 10px">'+esc(amt)+'</td><td style="padding:7px 10px;color:#6B8A94;font-size:11px">'+esc(c.date_of_creation||'')+'</td></tr>';
       });
       report+='</tbody></table></div>';
