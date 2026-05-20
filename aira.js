@@ -1,4 +1,3 @@
-
 console.log('ipowork v3.1 loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 var ADMIN_UNLOCKED = false;
@@ -2524,96 +2523,155 @@ async function runDeepResearchFull(){
     var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
     var f=(p42&&p42.financials)||{},dirs=(p42&&p42.directors)||[],chgs=(p42&&p42.charges)||[];
 
-    // ── CENTRAL FINANCIAL DATA (single source of truth) ──────────────────
-    var rev=+(parseFloat(f.revenue_fy24)||0).toFixed(2);
-    var pat=+(parseFloat(f.pat_fy24)||0).toFixed(2);
-    var rev23=+(parseFloat(f.revenue_fy23)||0).toFixed(2);
-    var rev22=+(parseFloat(f.revenue_fy22)||0).toFixed(2);
-    var pat23=+(parseFloat(f.pat_fy23)||0).toFixed(2);
-    var pat22=+(parseFloat(f.pat_fy22)||0).toFixed(2);
-    var ePct=+(parseFloat(f.ebitda_margin)||0).toFixed(2);
-    var eCr=+(parseFloat(f.ebitda_cr)||(rev*ePct/100)||0).toFixed(2);
-    var ebitda23=+(parseFloat(f.ebitda_fy23)||0).toFixed(2);
-    var nw=+(parseFloat(f.net_worth)||0).toFixed(2);
-    var debt=+(parseFloat(f.total_debt)||0).toFixed(2);
-    var de=+(parseFloat(f.debt_equity_ratio)||(nw>0?debt/nw:0)).toFixed(2);
-    var roe=+(parseFloat(f.roe)||0).toFixed(1);
-    var roce=+(parseFloat(f.roce)||0).toFixed(1);
-    var netM=+(rev>0?pat/rev*100:0).toFixed(2);
-    var ebitdaM23=+(rev23>0?ebitda23/rev23*100:0).toFixed(2);
-    var cr2=+(parseFloat(f.current_ratio)||0).toFixed(2);
-    var intCov=+(parseFloat(f.interest_coverage)||0).toFixed(1);
-    var assets=+(parseFloat(f.total_assets)||0).toFixed(2);
-    var cashflow=+(parseFloat(f.operating_cashflow)||0).toFixed(2);
-    var website=p42&&p42.website?p42.website:'';
+    // ══════════════════════════════════════════════════════════════════════
+    // SINGLE SOURCE OF TRUTH — ALL FIGURES PRE-COMPUTED IN JS
+    // AI must use these exact values. No independent calculations allowed.
+    // ══════════════════════════════════════════════════════════════════════
+
+    var rev    = +(parseFloat(f.revenue_fy24)||0).toFixed(2);
+    var rev23  = +(parseFloat(f.revenue_fy23)||0).toFixed(2);
+    var rev22  = +(parseFloat(f.revenue_fy22)||0).toFixed(2);
+    var pat    = +(parseFloat(f.pat_fy24)||0).toFixed(2);
+    var pat23  = +(parseFloat(f.pat_fy23)||0).toFixed(2);
+    var pat22  = +(parseFloat(f.pat_fy22)||0).toFixed(2);  // LOCKED — never changes
+    var ePct   = +(parseFloat(f.ebitda_margin)||0).toFixed(2);
+    var eCr    = +(parseFloat(f.ebitda_cr)||(rev*ePct/100)||0).toFixed(2);
+    var ebitda23 = +(parseFloat(f.ebitda_fy23)||0).toFixed(2);
+    var ebitda22 = +(parseFloat(f.ebitda_fy22)||0).toFixed(2);
+    var nw     = +(parseFloat(f.net_worth)||0).toFixed(2);
+    var debt   = +(parseFloat(f.total_debt)||0).toFixed(2);
+    var de     = +(parseFloat(f.debt_equity_ratio)||(nw>0?debt/nw:0)).toFixed(2);
+    var roe    = +(parseFloat(f.roe)||0).toFixed(2);
+    var roce   = +(parseFloat(f.roce)||0).toFixed(2);
+    var netM   = +(rev>0?pat/rev*100:0).toFixed(2);
+    var cr2    = +(parseFloat(f.current_ratio)||0).toFixed(2);
+    var intCov = +(parseFloat(f.interest_coverage)||0).toFixed(2);
+    var assets = +(parseFloat(f.total_assets)||0).toFixed(2);
+    var cashflow = +(parseFloat(f.operating_cashflow)||0).toFixed(2);
+    var website  = (p42&&p42.website)||'';
+    var pbt    = +(parseFloat(f.pbt_fy24)||parseFloat(f.profit_before_tax)||0).toFixed(2);
+    var ebit   = +(parseFloat(f.ebit_fy24)||0).toFixed(2);
+    var revenue_other = +(parseFloat(f.other_income)||0).toFixed(2);
+    var tax    = +(parseFloat(f.tax_fy24)||0).toFixed(2);
 
     var yr24=f.fy24_year||'FY24',yr23lbl=f.fy23_year||'FY23',yr22lbl=f.fy22_year||'FY22';
     var fixYr=function(yr,d){var s=String(yr||'').replace(/FY/i,'').trim();var n=parseInt(s);if(isNaN(n))return d;if(n>=2000)n=n%100;return(n>=18&&n<=30)?'FY'+n:d;};
     yr24=fixYr(yr24,'FY24');yr23lbl=fixYr(yr23lbl,'FY23');yr22lbl=fixYr(yr22lbl,'FY22');
 
-    var openChgs=chgs.filter(function(c){return c.status==='Open';}).length;
-    // Compute CAGR ONCE - used in all modules
-    var rev2yrCagr=rev22>0?+(Math.pow(rev/rev22,0.5)*100-100).toFixed(2):0;
-    var pat2yrCagr=pat22>0?+(Math.pow(pat/pat22,0.5)*100-100).toFixed(2):0;
-    var ebitdaChg=ebitda23>0?+(eCr/ebitda23*100-100).toFixed(1):0; // YoY change
+    var openChgs = chgs.filter(function(c){return c.status==='Open';}).length;
 
-    // Sector-specific flags
-    var isNBFC=sector==='Financial Services'||cname.toUpperCase().indexOf('FINANCE')>=0||cname.toUpperCase().indexOf('NBFC')>=0||cname.toUpperCase().indexOf('CREDIT')>=0;
-    var isPharma=sector==='Pharma';
-    var isIT=sector==='IT Services';
+    // ── CAGRs — COMPUTED ONCE, LOCKED ────────────────────────────────────
+    var rev2yrCagr = rev22>0 ? +(Math.pow(rev/rev22,0.5)*100-100).toFixed(2) : 0;
+    var pat2yrCagr = pat22>0 ? +(Math.pow(pat/pat22,0.5)*100-100).toFixed(2) : 0;
+    var revYoY     = rev23>0  ? +(( rev -rev23)/rev23*100).toFixed(2) : 0;
+    var patYoY     = pat23>0  ? +((pat -pat23)/pat23*100).toFixed(2) : 0;
+    var ebitdaYoY  = ebitda23>0 ? +((eCr-ebitda23)/ebitda23*100).toFixed(2) : 0;
+    var ebitdaMChg = ebitda23>0&&rev23>0 ? +(ePct-(ebitda23/rev23*100)).toFixed(2) : 0; // bps movement
 
-    // Valuation (computed once, consistent across all modules)
+    // ── DUPONT DECOMPOSITION — JS COMPUTED ──────────────────────────────
+    // ROE = Net Margin × Asset Turnover × Equity Multiplier
+    var assetTurnover   = assets>0 ? +(rev/assets).toFixed(3) : 0;
+    var equityMultiplier= nw>0    ? +(assets/nw).toFixed(3) : 0;
+    var roeCheck        = +(netM * assetTurnover * equityMultiplier).toFixed(2); // should ≈ roe
+
+    // ROCE = EBIT / Capital Employed;  CE = Assets - Current Liabilities (approx = NW + Debt)
+    var capEmployed = +(parseFloat(nw)+parseFloat(debt)).toFixed(2);
+    var ebitFromRoce= +(roce/100*capEmployed).toFixed(2); // back-calculated EBIT from ROCE
+    // Interest expense = EBIT - PBT (CORRECT method)
+    var interestExpense = (ebit>0&&pbt>0) ? +(ebit-pbt).toFixed(2) :
+                          (ebitFromRoce>0&&pbt>0) ? +(ebitFromRoce-pbt).toFixed(2) :
+                          +(parseFloat(debt)*0.10).toFixed(2); // fallback: 10% of debt
+    // Tax = PBT - PAT
+    var taxExpense = (pbt>0) ? +(pbt-pat).toFixed(2) : +(pat*0.25).toFixed(2);
+    var effTaxRate = (pbt>0) ? +(taxExpense/pbt*100).toFixed(1) : 25;
+
+    // ── CASH FLOW (reconstruct if OCF not in Probe42) ───────────────────
+    var ocf      = cashflow>0 ? cashflow : +(pat*1.15).toFixed(2); // approx: PAT + D&A
+    var capex    = +(parseFloat(f.capex)||assets*0.05||0).toFixed(2); // estimate 5% of assets
+    var fcfEst   = +(ocf - capex).toFixed(2);
+    var ocfPat   = pat>0 ? +(ocf/pat).toFixed(2) : 'N/A'; // OCF/PAT ratio (quality check)
+    var cashNote = cashflow>0 ? 'from Probe42' : 'estimated (PAT + D&A proxy)';
+
+    // ── WORKING CAPITAL (estimated) ──────────────────────────────────────
+    var dso = +(rev>0 ? 90 : 0); // placeholder — will be refined by AI from website
+    var nwcEst = +(rev*0.15).toFixed(2); // rough NWC = 15% revenue
+
+    // ── VALUATION (computed once) ─────────────────────────────────────────
     var mults={Manufacturing:{pe:28,ev:16},Pharma:{pe:35,ev:22},'IT Services':{pe:40,ev:28},'Financial Services':{pe:18,ev:12},Infrastructure:{pe:22,ev:14},FMCG:{pe:45,ev:30},Other:{pe:25,ev:18}};
-    var sm=mults[sector]||mults.Other,sPE=sm.pe,sEV=sm.ev;
+    var sm=mults[sector]||mults.Other, sPE=sm.pe, sEV=sm.ev;
     var disc=exchange.indexOf('SME')>-1?0.30:0.20;
-    var pe_eq=+(pat*sPE*(1-disc)).toFixed(1);
-    var ev_eq=+(Math.max(0,eCr*sEV-parseFloat(debt))).toFixed(1);
-    var fcf=+(pat*0.65).toFixed(2),dcfVal=0,tvVal;
-    for(var i=1;i<=5;i++) dcfVal+=fcf*Math.pow(1.15,i)/Math.pow(1.13,i);
-    tvVal=+(fcf*Math.pow(1.15,5)*1.05/0.08/Math.pow(1.13,5)).toFixed(1);
-    dcfVal=+(dcfVal+parseFloat(tvVal)).toFixed(1);
-    var baseVal=+(pe_eq*0.4+ev_eq*0.4+dcfVal*0.2).toFixed(1);
-    var pbVal=+(nw*1.5).toFixed(1); // P/B at 1.5x book
+    var pe_eq   = +(pat*sPE*(1-disc)).toFixed(1);
+    var ev_eq   = +(Math.max(0,eCr*sEV-parseFloat(debt))).toFixed(1);
+    var fcfDCF  = +(pat*0.65).toFixed(2), dcfVal=0, tvVal;
+    for(var i=1;i<=5;i++) dcfVal+=fcfDCF*Math.pow(1.15,i)/Math.pow(1.13,i);
+    tvVal   = +(fcfDCF*Math.pow(1.15,5)*1.05/0.08/Math.pow(1.13,5)).toFixed(1);
+    dcfVal  = +(dcfVal+parseFloat(tvVal)).toFixed(1);
+    var pbVal   = +(nw*1.5).toFixed(1);
+    var baseVal = +(pe_eq*0.4+ev_eq*0.4+dcfVal*0.2).toFixed(1);
 
-    // IPO Score
+    // ── SECTOR FLAGS ──────────────────────────────────────────────────────
+    var isNBFC = sector==='Financial Services' || ['FINANCE','NBFC','CREDIT','LENDING','CAPITAL','MICRO'].some(function(k){return cname.toUpperCase().indexOf(k)>=0;});
+    var isPharma = sector==='Pharma';
+    var isIT = sector==='IT Services';
+
+    // ── IPO SCORE ─────────────────────────────────────────────────────────
     var score=0;
     if(roe>=20)score+=15;else if(roe>=12)score+=8;
     if(roce>=15)score+=15;else if(roce>=10)score+=8;
     if(rev>=50)score+=10;else if(rev>=20)score+=5;
-    if(pat>=5)score+=10;if(nw>=10)score+=10;if(ePct>=15)score+=10;
+    if(pat>=5)score+=10;if(nw>=10)score+=10;if(ePct>=15||isNBFC)score+=10;
     if(de<=1)score+=10;if(openChgs===0)score+=10;if(dirs.length>=3)score+=5;
     score=Math.min(100,score);
     var ipoColor=score>=75?'#1A6B3A':score>=50?'#E67E22':'#C0392B';
 
-    // ── WEBSITE DATA FETCH ──────────────────────────────────────────────
-    var websiteCtx='';
-    if(website){
-      setPct(8,'Fetching company website data\u2026');
-      try{
-        var wRes=await workerPost({type:'website_fetch',url:website,max_chars:3000});
-        if(wRes&&wRes.text&&wRes.text.length>100){
-          websiteCtx='\n\nCOMPANY WEBSITE DATA ('+website+'):\n'+wRes.text.substring(0,3000);
-        }
-      }catch(we){ websiteCtx='\n[Website fetch unavailable: '+website+']'; }
-    }
-
-    // ── SINGLE SOURCE OF TRUTH (passed to ALL modules) ─────────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // THE LOCKED DATA BLOCK — passed verbatim to all 15 modules
+    // AI is FORBIDDEN from computing any figure that contradicts this block
+    // ══════════════════════════════════════════════════════════════════════
     var VERIFIED_FINANCIALS=(
-      '\n\n=== VERIFIED FINANCIAL DATA (USE THESE EXACT FIGURES - DO NOT CONTRADICT) ==='
-      +'\nREVENUE: '+yr22lbl+'=\u20b9'+rev22+' Cr | '+yr23lbl+'=\u20b9'+rev23+' Cr | '+yr24+'=\u20b9'+rev+' Cr'
-      +'\nREVENUE 2YR CAGR: '+rev2yrCagr+'% (USE THIS EXACT FIGURE ONLY)'
-      +'\nPAT: '+yr22lbl+'=\u20b9'+pat22+' Cr | '+yr23lbl+'=\u20b9'+pat23+' Cr | '+yr24+'=\u20b9'+pat+' Cr'
-      +'\nPAT 2YR CAGR: '+pat2yrCagr+'%'
-      +'\nEBITDA '+yr24+'=\u20b9'+eCr+' Cr ('+ePct+'% margin) | EBITDA YoY change: '+ebitdaChg+'%'
-      +'\nNET MARGIN: '+netM+'%'
-      +'\nNET WORTH: \u20b9'+nw+' Cr | TOTAL DEBT: \u20b9'+debt+' Cr | D/E: '+de+'x'
-      +'\nROE: '+roe+'% | ROCE: '+roce+'% | CURR RATIO: '+cr2+'x | INT COV: '+intCov+'x'
-      +'\nTOTAL ASSETS: \u20b9'+assets+' Cr | OPERATING CASHFLOW: \u20b9'+cashflow+' Cr'
-      +'\nDIRECTORS: '+dirs.length+' | OPEN CHARGES: '+openChgs+'/'+chgs.length
-      +(isNBFC?'\nSECTOR: NBFC/Financial Services (include NPA, CRAR, AUM if available)':'')
-      +'\nVALUATION (computed, consistent): P/E=\u20b9'+pe_eq+' Cr | EV/EBITDA=\u20b9'+ev_eq+' Cr | DCF=\u20b9'+dcfVal+' Cr | P/B=\u20b9'+pbVal+' Cr | Base=\u20b9'+baseVal+' Cr'
-      +'\n=== END VERIFIED DATA ==='
-      +websiteCtx
+      '\n\n╔══════════════════════════════════════════════════════════════╗'
+      +'\n║  LOCKED FINANCIAL DATA — DO NOT CONTRADICT ANY FIGURE HERE  ║'
+      +'\n╚══════════════════════════════════════════════════════════════╝'
+      +'\n'
+      +'\nP&L STATEMENT (₹ Crore):'
+      +'\n  Revenue:  '+yr22lbl+'='+rev22+'  '+yr23lbl+'='+rev23+'  '+yr24+'='+rev
+      +'\n  EBITDA:   '+yr22lbl+'='+(ebitda22||'NA')+'  '+yr23lbl+'='+ebitda23+'  '+yr24+'='+eCr+' (margin '+ePct+'%)'
+      +'\n  PAT:      '+yr22lbl+'='+pat22+'  '+yr23lbl+'='+pat23+'  '+yr24+'='+pat+' (net margin '+netM+'%)'
+      +'\n'
+      +'\nCAGRs (use ONLY these, never recompute):'
+      +'\n  Revenue 2yr CAGR: '+rev2yrCagr+'%  |  Revenue YoY: '+revYoY+'%'
+      +'\n  PAT 2yr CAGR: '+pat2yrCagr+'%  |  PAT YoY: '+patYoY+'%'
+      +'\n  EBITDA margin change YoY: '+ebitdaMChg+' percentage points'
+      +'\n'
+      +'\nDUPONT ROE DECOMPOSITION (pre-computed — do not recalculate):'
+      +'\n  ROE = '+roe+'%  = Net Margin '+netM+'% × Asset Turnover '+assetTurnover+'x × Equity Multiplier '+equityMultiplier+'x'
+      +'\n  EBIT (back-calc from ROCE): ₹'+ebitFromRoce+' Cr'
+      +'\n  Interest Expense (EBIT−PBT): ₹'+interestExpense+' Cr  [NOT finance costs × rate]'
+      +'\n  PBT: ₹'+pbt+' Cr  |  Tax: ₹'+taxExpense+' Cr ('+effTaxRate+'% effective rate)'
+      +'\n'
+      +'\nCASH FLOW ('+cashNote+'):'
+      +'\n  Operating CF: ₹'+ocf+' Cr  |  CapEx est.: ₹'+capex+' Cr  |  FCF est.: ₹'+fcfEst+' Cr'
+      +'\n  OCF/PAT ratio: '+ocfPat+'x  '+( parseFloat(ocfPat)>=0.8?'(strong cash conversion)':parseFloat(ocfPat)>=0.5?'(moderate)':'(review working capital)' )
+      +'\n'
+      +'\nBALANCE SHEET:'
+      +'\n  Net Worth: ₹'+nw+' Cr  |  Total Debt: ₹'+debt+' Cr  |  D/E: '+de+'x'
+      +'\n  Total Assets: ₹'+assets+' Cr  |  Capital Employed: ₹'+capEmployed+' Cr'
+      +'\n'
+      +'\nRATIOS:'
+      +'\n  ROE: '+roe+'%  |  ROCE: '+roce+'%  |  Int Coverage: '+intCov+'x'
+      +'\n  Current Ratio: '+cr2+'x  |  Net Margin: '+netM+'%'
+      +'\n'
+      +'\nVALUATION (computed in JS — use exactly):'
+      +'\n  P/E ('+sPE+'x, '+Math.round(disc*100)+'% disc): ₹'+pe_eq+' Cr'
+      +'\n  EV/EBITDA ('+sEV+'x): ₹'+ev_eq+' Cr'
+      +'\n  DCF (WACC 13%, g 5%): ₹'+dcfVal+' Cr  |  Terminal Value: ₹'+tvVal+' Cr'
+      +'\n  P/B (1.5x book): ₹'+pbVal+' Cr'
+      +'\n  BASE VALUATION (40/40/20 weighted): ₹'+baseVal+' Cr'
+      +'\n'
+      +(isNBFC?'NBFC-SPECIFIC REQUIREMENTS (mandatory fields for RBI/SEBI compliance):\n  GNPA%, NNPA%, CRAR%, AUM breakup, NIM, Cost of Funds — extract from website if available, else flag as gap\n':'')
+      +'╔══════════════════════════════════════════════════════════════╗'
+      +'\n║              END LOCKED DATA                                 ║'
+      +'\n╚══════════════════════════════════════════════════════════════╝'
     );
 
     var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED (Pre-IPO)'
@@ -2634,7 +2692,7 @@ async function runDeepResearchFull(){
       {id:'M03',t:'Market & Industry Intelligence',p:fd+'\n\nWrite M03 - MARKET & INDUSTRY INTELLIGENCE:\n(1) TAM/SAM/SOM sizing with bottom-up methodology\n(2) Market growth drivers table: Driver|Impact(H/M/L)|Timeline|Beneficiary\n(3) Government policy: PLI, sector-specific schemes, regulatory tailwinds\n(4) Competitive landscape: 8 listed peers with market cap and multiples\n(5) India vs global market comparison\n(6) 5-year sector growth projections with cited source\n'+(websiteCtx?'(7) Company positioning per website — specific products/markets mentioned':'(7) Estimate company market share from revenue vs TAM')},
       {id:'M04',t:'Financial Performance Deep-Dive',p:fd+'\n\n'+(isNBFC?nbfcOverride.M04:'Write M04 - FINANCIAL PERFORMANCE DEEP-DIVE:\n(1) 3-year P&L reconstruction table: '+yr22lbl+'/'+yr23lbl+'/'+yr24+' — Revenue/EBITDA/PAT — using VERIFIED figures ONLY\n(2) Revenue CAGR: MUST use '+rev2yrCagr+'% (2-year, '+yr22lbl+'-'+yr24+') — do not compute differently\n(3) DuPont ROE analysis: '+roe+'% = Net Margin '+netM+'% × Asset Turnover × Equity Multiplier\n(4) EBITDA bridge: Revenue → Gross Profit → EBITDA → EBIT → PBT → PAT — reconcile to \u20b9'+pat+' Cr PAT\n(5) Working capital efficiency: estimated DSO, DPO, DIO, Cash Conversion Cycle\n(6) FCF quality: Operating CF \u20b9'+cashflow+' Cr vs PAT \u20b9'+pat+' Cr — conversion ratio and quality analysis\n(7) Financial red flags screening: 5 items checked')},
       {id:'M05',t:'Balance Sheet & Capital Structure',p:fd+'\n\n'+(isNBFC?nbfcOverride.M05:'Write M05 - BALANCE SHEET & CAPITAL STRUCTURE:\n(1) Asset composition table: Fixed Assets/Current Assets/Investments/Other — % share\n(2) Liability structure: Bank Debt/Bonds/Trade Payables/Other\n(3) Net Worth \u20b9'+nw+' Cr adequacy vs listing requirements\n(4) Debt profile: '+openChgs+' open charges — lender-wise amounts (from MCA filings)\n(5) Debt serviceability: Interest Coverage '+intCov+'x — stress test at rates +200bps\n(6) Post-IPO capital structure: target D/E after fresh issue proceeds\n(7) Off-balance sheet items: guarantees, contingent liabilities')},
-      {id:'M06',t:'Return Metrics & Shareholder Value',p:fd+'\n\nWrite M06 - RETURN METRICS:\n(1) DuPont decomposition table: ROE '+roe+'% and ROCE '+roce+'%\n(2) Economic Value Added (EVA): ROCE '+roce+'% vs WACC 13% spread\n(3) Historical ROE trend: '+yr22lbl+'/'+yr23lbl+'/'+yr24+'\n(4) Sector benchmark comparison: 8 listed peers — ROE, ROCE, margins table\n(5) FCF yield and dividend capacity: PAT \u20b9'+pat+' Cr — sustainable payout %\n(6) Value creation scorecard: 5 metrics rated GREEN/AMBER/RED'},
+      {id:'M06',t:'Return Metrics & Shareholder Value',p:fd+'\n\nWrite M06 - RETURN METRICS (use ONLY pre-computed DuPont values from locked data):\n(1) DuPont ROE table: ROE '+roe+'% = Net Margin '+netM+'% × Asset Turnover '+assetTurnover+'x × Equity Multiplier '+equityMultiplier+'x — show each component and trend\nCRITICAL: Interest expense = EBIT − PBT = ₹'+interestExpense+' Cr. DO NOT compute interest as Debt × rate or EBITDA × rate.\n(2) ROCE '+roce+'% decomposition: EBIT ₹'+ebitFromRoce+' Cr ÷ Capital Employed ₹'+capEmployed+' Cr\n(3) EVA: ROCE '+roce+'% − WACC 13% = '+(+(parseFloat(roce)-13).toFixed(2))+'% spread × ₹'+capEmployed+' Cr = ₹'+(+(capEmployed*(parseFloat(roce)-13)/100).toFixed(1))+' Cr value created\n(4) Cash conversion quality: OCF ₹'+ocf+' Cr vs PAT ₹'+pat+' Cr = '+ocfPat+'x ratio (quality assessment)\n(5) Historical ROE/ROCE trend table: '+yr22lbl+'/'+yr23lbl+'/'+yr24+' — use locked figures only\n(6) 8 listed '+sector+' peers: Company|ROE|ROCE|Net Margin|Asset Turn|EV Multiplier\n(7) Value creation scorecard: 5 metrics GREEN/AMBER/RED with specific thresholds'},
       {id:'M07',t:'Governance & Board Assessment',p:fd+'\n\nWrite M07 - GOVERNANCE & BOARD ASSESSMENT:\n(1) Board composition scorecard: '+dirs.length+' total directors — Independence ratio vs SEBI LODR Reg 17\n(2) Director-by-director table: Name|DIN|Independence|Qualification|Other Directorships\n(3) Board committees: Audit/NRC/CSR/Risk — status vs LODR requirements\n(4) Related party transactions: assessment and arm\'s-length compliance\n(5) Promoter shareholding and pledge status\n(6) Governance maturity matrix: Dimension|Current|Required|Gap|Timeline\n(7) Pre-IPO governance action plan with SEBI ICDR deadlines'},
       {id:'M08',t:'Regulatory & Compliance Deep-Dive',p:fd+'\n\nWrite M08 - REGULATORY & COMPLIANCE:\n(1) SEBI ICDR Regulation 6 eligibility checklist: full table all criteria\n(2) MCA/ROC compliance: Annual returns, ROC forms, filing status\n(3) Tax compliance: Income Tax, GST, TDS, transfer pricing\n(4) Labour law: PF, ESI, Shops & Establishments\n(5) Industry-specific: '+sector+' licences, certifications, regulatory approvals'+(isNBFC?' + RBI Certificate of Registration, SBR compliance, Fair Practices Code':'')+'\n(6) Environmental: factory/premises approvals, PCB NOC if applicable\n(7) Litigation screening: civil, criminal, regulatory — materiality assessment'},
       {id:'M09',t:'IPO Valuation Assessment',p:fd+'\n\nWrite M09 - IPO VALUATION (use ONLY the pre-computed values):\n(1) P/E Valuation: PAT \u20b9'+pat+' Cr × '+sPE+'x sector PE × (1-'+Math.round(disc*100)+'% discount) = \u20b9'+pe_eq+' Cr equity\n(2) EV/EBITDA: EBITDA \u20b9'+eCr+' Cr × '+sEV+'x - Debt \u20b9'+debt+' Cr = \u20b9'+ev_eq+' Cr equity\n(3) DCF (WACC 13%, g=5%): 5-yr FCF table, terminal value \u20b9'+tvVal+' Cr, equity = \u20b9'+dcfVal+' Cr\n(4) P/B Method: Book Value \u20b9'+nw+' Cr × 1.5x sector avg = \u20b9'+pbVal+' Cr\n(5) Weighted valuation table: Method|Equity Value|Weight|Weighted (Base = \u20b9'+baseVal+' Cr)\n(6) Sensitivity analysis: ±20% PAT / ±2x multiple impact on valuation table\n(7) Peer multiples table: 6 listed '+sector+' companies P/E, EV/EBITDA, P/B, ROE\n(8) Recommended price band with per-share calculation and rationale\nDo NOT invent different valuation figures. Use only the pre-computed values above.'},
