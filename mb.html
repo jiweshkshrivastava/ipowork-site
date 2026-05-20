@@ -433,34 +433,7 @@ window.storage = {
     });
   }
 };
-function openAI(id){
-  var a = AI_ASSISTANTS.find(function(x){ return x.id===id; });
-  if(!a) return;
-  P.aiAssistant = a;
-  P.aiHistory = [];
-  P.view = 'ai-chat';
-  renderSidebar();
-  renderMain();
-}
 
-function filterAI(query){
-  var q = (query||'').toLowerCase().trim();
-  var cards = document.querySelectorAll('.mb-ai-card');
-  cards.forEach(function(card){
-    var id = card.getAttribute('data-aiid2');
-    var a = AI_ASSISTANTS.find(function(x){ return x.id===id; });
-    if(!a){ card.style.display='none'; return; }
-    var match = !q || a.name.toLowerCase().indexOf(q)>=0 || (a.cat||'').toLowerCase().indexOf(q)>=0 || (a.desc||'').toLowerCase().indexOf(q)>=0;
-    card.style.display = match ? '' : 'none';
-  });
-  // Also filter by category (when q matches a category exactly)
-  document.querySelectorAll('[onclick^="filterAI"]').forEach(function(btn){
-    var btnQ = btn.getAttribute('onclick').replace(/filterAI\(|\'|\)/g,'');
-    btn.style.background = (btnQ===query) ? 'rgba(29,158,117,.12)' : 'none';
-    btn.style.color = (btnQ===query) ? 'var(--cyan)' : 'var(--muted)';
-    btn.style.borderColor = (btnQ===query) ? 'var(--cyan)' : 'var(--border)';
-  });
-}
 
 
 </script>
@@ -1666,26 +1639,30 @@ var AI_ASSISTANTS=[
 ];
 
 
+
+
 function openAI(id){
-  var assistants = typeof AI_ASSISTANTS !== 'undefined' ? AI_ASSISTANTS : [];
-  var a = assistants.find(function(x){ return x.id===id; });
-  if(!a){ return; }
-  P.aiAssistant = a;
-  P.aiHistory = [];
-  P.view = 'ai-chat';
-  if(typeof renderSidebar==='function') renderSidebar();
-  if(typeof renderMain==='function') renderMain();
+  var ast = typeof AI_ASSISTANTS !== 'undefined' ? AI_ASSISTANTS : [];
+  var a = ast.find(function(x){ return x.id === id; });
+  if(!a){ console.error('AI not found:', id); return; }
+  window.P.aiAssistant = a;
+  window.P.aiHistory = [];
+  window.P.view = 'ai-chat';
+  renderSidebar();
+  renderMain();
 }
-function filterAI(query){
-  var q = (query||'').toLowerCase().trim();
+
+function filterAI(v){
+  var q = (v||'').toLowerCase().trim();
   var grid = document.getElementById('ai-grid');
   if(!grid) return;
-  grid.querySelectorAll('.mb-ai-card').forEach(function(card){
-    var id = card.getAttribute('data-aiid2');
-    var assistants = typeof AI_ASSISTANTS !== 'undefined' ? AI_ASSISTANTS : [];
-    var a = assistants.find(function(x){ return x.id===id; });
-    var txt = a ? (a.name+' '+(a.cat||'')+' '+(a.desc||'')).toLowerCase() : '';
-    card.style.display = (!q || txt.indexOf(q)>=0) ? '' : 'none';
+  var cards = grid.querySelectorAll('.mb-ai-card');
+  var ast = typeof AI_ASSISTANTS !== 'undefined' ? AI_ASSISTANTS : [];
+  cards.forEach(function(c){
+    var id = c.getAttribute('data-aiid2');
+    var a = ast.find(function(x){ return x.id===id; });
+    var txt = a ? (a.name+' '+(a.cat||'')+' '+(a.desc||a.tag||'')).toLowerCase() : '';
+    c.style.display = (!q || txt.indexOf(q)>=0) ? '' : 'none';
   });
 }
 
@@ -1734,12 +1711,7 @@ window.filterAI=function(q){
   });
 };
 
-window.openAI=function(id){
-  var a=AI_ASSISTANTS.find(function(x){ return x.id===id; });
-  if(!a) return;
-  P.aiAssistant=a; P.aiHistory=[]; P.view='ai-chat';
-  renderSidebar(); renderMain();
-};
+;
 
 function renderAIChat(){
   var a=P.aiAssistant;
