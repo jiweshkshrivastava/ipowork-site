@@ -1861,8 +1861,8 @@ window.showAIDAScan = function(code, sector, aira){
   .then(function(d){
     var text=(d.content||[]).map(function(c){ return c.text||''; }).join('');
     if(content){
-      content.innerHTML = '<div style="font-size:12px;color:var(--muted);line-height:1.9;white-space:pre-wrap;max-height:420px;overflow-y:auto;padding:4px">'
-        + (text||'Unable to generate scan. Please try again.')+'</div>'
+      content.innerHTML = '<div style="font-size:12px;line-height:1.9;max-height:420px;overflow-y:auto;padding:4px">'
+        + mbMd2html(text||'Unable to generate scan. Please try again.')+'</div>'
         + '<div style="margin-top:16px;display:flex;gap:8px">'
         + '<button class="btn btn-cyan" style="flex:1" id="aida-ei-btn">Express Interest →</button>'
         + '<button class="btn btn-outline" style="flex:1" id="aida-close-btn">Close</button>';
@@ -1878,6 +1878,68 @@ window.showAIDAScan = function(code, sector, aira){
     if(content) content.innerHTML='<div style="color:var(--red);font-size:13px">Network error. Please try again.</div>';
   });
 };
+
+
+function mbMd2html(raw){
+  if(!raw) return '';
+  var t = String(raw);
+  t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Bold
+  t = t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  t = t.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');
+  t = t.replace(/`([^`]+)`/g,'<code style="background:rgba(255,255,255,.1);padding:1px 4px;border-radius:3px;font-family:monospace;font-size:11px">$1</code>');
+  // HR
+  t = t.replace(/^-{3,}$/gm,'<hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:12px 0"/>');
+  // Headers
+  t = t.replace(/^#### (.+)$/gm,'<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px">$1</div>');
+  t = t.replace(/^### (.+)$/gm,'<div style="font-size:13px;font-weight:800;color:var(--cyan);margin:14px 0 5px;padding-bottom:3px;border-bottom:1px solid rgba(29,158,117,.25)">$1</div>');
+  t = t.replace(/^## (.+)$/gm,'<div style="font-size:15px;font-weight:900;margin:14px 0 6px">$1</div>');
+  t = t.replace(/^# (.+)$/gm,'<div style="font-size:17px;font-weight:900;margin:14px 0 6px">$1</div>');
+  // Tables - simple approach
+  var lines = t.split('\n');
+  var out = [];
+  var i = 0;
+  while(i < lines.length){
+    var ln = lines[i].trim();
+    if(ln.charAt(0)==='|' && ln.charAt(ln.length-1)==='|'){
+      var tableHtml = '<div style="overflow-x:auto;margin:10px 0"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+      var rowNum = 0;
+      while(i < lines.length && lines[i].trim().charAt(0)==='|'){
+        var row = lines[i].trim();
+        if(/^[\|\-:\s]+$/.test(row)){ i++; continue; }
+        var cells = row.replace(/^\|/,'').replace(/\|$/,'').split('|');
+        var bg = rowNum===0 ? 'rgba(29,158,117,.15)' : rowNum%2===0 ? 'rgba(255,255,255,.02)' : 'transparent';
+        tableHtml += '<tr style="border-bottom:1px solid rgba(255,255,255,.08);background:'+bg+'">';
+        cells.forEach(function(cell){
+          var tag = rowNum===0 ? 'th' : 'td';
+          tableHtml += '<'+tag+' style="padding:7px 10px;text-align:left'+(rowNum===0?';color:var(--cyan);font-weight:700':'')+'">' + cell.trim() + '</'+tag+'>';
+        });
+        tableHtml += '</tr>';
+        rowNum++; i++;
+      }
+      tableHtml += '</table></div>';
+      out.push(tableHtml);
+    } else {
+      out.push(lines[i]); i++;
+    }
+  }
+  t = out.join('\n');
+  // Bullets
+  t = t.replace(/^[\-\*•] (.+)$/gm,'<div style="display:flex;gap:6px;margin:3px 0"><span style="color:var(--cyan);flex-shrink:0;margin-top:2px">▸</span><span>$1</span></div>');
+  // Numbered list
+  t = t.replace(/^(\d+)[.)\]] (.+)$/gm,'<div style="display:flex;gap:8px;margin:3px 0"><span style="color:var(--cyan);flex-shrink:0;min-width:18px;font-weight:700">$1.</span><span>$2</span></div>');
+  // Checkmarks
+  t = t.replace(/^✅ (.+)$/gm,'<div style="display:flex;gap:6px;margin:3px 0"><span style="flex-shrink:0">✅</span><span>$1</span></div>');
+  // Paragraphs
+  t = t.split('\n\n').map(function(para){
+    para = para.trim();
+    if(!para) return '';
+    if(/^<(div|table|hr)/.test(para)) return para;
+    return '<p style="margin:6px 0;line-height:1.75">'+para.replace(/\n/g,'<br>')+'</p>';
+  }).join('');
+  return t;
+}
+
 
 window.sendChat=function(){
   var inp=document.getElementById('chat-inp');
@@ -1895,7 +1957,7 @@ window.sendChat=function(){
   .then(function(d){
     var text=(d.content||[]).map(function(c){ return c.text||''; }).join('');
     P.aiLoading=false;
-    P.aiHistory.push({role:'assistant',content:text||'Could not get response. Try again.'});
+    P.aiHistory.push({role:'assistant',content:mbMd2html(text)||'Could not get response. Try again.'});
     renderMain();
   }).catch(function(){
     P.aiLoading=false;
