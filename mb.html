@@ -430,6 +430,36 @@ window.storage = {
     });
   }
 };
+function openAI(id){
+  var a = AI_ASSISTANTS.find(function(x){ return x.id===id; });
+  if(!a) return;
+  P.aiAssistant = a;
+  P.aiHistory = [];
+  P.view = 'ai-chat';
+  renderSidebar();
+  renderMain();
+}
+
+function filterAI(query){
+  var q = (query||'').toLowerCase().trim();
+  var cards = document.querySelectorAll('.mb-ai-card');
+  cards.forEach(function(card){
+    var id = card.getAttribute('data-aiid2');
+    var a = AI_ASSISTANTS.find(function(x){ return x.id===id; });
+    if(!a){ card.style.display='none'; return; }
+    var match = !q || a.name.toLowerCase().indexOf(q)>=0 || (a.cat||'').toLowerCase().indexOf(q)>=0 || (a.desc||'').toLowerCase().indexOf(q)>=0;
+    card.style.display = match ? '' : 'none';
+  });
+  // Also filter by category (when q matches a category exactly)
+  document.querySelectorAll('[onclick^="filterAI"]').forEach(function(btn){
+    var btnQ = btn.getAttribute('onclick').replace(/filterAI\(|\'|\)/g,'');
+    btn.style.background = (btnQ===query) ? 'rgba(29,158,117,.12)' : 'none';
+    btn.style.color = (btnQ===query) ? 'var(--cyan)' : 'var(--muted)';
+    btn.style.borderColor = (btnQ===query) ? 'var(--cyan)' : 'var(--border)';
+  });
+}
+
+
 </script>
 <script>
 /* ═══════════════════════════════════════════════════════════════
@@ -1345,6 +1375,14 @@ function renderMain(){
   else content='<div class="portal-pad"><div class="page-title">Coming Soon</div></div>';
   document.getElementById('portal-main').innerHTML=content;
   bindChat();
+  // AI grid click delegation
+  var aiGrid = document.getElementById('ai-grid');
+  if(aiGrid){
+    aiGrid.addEventListener('click', function(e){
+      var card = e.target.closest('.mb-ai-card');
+      if(card){ openAI(card.getAttribute('data-aiid2')); }
+    });
+  }
 }
 
 /* ── DASHBOARD ── */
@@ -1624,6 +1662,30 @@ var AI_ASSISTANTS=[
    starters:['What are my MB obligations after the company lists?','What quarterly disclosures must my issuer client make?','How do I handle an insider trading complaint post-listing?']},
 ];
 
+
+function openAI(id){
+  var assistants = typeof AI_ASSISTANTS !== 'undefined' ? AI_ASSISTANTS : [];
+  var a = assistants.find(function(x){ return x.id===id; });
+  if(!a){ return; }
+  P.aiAssistant = a;
+  P.aiHistory = [];
+  P.view = 'ai-chat';
+  if(typeof renderSidebar==='function') renderSidebar();
+  if(typeof renderMain==='function') renderMain();
+}
+function filterAI(query){
+  var q = (query||'').toLowerCase().trim();
+  var grid = document.getElementById('ai-grid');
+  if(!grid) return;
+  grid.querySelectorAll('.mb-ai-card').forEach(function(card){
+    var id = card.getAttribute('data-aiid2');
+    var assistants = typeof AI_ASSISTANTS !== 'undefined' ? AI_ASSISTANTS : [];
+    var a = assistants.find(function(x){ return x.id===id; });
+    var txt = a ? (a.name+' '+(a.cat||'')+' '+(a.desc||'')).toLowerCase() : '';
+    card.style.display = (!q || txt.indexOf(q)>=0) ? '' : 'none';
+  });
+}
+
 function renderAIHome(){
   var html='<div class="portal-pad"><div class="page-title">🤖 Promoter AI Suite</div><div class="page-sub">13 AI assistants — tuned for merchant banker workflows</div>';
   html+='<input class="inp" style="margin-bottom:16px" placeholder="Search assistants..." oninput="filterAI(this.value)"/>';
@@ -1648,7 +1710,7 @@ function renderAIHome(){
     var fc=a.free?'#1A9E6B':'#C9932A';
     var fb=a.free?'rgba(26,158,107,.08)':'rgba(232,138,46,.08)';
     var fb2=a.free?'rgba(26,158,107,.2)':'rgba(232,138,46,.2)';
-    html+='<div class="ai-card mb-ai-card" data-aiid2="'+a.id+'">';
+    html+='<div class="ai-card mb-ai-card" data-aiid2="'+a.id+'" onclick="openAI(\''+ a.id +'\')" style="cursor:pointer">';
     html+='<div style="height:4px;background:'+cc.s+'"></div>';
     html+='<div style="padding:16px 14px 14px;flex:1;display:flex;flex-direction:column">';
     html+='<span class="ai-badge '+(a.free?'free':'premium')+'" style="float:right;margin:-2px -2px 0 0;font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;color:'+fc+';background:'+fb+';border:1px solid '+fb2+'">'+(a.free?'FREE':'PRO')+'</span>';
