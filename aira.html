@@ -2790,7 +2790,15 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
 
   try{
     var p42=await workerPost({type:'probe42_raw',cin:cin});
-    var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
+    var cnameId = cinId.replace('-cin','-cname').replace('dr-cin','dr-cname');
+    var inputCname = (document.getElementById(cnameId)||{}).value||'';
+    var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')
+      ? p42.company_name
+      : (inputCname.trim()||cin);
+    // Auto-fill company name back into the form
+    var cnameEl = document.getElementById(cnameId);
+    if(cnameEl && p42 && p42.company_name && p42.company_name!=='NOT FOUND') 
+      cnameEl.value = p42.company_name;
     var f=(p42&&p42.financials)||{},dirs=(p42&&p42.directors)||[],chgs=(p42&&p42.charges)||[];
 
     var rev=+(parseFloat(f.revenue_fy24)||0).toFixed(2);
@@ -3450,6 +3458,20 @@ async function runDeepResearchFull(){
     // THE LOCKED DATA BLOCK — passed verbatim to all 15 modules
     // AI is FORBIDDEN from computing any figure that contradicts this block
     // ══════════════════════════════════════════════════════════════════════
+
+    // ── WEBSITE DATA FETCH ─────────────────────────────────────────────
+    var website = (p42&&p42.website)||'';
+    var websiteCtx = '';
+    if(website){
+      setPct(8,'Fetching company website\u2026');
+      try{
+        var wRes = await workerPost({type:'website_fetch', url:website, max_chars:3000});
+        if(wRes && wRes.text && wRes.text.length > 100){
+          websiteCtx = '\n\nCOMPANY WEBSITE DATA ('+website+'):\n'+wRes.text.substring(0,3000);
+        }
+      }catch(we){ websiteCtx = ''; }
+    }
+
     var VERIFIED_FINANCIALS=(
       '\n\n╔══════════════════════════════════════════════════════════════╗'
       +'\n║  LOCKED FINANCIAL DATA — DO NOT CONTRADICT ANY FIGURE HERE  ║'
