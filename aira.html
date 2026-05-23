@@ -1,3 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>ipowork AI v3.1 — IPO Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Fraunces:wght@700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@0,700;0,900;1,900&family=JetBrains+Mono:wght@400;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+:root{
+  --bg:#FAFAF8;--surface:#FFFFFF;--card:#F7F3EE;
+  --tl:#0D5C6B;--tld:#08404D;--tll:#1A7D90;
+  --sf:#E88A2E;--go:#C9932A;
+  --sl:#2C3E47;--mu:#6B7E85;--bd:#E2E8EA;
+  --ok:#1A9E6B;--er:#C0392B;--wn:#D4860C;
+  --sh:0 1px 4px rgba(13,92,107,.06),0 4px 16px rgba(13,92,107,.04);
+  --sh2:0 2px 8px rgba(13,92,107,.08),0 8px 32px rgba(13,92,107,.08);
+  --r:12px;--r2:18px;
+  --sans:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:2px}
+.pg{display:flex;min-height:100vh;background:var(--bg)}
+.lp{width:220px;min-width:220px;padding:20px 14px;background:#fff;border-right:1px solid var(--bd);position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+.rp-wrap{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{position:sticky;top:0;background:rgba(250,250,248,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--bd);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;z-index:50;box-shadow:var(--sh)}
+.breadcrumb{font-size:13px;color:var(--mu)}.breadcrumb .cur{color:var(--sl);font-weight:600}.breadcrumb .sep{margin:0 6px;opacity:.4}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.content{padding:24px 28px 60px;max-width:100%}
+.nav-brand{padding:4px 4px 16px}
+.tab-group-header{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--mu);padding:8px 6px 4px;opacity:.7}
+.tab-group-body{display:flex;flex-direction:column;gap:2px}
+.tg-tab{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--sl);background:transparent;border:1px solid transparent;text-align:left;width:100%;transition:all .15s}
+.tg-tab:hover{background:rgba(13,92,107,.06);color:var(--tl)}
+.tg-tab.active{background:linear-gradient(135deg,rgba(13,92,107,.12),rgba(13,92,107,.06));color:var(--tl);border-color:rgba(13,92,107,.15);font-weight:700}
+.tgt-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center}
+.tgt-name{flex:1;font-size:11.5px}
+.tgt-price{font-size:10px;color:var(--mu);font-weight:500;white-space:nowrap}
+.tier-tab{padding:8px 10px;border-radius:9px;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--sl);background:transparent;border:1px solid transparent;text-align:left;width:100%;transition:all .15s;display:flex;align-items:center;gap:8px}
+.tier-tab:hover{background:rgba(13,92,107,.06);color:var(--tl)}
+.tier-tab.active{background:linear-gradient(135deg,rgba(13,92,107,.12),rgba(13,92,107,.06));color:var(--tl);border-color:rgba(13,92,107,.15);font-weight:700}
+.pg-ey{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--tll);margin-bottom:5px}
+.pg-title{font-family:var(--serif);font-size:26px;font-weight:900;color:var(--tld);line-height:1.2;margin-bottom:6px}
+.pg-desc{font-size:14px;color:var(--mu);line-height:1.7;max-width:560px;margin-bottom:20px}
+.form-card{background:#fff;border:1px solid var(--bd);border-radius:var(--r2);padding:22px;margin-bottom:16px;box-shadow:var(--sh)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;font-weight:600;color:var(--sl)}
+.field input,.field select,.field textarea{padding:9px 12px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;color:var(--sl);background:#fff;outline:none;transition:border .15s;font-family:var(--sans)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(13,92,107,.08)}
+.field input::placeholder{color:var(--mu);opacity:.7}
+.btn-run{padding:11px 22px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:linear-gradient(135deg,var(--tl),var(--tld));color:#fff;box-shadow:0 3px 12px rgba(13,92,107,.25)}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-ghost{padding:10px 18px;background:#fff;border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--sl);cursor:pointer;transition:all .15s}
+.btn-ghost:hover{border-color:var(--tl);color:var(--tl);background:rgba(13,92,107,.04)}
+.prog-wrap{display:flex;gap:8px;align-items:center;padding:14px 0;flex-wrap:wrap}
+.prog-step{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--mu);transition:all .3s;opacity:.5}
+.prog-step.active{color:var(--tl);opacity:1;font-weight:600}
+.prog-step.done{color:var(--ok);opacity:.8}
+.ps-n{width:20px;height:20px;border-radius:50%;background:var(--bd);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--mu);flex-shrink:0}
+.prog-step.active .ps-n{background:var(--tl);color:#fff}
+.prog-step.done .ps-n{background:var(--ok);color:#fff}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result-wrap{animation:fadeUp .35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.err-card{background:#FFF5F0;border:1px solid #FAD2C8;border-radius:10px;padding:14px;font-size:13px;color:var(--er)}
+.ai-body{font-size:13px;line-height:1.75;color:#1A2E35}
+.ai-body h4{font-size:14px;font-weight:800;color:#08404D;margin:14px 0 6px;border-bottom:1px solid #E0EEF0;padding-bottom:5px}
+.ai-body h5{font-size:13px;font-weight:700;color:#1A5C8A;margin:10px 0 4px}
+.ai-body p{margin-bottom:8px}
+.ai-body ul,.ai-body ol{padding-left:18px;margin-bottom:8px}
+.ai-body li{margin-bottom:4px}
+.ai-body table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.ai-body th{background:#F0F5FB;padding:7px 10px;font-weight:700;border-bottom:2px solid #C8DCF0;text-align:left;color:#08404D}
+.ai-body td{padding:7px 10px;border-bottom:1px solid #EEF2F5;vertical-align:top}
+.ai-body tr:nth-child(even) td{background:#FAFCFD}
+.score-hero{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;margin-bottom:16px}
+.kv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.kv-card{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:10px 14px}
+.kv-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--mu);margin-bottom:3px}
+.kv-val{font-size:18px;font-weight:800;color:var(--tld)}
+.kv-note{font-size:10px;color:var(--mu);margin-top:2px}
+.dim-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:12px 0}
+.dim-card{background:#fff;border:1px solid var(--bd);border-radius:9px;padding:8px 6px;text-align:center}
+.dim-score{font-size:20px;font-weight:900}
+.dim-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--mu);margin-top:2px}
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+.search-row input{flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none;font-family:var(--sans)}
+.search-row input:focus{border-color:var(--tl)}
+.search-row button{padding:9px 16px;background:var(--tl);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap}
+.status-msg{background:rgba(13,92,107,.06);border:1px solid rgba(13,92,107,.12);border-radius:9px;padding:10px 14px;font-size:12px;color:var(--tl);font-weight:600}
+.rtbl-wrap{overflow-x:auto;margin-bottom:14px}
+.rtbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.rtbl th{background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:9px 12px;font-weight:700;font-size:11px;letter-spacing:.3px;text-align:left}
+.rtbl td{padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+.rtbl tr:last-child td{border-bottom:none}
+.rtbl tr:nth-child(even) td{background:#FAFCFD}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.3px}
+.badge-ok{background:rgba(26,158,107,.1);color:#0F7A50}
+.badge-warn{background:rgba(201,147,42,.1);color:#7A5B1A}
+.badge-err{background:rgba(192,57,43,.1);color:#8B2B20}
+.upload-slot{border:2px dashed var(--bd);border-radius:12px;padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s;background:#fff}
+.upload-slot:hover{border-color:var(--tl);background:rgba(13,92,107,.03)}
+.upload-slot.has-file{border-color:var(--ok);background:rgba(26,158,107,.04);border-style:solid}
+.us-icon{font-size:24px;margin-bottom:6px}
+.us-lbl{font-size:12px;font-weight:600;color:var(--sl);margin-bottom:4px}
+.us-status{font-size:11px;color:var(--mu)}
+.upload-slot.has-file .us-status{color:var(--ok);font-weight:600}
+.dr-progress-bar{height:8px;background:linear-gradient(90deg,var(--tl),var(--tll));border-radius:6px;width:0;transition:width .5s ease}
+.sim-item-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:9px;cursor:pointer;transition:background .15s;border:1px solid transparent}
+.sim-item-row:hover{background:rgba(13,92,107,.04);border-color:var(--bd)}
+.sim-item-row.checked{background:rgba(26,158,107,.06);border-color:rgba(26,158,107,.2)}
+.sim-item-text{flex:1}
+.sim-item-label{font-size:13px;font-weight:600;color:var(--sl)}
+.sim-item-meta{font-size:11px;color:var(--mu);margin-top:2px}
+.sim-item-impact{font-size:12px;font-weight:700;color:var(--ok);background:rgba(26,158,107,.1);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.fix-card{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:8px}
+.val-table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--bd)}
+.val-table{width:100%;border-collapse:collapse;font-size:12px}
+.val-table th{background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:9px 12px;font-weight:700;text-align:left}
+.val-table td{padding:8px 12px;border-bottom:1px solid var(--bd)}
+.val-ranges{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.rp{margin:0 0 10px;font-size:13px;line-height:1.7;color:var(--sl)}
+.section{margin-bottom:18px}
+.section-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tll);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.section-head::before{content:'';display:block;width:3px;height:14px;background:var(--tl);border-radius:2px}
+.mobile-top{display:none}
+.bm-card{background:linear-gradient(135deg,rgba(13,92,107,.97),rgba(8,64,77,1));border-radius:18px;padding:22px}
+.bm-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.bm-stat{background:rgba(255,255,255,.08);border-radius:12px;padding:14px;text-align:center}
+.bm-stat-n{font-size:28px;font-weight:900;color:#6DDC9E;line-height:1}
+.bm-stat-l{font-size:11px;color:rgba(255,255,255,.6);margin-top:5px}
+/* Access gate */
+.access-gate{position:fixed;inset:0;background:rgba(8,64,77,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:1000}
+.gate-card{background:#fff;border-radius:20px;width:460px;max-width:95vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.gate-header{background:linear-gradient(135deg,#08404D,#0D5C6B);padding:24px 28px;color:#fff}
+.gate-body{padding:24px 28px}
+.gate-tabs{display:flex;gap:0;margin-bottom:20px;border-radius:10px;overflow:hidden;border:1px solid var(--bd)}
+.gate-tab-btn{flex:1;padding:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s}
+/* Admin auth */
+.admin-auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:999}
+.admin-auth-card{background:#fff;border-radius:16px;padding:28px;width:360px;max-width:95vw;box-shadow:0 20px 40px rgba(0,0,0,.2)}
+[id^="content-"]{min-height:400px}
+
+</style>
+</head>
+<body>
+
+<!-- Admin Auth Modal -->
+<div id="admin-auth-gate" id="admin-auth-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;background:rgba(7,35,42,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:18px;padding:32px 28px;width:100%;max-width:360px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:32px;margin-bottom:8px">&#128272;</div>
+      <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--tld)">Admin Access</div>
+    </div>
+    <input id="admin-pwd-input" type="password" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')checkAdminPwd()"
+      style="width:100%;padding:11px 14px;border:1.5px solid var(--bd);border-radius:9px;font-size:14px;color:var(--sl);outline:none;margin-bottom:10px;box-sizing:border-box"/>
+    <div id="admin-pwd-err" style="font-size:11px;color:var(--er);min-height:16px;margin-bottom:8px"></div>
+    <button onclick="checkAdminPwd()" style="width:100%;padding:12px;background:var(--tl);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Enter Dashboard</button>
+    <button onclick="closeAdminAuth()" style="width:100%;padding:10px;background:none;border:none;color:var(--mu);font-size:13px;cursor:pointer;margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- Access Gate -->
+<div id="access-gate" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(8,64,77,.95);overflow-y:auto;padding:30px 16px;box-sizing:border-box">
+  <div style="max-width:440px;margin:0 auto;background:#fff;border-radius:20px;padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative">
+    <button onclick="closeAccessGate()" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;color:#9AB0B8;cursor:pointer">&#x2715;</button>
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-family:Georgia,serif;font-size:30px;font-weight:900;color:#08404D">ipowork<sup style="font-size:12px;color:#E88A2E">AI</sup></div>
+      <div style="font-size:12px;color:#E88A2E;font-weight:600;margin-top:4px">Paid service · Admin approval required</div>
+    </div>
+    <div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;margin-bottom:24px;overflow:hidden">
+      <button id="gate-tab-login" onclick="gateShowTab('login')" style="flex:1;padding:10px;border:none;background:#08404D;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Login</button>
+      <button id="gate-tab-request" onclick="gateShowTab('request')" style="flex:1;padding:10px;border:none;background:#fff;color:#08404D;font-weight:700;font-size:13px;cursor:pointer">Request Access</button>
+    </div>
+    <div id="gate-panel-login">
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase">Email</label>
+        <input id="gate-email" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')document.getElementById('gate-password').focus()"
+          style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box"/>
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:11px;font-weight:700;color:#08404D;text-transform:uppercase">Password</label>
+        <input id="gate-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')gateLogin()"
+          style="width:100%;margin-top:5px;padding:11px 14px;border:1.5px solid #D8EDF0;border-radius:9px;font-size:13px;outline:none;color:#1A2E35;box-sizing:border-box"/>
+      </div>
+      <div id="gate-error" style="color:#C0392B;font-size:12px;margin-bottom:10px;min-height:16px"></div>
+      <button onclick="gateLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Login &amp; Continue &#8594;</button>
+    </div>
+    <div id="gate-panel-request" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div><label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Full Name *</label>
+          <input id="req-name" type="text" placeholder="Your name" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box"/></div>
+        <div><label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">WhatsApp *</label>
+          <input id="req-phone" type="tel" placeholder="+91 9XXXXXXXXX" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box"/></div>
+      </div>
+      <div style="margin-bottom:12px"><label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Email *</label>
+        <input id="req-email" type="email" placeholder="your@company.com" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div><label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Organisation</label>
+          <input id="req-org" type="text" placeholder="Company / CA Firm" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;box-sizing:border-box"/></div>
+        <div><label style="font-size:10px;font-weight:700;color:#08404D;text-transform:uppercase">Purpose</label>
+          <select id="req-purpose" style="width:100%;margin-top:4px;padding:10px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;box-sizing:border-box">
+            <option value="">Select</option><option value="ca">CA / CS</option><option value="bank">Merchant Banker</option>
+            <option value="company">Company (IPO)</option><option value="vc">VC / PE</option><option value="other">Other</option>
+          </select></div>
+      </div>
+      <div id="req-error" style="color:#C0392B;font-size:12px;margin-bottom:10px;min-height:16px"></div>
+      <button onclick="submitAccessRequest()" style="width:100%;padding:13px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">&#128640; Request Access</button>
+      <div style="text-align:center;margin-top:12px;font-size:11px;color:#9AB0B8">Already approved? <b style="color:#0D5C6B;cursor:pointer" onclick="gateShowTab('login')">Login here</b></div>
+    </div>
+  </div>
+</div>
+
+<div class="pg">
+  <div class="mobile-top" style="display:none">
+  <span style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--tld)">ipowork<sup style="font-size:8px;color:#E88A2E;font-weight:800">AI</sup></span>
+  <button id="btn-full-report-m" onclick="generateFullReport()" style="display:none;padding:5px 10px;background:linear-gradient(135deg,#1A6B3A,#27AE60);color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">&#128196; Full PDF</button>
+</div>
+<div class="lp">
+    <div class="nav-brand" style="padding:0 4px 16px">
+      <span style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--tld)">ipowork<sup style="font-size:9px;color:#E88A2E;font-weight:800">AI</sup></span>
+      <div style="font-size:10px;color:var(--mu);margin-top:2px">IPO Readiness</div>
+    </div>
+    <div class="tab-group-body tgb-ipo" style="margin-bottom:8px">
+      <button class="tg-tab" id="tab-free" onclick="switchTier('free')">
+        <span class="tgt-icon">&#128203;</span><span class="tgt-name">AIRA Score</span><span class="tgt-price">&#8377;499</span>
+      </button>
+      <button class="tg-tab tgt-sme" id="tab-paid" onclick="switchTier('paid')">
+        <span class="tgt-icon">&#127981;</span><span class="tgt-name">SME Intel</span><span class="tgt-price">&#8377;999</span>
+      </button>
+      <button class="tg-tab tgt-main" id="tab-mainboard" onclick="switchTier('mainboard')">
+        <span class="tgt-icon">&#127963;</span><span class="tgt-name">Mainboard</span><span class="tgt-price">&#8377;2,499</span>
+      </button>
+      <button class="tg-tab tgt-ca" id="tab-ca" onclick="switchTier('ca')">
+        <span class="tgt-icon">&#128193;</span><span class="tgt-name">CA/CS Bundle</span><span class="tgt-price">&#8377;4,999</span>
+      </button>
+        <button class="tg-tab" id="tab-deepresearch" onclick="switchTier('deepresearch')" style="background:linear-gradient(135deg,rgba(59,48,176,.08),rgba(59,48,176,.04));border-color:rgba(59,48,176,.2)">
+          <span class="tgt-icon">&#128269;</span><span class="tgt-name">Deep Research</span><span class="tgt-price">&#8377;999</span>
+        </button>
+    </div>
+    <div id="group-clean-compliance">
+      <div class="tab-group-header tgh-clean" style="margin-top:8px">
+        <span>Clean &amp; Compliance</span>
+      </div>
+      <div class="tab-group-body tgb-clean">
+        <button class="tg-tab tgt-clean" id="tab-clearchit" onclick="switchTier('clearchit')"><span class="tgt-icon">&#128737;</span><span class="tgt-name">Clean Chit</span><span class="tgt-price">&#8377;1,499</span></button>
+        <button class="tg-tab tgt-clean" id="tab-dirscan" onclick="switchTier('dirscan')"><span class="tgt-icon">&#128269;</span><span class="tgt-name">Dir. Scan</span><span class="tgt-price">&#8377;299/DIN</span></button>
+        <button class="tg-tab tgt-clean" id="tab-ddbundle" onclick="switchTier('ddbundle')"><span class="tgt-icon">&#128230;</span><span class="tgt-name">DD Bundle</span><span class="tgt-price">&#8377;9,999</span></button>
+        <button class="tg-tab tgt-clean" id="tab-alert" onclick="switchTier('alert')"><span class="tgt-icon">&#128276;</span><span class="tgt-name">AIRA Alert</span><span class="tgt-price">&#8377;4,999/yr</span></button>
+      </div>
+    </div>
+    <div id="group-valuation">
+      <div class="tab-group-header tgh-val" style="margin-top:8px">
+        <span>&#127759; Valuation</span>
+      </div>
+      <div class="tab-group-body tgb-val">
+        <button class="tg-tab tgt-val" id="tab-valdoc" onclick="switchTier('valdoc')"><span class="tgt-icon">&#128196;</span><span class="tgt-name">Doc-based Val.</span><span class="tgt-price">&#8377;2,999</span></button>
+        <button class="tg-tab tgt-val" id="tab-valintel" onclick="switchTier('valintel')"><span class="tgt-icon">&#128200;</span><span class="tgt-name">Val. Intelligence</span><span class="tgt-price">&#8377;7,999</span></button>
+
+      </div>
+    </div>
+    <button class="tier-tab" id="tab-admin" onclick="switchTier('admin')" style="display:none;width:fit-content;margin-top:6px">&#128202; Admin</button>
+  </div>
+
+  <div class="rp-wrap">
+    <div class="topbar-right">
+      <button onclick="generateFullReport()" id="btn-full-report" title="Combine all reports into one PDF" style="display:none;padding:6px 14px;background:linear-gradient(135deg,#1A6B3A,#27AE60);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px">&#128196; Full Report PDF</button>
+<div id="user-display" style="margin-right:8px;display:inline-flex;align-items:center;gap:6px"></div>
+      <button onclick="testWorkerNow()" style="font-size:11px;padding:3px 10px;background:rgba(13,92,107,.1);border:1px solid rgba(13,92,107,.3);border-radius:5px;cursor:pointer;color:var(--tl);font-weight:600">&#128268; Test</button>
+      <button onclick="handleAdminClick()" style="padding:4px 10px;background:transparent;border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:13px;color:var(--mu)">&#128202; Admin</button>
+      <button onclick="toggleDevGroups()" style="padding:4px 8px;background:transparent;border:none;cursor:pointer;font-size:14px">&#9881;&#65039;</button>
+    </div>
+
+
+    <div id="content-free" style="display:none">
+<div class="form-card">
+  <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--mu);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(13,92,107,.06)">&#128203; AIRA Score — &#8377;499 (incl. GST)</div>
+  <div style="font-size:13px;color:var(--mu);margin-bottom:18px">Upload your company documents → get authenticated AIRA Score + gap analysis · No AI guesswork</div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="d-cname" type="text" placeholder="e.g. ABC Manufacturing Pvt Ltd"/></div>
+    <div class="field"><label>CIN</label><input id="d-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>Sector</label><select id="d-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+    <div class="field"><label>Target Exchange</label><select id="d-exchange"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Main Board</option><option>BSE Main Board</option></select></div>
+  </div>
+  <div id="doc-upload-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0">
+    <div class="upload-slot" id="slot-bs" onclick="document.getElementById('file-bs').click()"><input type="file" id="file-bs" style="display:none" accept=".pdf,.xlsx,.xls" onchange="handleUpload('bs',this)"/><div class="us-icon">&#128196;</div><div class="us-lbl">Balance Sheet</div><div class="us-status" id="status-bs">Click to upload</div></div>
+    <div class="upload-slot" id="slot-pl" onclick="document.getElementById('file-pl').click()"><input type="file" id="file-pl" style="display:none" accept=".pdf,.xlsx,.xls" onchange="handleUpload('pl',this)"/><div class="us-icon">&#128202;</div><div class="us-lbl">P&amp;L Statement</div><div class="us-status" id="status-pl">Click to upload</div></div>
+    <div class="upload-slot" id="slot-ar" onclick="document.getElementById('file-ar').click()"><input type="file" id="file-ar" style="display:none" accept=".pdf" onchange="handleUpload('ar',this)"/><div class="us-icon">&#128217;</div><div class="us-lbl">Annual Report</div><div class="us-status" id="status-ar">Click to upload</div></div>
+    <div class="upload-slot" id="slot-cf" onclick="document.getElementById('file-cf').click()"><input type="file" id="file-cf" style="display:none" accept=".pdf,.xlsx" onchange="handleUpload('cf',this)"/><div class="us-icon">&#128181;</div><div class="us-lbl">Cash Flow</div><div class="us-status" id="status-cf">Click to upload</div></div>
+    <div class="upload-slot" id="slot-mca" onclick="document.getElementById('file-mca').click()"><input type="file" id="file-mca" style="display:none" accept=".pdf" onchange="handleUpload('mca',this)"/><div class="us-icon">&#127963;</div><div class="us-lbl">MCA Filing</div><div class="us-status" id="status-mca">Click to upload</div></div>
+    <div class="upload-slot" id="slot-moa" onclick="document.getElementById('file-moa').click()"><input type="file" id="file-moa" style="display:none" accept=".pdf" onchange="handleUpload('moa',this)"/><div class="us-icon">&#128220;</div><div class="us-lbl">MOA/AOA</div><div class="us-status" id="status-moa">Click to upload</div></div>
+    <div class="upload-slot" id="slot-sh" onclick="document.getElementById('file-sh').click()"><input type="file" id="file-sh" style="display:none" accept=".pdf,.xlsx" onchange="handleUpload('sh',this)"/><div class="us-icon">&#128101;</div><div class="us-lbl">Shareholding</div><div class="us-status" id="status-sh">Click to upload</div></div>
+    <div class="upload-slot" id="slot-dir" onclick="document.getElementById('file-dir').click()"><input type="file" id="file-dir" style="display:none" accept=".pdf,.xlsx" onchange="handleUpload('dir',this)"/><div class="us-icon">&#128100;</div><div class="us-lbl">Directors Info</div><div class="us-status" id="status-dir">Click to upload</div></div>
+    <div class="upload-slot" id="slot-aud" onclick="document.getElementById('file-aud').click()"><input type="file" id="file-aud" style="display:none" accept=".pdf" onchange="handleUpload('aud',this)"/><div class="us-icon">&#128270;</div><div class="us-lbl">Audit Report</div><div class="us-status" id="status-aud">Click to upload</div></div>
+    <div class="upload-slot" id="slot-gst" onclick="document.getElementById('file-gst').click()"><input type="file" id="file-gst" style="display:none" accept=".pdf,.xlsx" onchange="handleUpload('gst',this)"/><div class="us-icon">&#128203;</div><div class="us-lbl">GST Returns</div><div class="us-status" id="status-gst">Click to upload</div></div>
+  </div>
+  <div id="upload-summary" style="display:none;padding:10px 14px;background:rgba(26,158,107,.06);border:1px solid rgba(26,158,107,.2);border-radius:9px;margin-bottom:14px;font-size:13px">
+    <span id="upload-count-label" style="color:var(--ok);font-weight:700"></span>
+    <span id="upload-complete-label"></span>
+  </div>
+  <div class="prog-wrap" id="prog-doc" style="display:none">
+    <div class="prog-step" id="ds1"><div class="ps-n">1</div>Reading documents…</div>
+    <div class="prog-step" id="ds2"><div class="ps-n">2</div>Extracting financials…</div>
+    <div class="prog-step" id="ds3"><div class="ps-n">3</div>Scoring 6 dimensions…</div>
+    <div class="prog-step" id="ds4"><div class="ps-n">4</div>Generating report…</div>
+  </div>
+  <button class="btn-run btn-primary" id="btn-doc-run" onclick="requireLoginThen(runFreeCore)" style="margin-top:16px">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    Generate AIRA Score · &#8377;499
+  </button>
+  <div id="result-doc" style="margin-top:16px"></div>
+
+</div>
+    </div>
+
+    <div id="content-paid" style="display:block">
+<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#127981; SME Intelligence</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">Probe42 MCA data + AI Analysis · &#8377;999</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="p-cin" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('p')" style="padding:9px 16px;background:var(--tl);color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-p" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="p-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>Sector</label><select id="p-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+    <div class="field"><label>Target Exchange</label><select id="p-exchange"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Main Board</option><option>BSE Main Board</option></select></div>
+  </div>
+  <div class="prog-wrap" id="prog-paid" style="display:none">
+    <div class="prog-step" id="pp1"><div class="ps-n">1</div>Fetching MCA data…</div>
+    <div class="prog-step" id="pp2"><div class="ps-n">2</div>Probe42 financials…</div>
+    <div class="prog-step" id="pp3"><div class="ps-n">3</div>AI analysis…</div>
+    <div class="prog-step" id="pp4"><div class="ps-n">4</div>AI deep analysis</div>
+    <div class="prog-step" id="pp5"><div class="ps-n">5</div>Report ready</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn-run btn-amber" id="btn-paid-run" onclick="requireLoginThen(runPaidCore)">&#127981; Generate SME Intel Report · &#8377;999 &#8594;</button>
+    <button class="btn-ghost" id="btn-paid-dr" onclick="requireLoginThen(runDeepResearch)" style="font-size:12px">&#128269; Deep Research</button>
+  </div>
+  <div id="result-paid" style="margin-top:16px"></div>
+  
+
+</div>
+    </div>
+
+    <div id="content-mainboard" style="display:none">
+<div style="background:linear-gradient(135deg,#1A3A5C,#1A5C8A);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#127963; Mainboard Intelligence</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">ICDR Compliance + AI Analysis · &#8377;2,499</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="mb-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('mb')" style="padding:9px 16px;background:#1A5C8A;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-mb" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="mb-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN</label><input id="mb-cin" type="text" placeholder="e.g. L17110MH1973PLC019786"/></div>
+    <div class="field"><label>Sector</label><select id="mb-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+    <div class="field"><label>Target Exchange</label><select id="mb-exchange"><option>NSE Main Board</option><option>BSE Main Board</option></select></div>
+  </div>
+  <div class="prog-wrap" id="prog-mainboard" style="display:none">
+    <div class="prog-step" id="mp1"><div class="ps-n">1</div>Fetching MCA data…</div>
+    <div class="prog-step" id="mp2"><div class="ps-n">2</div>Probe42 financials…</div>
+    <div class="prog-step" id="mp3"><div class="ps-n">3</div>ICDR compliance check…</div>
+    <div class="prog-step" id="mp4"><div class="ps-n">4</div>AI analysis…</div>
+    <div class="prog-step" id="mp5"><div class="ps-n">5</div>Report ready</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn-run btn-primary" id="btn-mb-run" onclick="requireLoginThen(runMainboardCore)">&#127963; Generate Mainboard Report · &#8377;2,499 &#8594;</button>
+    <button class="btn-ghost" id="btn-mb-dr" onclick="requireLoginThen(runDeepResearch)" style="font-size:12px">&#128269; Deep Research</button>
+  </div>
+  <div id="result-mainboard" style="margin-top:16px"></div>
+  
+
+</div>
+    </div>
+
+    <div id="content-ca" style="display:none">
+<div style="background:linear-gradient(135deg,#1A6B3A,#1A9E6B);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#128193; CA/CS Compliance Bundle</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">Secretarial + ROC + GST · &#8377;4,999</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="ca-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('ca')" style="padding:9px 16px;background:#1A9E6B;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-ca" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="ca-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN</label><input id="ca-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>Sector</label><select id="ca-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Other</option></select></div>
+    <div class="field"><label>CA/CS Firm Name</label><input id="ca-firm" type="text" placeholder="Your firm name (optional)"/></div>
+  </div>
+  <div class="prog-wrap" id="prog-ca" style="display:none">
+    <div class="prog-step" id="cp1"><div class="ps-n">1</div>Fetching MCA/ROC data…</div>
+    <div class="prog-step" id="cp2"><div class="ps-n">2</div>Compliance analysis…</div>
+    <div class="prog-step" id="cp3"><div class="ps-n">3</div>AI report generation…</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn-run btn-primary" id="btn-ca-run" onclick="requireLoginThen(runCACore)" style="background:linear-gradient(135deg,#1A6B3A,#1A9E6B)">&#128193; Generate CA/CS Bundle · &#8377;4,999 &#8594;</button>
+    <button class="btn-ghost" id="btn-ca-dr" onclick="requireLoginThen(runDeepResearch)" style="font-size:12px">&#128269; Deep Research</button>
+  </div>
+  <div id="result-ca" style="margin-top:16px"></div>
+  
+
+</div>
+    </div>
+
+    <div id="content-clearchit" style="display:none">
+<div style="background:linear-gradient(135deg,#1A4A2A, #2D7A46);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#128737; Clean Chit Report</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">Probe42 MCA data + AI Analysis · &#8377;1,499</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="clearchit-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('cl')" style="padding:9px 16px;background:#2D7A4;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-cl" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="clearchit-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN *</label><input id="clearchit-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>Sector</label><select id="clearchit-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+    <div class="field"><label>Target Exchange</label><select id="clearchit-exchange"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Main Board</option><option>BSE Main Board</option></select></div>
+    
+  </div>
+  <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:12px;color:#6B8A94">
+    &#128268; Powered by <strong>Probe42</strong> — live MCA/ROC data, director history, financial records, litigation checks
+  </div>
+  <div class="prog-wrap" id="prog-clearchit" style="display:none">
+    <div class="prog-step" id="cl1"><div class="ps-n">1</div>Fetching Probe42 MCA data…</div><div class="prog-step" id="cl2"><div class="ps-n">2</div>Director DIN checks…</div><div class="prog-step" id="cl3"><div class="ps-n">3</div>Litigation & charge search…</div><div class="prog-step" id="cl4"><div class="ps-n">4</div>AI compliance analysis…</div><div class="prog-step" id="cl5"><div class="ps-n">5</div>Report ready</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn-run btn-primary" id="btn-cc-run" onclick="requireLoginThen(runCleanChitCore)" style="background:linear-gradient(135deg,#1A4A2A,#2D7A46)">&#128737; Generate Clean Chit Report · &#8377;1,499 &#8594;</button>
+  </div>
+  <div id="result-clearchit" style="margin-top:16px"></div>
+  
+
+</div>
+</div>
+
+<div id="content-dirscan" style="display:none">
+<div style="background:linear-gradient(135deg,#2D1B69,#4A3096);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#128269; Director Scan</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">Probe42 MCA director data + AI governance analysis · &#8377;299/DIN</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="dirscan-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('dirscan')" style="padding:9px 16px;background:#4A3096;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-dirscan" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="dirscan-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN *</label><input id="dirscan-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>Sector</label><select id="dirscan-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+  </div>
+  <div style="background:#F5F0FF;border:1px solid #C5B8F0;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:12px;color:#4A3096">
+    &#128268; <strong>Probe42</strong> fetches all directors with DIN, designation, appointment dates, and charges. AI analyses governance risk for IPO.
+  </div>
+  <div class="prog-wrap" id="prog-dirscan" style="display:none">
+    <div class="prog-step" id="dp1"><div class="ps-n">1</div>Fetching Probe42 director data…</div>
+    <div class="prog-step" id="dp2"><div class="ps-n">2</div>Analysing board composition…</div>
+    <div class="prog-step" id="dp3"><div class="ps-n">3</div>AI governance analysis…</div>
+    <div class="prog-step" id="dp4"><div class="ps-n">4</div>Report ready</div>
+  </div>
+  <button class="btn-run btn-primary" id="btn-ds-run" onclick="requireLoginThen(runDirScan)" style="background:linear-gradient(135deg,#2D1B69,#4A3096);margin-top:16px">
+    &#128269; Run Director Scan · &#8377;299/DIN &#8594;
+  </button>
+  <div id="result-dirscan" style="margin-top:16px"></div>
+  
+
+</div>
+</div>
+
+<div id="content-ddbundle" style="display:none">
+<div style="background:linear-gradient(135deg,#4A2A1A, #7A4A2D);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#128230; Due Diligence Bundle</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">Probe42 MCA data + AI Analysis · &#8377;9,999</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="ddbundle-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('dd')" style="padding:9px 16px;background:#7A4A2;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-dd" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="ddbundle-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN *</label><input id="ddbundle-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>Sector</label><select id="ddbundle-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+    <div class="field"><label>Target Exchange</label><select id="ddbundle-exchange"><option>NSE Emerge (SME)</option><option>BSE SME</option><option>NSE Main Board</option><option>BSE Main Board</option></select></div>
+    <div class="field"><label>CA/CS Firm (optional)</label><input id="ddbundle-firm" type="text" placeholder="Your firm name"/></div>
+  </div>
+  <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:12px;color:#6B8A94">
+    &#128268; Powered by <strong>Probe42</strong> — live MCA/ROC data, director history, financial records, litigation checks
+  </div>
+  <div class="prog-wrap" id="prog-ddbundle" style="display:none">
+    <div class="prog-step" id="dd1"><div class="ps-n">1</div>Fetching Probe42 MCA data…</div><div class="prog-step" id="dd2"><div class="ps-n">2</div>Financial deep-dive…</div><div class="prog-step" id="dd3"><div class="ps-n">3</div>Director & promoter checks…</div><div class="prog-step" id="dd4"><div class="ps-n">4</div>Legal & charge analysis…</div><div class="prog-step" id="dd5"><div class="ps-n">5</div>AI DD report generation…</div><div class="prog-step" id="dd6"><div class="ps-n">6</div>Report ready</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn-run btn-primary" id="btn-dd-run" onclick="requireLoginThen(runDDBundle)" style="background:linear-gradient(135deg,#4A2A1A,#7A4A2D)">&#128230; Generate Due Diligence Bundle · &#8377;9,999 &#8594;</button>
+  </div>
+  <div id="result-ddbundle" style="margin-top:16px"></div>
+  
+
+</div>
+</div>
+
+<div id="content-alert" style="display:none">
+<div style="background:linear-gradient(135deg,#B5370A,#E05A1A);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#128276; AIRA Alert</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">Probe42 watchlist monitoring · &#8377;4,999/yr per company</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="alert-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('alert')" style="padding:9px 16px;background:#B5370A;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-alert" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="alert-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN *</label><input id="alert-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>WhatsApp Number</label><input id="al-phone" type="tel" placeholder="+91 9XXXXXXXXX"/></div>
+    <div class="field"><label>Email</label><input id="al-email" type="email" placeholder="alerts@yourfirm.com"/></div>
+    <div class="field"><label>Alert Sensitivity</label>
+      <select id="al-sensitivity">
+        <option value="high">High — all MCA/ROC events</option>
+        <option value="medium" selected>Medium — material changes only</option>
+        <option value="low">Low — critical events only</option>
+      </select>
+    </div>
+  </div>
+  <div style="background:#FFF5F0;border:1px solid #FCDAC8;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:12px;color:#8A4A1A;line-height:1.7">
+    &#128276; <strong>What we monitor via Probe42:</strong><br>
+    Director appointments &amp; resignations &nbsp;|&nbsp; New charges &amp; satisfactions &nbsp;|&nbsp; MCA filing status &nbsp;|&nbsp; ROC default notices &nbsp;|&nbsp; Revenue &amp; PAT threshold breaches &nbsp;|&nbsp; Promoter shareholding changes
+  </div>
+  <button class="btn-run btn-primary" id="btn-al-run" onclick="requireLoginThen(airaAlert)" style="background:linear-gradient(135deg,#B5370A,#E05A1A);margin-top:4px">
+    &#128276; Add to Watchlist · &#8377;4,999/yr &#8594;
+  </button>
+  <div id="result-alert" style="margin-top:16px"></div>
+  
+</div>
+</div>
+
+<div id="content-valdoc" style="display:none">
+<div style="background:linear-gradient(135deg,#1A3A5C, #1A5C8A);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#128196; Valuation (Probe42)</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">Probe42 MCA data + AI Analysis · &#8377;2,999</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="valdoc-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('va')" style="padding:9px 16px;background:#1A5C8;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-va" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="valdoc-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN *</label><input id="valdoc-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>Sector</label><select id="valdoc-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+    <div class="field"><label>Target Exchange</label><select id="valdoc-exchange"><option>NSE Main Board</option><option>BSE Main Board</option><option>NSE Emerge (SME)</option><option>BSE SME</option></select></div>
+    
+  </div>
+  <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:12px;color:#6B8A94">
+    &#128268; Powered by <strong>Probe42</strong> — live MCA/ROC data, director history, financial records, litigation checks
+  </div>
+  <div class="prog-wrap" id="prog-valdoc" style="display:none">
+    <div class="prog-step" id="va1"><div class="ps-n">1</div>Fetching Probe42 financials…</div><div class="prog-step" id="va2"><div class="ps-n">2</div>Building valuation model…</div><div class="prog-step" id="va3"><div class="ps-n">3</div>Peer comparable analysis…</div><div class="prog-step" id="va4"><div class="ps-n">4</div>AI valuation report…</div><div class="prog-step" id="va5"><div class="ps-n">5</div>Report ready</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn-run btn-primary" id="btn-vd-run" onclick="requireLoginThen(runValuationDoc)" style="background:linear-gradient(135deg,#1A3A5C,#1A5C8A)">&#128196; Generate Valuation (Probe42) · &#8377;2,999 &#8594;</button>
+  </div>
+  <div id="result-valdoc" style="margin-top:16px"></div>
+  
+
+</div>
+</div>
+
+<div id="content-valintel" style="display:none">
+<div style="background:linear-gradient(135deg,#3B30B0, #5B4ED4);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#128200; Valuation Intelligence</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">Probe42 MCA data + AI Analysis · &#8377;7,999</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="valintel-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('va')" style="padding:9px 16px;background:#5B4ED;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-va" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="valintel-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN *</label><input id="valintel-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>Sector</label><select id="valintel-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+    <div class="field"><label>Target Exchange</label><select id="valintel-exchange"><option>NSE Main Board</option><option>BSE Main Board</option><option>NSE Emerge (SME)</option><option>BSE SME</option></select></div>
+    
+  </div>
+  <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:12px;color:#6B8A94">
+    &#128268; Powered by <strong>Probe42</strong> — live MCA/ROC data, director history, financial records, litigation checks
+  </div>
+  <div class="prog-wrap" id="prog-valintel" style="display:none">
+    <div class="prog-step" id="va1"><div class="ps-n">1</div>Fetching Probe42 financials…</div><div class="prog-step" id="va2"><div class="ps-n">2</div>Building valuation model…</div><div class="prog-step" id="va3"><div class="ps-n">3</div>Peer comparable analysis…</div><div class="prog-step" id="va4"><div class="ps-n">4</div>AI merchant banker analysis…</div><div class="prog-step" id="va5"><div class="ps-n">5</div>Computing price band…</div><div class="prog-step" id="va6"><div class="ps-n">6</div>Report ready</div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+    <button class="btn-run btn-primary" id="btn-vi-run" onclick="requireLoginThen(runValuationIntel)" style="background:linear-gradient(135deg,#3B30B0,#5B4ED4)">&#128200; Generate Valuation Intelligence · &#8377;7,999 &#8594;</button>
+  </div>
+  <div id="result-valintel" style="margin-top:16px"></div>
+  
+
+</div>
+</div>
+
+<div id="content-deepresearch" style="display:none">
+<div style="background:linear-gradient(135deg,#3B30B0,#5B4ED4);color:#fff;padding:14px 22px;border-radius:12px 12px 0 0">
+  <span style="font-size:16px;font-weight:800">&#128269; Deep Research</span>
+  <span style="font-size:12px;opacity:.7;margin-left:8px">15-module company intelligence · Probe42 + AI · Opens in new tab</span>
+</div>
+<div class="form-card" style="border-radius:0 0 18px 18px">
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="dr-search" type="text" placeholder="Search company name or CIN..." style="flex:1;padding:9px 13px;border:1.5px solid var(--bd);border-radius:9px;font-size:13px;outline:none"/>
+    <button onclick="searchZauba('dr')" style="padding:9px 16px;background:#3B30B0;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600">Search</button>
+  </div>
+  <div id="zauba-results-dr" style="margin-bottom:10px"></div>
+  <div class="form-grid">
+    <div class="field"><label>Company Name</label><input id="dr-cname" type="text" placeholder="Auto-filled from search"/></div>
+    <div class="field"><label>CIN *</label><input id="dr-cin" type="text" placeholder="e.g. U17110MH1985PTC035308"/></div>
+    <div class="field"><label>Sector</label><select id="dr-sector"><option>Manufacturing</option><option>Pharma</option><option>IT Services</option><option>Financial Services</option><option>Infrastructure</option><option>FMCG</option><option>Other</option></select></div>
+    <div class="field"><label>Exchange</label><select id="dr-exchange"><option>NSE Main Board</option><option>BSE Main Board</option><option>NSE Emerge (SME)</option><option>BSE SME</option></select></div>
+  </div>
+  <div style="background:#F0EEFF;border:1px solid #C5B8F0;border-radius:9px;padding:12px 14px;margin:14px 0;font-size:12px;color:#3B30B0;line-height:1.7">
+    &#128269; <strong>15 research modules:</strong> MCA filings · Director profiles · Financial analysis · Industry benchmarks · Regulatory compliance · Litigation history · Promoter background · Corporate governance · Peer comparison · Valuation · SWOT · Risk matrix · IPO timeline · DRHP readiness · Investment thesis
+  </div>
+  <div class="prog-wrap" id="prog-deepresearch" style="display:none">
+    <div class="prog-step" id="dr1"><div class="ps-n">1</div>Fetching Probe42 data…</div>
+    <div class="prog-step" id="dr2"><div class="ps-n">2</div>MCA & ROC analysis…</div>
+    <div class="prog-step" id="dr3"><div class="ps-n">3</div>Financial deep-dive…</div>
+    <div class="prog-step" id="dr4"><div class="ps-n">4</div>AI research synthesis…</div>
+    <div class="prog-step" id="dr5"><div class="ps-n">5</div>Report compilation…</div>
+  </div>
+  <select id="dr-depth" style="padding:8px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:13px;margin-right:8px"><option value="quick">Quick (8 modules ~4 min)</option><option value="standard" selected>Standard (12 modules ~8 min)</option><option value="deep">Deep (15 modules ~15 min)</option></select><button class="btn-run btn-primary" id="btn-dr-run" onclick="requireLoginThen(runDeepResearchFull)" style="background:linear-gradient(135deg,#3B30B0,#5B4ED4);margin-top:4px">
+    &#128269; Generate Deep Research · &#8377;999 &#8594;
+  </button>
+  <div id="result-deepresearch" style="margin-top:16px"></div>
+</div>
+</div>
+
+<div id="content-admin" style="display:none;font-family:'Segoe UI',Arial,sans-serif">
+
+<!-- Header -->
+<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border-radius:12px;padding:18px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+  <div>
+    <div style="font-size:18px;font-weight:900">&#128202; Admin Dashboard</div>
+    <div id="admin-version-badge" style="font-size:11px;opacity:.65;margin-top:2px">ipowork.com AI Platform</div>
+  </div>
+  <div id="admin-user-info" style="font-size:12px;opacity:.75;text-align:right"></div>
+</div>
+
+<!-- Stats Row -->
+<div id="admin-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+
+<!-- Tab buttons -->
+<div style="display:flex;border:1.5px solid #D8EDF0;border-radius:10px;overflow:hidden;margin-bottom:14px">
+  <button id="atab-reports" onclick="showAdminTab('reports')"
+    style="flex:1;padding:10px 0;border:none;background:#08404D;color:#fff;font-weight:700;font-size:13px;cursor:pointer">
+    &#128202; Report History
+  </button>
+  <button id="atab-approvals" onclick="showAdminTab('approvals')"
+    style="flex:1;padding:10px 0;border:none;background:#fff;color:#08404D;font-weight:700;font-size:13px;cursor:pointer">
+    &#128101; Users & Access
+  </button>
+</div>
+
+<!-- Report History Panel -->
+<div id="admin-panel-reports" style="display:block">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="font-size:13px;font-weight:700;color:#08404D">All Generated Reports</div>
+    <button id="btn-clear-history" onclick="clearReportHistory()" style="display:none;padding:5px 12px;background:#FFF5F0;color:#C0392B;border:1px solid #F5C6C0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Clear History</button>
+  </div>
+  <div id="admin-reports" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;min-height:80px"></div>
+</div>
+
+<!-- Users & Access Panel -->
+<div id="admin-panel-approvals" style="display:none">
+
+  <!-- Pending requests -->
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#128235; Pending Access Requests</div>
+  <div id="access-requests-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:18px"></div>
+
+  <!-- Users list -->
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#9989; Approved Users</div>
+  <div id="approved-users-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:18px"></div>
+
+  <!-- Add User form -->
+  <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:18px">
+    <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:12px">&#10133; Add / Approve New User</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <input id="new-user-email" type="email" placeholder="Email address *" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
+      <input id="new-user-name" type="text" placeholder="Full Name" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
+      <input id="new-user-pw" type="text" placeholder="Password (default: ipowork2024)" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
+      <select id="new-user-plan" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none">
+        <option value="paid">Paid User</option>
+        <option value="trial">Trial (7 days)</option>
+        <option value="partner">Partner Firm</option>
+        <option value="ca">CA/CS Partner</option>
+        <option value="mb">Merchant Banker</option>
+      </select>
+    </div>
+    <button onclick="addUserFromForm()" style="padding:9px 20px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">&#9989; Add & Approve User</button>
+  </div>
+</div>
+<script>
+
 console.log('ipowork v3.1 loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 var ADMIN_UNLOCKED = false;
@@ -2856,6 +3577,237 @@ async function runDeepResearchFull(){
 }
 
 
+
+/* ════ MISSING FUNCTIONS ════ */
+
+function restoreSession(){
+  try {
+    var saved = localStorage.getItem('ipowork_session');
+    if(!saved) return;
+    var sess = JSON.parse(saved);
+    if(!sess || !sess.email) return;
+    loadSavedUsers();
+    var u = IPOWORK_USERS[sess.email];
+    if(!u || !u.approved) return;
+    var tokenOk = sess.token === btoa(sess.email + u.password);
+    var ageOk = sess.ts && (Date.now() - sess.ts) < 30*24*60*60*1000;
+    if(tokenOk || ageOk){
+      CURRENT_USER = {email:sess.email, name:u.name||sess.email, plan:u.plan||'paid', free:u.free||false};
+      SESS.email = sess.email; SESS.name = u.name||''; SESS.plan = u.plan||'paid';
+      if(u.plan==='admin'||sess.email===ADMIN_EMAIL){ ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true; }
+    }
+  } catch(e){ console.warn('Session restore error:', e); }
+}
+
+function toggleDevGroups(groupId){
+  var el = document.getElementById(groupId);
+  if(el) el.style.display = el.style.display==='none' ? '' : 'none';
+}
+
+function printReport(tier){
+  var el = document.getElementById('result-'+(tier||'free'));
+  if(!el || !el.innerHTML) { alert('No report to print.'); return; }
+  var w = window.open('','_blank');
+  if(!w){ alert('Allow popups.'); return; }
+  w.document.write('<html><head><title>ipowork Report</title>'
+    +'<style>body{font-family:Segoe UI,Arial,sans-serif;margin:20px;color:#1A2E35}'
+    +'table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px}'
+    +'th{background:#08404D;color:#fff}@media print{button{display:none}}</style></head>'
+    +'<body><button onclick="window.print()">🖨 Print</button>'+el.innerHTML+'</body></html>');
+  w.document.close();
+}
+
+function showAdminTab(tab){
+  var panelReports = document.getElementById('admin-panel-reports');
+  var panelApprovals = document.getElementById('admin-panel-approvals');
+  if(panelReports) panelReports.style.display = (tab==='reports') ? 'block' : 'none';
+  if(panelApprovals) panelApprovals.style.display = (tab==='approvals') ? 'block' : 'none';
+  var btnR = document.getElementById('atab-reports');
+  var btnA = document.getElementById('atab-approvals');
+  if(btnR){ btnR.style.background=(tab==='reports')?'#08404D':'#fff'; btnR.style.color=(tab==='reports')?'#fff':'#08404D'; }
+  if(btnA){ btnA.style.background=(tab==='approvals')?'#08404D':'#fff'; btnA.style.color=(tab==='approvals')?'#fff':'#08404D'; }
+}
+
+function openAdminAuth(){
+  var gate = document.getElementById('admin-auth-gate') || document.getElementById('admin-auth-overlay');
+  if(gate) gate.style.display = 'flex';
+}
+
+function closeAdminAuth(){
+  var gate = document.getElementById('admin-auth-gate') || document.getElementById('admin-auth-overlay');
+  if(gate) gate.style.display = 'none';
+}
+
+function checkAdminPwd(pwdArg){
+  var p = pwdArg || (document.getElementById('admin-pwd-input')||{}).value || '';
+  var adminUser = IPOWORK_USERS[ADMIN_EMAIL] || {};
+  var validPwd = (p===ADMIN_PWD) || (p==='ipowork@2007') || (adminUser.password && p===adminUser.password);
+  if(validPwd){
+    ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true;
+    closeAdminAuth();
+    var t = document.getElementById('tab-admin');
+    if(t){ t.style.display='inline-flex'; t.style.opacity='1'; }
+    switchTier('admin'); loadAdmin();
+  } else {
+    alert('Incorrect password.');
+  }
+}
+
+
+function removeUser(email){
+  if(!email||!confirm('Remove user: '+email+'?')) return;
+  if(IPOWORK_USERS[email]) delete IPOWORK_USERS[email];
+  try {
+    var users=JSON.parse(localStorage.getItem('ipowork_approved_users')||'{}');
+    delete users[email];
+    localStorage.setItem('ipowork_approved_users',JSON.stringify(users));
+  } catch(e){}
+  loadAdmin();
+}
+
+function updateFullReportBtn(){
+  var btn=document.getElementById('btn-full-report');
+  var btnM=document.getElementById('btn-full-report-m');
+  var has=Object.keys(AIRA_RESULTS).length>0;
+  if(btn) btn.style.display=has?'inline-block':'none';
+  if(btnM) btnM.style.display=has?'inline-block':'none';
+}
+
+function generateFullReport(){
+  var keys=Object.keys(AIRA_RESULTS);
+  if(!keys.length){alert('Generate at least one report first.');return;}
+  var w=window.open('','_blank');
+  if(!w){alert('Allow popups.');return;}
+  var cname=(AIRA_RESULTS[keys[0]]&&AIRA_RESULTS[keys[0]].cname)||'Company';
+  var date=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  var tierLabels={free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard',ca:'CA/CS Bundle',
+    clearchit:'Clean Chit',dirscan:'Director Scan',ddbundle:'Due Diligence',
+    valdoc:'Valuation Doc',valintel:'Val Intelligence',deepresearch:'Deep Research'};
+  var html='<!DOCTYPE html><html><head><title>'+cname+' — ipowork Report</title>'
+    +'<style>body{font-family:Segoe UI,sans-serif;margin:0;color:#1A2E35}'
+    +'.cover{background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:40px;text-align:center}'
+    +'.module{margin:20px;padding:20px;border:1px solid #E0EAF0;border-radius:8px;page-break-after:always}'
+    +'table{width:100%;border-collapse:collapse}th{background:#08404D;color:#fff;padding:8px}'
+    +'td{padding:8px;border:1px solid #ddd}@media print{.no-print{display:none}}</style></head><body>';
+  html+='<div class="cover">'
+    +'<div style="font-size:28px;font-weight:900;margin-bottom:8px">'+esc(cname)+'</div>'
+    +'<div style="font-size:14px;opacity:.8">IPO Readiness Report · '+date+'</div>'
+    +'<div style="font-size:11px;opacity:.6;margin-top:8px">ipowork AI · Not SEBI-registered · Informational only</div>'
+    +'<button class="no-print" onclick="window.print()" style="margin-top:16px;padding:8px 20px;background:#fff;color:#08404D;border:none;border-radius:6px;cursor:pointer;font-weight:700">🖨 Print / Save PDF</button>'
+    +'</div>';
+  keys.forEach(function(k,i){
+    var rep=AIRA_RESULTS[k];
+    var el=document.getElementById('result-'+k);
+    var content=(el&&el.innerHTML.length>100)?el.innerHTML:(rep.result&&rep.result._report)||'';
+    if(!content) return;
+    html+='<div class="module">'
+      +'<h2 style="color:#08404D;margin-bottom:12px">'+(tierLabels[k]||k)+'</h2>'
+      +content+'</div>';
+  });
+  html+='<div style="padding:12px 20px;font-size:10px;color:#9AB0B8">ipowork AI · Not SEBI-registered · Not investment advice · © 2025 ipowork.com</div>'
+    +'</body></html>';
+  w.document.open(); w.document.write(html); w.document.close();
+}
+
+
+async function runValuationDoc(){
+  var cin=(document.getElementById('valdoc-cin')||{}).value||'';
+  cin=cin.trim().toUpperCase();
+  var sector=(document.getElementById('valdoc-sector')||{}).value||'Manufacturing';
+  var exchange=(document.getElementById('valdoc-exchange')||{}).value||'NSE Main Board';
+  if(!cin){alert('Please enter CIN.');return;}
+  var btn=document.getElementById('btn-vd-run'),prog=document.getElementById('prog-valdoc'),out=document.getElementById('result-valdoc');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating…';}
+  if(out)out.innerHTML='<div class="status-msg">Fetching data…</div>';
+  if(prog)prog.style.display='flex';
+  try{
+    var p42=await workerPost({type:'probe42_raw',cin:cin});
+    var cname=(p42&&p42.company_name&&p42.company_name!=='NOT FOUND')?p42.company_name:cin;
+    var f=(p42&&p42.financials)||{};
+    var rev=+(parseFloat(f.revenue_fy24)||0).toFixed(2);
+    var pat=+(parseFloat(f.pat_fy24)||0).toFixed(2);
+    var ePct=+(parseFloat(f.ebitda_margin)||0).toFixed(2);
+    var eCr=+(parseFloat(f.ebitda_cr)||(rev*ePct/100)||0).toFixed(2);
+    var nw=+(parseFloat(f.net_worth)||0).toFixed(2);
+    var debt=+(parseFloat(f.total_debt)||0).toFixed(2);
+    var roe=+(parseFloat(f.roe)||0).toFixed(1);
+    var roce=+(parseFloat(f.roce)||0).toFixed(1);
+    var netM=+(rev>0?pat/rev*100:0).toFixed(1);
+    var mults={Manufacturing:{pe:28,ev:16},Pharma:{pe:35,ev:22},'IT Services':{pe:40,ev:28},'Financial Services':{pe:18,ev:12},Infrastructure:{pe:22,ev:14},FMCG:{pe:45,ev:30},Other:{pe:25,ev:18}};
+    var sm=mults[sector]||mults.Other,sPE=sm.pe,sEV=sm.ev;
+    var disc=exchange.indexOf('SME')>-1?0.30:0.20;
+    var pe_eq=+(pat*sPE*(1-disc)).toFixed(1);
+    var ev_eq=+(Math.max(0,eCr*sEV-parseFloat(debt))).toFixed(1);
+    var fcf=+(pat*0.65).toFixed(2),dcfVal=0,tvVal=0;
+    for(var i=1;i<=5;i++) dcfVal+=fcf*Math.pow(1.15,i)/Math.pow(1.13,i);
+    tvVal=+(fcf*Math.pow(1.15,5)*1.05/0.08/Math.pow(1.13,5)).toFixed(1);
+    dcfVal=+(dcfVal+parseFloat(tvVal)).toFixed(1);
+    var base=+(pe_eq*0.4+ev_eq*0.4+dcfVal*0.2).toFixed(1);
+    var cons=+(base*0.80).toFixed(1),opti=+(base*1.25).toFixed(1);
+    var dirs=(p42&&p42.directors)||[];
+    var chgs=(p42&&p42.charges)||[];
+    var openChgs=chgs.filter(function(c){return c.status==='Open';}).length;
+    var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED'
+      +'\nRevenue=₹'+rev+' Cr | PAT=₹'+pat+' Cr ('+netM+'%) | EBITDA='+ePct+'% (₹'+eCr+' Cr)'
+      +'\nNW=₹'+nw+' Cr | Debt=₹'+debt+' Cr | ROE='+roe+'% | ROCE='+roce+'%'
+      +'\nP/E Value=₹'+pe_eq+' Cr | EV/EBITDA=₹'+ev_eq+' Cr | DCF=₹'+dcfVal+' Cr'
+      +'\nBase=₹'+base+' Cr | Conservative=₹'+cons+' Cr | Optimistic=₹'+opti+' Cr';
+    var sys='You are a Senior Merchant Banker. Write a comprehensive IPO Valuation Report. Use ONLY the provided financial data.';
+    if(btn)btn.innerHTML='<span class="spinner"></span> Section 1/4…';
+    var v1=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1300,system:sys,
+      messages:[{role:'user',content:fd+'\n\nSection 1 - EXECUTIVE SUMMARY & COMPANY OVERVIEW:\n(1) Company snapshot table\n(2) Business description\n(3) Investment highlights (5 reasons)\n(4) Valuation summary: Conservative ₹'+cons+' Cr | Base ₹'+base+' Cr | Optimistic ₹'+opti+' Cr'}]});
+    var vs1=(v1&&v1.content||[]).map(function(c){return c.text||'';}).join('').trim();
+    if(btn)btn.innerHTML='<span class="spinner"></span> Section 2/4…';
+    var v2=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1300,system:sys,
+      messages:[{role:'user',content:fd+'\n\nSection 2 - FINANCIAL ANALYSIS:\n(1) 3-year P&L table\n(2) Profitability analysis\n(3) Return ratios: ROE '+roe+'% ROCE '+roce+'%\n(4) Balance sheet: NW ₹'+nw+' Cr, D/E\n(5) Working capital and FCF quality'}]});
+    var vs2=(v2&&v2.content||[]).map(function(c){return c.text||'';}).join('').trim();
+    if(btn)btn.innerHTML='<span class="spinner"></span> Section 3/4…';
+    var v3=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1300,system:sys,
+      messages:[{role:'user',content:fd+'\n\nSection 3 - VALUATION METHODOLOGY:\n(1) P/E method: PAT ₹'+pat+' Cr × '+sPE+'x = ₹'+pe_eq+' Cr\n(2) EV/EBITDA: ₹'+eCr+' Cr × '+sEV+'x - debt = ₹'+ev_eq+' Cr\n(3) DCF WACC 13%: ₹'+dcfVal+' Cr\n(4) Weighted base ₹'+base+' Cr\n(5) Sensitivity table\n(6) 6 peer comparables'}]});
+    var vs3=(v3&&v3.content||[]).map(function(c){return c.text||'';}).join('').trim();
+    if(btn)btn.innerHTML='<span class="spinner"></span> Section 4/4…';
+    var v4=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1300,system:sys,
+      messages:[{role:'user',content:fd+'\n\nSection 4 - RISK FACTORS & VERDICT:\n(1) Risk matrix: 8 risks table\n(2) '+openChgs+' open charges impact\n(3) Board: '+dirs.length+' directors assessment\n(4) Final scorecard\n(5) SUBSCRIBE/NEUTRAL/AVOID with price band'}]});
+    var vs4=(v4&&v4.content||[]).map(function(c){return c.text||'';}).join('').trim();
+    if(prog)prog.style.display='none';
+    if(btn){btn.disabled=false;btn.innerHTML='📄 Generate Valuation Report · ₹2,999 →';}
+    var reportDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    var html='<div style="font-family:Segoe UI,Arial,sans-serif">';
+    html+='<div style="background:linear-gradient(135deg,#1A3A5C,#1A5C8A);color:#fff;border-radius:14px;padding:22px 26px;margin-bottom:16px">'
+      +'<div style="font-size:9px;letter-spacing:2px;opacity:.6;text-transform:uppercase;margin-bottom:5px">CONFIDENTIAL IPO VALUATION · '+reportDate+'</div>'
+      +'<div style="font-size:20px;font-weight:900">'+esc(cname)+'</div>'
+      +'<div style="font-size:12px;opacity:.7;margin-top:4px">'+esc(sector)+' · '+esc(exchange)+' · Private Unlisted | CIN: '+esc(cin)+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">'
+      +'<div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;opacity:.7">Conservative</div><div style="font-size:18px;font-weight:900">₹'+cons+' Cr</div></div>'
+      +'<div style="background:rgba(255,255,255,.25);border-radius:8px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.4)"><div style="font-size:11px;opacity:.8">Base Case ★</div><div style="font-size:20px;font-weight:900">₹'+base+' Cr</div></div>'
+      +'<div style="background:rgba(255,255,255,.15);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;opacity:.7">Optimistic</div><div style="font-size:18px;font-weight:900">₹'+opti+' Cr</div></div>'
+      +'</div></div>';
+    [[vs1,'Executive Summary'],[vs2,'Financial Analysis'],[vs3,'Valuation Methodology'],[vs4,'Risk & Verdict']].forEach(function(s,i){
+      var colors=['#EFF6FF','#F0FFF4','#F5F0FF','#FFF5F0'];
+      var borders=['#1A5C8A','#1A6B3A','#5B4ED4','#C0392B'];
+      html+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;overflow:hidden;margin-bottom:12px">'
+        +'<div style="background:'+borders[i]+';padding:9px 16px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase">'+s[1]+'</div>'
+        +'<div style="padding:16px;background:'+colors[i]+'" class="ai-body">'+md2html(s[0])+'</div></div>';
+    });
+    html+='<div style="font-size:10px;color:#9AB0B8;padding:8px">⚠ ipowork is not SEBI-registered. Informational only. Not investment advice.</div></div>';
+    if(out){out.innerHTML=html;out.scrollIntoView({behavior:'smooth',block:'start'});}
+    var res={_report:html,company_name:cname,cin:cin,sector:sector,val_base_cr:base};
+    AIRA_RESULTS['valdoc']={result:res,cname:cname,sector:sector,tier:'valdoc'};
+    saveReportToStore('valdoc',cname,sector,res);
+    updateFullReportBtn();
+  }catch(e){
+    if(prog)prog.style.display='none';
+    if(btn){btn.disabled=false;btn.innerHTML='📄 Generate Valuation Report · ₹2,999 →';}
+    if(out)out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
+  }
+}
+
+
+
+function renderValuationReport(result, cname, sector, out, tier){
+  if(out && result && result._report) out.innerHTML = result._report;
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   if(typeof loadSavedUsers==='function') loadSavedUsers();
   restoreSession();
@@ -2913,6 +3865,8 @@ document.addEventListener('DOMContentLoaded',function(){
   window.runValuationDoc=runValuationDoc;
   window.runValuationIntel=runValuationIntel;
   window.renderValuationReport=renderValuationReport;
+  window.renderSimpleReport=renderSimpleReport;
+  window.renderAIRAReport=renderAIRAReport;
   window.fileSelected=fileSelected;
   window.updateUploadCount=updateUploadCount;
   window.initSimulator=initSimulator;
@@ -2921,6 +3875,20 @@ document.addEventListener('DOMContentLoaded',function(){
   window.openAI=typeof openAI==='function'?openAI:null;
   window.filterAI=typeof filterAI==='function'?filterAI:null;
 
+  window.removeUser=removeUser;
+  window.generateFullReport=generateFullReport;
+  window.updateFullReportBtn=updateFullReportBtn;
+  window.restoreSession=restoreSession;
+  window.toggleDevGroups=toggleDevGroups;
+  window.printReport=printReport;
+  window.showAdminTab=showAdminTab;
+  window.openAdminAuth=openAdminAuth;
+  window.closeAdminAuth=closeAdminAuth;
+  window.checkAdminPwd=checkAdminPwd;
   updateFullReportBtn();
   console.log('ipowork v3.2 loaded - all functions exposed');
 });
+
+</script>
+</body>
+</html>
