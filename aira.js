@@ -2855,3 +2855,73 @@ async function runDeepResearchFull(){
     if(out)out.innerHTML='<div class="err-card"><b>Error:</b> '+esc(e.message)+'</div>';
   }
 }
+
+
+document.addEventListener('DOMContentLoaded',function(){
+  if(typeof loadSavedUsers==='function') loadSavedUsers();
+  restoreSession();
+  if(typeof updateUserUI==='function') updateUserUI();
+  if(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL)){
+    ADMIN_UNLOCKED=true;window.ADMIN_UNLOCKED=true;
+    var at=document.getElementById('tab-admin');if(at)at.style.display='';
+  }
+  if(typeof switchTier==='function') switchTier('paid');
+
+  // Expose all functions globally
+  window.switchTier=switchTier;
+  window.handleAdminClick=handleAdminClick;
+  window.openAdminAuth=openAdminAuth;
+  window.closeAdminAuth=closeAdminAuth;
+  window.checkAdminPwd=checkAdminPwd;
+  window.showAdminTab=showAdminTab;
+  window.loadAdmin=loadAdmin;
+  window.loadApprovedUsers=loadApprovedUsers;
+  window.approveRequest=approveRequest;
+  window.rejectRequest=rejectRequest;
+  window.removeUser=removeUser;
+  window.addUserFromForm=addUserFromForm;
+  window.addApprovedUser=addApprovedUser;
+  window.deleteUser=deleteUser;
+  window.revokeUser=revokeUser;
+  window.clearReportHistory=clearReportHistory;
+  window.loadPendingRequests=loadPendingRequests;
+  window.renderAccessRequests=renderAccessRequests;
+  window.gateLogin=gateLogin;
+  window.gateLogout=gateLogout;
+  window.gateShowTab=gateShowTab;
+  window.closeAccessGate=closeAccessGate;
+  window.showAccessGate=showAccessGate;
+  window.openLogin=openLogin;
+  window.closeLogin=closeLogin;
+  window.submitLogin=submitLogin;
+  window.requireLoginThen=requireLoginThen;
+  window.submitAccessRequest=submitAccessRequest;
+  window.searchZauba=searchZauba;
+  window.doSearch=doSearch;
+  window.testWorkerNow=testWorkerNow;
+  window.generateFullReport=generateFullReport;
+  window.updateFullReportBtn=updateFullReportBtn;
+  window.printReport=printReport;
+  window.runFreeCore=runFreeCore;
+  window.runDocCore=runDocCore;
+  window.runPaidCore=runPaidCore;
+  window.runMainboardCore=runMainboardCore;
+  window.runCACore=runCACore;
+  window.runCleanChitCore=runCleanChitCore;
+  window.runDDBundle=runDDBundle;
+  window.runDirScan=runDirScan;
+  window.runDeepResearchFull=runDeepResearchFull;
+  window.runValuationDoc=runValuationDoc;
+  window.runValuationIntel=runValuationIntel;
+  window.renderValuationReport=renderValuationReport;
+  window.fileSelected=fileSelected;
+  window.updateUploadCount=updateUploadCount;
+  window.initSimulator=initSimulator;
+  window.updateSim=updateSim;
+  window.toggleDevGroups=toggleDevGroups;
+  window.openAI=typeof openAI==='function'?openAI:null;
+  window.filterAI=typeof filterAI==='function'?filterAI:null;
+
+  updateFullReportBtn();
+  console.log('ipowork v3.2 loaded - all functions exposed');
+});
