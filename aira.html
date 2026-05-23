@@ -272,6 +272,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
       <button onclick="generateFullReport()" id="btn-full-report" title="Combine all reports into one PDF" style="display:none;padding:6px 14px;background:linear-gradient(135deg,#1A6B3A,#27AE60);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px">&#128196; Full Report PDF</button>
 <div id="user-display" style="margin-right:8px;display:inline-flex;align-items:center;gap:6px"></div>
       <button onclick="testWorkerNow()" style="font-size:11px;padding:3px 10px;background:rgba(13,92,107,.1);border:1px solid rgba(13,92,107,.3);border-radius:5px;cursor:pointer;color:var(--tl);font-weight:600">&#128268; Test</button>
+<div id="result-test" style="position:fixed;top:60px;right:16px;z-index:200;max-width:360px;font-size:12px"></div>
       <button onclick="handleAdminClick()" style="padding:4px 10px;background:transparent;border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:13px;color:var(--mu)">&#128202; Admin</button>
       <button onclick="toggleDevGroups()" style="padding:4px 8px;background:transparent;border:none;cursor:pointer;font-size:14px">&#9881;&#65039;</button>
     </div>
@@ -2676,7 +2677,13 @@ async function runPaidCore(){
 async function testWorkerNow(){
   var out = document.getElementById('result-test') 
          || document.getElementById('worker-test-result');
-  if(!out){ alert('No test output area found.'); return; }
+  if(!out){
+    // Create floating result div
+    out = document.createElement('div');
+    out.id = 'result-test';
+    out.style.cssText = 'position:fixed;top:60px;right:16px;z-index:200;max-width:360px;font-size:12px';
+    document.body.appendChild(out);
+  }
   out.innerHTML = '<div style="padding:14px;color:var(--mu)">⟳ Testing worker...<' + '/div>';
   try {
     var t0 = Date.now();
