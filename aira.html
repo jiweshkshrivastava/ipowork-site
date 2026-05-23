@@ -3799,39 +3799,136 @@ function generateFullReport(){
   var keys=Object.keys(AIRA_RESULTS);
   if(!keys.length){alert('Generate at least one report first.');return;}
   var w=window.open('','_blank');
-  if(!w){alert('Allow popups.');return;}
+  if(!w){alert('Allow popups to generate PDF.');return;}
   var cname=(AIRA_RESULTS[keys[0]]&&AIRA_RESULTS[keys[0]].cname)||'Company';
   var date=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
-  var tierLabels={free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard',ca:'CA/CS Bundle',
+  var tierLabels={free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard ICDR',ca:'CA/CS Bundle',
     clearchit:'Clean Chit',dirscan:'Director Scan',ddbundle:'Due Diligence',
     valdoc:'Valuation Doc',valintel:'Val Intelligence',deepresearch:'Deep Research'};
-  var html='<!DOCTYPE html><html><head><title>'+cname+' — ipowork Report</title>'
-    +'<style>body{font-family:Segoe UI,sans-serif;margin:0;color:#1A2E35}'
-    +'.cover{background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;padding:40px;text-align:center}'
-    +'.module{margin:20px;padding:20px;border:1px solid #E0EAF0;border-radius:8px;page-break-after:always}'
-    +'table{width:100%;border-collapse:collapse}th{background:#08404D;color:#fff;padding:8px}'
-    +'td{padding:8px;border:1px solid #ddd}@media print{.no-print{display:none}}</style></head><body>';
-  html+='<div class="cover">'
-    +'<div style="font-size:28px;font-weight:900;margin-bottom:8px">'+esc(cname)+'</div>'
-    +'<div style="font-size:14px;opacity:.8">IPO Readiness Report · '+date+'</div>'
-    +'<div style="font-size:11px;opacity:.6;margin-top:8px">ipowork AI · Not SEBI-registered · Informational only</div>'
-    +'<button class="no-print" onclick="window.print()" style="margin-top:16px;padding:8px 20px;background:#fff;color:#08404D;border:none;border-radius:6px;cursor:pointer;font-weight:700">🖨 Print / Save PDF</button>'
-    +'</div>';
+
+  var CSS = [
+    '<style>',
+    '*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }',
+    'body { font-family: "Segoe UI", Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #1A2E35; background: #fff; }',
+    /* Cover */
+    '.cover { background: linear-gradient(135deg,#08404D,#0D5C6B); color:#fff; padding:48px 40px; text-align:center; page-break-after:always; }',
+    '.cover h1 { font-size:30px; font-weight:900; margin-bottom:8px; }',
+    '.cover .sub { font-size:14px; opacity:.8; margin-bottom:6px; }',
+    '.cover .disc { font-size:11px; opacity:.5; margin-top:10px; }',
+    '.cover .print-btn { margin-top:20px; padding:10px 28px; background:#fff; color:#08404D; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }',
+    /* TOC */
+    '.toc { padding:32px 40px; page-break-after:always; }',
+    '.toc h2 { font-size:18px; font-weight:800; color:#08404D; margin-bottom:16px; border-bottom:2px solid #08404D; padding-bottom:8px; }',
+    '.toc-item { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #F0F5F8; font-size:13px; }',
+    '.toc-item .num { color:#08404D; font-weight:700; }',
+    /* Module */
+    '.module { padding:32px 40px; page-break-before:always; }',
+    '.module-header { background:linear-gradient(135deg,#08404D,#0D5C6B); color:#fff; padding:16px 20px; border-radius:10px 10px 0 0; margin:-32px -40px 24px; display:flex; align-items:center; gap:12px; }',
+    '.module-num { background:rgba(255,255,255,.2); border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; }',
+    '.module-title { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }',
+    /* Tables */
+    'table { width:100%; border-collapse:collapse; font-size:12px; margin:12px 0; }',
+    'th { background:#08404D; color:#fff; padding:8px 10px; text-align:left; font-weight:700; }',
+    'td { padding:7px 10px; border-bottom:1px solid #E8EEF0; vertical-align:top; }',
+    'tr:nth-child(even) td { background:#F8FAFB; }',
+    /* Headings inside content */
+    'h2, h3, h4, h5 { color:#08404D; margin:14px 0 6px; }',
+    'h2 { font-size:16px; } h3 { font-size:14px; } h4 { font-size:13px; } h5 { font-size:12px; }',
+    /* Fix overlapping - reset all inline styles from report content */
+    '.module-body * { max-width:100% !important; overflow-wrap:break-word; word-wrap:break-word; }',
+    '.module-body div[style*="display:grid"] { display:block !important; }',
+    '.module-body div[style*="grid-template"] { display:block !important; }',
+    '.module-body [style*="position:fixed"] { position:static !important; }',
+    '.module-body [style*="position:absolute"] { position:static !important; }',
+    /* Score card override */
+    '.module-body [style*="font-size:44px"] { font-size:28px !important; }',
+    '.module-body [style*="font-size:80px"] { font-size:36px !important; }',
+    /* Grid to block for print */
+    '.module-body [style*="grid-template-columns"] { display:block !important; }',
+    '.module-body [style*="grid-template-columns"] > * { display:inline-block; width:30%; margin:4px; vertical-align:top; }',
+    /* Footer */
+    '.footer { padding:16px 40px; background:#F8FAFB; border-top:1px solid #E0EAF0; font-size:10px; color:#9AB0B8; text-align:center; }',
+    /* Print */
+    '@media print {',
+    '  .no-print { display:none !important; }',
+    '  .module { page-break-before:always; }',
+    '  body { font-size:11px; }',
+    '  .module-header { -webkit-print-color-adjust:exact; print-color-adjust:exact; }',
+    '  .cover { -webkit-print-color-adjust:exact; print-color-adjust:exact; }',
+    '}',
+    '</style>'
+  ].join('\n');
+
+  /* Strip inline styles that cause overlap in print */
+  function cleanForPrint(html){
+    if(!html) return '';
+    // Remove fixed/absolute positioning
+    html = html.replace(/position\s*:\s*(fixed|absolute|sticky)/gi,'position:static');
+    // Remove negative margins
+    html = html.replace(/margin(-\w+)?\s*:\s*-\d+/gi,'margin:0');
+    // Remove overflow hidden that clips content
+    html = html.replace(/overflow\s*:\s*hidden/gi,'overflow:visible');
+    // Convert grid to block for print compatibility
+    html = html.replace(/display\s*:\s*grid/gi,'display:block');
+    html = html.replace(/display\s*:\s*flex/gi,'display:block');
+    // Remove min-height constraints
+    html = html.replace(/min-height\s*:\s*\d+[a-z%]+/gi,'');
+    // Remove backdrop-filter
+    html = html.replace(/backdrop-filter[^;]+;/gi,'');
+    return html;
+  }
+
+  var html = '<!DOCTYPE html><html lang="en"><head>'
+    + '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>' + esc(cname) + ' — IPO Readiness Report</title>'
+    + CSS
+    + '</head><body>';
+
+  /* Cover page */
+  html += '<div class="cover">'
+    + '<div style="font-size:11px;letter-spacing:2px;opacity:.5;text-transform:uppercase;margin-bottom:12px">CONFIDENTIAL IPO READINESS REPORT</div>'
+    + '<h1>' + esc(cname) + '</h1>'
+    + '<div class="sub">IPO Readiness Analysis · ' + date + '</div>'
+    + '<div class="sub">' + keys.length + ' Analysis Module' + (keys.length>1?'s':'') + ' · ipowork AI</div>'
+    + '<div class="disc">⚠ ipowork AI is not SEBI-registered. This report is for informational purposes only and does not constitute investment advice.</div>'
+    + '<button class="print-btn no-print" onclick="window.print()">🖨 Print / Save PDF</button>'
+    + '</div>';
+
+  /* Table of Contents */
+  html += '<div class="toc no-print">'
+    + '<h2>Table of Contents</h2>';
   keys.forEach(function(k,i){
-    var rep=AIRA_RESULTS[k];
-    var el=document.getElementById('result-'+k);
-    var content=(el&&el.innerHTML.length>100)?el.innerHTML:(rep.result&&rep.result._report)||'';
-    if(!content) return;
-    html+='<div class="module">'
-      +'<h2 style="color:#08404D;margin-bottom:12px">'+(tierLabels[k]||k)+'</h2>'
-      +content+'</div>';
+    html += '<div class="toc-item"><span><span class="num">Module '+(i+1)+'</span> — '+(tierLabels[k]||k)+'</span></div>';
   });
-  html+='<div style="padding:12px 20px;font-size:10px;color:#9AB0B8">ipowork AI · Not SEBI-registered · Not investment advice · © 2025 ipowork.com</div>'
-    +'</body></html>';
-  w.document.open(); w.document.write(html); w.document.close();
+  html += '</div>';
+
+  /* Modules */
+  keys.forEach(function(k,i){
+    var rep = AIRA_RESULTS[k];
+    var el = document.getElementById('result-'+k);
+    var rawContent = (el&&el.innerHTML.length>100) ? el.innerHTML : (rep.result&&rep.result._report)||'';
+    if(!rawContent) return;
+    var content = cleanForPrint(rawContent);
+    html += '<div class="module">'
+      + '<div class="module-header">'
+      + '<span class="module-num">Module '+(i+1)+'</span>'
+      + '<span class="module-title">'+(tierLabels[k]||k)+'</span>'
+      + '</div>'
+      + '<div class="module-body">'+content+'</div>'
+      + '</div>';
+  });
+
+  /* Footer */
+  html += '<div class="footer">'
+    + 'ipowork AI &nbsp;·&nbsp; Not SEBI-registered &nbsp;·&nbsp; Not investment advice &nbsp;·&nbsp; Data: Probe42/MCA &nbsp;·&nbsp; © 2025 ipowork.com'
+    + '</div>';
+
+  html += '</body></html>';
+
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
-
-
 async function runValuationDoc(){
   var cin=(document.getElementById('valdoc-cin')||{}).value||'';
   cin=cin.trim().toUpperCase();
