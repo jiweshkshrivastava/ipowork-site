@@ -1004,20 +1004,21 @@ window.storage = {
       <div class="step-screen active" id="rs0">
         <div style="font-size:12px;font-weight:700;margin-bottom:16px">Merchant Banker Details</div>
         <div class="field">
-  <label class="lbl">Firm Name (SEBI Registered Merchant Banker)</label>
-  <div style="position:relative">
-    <input class="inp" id="r-firm" placeholder="Type to search firm name…" autocomplete="off"
-      oninput="filterMBDropdown(this.value)"
-      onfocus="filterMBDropdown(this.value)"
-      onblur="setTimeout(function(){var d=document.getElementById('mb-dropdown');if(d)d.style.display='none';},200)"
-    />
-    <div id="mb-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:#fff;border:1.5px solid var(--cyan);border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.15)"></div>
-  </div>
-</div>
+          <label class="lbl">Firm Name (SEBI Registered MB)</label>
+          <input class="inp" id="r-firm-search" placeholder="Type firm name to search…" 
+            oninput="mbSearch(this.value)"
+            style="margin-bottom:4px"/>
+          <select class="inp" id="r-firm" size="1"
+            onchange="mbSelectFirm(this.value)"
+            style="cursor:pointer">
+            <option value="">— Select from 242 SEBI Registered Merchant Bankers —</option>
+          </select>
+          <div style="font-size:11px;color:var(--cyan);margin-top:4px" id="r-regid-display"></div>
+        </div>
         <div class="field"><label class="lbl">Contact Person</label><input class="inp" id="r-person" placeholder="Full name"/></div>
         <div class="field"><label class="lbl">Work Email</label><input class="inp" id="r-email" type="email" placeholder="you@mbfirm.com"/></div>
         <div class="field"><label class="lbl">Mobile Number</label><input class="inp" id="r-mobile" type="tel" placeholder="+91 98765 43210"/></div>
-        <div class="field"><label class="lbl">SEBI Registration Number</label><input class="inp" id="r-sebi" placeholder="INM000XXXXXX"/></div>
+        <div class="field"><label class="lbl">SEBI Registration Number</label><input class="inp" id="r-sebi" placeholder="Auto-filled when you select firm above" readonly style="background:rgba(13,92,107,.05);color:var(--cyan);font-family:monospace"/></div>
         <div class="field"><label class="lbl">Primary Sector Focus</label>
           <select class="inp" id="r-sector">
             <option value="">— Select primary sector —</option>
@@ -4255,6 +4256,54 @@ document.addEventListener('click', function(e){
 }, false);
 </script>
 
+<script>
+
+// Populate MB select dropdown on page load
+document.addEventListener('DOMContentLoaded', function(){
+  var sel = document.getElementById('r-firm');
+  if(!sel || typeof SEBI_MERCHANT_BANKERS === 'undefined') return;
+  SEBI_MERCHANT_BANKERS.forEach(function(b){
+    var opt = document.createElement('option');
+    opt.value = b.name + '||' + b.regId;
+    opt.textContent = b.name + ' (' + b.regId + ')';
+    sel.appendChild(opt);
+  });
+});
+
+function mbSearch(q){
+  var sel = document.getElementById('r-firm');
+  if(!sel || typeof SEBI_MERCHANT_BANKERS === 'undefined') return;
+  sel.innerHTML = '<option value="">— ' + (q ? 'Showing matches' : 'Select Merchant Banker') + ' —</option>';
+  var qq = (q||'').toLowerCase();
+  SEBI_MERCHANT_BANKERS.filter(function(b){
+    return !qq || b.name.toLowerCase().indexOf(qq)>=0 || b.regId.toLowerCase().indexOf(qq)>=0;
+  }).forEach(function(b){
+    var opt = document.createElement('option');
+    opt.value = b.name + '||' + b.regId;
+    opt.textContent = b.name + ' (' + b.regId + ')';
+    sel.appendChild(opt);
+  });
+}
+
+function mbSelectFirm(val){
+  if(!val) return;
+  var parts = val.split('||');
+  var name = parts[0]||'';
+  var regId = parts[1]||'';
+  // Auto-fill SEBI number field
+  var sebiEl = document.getElementById('r-sebi');
+  if(sebiEl) sebiEl.value = regId;
+  // Show regId
+  var disp = document.getElementById('r-regid-display');
+  if(disp) disp.innerHTML = regId ? '&#10003; SEBI Reg: <strong>' + regId + '</strong> · Auto-filled below' : '';
+  // Also fill search input
+  var search = document.getElementById('r-firm-search');
+  if(search) search.value = name;
+  // Save to REG
+  if(window.REG){ REG.firm = name; REG.regId = regId; }
+}
+
+</script>
 </body>
 </html
 function filterMBDropdown(q){
