@@ -650,9 +650,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         </div>
         <div class="full"><div class="lbl">Analysis Depth</div>
           <div class="depth-row">
-            <button class="d-btn" data-d="quick">⚡ Quick (4 min)</button>
-            <button class="d-btn on" data-d="standard">🎯 Standard (8 min)</button>
-            <button class="d-btn" data-d="deep">🔬 Deep (15 min)</button>
+            <button class="d-btn" data-d="quick" onclick="document.querySelectorAll('.d-btn').forEach(function(x){x.classList.remove('active')});this.classList.add('active');S.depth='quick'">⚡ Quick (4 min)</button>
+            <button class="d-btn on" data-d="standard" onclick="document.querySelectorAll('.d-btn').forEach(function(x){x.classList.remove('active')});this.classList.add('active');S.depth='standard'">🎯 Standard (8 min)</button>
+            <button class="d-btn" data-d="deep" onclick="document.querySelectorAll('.d-btn').forEach(function(x){x.classList.remove('active')});this.classList.add('active');S.depth='deep'">🔬 Deep (15 min)</button>
           </div>
         </div>
       </div>
@@ -1194,8 +1194,17 @@ Signal tags: [IPO READY] [SME IPO CANDIDATE] [MAIN BOARD CANDIDATE] [IPO IN 12 M
 var S={co:'',sec:'',stg:'',desc:'',rev:'',comp:'',prom:'',geo:'',yr:'',inv:'',
        depth:'standard',running:false,results:{},done:0,start:null,ctx:''};
 
-document.querySelectorAll('.d-btn').forEach(function(b){
-  b.addEventListener('click',function(){ document.querySelectorAll('.d-btn').forEach(function(x){ x.classList.remove('active'); }); this.classList.add('active'); S.depth=this.dataset.d||this.dataset.depth||'standard'; });
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.d-btn').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.d-btn').forEach(function(x){ x.classList.remove('active'); });
+      this.classList.add('active');
+      S.depth = this.dataset.d || this.dataset.depth || 'standard';
+    });
+  });
+  // Also wire up start button
+  var startBtn = document.getElementById('start-btn');
+  if(startBtn) startBtn.addEventListener('click', startResearch);
 });
 
 function initSide(){
