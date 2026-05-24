@@ -1368,18 +1368,20 @@ function renderSkeletons(){
 }
 
 async function runAll(){
-  var toks    = S.depth==='quick'?2500:S.depth==='deep'?4500:3500;
-  var modCount= S.depth==='quick'?8:S.depth==='deep'?15:12;
+  var model   = 'claude-sonnet-4-20250514'; // Sonnet for quality
+  var toks    = S.depth==='quick'?4000:S.depth==='deep'?8000:6000;
+  var modCount= S.depth==='quick'?5:S.depth==='deep'?15:10;
   var active  = MODULES.slice(0, modCount);
-  S.totalMods = active.length; // used by updateProgress
+  S.totalMods = active.length;
   for(var i=0;i<active.length;i++){
-    await runModule(active[i], toks);
+    await runModule(active[i], toks, model);
     S.done++; updateProgress();
   }
   finalize();
 }
 
-function runModule(m,toks){
+function runModule(m,toks,model){
+  model = model || 'claude-haiku-4-5-20251001';
   return new Promise(function(resolve){
     var el=document.getElementById('mr-'+m.id);
     el.classList.remove('hidden');el.style.display='block';el.classList.add('running','expanded');
@@ -1399,15 +1401,32 @@ function runModule(m,toks){
       +'5. Reference specific SEBI/Companies Act regulations by number\n'
       +'6. This is a PAID professional report — write at Big-4 consulting quality\n'
       +'\nDeliver comprehensive, data-driven analysis for '+S.co+' in the ['+m.name+'] module.';
+    var sysSuffix = '\n\nOUTPUT FORMAT: Write 1500+ word comprehensive analysis. Include: Executive Summary, Detailed Analysis with data, 2+ markdown tables with benchmarks, Key Findings (5-7 bullets), Risks (quantified), Recommendations (5+ actionable). Cite SEBI/Companies Act sections. Big-4 quality.';
     fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:toks,
-        system:m.sys+' CRITICAL QUALITY STANDARD — This must match Big-4 (McKinsey/Goldman Sachs/KPMG) quality IPO due diligence. Requirements: (1) MINIMUM 1200 words per module. (2) Every claim must be supported by specific numbers, ratios, dates, regulatory references. (3) Include at least 2 detailed markdown tables with real data. (4) Cite specific SEBI/Companies Act/RBI regulation numbers where relevant. (5) Provide sector benchmarks for every metric. (6) End with 5+ specific, actionable recommendations. (7) Include risk quantification with probability and impact. NO generic statements — every sentence must add specific value.',
+      body:JSON.stringify({type:'deep_research_module',model:model,max_tokens:toks,
+        system:m.sys+sysSuffix,
         tools:[{type:'web_search_20250305',name:'web_search'}],
         messages:[{role:'user',content:buildContent(prompt)}]})
     })
     .then(function(r){ return r.json(); })
     .then(function(d){ var txt=(d.content||[]).map(function(c){ return c.text||''; }).join(''); if(!txt) txt='Analysis unavailable. Please retry.'; onDone(m,txt); resolve(); })
-    .catch(function(err){ onDone(m,'Network error: '+(err&&err.message?err.message:'Unknown')); resolve(); });
+    .catch(function(err){
+      // Retry once on timeout/network error
+      var errMsg = err&&err.message?err.message:'Unknown error';
+      if(errMsg.indexOf('timeout')>-1||errMsg.indexOf('network')>-1){
+        setTimeout(function(){
+          fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({type:'claudeProxy',model:model||'claude-haiku-4-5-20251001',max_tokens:Math.min(toks,2000),
+              system:m.sys+' Be concise. Write 600-800 words with key findings and one summary table.',
+              messages:[{role:'user',content:'Quick analysis of ['+m.name+'] for '+S.co+' ('+S.sec+'). '+S.ctx.substring(0,2000)}]})
+          }).then(function(r2){return r2.json();})
+          .then(function(d2){var txt2=(d2.content||[]).map(function(c){return c.text||'';}).join('');onDone(m,txt2||'Retry analysis unavailable.');resolve();})
+          .catch(function(){onDone(m,'Module timed out. Please retry with Quick depth.');resolve();});
+        },2000);
+      } else {
+        onDone(m,'Error: '+errMsg+'. Please retry.');resolve();
+      }
+    });
   });
 }
 
@@ -1691,7 +1710,7 @@ function resetApp(){
   document.getElementById('v-text').textContent='';
   document.getElementById('i-co').value='';
   document.getElementById('i-desc').value='';
-  S={company:'',sector:'',stage:'',desc:'',rev:'',comp:'',promoter:'',geo:'',depth:'standard',running:false,results:{},completedCount:0,startTime:null,context:''};
+  S={co:'',sec:'',stg:'',desc:'',rev:'',comp:'',prom:'',geo:'',yr:'',inv:'',depth:'standard',running:false,results:{},done:0,totalMods:15,start:null,ctx:''};
   initSide();
 }
 
