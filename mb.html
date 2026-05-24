@@ -1028,7 +1028,7 @@ window.storage = {
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">Verify Email</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">OTP sent to <span id="otp-email-show" style="color:#fff"></span></div>
         <div class="otp-wrap" id="otp-email-inputs"></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">Demo OTP: <span style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">1234</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">Beta OTP: <span style="font-family:monospace;color:var(--cyan);font-weight:700">1234</span> (all users)</div>
         <div class="err" id="re1"></div>
         <button class="btn btn-cyan" style="width:100%;margin-top:16px" onclick="verifyEmailOTP()">Verify Email →</button>
         <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="regBack(1)">← Back</button>
@@ -1038,7 +1038,7 @@ window.storage = {
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">Verify Mobile</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">OTP sent to <span id="otp-mobile-show" style="color:#fff"></span></div>
         <div class="otp-wrap" id="otp-mobile-inputs"></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">Demo OTP: <span style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">1234</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">Beta OTP: <span style="font-family:monospace;color:var(--cyan);font-weight:700">1234</span> (all users)</div>
         <div class="err" id="re2"></div>
         <button class="btn btn-cyan" style="width:100%;margin-top:16px" onclick="verifyMobileOTP()">Verify Mobile →</button>
         <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="regBack(2)">← Back</button>
@@ -1093,7 +1093,7 @@ window.storage = {
       </div>
       <div class="step-screen" id="ls1">
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">Enter OTP</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Demo OTP: <span style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">1234</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Beta OTP: <span style="font-family:monospace;color:var(--cyan);font-weight:700">1234</span> (all users)</div>
         <div class="otp-wrap" id="login-otp-inputs"></div>
         <div class="err" id="le1"></div>
         <button class="btn btn-cyan" style="width:100%;margin-top:16px" onclick="verifyLoginOTP()">Log In →</button>
@@ -1130,7 +1130,7 @@ var SESS = (function(){
     } catch(e){}
     return s;
   })();
-window.P = { view:'dashboard', dealFilter:'all', aiAssistant:null, aiHistory:[], aiLoading:false, loading:false };
+window.P = { view:'dashboard', dealFilter:'all', aiAssistant:null, aiHistory:[], aiLoading:false, loading:false, bankerSearch:'', bankerFilter:'all' };
 
 var MB_DEALS = [
   {code:'IPW-3842',sector:'Manufacturing',size:'₹45–65 Cr',aira:82,status:'HOT',board:'SME',stage:'AIDA Complete',age:'2 days ago'},
@@ -1143,6 +1143,282 @@ var MB_DEALS = [
   {code:'IPW-9021',sector:'Retail',size:'₹35–55 Cr',aira:58,status:'PIPELINE',board:'SME',stage:'Score Complete',age:'3 weeks ago'},
 ];
 
+var SEBI_MERCHANT_BANKERS = [
+  {name:'360 ONE WAM LIMITED', regId:'INM000012801', status:'Active', sebi:'SEBI Registered'},
+  {name:'3DIMENSION CAPITAL SERVICES LTD.', regId:'INM000012528', status:'Active', sebi:'SEBI Registered'},
+  {name:'A.K. CAPITAL SERVICES LTD', regId:'INM000010411', status:'Active', sebi:'SEBI Registered'},
+  {name:'AFCO CAPITAL INDIA PVT LTD', regId:'INM000012555', status:'Active', sebi:'SEBI Registered'},
+  {name:'AFFINITY GLOBAL CAPITAL MARKET PRIVATE LIMITED', regId:'INM000012838', status:'Active', sebi:'SEBI Registered'},
+  {name:'Aftertrade Broking Private Limited', regId:'INM000013110', status:'Active', sebi:'SEBI Registered'},
+  {name:'AJCON GLOBAL SERVICES LTD.', regId:'INM000011864', status:'Active', sebi:'SEBI Registered'},
+  {name:'AKASAM CONSULTING PVT. LTD.', regId:'INM000011658', status:'Active', sebi:'SEBI Registered'},
+  {name:'Almondz Financial Services Limited', regId:'INM000012971', status:'Active', sebi:'SEBI Registered'},
+  {name:'Ambit Private Limited', regId:'INM000010585', status:'Active', sebi:'SEBI Registered'},
+  {name:'ANAND RATHI ADVISORS LIMITED', regId:'INM000010478', status:'Active', sebi:'SEBI Registered'},
+  {name:'ARETE SECURITIES LIMITED', regId:'INM000012740', status:'Active', sebi:'SEBI Registered'},
+  {name:'ARIHANT CAPITAL MARKETS LTD', regId:'INM000011070', status:'Active', sebi:'SEBI Registered'},
+  {name:'Arpwood Capital Pvt Ltd.', regId:'INM000013013', status:'Active', sebi:'SEBI Registered'},
+  {name:'ARYAMAN FINANCIAL SERVICES LIMITED', regId:'INM000011344', status:'Active', sebi:'SEBI Registered'},
+  {name:'ASHIKA CAPITAL LTD', regId:'INM000010536', status:'Active', sebi:'SEBI Registered'},
+  {name:'ASPERO MARKETS PRIVATE LIMITED', regId:'INM000012883', status:'Active', sebi:'SEBI Registered'},
+  {name:'ATIVIR FINANCIAL CONSULTANTS PRIVATE LIMITED', regId:'INM000012268', status:'Active', sebi:'SEBI Registered'},
+  {name:'Avendus Capital Private Limited', regId:'INM000011021', status:'Active', sebi:'SEBI Registered'},
+  {name:'Axial Capital Private Limited', regId:'INM000013226', status:'Active', sebi:'SEBI Registered'},
+  {name:'AXIS BANK LTD.', regId:'INM000006104', status:'Active', sebi:'SEBI Registered'},
+  {name:'AXIS CAPITAL LIMITED', regId:'INM000012029', status:'Active', sebi:'SEBI Registered'},
+  {name:'Bajaj Capital Securities Limited', regId:'INM000013208', status:'Active', sebi:'SEBI Registered'},
+  {name:'BANK OF MAHARASHTRA', regId:'INM000002699', status:'Active', sebi:'SEBI Registered'},
+  {name:'BARCLAYS BANK PLC', regId:'INM000002129', status:'Active', sebi:'SEBI Registered'},
+  {name:'BASAN FINANCIAL SERVICES LTD.', regId:'INM000011989', status:'Active', sebi:'SEBI Registered'},
+  {name:'BCB BROKERAGE PVT. LTD', regId:'INM000012078', status:'Active', sebi:'SEBI Registered'},
+  {name:'BEELINE BROKING LIMITED', regId:'INM000012546', status:'Active', sebi:'SEBI Registered'},
+  {name:'BEELINE CAPITAL ADVISORS PRIVATE LIMITED', regId:'INM000012917', status:'Active', sebi:'SEBI Registered'},
+  {name:'BNK SECURITIES PVT. LTD.', regId:'INM000011641', status:'Active', sebi:'SEBI Registered'},
+  {name:'BNP PARIBAS', regId:'INM000011534', status:'Active', sebi:'SEBI Registered'},
+  {name:'BOB CAPITAL MARKETS LTD', regId:'INM000009926', status:'Active', sebi:'SEBI Registered'},
+  {name:'BofA Securities India Limited', regId:'INM000011625', status:'Active', sebi:'SEBI Registered'},
+  {name:'BOI MERCHANT BANKERS LTD.', regId:'INM000012201', status:'Active', sebi:'SEBI Registered'},
+  {name:'Bonanza Portfolio Limited', regId:'INM000012306', status:'Active', sebi:'SEBI Registered'},
+  {name:'CANARA BANK', regId:'INM000002558', status:'Active', sebi:'SEBI Registered'},
+  {name:'CAPITAL FORTUNES VENTURES PRIVATE LIMITED', regId:'INM000012795', status:'Active', sebi:'SEBI Registered'},
+  {name:'CAPITAL SQUARE ADVISORS PVT. LTD.', regId:'INM000012219', status:'Active', sebi:'SEBI Registered'},
+  {name:'CATALYST CAPITAL PARTNERS PRIVATE LIMITED', regId:'INM000013068', status:'Active', sebi:'SEBI Registered'},
+  {name:'Centrum Broking Limited', regId:'INM000013420', status:'Active', sebi:'SEBI Registered'},
+  {name:'CENTRUM CAPITAL LIMITED', regId:'INM000010445', status:'Active', sebi:'SEBI Registered'},
+  {name:'CHARTERED CAPITAL & INVESTMENT LTD', regId:'INM000004018', status:'Active', sebi:'SEBI Registered'},
+  {name:'CHARTERED FINANCE MANAGEMENT PRIVATE LIMITED', regId:'INM000012052', status:'Active', sebi:'SEBI Registered'},
+  {name:'CHOICE CAPITAL ADVISORS PVT. LTD.', regId:'INM000011872', status:'Active', sebi:'SEBI Registered'},
+  {name:'CIL SECURITIES LTD', regId:'INM000009694', status:'Active', sebi:'SEBI Registered'},
+  {name:'CITIGROUP GLOBAL MARKETS INDIA PVT. LTD.', regId:'INM000010718', status:'Active', sebi:'SEBI Registered'},
+  {name:'CLSA INDIA PRIVATE LIMITED', regId:'INM000010619', status:'Active', sebi:'SEBI Registered'},
+  {name:'COMFORT SECURITIES LTD', regId:'INM000011328', status:'Active', sebi:'SEBI Registered'},
+  {name:'CORPORATE CAPITAL VENTURES PRIVATE LIMITED', regId:'INM000012276', status:'Active', sebi:'SEBI Registered'},
+  {name:'CORPORATE MAKERS CAPITAL LIMITED', regId:'INM000013095', status:'Active', sebi:'SEBI Registered'},
+  {name:'CORPORATE PROFESSIONALS CAPITAL PVT. LTD.', regId:'INM000011435', status:'Active', sebi:'SEBI Registered'},
+  {name:'Corpwis Advisors Private Limited', regId:'INM000012962', status:'Active', sebi:'SEBI Registered'},
+  {name:'CREDORA PARTNERS PRIVATE LIMITED', regId:'INM000013411', status:'Active', sebi:'SEBI Registered'},
+  {name:'Cumulative Capital Private Limited', regId:'INM000013129', status:'Active', sebi:'SEBI Registered'},
+  {name:'D & A FINANCIAL SERVICES PVT. LTD.', regId:'INM000011484', status:'Active', sebi:'SEBI Registered'},
+  {name:'DAM CAPITAL ADVISORS LIMITED', regId:'INM000011336', status:'Active', sebi:'SEBI Registered'},
+  {name:'DARASHAW & COMPANY PRIVATE LTD', regId:'INM000010676', status:'Active', sebi:'SEBI Registered'},
+  {name:'DBS Bank India Ltd', regId:'INM000012892', status:'Active', sebi:'SEBI Registered'},
+  {name:'DEUTSCHE BANK', regId:'INM000010395', status:'Active', sebi:'SEBI Registered'},
+  {name:'DEUTSCHE EQUITIES INDIA PRIVATE LIMITED', regId:'INM000010833', status:'Active', sebi:'SEBI Registered'},
+  {name:'DHANAM CAPITAL ADVISORS PRIVATE LIMITED', regId:'INM000013299', status:'Active', sebi:'SEBI Registered'},
+  {name:'DIGGI CORPORATE ADVISORS PRIVATE LIMITED', regId:'INM000013332', status:'Active', sebi:'SEBI Registered'},
+  {name:'DIMENSION FINANCIAL SOLUTIONS PRIVATE LIMITED', regId:'INM000013314', status:'Active', sebi:'SEBI Registered'},
+  {name:'DOLAT FINSERV PRIVATE LIMITED', regId:'INM000012643', status:'Active', sebi:'SEBI Registered'},
+  {name:'EDELWEISS FINANCIAL SERVICES LTD', regId:'INM000010650', status:'Active', sebi:'SEBI Registered'},
+  {name:'EKADRISHT CAPITAL PRIVATE LIMITED', regId:'INM000013040', status:'Active', sebi:'SEBI Registered'},
+  {name:'ELARA CAPITAL (INDIA) PRIVATE LIMITED', regId:'INM000011104', status:'Active', sebi:'SEBI Registered'},
+  {name:'EMIRATES NBD CAPITAL INDIA PRIVATE LIMITED', regId:'INM000013387', status:'Active', sebi:'SEBI Registered'},
+  {name:'EMKAY GLOBAL FINANCIAL SERVICES LIMITED', regId:'INM000011229', status:'Active', sebi:'SEBI Registered'},
+  {name:'EQUIRUS CAPITAL (P) LTD', regId:'INM000011286', status:'Active', sebi:'SEBI Registered'},
+  {name:'Ernst & Young Merchant Banking Services LLP', regId:'INM000010700', status:'Active', sebi:'SEBI Registered'},
+  {name:'ERUDORE CAPITAL PRIVATE LIMITED', regId:'INM000013280', status:'Active', sebi:'SEBI Registered'},
+  {name:'Expert Global Consultants Private limited', regId:'INM000012874', status:'Active', sebi:'SEBI Registered'},
+  {name:'Fedex Securities Private Limited', regId:'INM000010163', status:'Active', sebi:'SEBI Registered'},
+  {name:'Finaax Capital Advisors Private Limited', regId:'INM000013244', status:'Active', sebi:'SEBI Registered'},
+  {name:'FINSHORE MANAGEMENT SERVICES LIMITED', regId:'INM000012185', status:'Active', sebi:'SEBI Registered'},
+  {name:'Fintellectual Corporate Advisors Private Limited', regId:'INM000012944', status:'Active', sebi:'SEBI Registered'},
+  {name:'FIRST GLOBAL FINANCE PVT LTD', regId:'INM000010627', status:'Active', sebi:'SEBI Registered'},
+  {name:'FLOOKUP CAPITAL ADVISORS PRIVATE LIMITED', regId:'INM000013396', status:'Active', sebi:'SEBI Registered'},
+  {name:'FORTRESS CAPITAL MANAGEMENT SERVICES PVT LTD', regId:'INM000011146', status:'Active', sebi:'SEBI Registered'},
+  {name:'Galactico Corporate Services Limited', regId:'INM000012519', status:'Active', sebi:'SEBI Registered'},
+  {name:'Getfive Advisors Private Limited', regId:'INM000013147', status:'Active', sebi:'SEBI Registered'},
+  {name:'GOLDMAN SACHS(INDIA) SECURITIES PVT. LTD.', regId:'INM000011054', status:'Active', sebi:'SEBI Registered'},
+  {name:'GOLDMINE STOCKS PVT LTD', regId:'INM000013350', status:'Active', sebi:'SEBI Registered'},
+  {name:'Green bridge Capital Advisory Private limited', regId:'INM000012430', status:'Active', sebi:'SEBI Registered'},
+  {name:'Gretex Corporate Services Limited', regId:'INM000012177', status:'Active', sebi:'SEBI Registered'},
+  {name:'GROW HOUSE WEALTH MANAGEMENT PRIVATE LIMITED', regId:'INM000013262', status:'Active', sebi:'SEBI Registered'},
+  {name:'GYR CAPITAL ADVISORS PRIVATE LIMITED', regId:'INM000012810', status:'Active', sebi:'SEBI Registered'},
+  {name:'HAITONG SECURITIES INDIA PRIVATE LIMITED', regId:'INM000012045', status:'Active', sebi:'SEBI Registered'},
+  {name:'HDFC BANK LTD', regId:'INM000011252', status:'Active', sebi:'SEBI Registered'},
+  {name:'HEM SECURITIES LTD.', regId:'INM000010981', status:'Active', sebi:'SEBI Registered'},
+  {name:'Holani Consultants Private Limited', regId:'INM000012467', status:'Active', sebi:'SEBI Registered'},
+  {name:'HONGKONG AND SHANGHAI BANKING CORPORATION', regId:'INM000010742', status:'Active', sebi:'SEBI Registered'},
+  {name:'Horizon Management Private Limited', regId:'INM000012926', status:'Active', sebi:'SEBI Registered'},
+  {name:'HSBC SECURITIES AND CAPITAL MARKETS (INDIA) PVT LTD', regId:'INM000010353', status:'Active', sebi:'SEBI Registered'},
+  {name:'ICICI BANK LTD', regId:'INM000010759', status:'Active', sebi:'SEBI Registered'},
+  {name:'ICICI SECURITIES LTD', regId:'INM000011179', status:'Active', sebi:'SEBI Registered'},
+  {name:'ICICI SECURITIES PRIMARY DEALERSHIP LIMITED', regId:'INM000011823', status:'Active', sebi:'SEBI Registered'},
+  {name:'IDBI CAPITAL MARKETS & SECURITIES LIMITED', regId:'INM000010866', status:'Active', sebi:'SEBI Registered'},
+  {name:'IFCI FINANCIAL SERVICES LTD', regId:'INM000010247', status:'Active', sebi:'SEBI Registered'},
+  {name:'IIFL Capital Services Limited', regId:'INM000010940', status:'Active', sebi:'SEBI Registered'},
+  {name:'InCred Capital Wealth Portfolio Managers Private Limited', regId:'INM000012865', status:'Active', sebi:'SEBI Registered'},
+  {name:'INCRED HOLDINGS LIMITED', regId:'INM000011880', status:'Active', sebi:'SEBI Registered'},
+  {name:'INDBANK MERCHANT BANKING SERVICES LTD', regId:'INM000001394', status:'Active', sebi:'SEBI Registered'},
+  {name:'Indcap Advisors Private Limited', regId:'INM000013031', status:'Active', sebi:'SEBI Registered'},
+  {name:'IndiaNivesh Corporate Finance Private Limited', regId:'INM000012403', status:'Active', sebi:'SEBI Registered'},
+  {name:'Indorient Financial Services Limited', regId:'INM000012661', status:'Active', sebi:'SEBI Registered'},
+  {name:'INDUSIND BANK LTD', regId:'INM000005031', status:'Active', sebi:'SEBI Registered'},
+  {name:'INGA VENTURES PRIVATE LIMITED', regId:'INM000012698', status:'Active', sebi:'SEBI Registered'},
+  {name:'INMACS LIMITED', regId:'INM000012908', status:'Active', sebi:'SEBI Registered'},
+  {name:'INTEGRATED ENTERPRISES (INDIA) PRIVATE LIMITED', regId:'INM000002640', status:'Active', sebi:'SEBI Registered'},
+  {name:'INTELLIGENT MONEY MANAGERS PVT .LTD.', regId:'INM000012169', status:'Active', sebi:'SEBI Registered'},
+  {name:'INTENSIVE FISCAL SERVICES PVT LTD', regId:'INM000011112', status:'Active', sebi:'SEBI Registered'},
+  {name:'INTERACTIVE FINANCIAL SERVICES LIMITED', regId:'INM000012856', status:'Active', sebi:'SEBI Registered'},
+  {name:'INVENTURE MERCHANT BANKER SERVICES PVT. LTD.', regId:'INM000012003', status:'Active', sebi:'SEBI Registered'},
+  {name:'INVESTEC CAPITAL SERVICES (I) PVT. LTD.', regId:'INM000011971', status:'Active', sebi:'SEBI Registered'},
+  {name:'IPO Mart Capital Advisors Private Limited', regId:'INM000013466', status:'Active', sebi:'SEBI Registered'},
+  {name:'ISK Advisors Private Limited', regId:'INM000012625', status:'Active', sebi:'SEBI Registered'},
+  {name:'ITI CAPITAL LIMITED', regId:'INM000010924', status:'Active', sebi:'SEBI Registered'},
+  {name:'J P MORGAN INDIA PVT. LIMITED', regId:'INM000002970', status:'Active', sebi:'SEBI Registered'},
+  {name:'Jajodia Equity Advisors Services Limited', regId:'INM000013448', status:'Active', sebi:'SEBI Registered'},
+  {name:'JAWA CAPITAL SERVICES PRIVATE LIMITED', regId:'INM000012777', status:'Active', sebi:'SEBI Registered'},
+  {name:'JEFFERIES INDIA PRIVATE LIMITED', regId:'INM000011443', status:'Active', sebi:'SEBI Registered'},
+  {name:'JJ IPO Advisors Private Limited', regId:'INM000013253', status:'Active', sebi:'SEBI Registered'},
+  {name:'JM Financial Limited', regId:'INM000010361', status:'Active', sebi:'SEBI Registered'},
+  {name:'JPR CAPITAL PRIVATE LIMITED', regId:'INM000012652', status:'Active', sebi:'SEBI Registered'},
+  {name:'KARVY INVESTOR SERVICES LTD', regId:'INM000008365', status:'Active', sebi:'SEBI Registered'},
+  {name:'Keynote Financial Services Limited', regId:'INM000003606', status:'Active', sebi:'SEBI Registered'},
+  {name:'KHAMBATTA SECURITIES LIMITED', regId:'INM000011914', status:'Active', sebi:'SEBI Registered'},
+  {name:'KHANDWALA SECURITIES LTD', regId:'INM000001899', status:'Active', sebi:'SEBI Registered'},
+  {name:'KJMC CORPORATE ADVISORS (INDIA) LTD', regId:'INM000002509', status:'Active', sebi:'SEBI Registered'},
+  {name:'KOTAK MAHINDRA CAPITAL COMPANY LTD', regId:'INM000008704', status:'Active', sebi:'SEBI Registered'},
+  {name:'KP Capital Advisors Private Limited', regId:'INM000012713', status:'Active', sebi:'SEBI Registered'},
+  {name:'Kreo Capital Private Limited', regId:'INM000012689', status:'Active', sebi:'SEBI Registered'},
+  {name:'KROLL ADVISORY PRIVATE LIMITED', regId:'INM000012315', status:'Active', sebi:'SEBI Registered'},
+  {name:'Kunvarji Finstock Private Limited', regId:'INM000012564', status:'Active', sebi:'SEBI Registered'},
+  {name:'LADDERUP CORPORATE ADVISORY PVT. LTD.', regId:'INM000011765', status:'Active', sebi:'SEBI Registered'},
+  {name:'Leafstone Financial Advisor Private Limited', regId:'INM000013457', status:'Active', sebi:'SEBI Registered'},
+  {name:'LIBORD ADVISORS PVT. LTD.', regId:'INM000012094', status:'Active', sebi:'SEBI Registered'},
+  {name:'LKP SECURITIES LTD', regId:'INM000002483', status:'Active', sebi:'SEBI Registered'},
+  {name:'LODHA CAPITAL MARKETS LTD', regId:'INM000008274', status:'Active', sebi:'SEBI Registered'},
+  {name:'LSI FINANCIAL SERVICES PVT. LTD.', regId:'INM000011468', status:'Active', sebi:'SEBI Registered'},
+  {name:'M/s NVS Brokerage Private Limited', regId:'INM000012412', status:'Active', sebi:'SEBI Registered'},
+  {name:'MACQUARIE CAPITAL SECURITIES (INDIA) PRIVATE LIMITED', regId:'INM000010932', status:'Active', sebi:'SEBI Registered'},
+  {name:'MARK CORPORATE ADVISORS PVT.LTD.', regId:'INM000012128', status:'Active', sebi:'SEBI Registered'},
+  {name:'MARWADI CHANDARANA INTERMEDIARIES BROKERS PRIVATE LIMITED', regId:'INM000013165', status:'Active', sebi:'SEBI Registered'},
+  {name:'MASTER CAPITAL SERVICES LTD', regId:'INM000000107', status:'Active', sebi:'SEBI Registered'},
+  {name:'MEFCOM CAPITAL MARKETS LTD', regId:'INM000000016', status:'Active', sebi:'SEBI Registered'},
+  {name:'MEHTA INTEGRATED FINANCE LTD', regId:'INM000001089', status:'Active', sebi:'SEBI Registered'},
+  {name:'MIB Securities India Private Limited', regId:'INM000011708', status:'Active', sebi:'SEBI Registered'},
+  {name:'Mirae Asset Capital Markets India Private Limited', regId:'INM000012485', status:'Active', sebi:'SEBI Registered'},
+  {name:'MIZUHO SECURITIES INDIA PRIVATE LIMITED', regId:'INM000012704', status:'Active', sebi:'SEBI Registered'},
+  {name:'MOELIS & COMPANY INDIA PRIVATE LIMITED', regId:'INM000012397', status:'Active', sebi:'SEBI Registered'},
+  {name:'MONARCH NETWORTH CAPITAL LIMITED', regId:'INM000011013', status:'Active', sebi:'SEBI Registered'},
+  {name:'MORGAN STANLEY INDIA COMPANY PVT LTD', regId:'INM000011203', status:'Active', sebi:'SEBI Registered'},
+  {name:'MOTILAL OSWAL INVESTMENT ADVISORS LIMITED', regId:'INM000011005', status:'Active', sebi:'SEBI Registered'},
+  {name:'MPA FINANCIAL SERVICES LIMITED', regId:'INM000011401', status:'Active', sebi:'SEBI Registered'},
+  {name:'MUFG SECURITIES INDIA PRIVATE LIMITED', regId:'INM000013305', status:'Active', sebi:'SEBI Registered'},
+  {name:'MUNOTH FINANCIAL SERVICES LTD', regId:'INM000003739', status:'Active', sebi:'SEBI Registered'},
+  {name:'Nakshatra Capital Private Limited', regId:'INM000013369', status:'Active', sebi:'SEBI Registered'},
+  {name:'Narnolia Financial Services Limited', regId:'INM000010791', status:'Active', sebi:'SEBI Registered'},
+  {name:'NAVIGANT CORPORATE ADVISORS LIMITED', regId:'INM000012243', status:'Active', sebi:'SEBI Registered'},
+  {name:'NEW BERRY CAPITALS PRIVATE LIMITED', regId:'INM000012999', status:'Active', sebi:'SEBI Registered'},
+  {name:'NEXGEN FINANCIAL SOLUTIONS PVT. LTD.', regId:'INM000011682', status:'Active', sebi:'SEBI Registered'},
+  {name:'NEXOME CAPITAL MARKETS LIMITED', regId:'INM000003952', status:'Active', sebi:'SEBI Registered'},
+  {name:'NIRBHAY CAPITAL SERVICES PVT LTD', regId:'INM000011393', status:'Active', sebi:'SEBI Registered'},
+  {name:'NLF CONSULTANCY SERVICES PRIVATE LIMITED', regId:'INM000013439', status:'Active', sebi:'SEBI Registered'},
+  {name:'NOMURA FINANCIAL ADVISORY AND SECURITIES (INDIA) PVT. LTD.', regId:'INM000011419', status:'Active', sebi:'SEBI Registered'},
+  {name:'NovaaOne Capital Private Limited', regId:'INM000012935', status:'Active', sebi:'SEBI Registered'},
+  {name:'Novus Capital Advisors Private Limited', regId:'INM000012500', status:'Active', sebi:'SEBI Registered'},
+  {name:'Nuvama Wealth Management Limited', regId:'INM000013004', status:'Active', sebi:'SEBI Registered'},
+  {name:'O3 CAPITAL GLOBAL ADVISORY PVT. LTD.', regId:'INM000011815', status:'Active', sebi:'SEBI Registered'},
+  {name:'Oneview Corporate Advisors Private Limited', regId:'INM000011930', status:'Active', sebi:'SEBI Registered'},
+  {name:'PANTOMATH CAPITAL ADVISORS PVT. LTD.', regId:'INM000012110', status:'Active', sebi:'SEBI Registered'},
+  {name:'PhillipCapital India Private Limited', regId:'INM000012458', status:'Active', sebi:'SEBI Registered'},
+  {name:'PIONEER INVESTCORP LTD.', regId:'INM000002988', status:'Active', sebi:'SEBI Registered'},
+  {name:'PL Capital Markets Private Limited', regId:'INM000011237', status:'Active', sebi:'SEBI Registered'},
+  {name:'PNB INVESTMENT SERVICES LTD.', regId:'INM000011617', status:'Active', sebi:'SEBI Registered'},
+  {name:'PRIME SECURITIES LTD', regId:'INM000000750', status:'Active', sebi:'SEBI Registered'},
+  {name:'PRP Professional Edge Associates Private Limited', regId:'INM000012786', status:'Active', sebi:'SEBI Registered'},
+  {name:'Pune E - Stock Broking Limited', regId:'INM000013323', status:'Active', sebi:'SEBI Registered'},
+  {name:'PUNJAB NATIONAL BANK', regId:'INM000010882', status:'Active', sebi:'SEBI Registered'},
+  {name:'QUINTESSENCE ENTERPRIESE PVT. LTD.', regId:'INM000011997', status:'Active', sebi:'SEBI Registered'},
+  {name:'R R INVESTORS CAPITAL SERVICES PVT. LTD.', regId:'INM000007508', status:'Active', sebi:'SEBI Registered'},
+  {name:'Raine Advisors India Private Limited', regId:'INM000012847', status:'Active', sebi:'SEBI Registered'},
+  {name:'Rarever Financial Advisors Private Limited', regId:'INM000013217', status:'Active', sebi:'SEBI Registered'},
+  {name:'RBL BANK LIMITED', regId:'INM000012136', status:'Active', sebi:'SEBI Registered'},
+  {name:'RBSA CAPITAL ADVISORS LLP', regId:'INM000011724', status:'Active', sebi:'SEBI Registered'},
+  {name:'REAL GROWTH SECURITIES PVT. LTD.', regId:'INM000011492', status:'Active', sebi:'SEBI Registered'},
+  {name:'RELIGO CAPITAL ADVISORS PRIVATE LIMITED', regId:'INM000013271', status:'Active', sebi:'SEBI Registered'},
+  {name:'RESURGENT INDIA LIMITED', regId:'INM000012144', status:'Active', sebi:'SEBI Registered'},
+  {name:'RMB CAPITAL INDIA PRIVATE LIMITED', regId:'INM000012953', status:'Active', sebi:'SEBI Registered'},
+  {name:'ROTHSCHILD & co. India Pvt Ltd', regId:'INM000010668', status:'Active', sebi:'SEBI Registered'},
+  {name:'S K FINCAP ADVISORS PRIVATE LIMITED', regId:'INM000012616', status:'Active', sebi:'SEBI Registered'},
+  {name:'SAFFRON CAPITAL ADVISORS PVT LTD', regId:'INM000011211', status:'Active', sebi:'SEBI Registered'},
+  {name:'SAL SECURITIES PVT. LTD.', regId:'INM000011047', status:'Active', sebi:'SEBI Registered'},
+  {name:'SARTHI CAPITAL ADVISORS PRIVATE LIMITED', regId:'INM000012011', status:'Active', sebi:'SEBI Registered'},
+  {name:'SBI CAPITAL MARKETS LTD', regId:'INM000003531', status:'Active', sebi:'SEBI Registered'},
+  {name:'SCSI VENTURES ADVISORS PVT. LTD.', regId:'INM000011922', status:'Active', sebi:'SEBI Registered'},
+  {name:'Seren Capital Private Limited', regId:'INM000013156', status:'Active', sebi:'SEBI Registered'},
+  {name:'SHANNON ADVISORS PRIVATE LIMITED', regId:'INM000013174', status:'Active', sebi:'SEBI Registered'},
+  {name:'SHARE INDIA CAPITAL SERVICES PRIVATE LIMITED', regId:'INM000012537', status:'Active', sebi:'SEBI Registered'},
+  {name:'SKC INVESTMENT ADVISORS PRIVATE LIMITED', regId:'INM000012731', status:'Active', sebi:'SEBI Registered'},
+  {name:'SKI CAPITAL SERVICES LTD', regId:'INM000012768', status:'Active', sebi:'SEBI Registered'},
+  {name:'SKP SECURITIES LIMITED', regId:'INM000012670', status:'Active', sebi:'SEBI Registered'},
+  {name:'SMALL INDUSTRIES DEVELOPMENT BANK OF INDIA', regId:'INM000012086', status:'Active', sebi:'SEBI Registered'},
+  {name:'Smart Horizon Capital Advisors Private Limited', regId:'INM000013183', status:'Active', sebi:'SEBI Registered'},
+  {name:'SMC CAPITALS LIMITED', regId:'INM000011427', status:'Active', sebi:'SEBI Registered'},
+  {name:'SOBHAGYA CAPITAL OPTIONS PRIVATE LIMITED', regId:'INM000008571', status:'Active', sebi:'SEBI Registered'},
+  {name:'SOCRADAMUS CAPITAL PRIVATE LIMITED', regId:'INM000013138', status:'Active', sebi:'SEBI Registered'},
+  {name:'Sowilo Capital Advisors LLP', regId:'INM000013235', status:'Active', sebi:'SEBI Registered'},
+  {name:'SPA CAPITAL ADVISORS LIMITED', regId:'INM000010825', status:'Active', sebi:'SEBI Registered'},
+  {name:'SPARK CAPITAL ADVISORS (INDIA) PVT LTD', regId:'INM000011138', status:'Active', sebi:'SEBI Registered'},
+  {name:'Srujan Alpha Capital Advisors LLP', regId:'INM000012829', status:'Active', sebi:'SEBI Registered'},
+  {name:'STANDARD CHARTERED BANK', regId:'INM000010817', status:'Active', sebi:'SEBI Registered'},
+  {name:'Stellant Capital Advisory Services Private Limited', regId:'INM000011773', status:'Active', sebi:'SEBI Registered'},
+  {name:'SUMEDHA FISCAL SERVICES LTD', regId:'INM000008753', status:'Active', sebi:'SEBI Registered'},
+  {name:'SUN CAPITAL ADVISORY SERVICES PRIVATE LIMITED', regId:'INM000012591', status:'Active', sebi:'SEBI Registered'},
+  {name:'Sundae Capital Advisors Private Limited', regId:'INM000012494', status:'Active', sebi:'SEBI Registered'},
+  {name:'SWARAJ SHARES & SECURITIES PRIVATE LIMITED', regId:'INM000012980', status:'Active', sebi:'SEBI Registered'},
+  {name:'SWASTIKA INVESTMART LIMITED', regId:'INM000012102', status:'Active', sebi:'SEBI Registered'},
+  {name:'Synfinx Capital Private Limited', regId:'INM000013192', status:'Active', sebi:'SEBI Registered'},
+  {name:'SYSTEMATIX CORPORATE SERVICES LTD.', regId:'INM000004224', status:'Active', sebi:'SEBI Registered'},
+  {name:'TAMILNAD MERCANTILE BANK LTD', regId:'INM000001857', status:'Active', sebi:'SEBI Registered'},
+  {name:'TAURUS CORPORATE ADVISORY SERVICES LTD.', regId:'INM000011740', status:'Active', sebi:'SEBI Registered'},
+  {name:'TIPSONS CONSULTANCY SERVICES PVT. LTD.', regId:'INM000011849', status:'Active', sebi:'SEBI Registered'},
+  {name:'TRUST INVESTMENT ADVISORS PVT LTD', regId:'INM000011120', status:'Active', sebi:'SEBI Registered'},
+  {name:'TRUSTCAP PRIVATE LIMITED', regId:'INM000010783', status:'Active', sebi:'SEBI Registered'},
+  {name:'TURNAROUND CORPORATE ADVISORS PRIVATE LIMITED', regId:'INM000012290', status:'Active', sebi:'SEBI Registered'},
+  {name:'UBS Securities India Private Limited', regId:'INM000013101', status:'Active', sebi:'SEBI Registered'},
+  {name:'UNION BANK OF INDIA', regId:'INM000001733', status:'Active', sebi:'SEBI Registered'},
+  {name:'UNISTONE CAPITAL PRIVATE LIMITED', regId:'INM000012449', status:'Active', sebi:'SEBI Registered'},
+  {name:'V.B. DESAI FINANCIAL SERVICES LTD', regId:'INM000002731', status:'Active', sebi:'SEBI Registered'},
+  {name:'Valmiki Leela Capital Private Limited', regId:'INM000013341', status:'Active', sebi:'SEBI Registered'},
+  {name:'VALUE LINE ADVISORS PVT LTD.', regId:'INM000007540', status:'Active', sebi:'SEBI Registered'},
+  {name:'Value Square Capital Private Limited', regId:'INM000013378', status:'Active', sebi:'SEBI Registered'},
+  {name:'VATSA CAPITAL VENTURE PRIVATE LIMITED', regId:'INM000013402', status:'Active', sebi:'SEBI Registered'},
+  {name:'VC CORPORATE ADVISORS PVT. LTD.', regId:'INM000011096', status:'Active', sebi:'SEBI Registered'},
+  {name:'VERTEX SECURITIES LTD', regId:'INM000010965', status:'Active', sebi:'SEBI Registered'},
+  {name:'VIVRO FINANCIAL SERVICES PVT LTD', regId:'INM000010122', status:'Active', sebi:'SEBI Registered'},
+  {name:'WEALTH MINE NETWORKS PRIVATE LIMITED', regId:'INM000013077', status:'Active', sebi:'SEBI Registered'},
+  {name:'YES BANK LTD.', regId:'INM000010874', status:'Active', sebi:'SEBI Registered'},
+];
+
+
+// Demo account with password login (bypasses OTP)
+var DEMO_ACCOUNTS = {
+  'jiweshkshrivastava@gmail.com': {
+    password: 'ipowork@2007',
+    name: 'Jiwesh Shrivastava',
+    firm: 'ipowork Admin',
+    regId: 'ADMIN',
+    plan: 'admin'
+  }
+};
+
+function tryDemoLogin(email, password) {
+  var acc = DEMO_ACCOUNTS[email.toLowerCase().trim()];
+  if (acc && acc.password === password) {
+    SESS.email = email;
+    SESS.name = acc.name;
+    SESS.firm = acc.firm;
+    SESS.loggedIn = true;
+    try {
+      localStorage.setItem('ipowork_user', JSON.stringify({
+        name: acc.name, email: email, firm: acc.firm, loggedIn: true
+      }));
+    } catch(e) {}
+    closeModal('login');
+    openPortal();
+    return true;
+  }
+  return false;
+}
+
 var NAV_ITEMS = [
   {id:'dashboard', icon:'🏠', label:'Dashboard',         badge:''},
   {id:'crm',       icon:'🗂️', label:'IPO Deal CRM', badge:'NEW'},
@@ -1153,7 +1429,40 @@ var NAV_ITEMS = [
   {id:'pipeline',  icon:'📊', label:'Pipeline',          badge:''},
   {id:'pricing',   icon:'P',  label:'Plans and Pricing', badge:''},
   {id:'ai',        icon:'🤖', label:'AI Assistants',     badge:'13'},
+  {id:'bankers',   icon:'🏦', label:'MB Directory',      badge:'242'},
+  {id:'bankers',   icon:'🏦', label:'Merchant Bankers',   badge:'25'},
 ];
+
+var SEBI_MERCHANT_BANKERS = [
+  // ── MAINBOARD ──────────────────────────────────────────
+  {id:'icici-sec',name:'ICICI Securities Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 6807 7100',email:'ib@icicisecurities.com',sebi:'INM000011179',cat:'I',ipos:50,speciality:'Large-cap IPOs, OFS, QIP'},
+  {id:'kotak-cap',name:'Kotak Mahindra Capital Co Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 4336 0000',email:'kmccipo@kotak.com',sebi:'INM000008704',cat:'I',ipos:45,speciality:'Mainboard, PE-backed IPOs'},
+  {id:'axis-cap',name:'Axis Capital Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 4325 2183',email:'ipo@axiscap.in',sebi:'INM000012029',cat:'I',ipos:40,speciality:'Mainboard IPOs, Rights Issue'},
+  {id:'jm-fin',name:'JM Financial Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 6630 3030',email:'jmfipo@jmfl.com',sebi:'INM000010361',cat:'I',ipos:38,speciality:'Mainboard, NBFC, Infra IPOs'},
+  {id:'sbi-cap',name:'SBI Capital Markets Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 2217 7194',email:'sbicap@sbicaps.com',sebi:'INM000003531',cat:'I',ipos:35,speciality:'PSU IPOs, Infrastructure'},
+  {id:'dam-cap',name:'DAM Capital Advisors Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 4202 2500',email:'ipo@damcapital.in',sebi:'INM000012532',cat:'I',ipos:30,speciality:'Mid-cap Mainboard IPOs'},
+  {id:'hdfc-bank',name:'HDFC Bank Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 6652 1000',email:'investmentbanking@hdfcbank.com',sebi:'INM000011252',cat:'I',ipos:20,speciality:'Large-cap, BFSI sector'},
+  {id:'goldman',name:'Goldman Sachs (India) Securities Pvt Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 6616 9000',email:'gs-ipo@gs.com',sebi:'INM000011205',cat:'I',ipos:15,speciality:'International listings, Tech IPOs'},
+  {id:'morgan-stanley',name:'Morgan Stanley India Co Pvt Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 6118 1000',email:'india_ipo@morganstanley.com',sebi:'INM000011203',cat:'I',ipos:12,speciality:'Premium large-cap IPOs'},
+  {id:'avendus',name:'Avendus Capital Pvt Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 6648 0050',email:'capital@avendus.com',sebi:'INM000010715',cat:'I',ipos:18,speciality:'Tech, New-age companies'},
+  {id:'ambit',name:'Ambit Capital Pvt Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 3982 1700',email:'ambit.ib@ambit.co',sebi:'INM000012379',cat:'I',ipos:22,speciality:'Mid-market Mainboard'},
+  {id:'iifl',name:'IIFL Securities Ltd',type:'Mainboard/SME',city:'Mumbai',phone:'+91 22 4646 4600',email:'iifl.ib@iifl.com',sebi:'INM000006441',cat:'I',ipos:28,speciality:'Mainboard & SME IPOs'},
+  {id:'bob-cap',name:'BOB Capital Markets Ltd',type:'Mainboard',city:'Mumbai',phone:'+91 22 3926 8300',email:'ipo@bobcaps.in',sebi:'INM000009926',cat:'I',ipos:16,speciality:'PSU, Infrastructure IPOs'},
+  {id:'anand-rathi',name:'Anand Rathi Advisors Ltd',type:'Mainboard/SME',city:'Mumbai',phone:'+91 22 6626 6626',email:'ibd@anandrathi.com',sebi:'INM000010478',cat:'I',ipos:25,speciality:'Mid-cap, SME & Mainboard'},
+  {id:'centrum',name:'Centrum Capital Ltd',type:'Mainboard/SME',city:'Mumbai',phone:'+91 22 4215 9000',email:'investmentbanking@centrum.co.in',sebi:'INM000010445',cat:'I',ipos:20,speciality:'Mid-market advisory'},
+  // ── SME ───────────────────────────────────────────────
+  {id:'hem-sec',name:'Hem Securities Ltd',type:'SME',city:'Jaipur',phone:'+91 141 4072 000',email:'ipo@hemsecurities.com',sebi:'INM000010844',cat:'I',ipos:80,speciality:'SME IPO specialist — NSE Emerge & BSE SME'},
+  {id:'pantomath',name:'Pantomath Capital Advisors Pvt Ltd',type:'SME/Mainboard',city:'Mumbai',phone:'+91 22 6191 1000',email:'ipo@pantomathgroup.com',sebi:'INM000012217',cat:'I',ipos:65,speciality:'SME leader — Manufacturing, Pharma'},
+  {id:'gyr-cap',name:'GYR Capital Advisors Pvt Ltd',type:'SME',city:'Ahmedabad',phone:'+91 79 4003 5900',email:'ipo@gyrcapital.com',sebi:'INM000012748',cat:'I',ipos:55,speciality:'Gujarat SME specialist'},
+  {id:'beeline',name:'Beeline Broking Ltd',type:'SME',city:'Mumbai',phone:'+91 22 4072 6900',email:'ipo@beelinebroking.com',sebi:'INM000012433',cat:'I',ipos:48,speciality:'SME — FMCG, Retail, Consumer'},
+  {id:'aryaman',name:'Aryaman Financial Services Ltd',type:'SME',city:'New Delhi',phone:'+91 11 4570 3000',email:'ipo@aryamanfinancial.com',sebi:'INM000010500',cat:'I',ipos:42,speciality:'North India SME specialist'},
+  {id:'ashika',name:'Ashika Capital Ltd',type:'SME',city:'Kolkata',phone:'+91 33 4010 2500',email:'ibd@ashikagroup.com',sebi:'INM000012029',cat:'I',ipos:35,speciality:'East India SME — IT, Services'},
+  {id:'choice-cap',name:'Choice Capital Advisors Pvt Ltd',type:'SME/Mainboard',city:'Mumbai',phone:'+91 22 6707 9999',email:'ibd@choiceindia.com',sebi:'INM000013694',cat:'I',ipos:38,speciality:'SME & mid-cap advisory'},
+  {id:'holani',name:'Holani Consultants Pvt Ltd',type:'SME',city:'Jaipur',phone:'+91 141 2365 911',email:'holani@holaniconsultants.com',sebi:'INM000003723',cat:'I',ipos:30,speciality:'Rajasthan SME specialist'},
+  {id:'narnoliya',name:'Narnoliya Financial Services Pvt Ltd',type:'SME',city:'Ahmedabad',phone:'+91 79 2657 2657',email:'ipo@narnoliya.com',sebi:'INM000012801',cat:'I',ipos:28,speciality:'Gujarat SME — Textile, Chemical'},
+  {id:'arihant',name:'Arihant Capital Markets Ltd',type:'SME/Mainboard',city:'Indore',phone:'+91 731 4797 000',email:'ib@arihantcapital.com',sebi:'INM000010774',cat:'I',ipos:32,speciality:'Central India SME specialist'},
+];
+
 
 /* ── MODAL ── */
 function openModal(id){ document.getElementById('modal-'+id).classList.add('open'); }
@@ -1223,6 +1532,31 @@ function completeRegistration(){
   document.getElementById('ok-title').textContent='Welcome, '+REG.person+'! 🏦';
   document.getElementById('ok-msg').textContent='Your free MB account is active. Choose your subscription plan from your dashboard to unlock full deal flow.';
   showRS(4);
+  // Send approval notification email to admin
+  (function(){
+    var regData = JSON.parse(localStorage.getItem('ipowork_reg')||'{}');
+    var workerUrl = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+    fetch(workerUrl, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type: 'send_email',
+        to: 'jiweshkshrivastava@gmail.com',
+        subject: '🔔 New MB Portal Registration — ' + (regData.firm||REG.firm||''),
+        html: '<h2 style="color:#08404D">New Merchant Banker Registration</h2>'
+          + '<table style="border-collapse:collapse;width:100%;font-size:14px">'
+          + '<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Name</td><td style="padding:8px;border:1px solid #ddd">' + (REG.name||'') + '</td></tr>'
+          + '<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">' + (REG.email||'') + '</td></tr>'
+          + '<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Mobile</td><td style="padding:8px;border:1px solid #ddd">' + (REG.mobile||'') + '</td></tr>'
+          + '<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Firm</td><td style="padding:8px;border:1px solid #ddd">' + (REG.firm||'') + '</td></tr>'
+          + '<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">SEBI Reg ID</td><td style="padding:8px;border:1px solid #ddd">' + (REG.regId||'') + '</td></tr>'
+          + '<tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Time</td><td style="padding:8px;border:1px solid #ddd">' + new Date().toLocaleString('en-IN') + '</td></tr>'
+          + '</table>'
+          + '<br><p style="color:#08404D">Login to <a href="https://ipowork.com/mb.html">ipowork MB Portal</a> to approve access.</p>'
+      })
+    }).catch(function(){});
+  })();
+
 }
 
 /* ── LOGIN ── */
@@ -1233,7 +1567,11 @@ function showLS(n){
 function doLogin(){
   var email=document.getElementById('l-email').value.trim();
   var mobile=document.getElementById('l-mobile').value.trim();
+  var pwdEl=document.getElementById('l-password');
+  var pwd=pwdEl?pwdEl.value.trim():'';
   if(!email||!mobile){ var e=document.getElementById('le0'); e.textContent='Please enter email and mobile'; e.classList.add('show'); return; }
+  // Check demo/admin account with password
+  if(pwd && tryDemoLogin(email, pwd)) return;
   SESS.email=email; SESS.name=email.split('@')[0];
   buildOTPInputs('login-otp-inputs','login-otp');
   showLS(1);
@@ -1241,6 +1579,21 @@ function doLogin(){
 function verifyLoginOTP(){
   if(getOTP('login-otp')!=='1234'){ var e=document.getElementById('le1'); e.textContent='Invalid OTP. Demo: 1234'; e.classList.add('show'); return; }
   closeModal('login'); openPortal();
+  // Send welcome/login notification
+  try {
+    var workerUrl = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+    fetch(workerUrl, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type: 'send_email',
+        to: 'jiweshkshrivastava@gmail.com',
+        subject: '&#128276; MB Portal Login — ' + SESS.email,
+        html: '<p>User <strong>' + SESS.email + '</strong> logged into MB Portal at ' + new Date().toLocaleString('en-IN') + '</p>'
+      })
+    }).catch(function(){});
+  } catch(e) {}
+
 }
 
 /* ── PORTAL ── */
@@ -1336,6 +1689,54 @@ window.pNav = function(v){
   document.getElementById('portal-main').scrollTop=0;
 };
 
+
+
+
+function renderBankers(){
+  var search=(P.bankerSearch||'').toLowerCase();
+  var filtered=SEBI_MERCHANT_BANKERS.filter(function(b){
+    return !search||(b.name.toLowerCase().indexOf(search)>=0)||(b.regId.toLowerCase().indexOf(search)>=0);
+  });
+  var html='<div class="portal-pad">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px">';
+  html+='<div><h2 style="font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">SEBI Merchant Banker Directory</h2>';
+  html+='<div style="font-size:13px;color:var(--muted)">'+SEBI_MERCHANT_BANKERS.length+' registered merchant bankers · Source: SEBI</div></div>';
+  html+='<div style="display:flex;gap:8px;align-items:center">';
+  html+='<input type="text" placeholder="Search by name or registration ID…" value="'+(P.bankerSearch||'')+'" oninput="P.bankerSearch=this.value;renderMain()" style="padding:9px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;background:var(--surface);color:var(--text);width:280px"/>';
+  html+='<div style="font-size:12px;color:var(--muted);white-space:nowrap">'+filtered.length+' results</div>';
+  html+='</div></div>';
+  // Stats strip
+  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
+  html+='<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border-radius:10px;padding:16px"><div style="font-size:26px;font-weight:900">'+SEBI_MERCHANT_BANKERS.length+'</div><div style="font-size:11px;opacity:.7;margin-top:4px;text-transform:uppercase;letter-spacing:.5px">Registered Bankers</div></div>';
+  html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px"><div style="font-size:26px;font-weight:900;color:var(--cyan)">Category I</div><div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px">All Registrations</div></div>';
+  html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px"><div style="font-size:26px;font-weight:900;color:#1A9E6B">Active</div><div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px">SEBI Status</div></div>';
+  html+='</div>';
+  // Table
+  html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
+  html+='<thead><tr style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff">';
+  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">#</th>';
+  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">Merchant Banker</th>';
+  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">Registration ID</th>';
+  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">Category</th>';
+  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">Status</th>';
+  html+='</tr></thead><tbody>';
+  filtered.forEach(function(b,i){
+    var even=i%2===0;
+    html+='<tr style="border-bottom:1px solid var(--border);background:'+(even?'var(--surface)':'rgba(13,92,107,.02)')+';transition:background .1s" onmouseenter="this.style.background=\'rgba(13,92,107,.06)\'" onmouseleave="this.style.background=\''+(even?'var(--surface)':'rgba(13,92,107,.02)')+'\'">';
+    html+='<td style="padding:10px 16px;color:var(--muted);font-size:12px">'+(i+1)+'</td>';
+    html+='<td style="padding:10px 16px;font-weight:600;color:var(--text)">'+b.name+'</td>';
+    html+='<td style="padding:10px 16px;font-family:monospace;font-size:12px;color:var(--cyan)">'+b.regId+'</td>';
+    html+='<td style="padding:10px 16px"><span style="background:rgba(13,92,107,.1);color:var(--cyan);padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700">Category I</span></td>';
+    html+='<td style="padding:10px 16px"><span style="background:rgba(26,158,107,.1);color:#1A9E6B;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700">● Active</span></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='<div style="font-size:11px;color:var(--muted);margin-top:12px;padding:8px">Source: SEBI Official Register of Merchant Bankers · Data as of 2024-25 · For current status verify at sebi.gov.in</div>';
+  html+='</div>';
+  return html;
+}
+
 function renderMain(){
   var content;
   if(P.view==='dashboard')  content=renderDashboard();
@@ -1345,20 +1746,28 @@ function renderMain(){
   else if(P.view==='hot-leads') content=renderHotLeads();
   else if(P.view==='pipeline')  content=renderPipeline();
   else if(P.view==='pricing')   content=renderPricing();
+  else if(P.view==='bankers')    content=renderBankers();
   else if(P.view==='ai')        content=renderAIHome();
   else if(P.view==='ai-chat')   content=renderAIChat();
   else if(P.view==='checklist') content=renderChecklist();
+  else if(P.view==='bankers')   content=renderBankers();
   else content='<div class="portal-pad"><div class="page-title">Coming Soon</div></div>';
   document.getElementById('portal-main').innerHTML=content;
   bindChat();
-  // AI grid click delegation
-  var aiGrid = document.getElementById('ai-grid');
-  if(aiGrid){
-    aiGrid.addEventListener('click', function(e){
-      var card = e.target.closest('.mb-ai-card');
-      if(card){ openAI(card.getAttribute('data-aiid2')); }
+  // Bind AI card clicks after render
+  setTimeout(function(){
+    var grid = document.getElementById('ai-grid');
+    if(!grid) return;
+    grid.querySelectorAll('.mb-ai-card').forEach(function(card){
+      card.style.cursor = 'pointer';
+      card.onclick = function(){
+        var id = this.getAttribute('data-aiid2');
+        console.log('[MB] card clicked, id=', id);
+        openAI(id);
+      };
     });
-  }
+    console.log('[MB] Bound', grid.querySelectorAll('.mb-ai-card').length, 'AI cards');
+  }, 50);
 }
 
 /* ── DASHBOARD ── */
@@ -1644,12 +2053,14 @@ var AI_ASSISTANTS=[
 function openAI(id){
   var ast = typeof AI_ASSISTANTS !== 'undefined' ? AI_ASSISTANTS : [];
   var a = ast.find(function(x){ return x.id === id; });
-  if(!a){ console.error('AI not found:', id); return; }
-  window.P.aiAssistant = a;
-  window.P.aiHistory = [];
-  window.P.view = 'ai-chat';
+  if(!a){ console.warn('openAI: id not found:', id, 'Available:', ast.map(function(x){return x.id;})); return; }
+  P.aiAssistant = a;
+  P.aiHistory = [];
+  P.view = 'ai-chat';
   renderSidebar();
   renderMain();
+  var top = document.getElementById('portal-main');
+  if(top) top.scrollTop = 0;
 }
 
 function filterAI(v){
@@ -3726,7 +4137,8 @@ window.drhpSetParty = async function(docId, party){
 <script>
 /* ═══════════════════════════════════════════════════════
    ipowork STANDARD AUTH MODULE v1
-   Drop this <script> block into every portal
+   Drop this <script>/*
+ block into every portal
    Reads ipowork_user from localStorage (set by login.html)
    Replaces all custom sign-in modals/flows
 ═══════════════════════════════════════════════════════ */
@@ -3811,7 +4223,12 @@ document.addEventListener('click', function(e){
   while(el && el !== document){
     if(el.classList && el.classList.contains('mb-ai-card')){
       var aid = el.getAttribute('data-aiid2');
-      if(aid && typeof openAI === 'function') openAI(aid);
+      console.log('[ipowork] AI card clicked, id:', aid);
+      if(aid && typeof openAI === 'function'){
+        openAI(aid);
+      } else {
+        console.error('[ipowork] openAI not found or no id');
+      }
       return;
     }
     el = el.parentElement;
