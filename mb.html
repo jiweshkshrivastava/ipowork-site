@@ -1683,10 +1683,9 @@ var NAV_ITEMS = [
   {id:'deals',     icon:'🔗', label:'Deal Sourcing',     badge:'LIVE'},
   {id:'hot-leads', icon:'⚡', label:'Hot Leads',         badge:'3'},
   {id:'pipeline',  icon:'📊', label:'Pipeline',          badge:''},
-  {id:'pricing',   icon:'P',  label:'Plans and Pricing', badge:''},
+  
   {id:'ai',        icon:'🤖', label:'AI Assistants',     badge:'13'},
   {id:'bankers',   icon:'🏦', label:'MB Directory',      badge:'242'},
-  {id:'bankers',   icon:'🏦', label:'Merchant Bankers',   badge:'25'},
 ];
 
 var SEBI_MERCHANT_BANKERS = [
@@ -1957,48 +1956,77 @@ window.pNav = function(v){
 
 
 function renderBankers(){
-  var search=(P.bankerSearch||'').toLowerCase();
-  var filtered=SEBI_MERCHANT_BANKERS.filter(function(b){
-    return !search||(b.name.toLowerCase().indexOf(search)>=0)||(b.regId.toLowerCase().indexOf(search)>=0);
-  });
+  var search=(P.bankerSearch||'').toLowerCase().trim();
+  var filtered = search
+    ? SEBI_MERCHANT_BANKERS.filter(function(b){
+        return b.name.toLowerCase().indexOf(search)>=0 || b.regId.toLowerCase().indexOf(search)>=0;
+      })
+    : SEBI_MERCHANT_BANKERS; // show ALL when no search
+
   var html='<div class="portal-pad">';
-  html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap;gap:12px">';
-  html+='<div><h2 style="font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">SEBI Merchant Banker Directory</h2>';
-  html+='<div style="font-size:13px;color:var(--muted)">'+SEBI_MERCHANT_BANKERS.length+' registered merchant bankers · Source: SEBI</div></div>';
-  html+='<div style="display:flex;gap:8px;align-items:center">';
-  html+='<input type="text" placeholder="Search by name or registration ID…" value="'+(P.bankerSearch||'')+'" oninput="P.bankerSearch=this.value;renderMain()" style="padding:9px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;background:var(--surface);color:var(--text);width:280px"/>';
-  html+='<div style="font-size:12px;color:var(--muted);white-space:nowrap">'+filtered.length+' results</div>';
-  html+='</div></div>';
-  // Stats strip
-  html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
-  html+='<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border-radius:10px;padding:16px"><div style="font-size:26px;font-weight:900">'+SEBI_MERCHANT_BANKERS.length+'</div><div style="font-size:11px;opacity:.7;margin-top:4px;text-transform:uppercase;letter-spacing:.5px">Registered Bankers</div></div>';
-  html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px"><div style="font-size:26px;font-weight:900;color:var(--cyan)">Category I</div><div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px">All Registrations</div></div>';
-  html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px"><div style="font-size:26px;font-weight:900;color:#1A9E6B">Active</div><div style="font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px">SEBI Status</div></div>';
+  html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap;gap:12px">';
+  html+='<div><h2 style="font-size:22px;font-weight:900;color:var(--text);margin-bottom:4px">&#127970; SEBI Merchant Banker Directory</h2>';
+  html+='<div style="font-size:13px;color:var(--muted)">'+SEBI_MERCHANT_BANKERS.length+' SEBI Category I registered merchant bankers · Source: SEBI Official Register</div></div>';
   html+='</div>';
-  // Table
+  html+='<div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-bottom:16px">';
+  html+='<input type="text" placeholder="Search by name or SEBI Registration ID (INM…)" value="'+(P.bankerSearch||'')+'" oninput="P.bankerSearch=this.value;renderMain()" style="width:100%;padding:10px 16px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;background:var(--surface);color:var(--text)"/>';
+  html+='<div style="font-size:12px;color:var(--muted);white-space:nowrap;min-width:80px">'+filtered.length+' of '+SEBI_MERCHANT_BANKERS.length+'</div>';
+  html+='</div>';
   html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">';
   html+='<table style="width:100%;border-collapse:collapse;font-size:13px">';
   html+='<thead><tr style="background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff">';
-  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">#</th>';
-  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">Merchant Banker</th>';
-  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">Registration ID</th>';
-  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">Category</th>';
-  html+='<th style="padding:11px 16px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.3px">Status</th>';
+  ['#','Merchant Banker','Registration ID','Status'].forEach(function(th){
+    html+='<th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.3px">'+th+'</th>';
+  });
   html+='</tr></thead><tbody>';
+  if(!filtered.length){
+    html+='<tr><td colspan="4" style="padding:32px;text-align:center;color:var(--muted)">No results for "'+search+'"</td></tr>';
+  }
   filtered.forEach(function(b,i){
-    var even=i%2===0;
-    html+='<tr style="border-bottom:1px solid var(--border);background:'+(even?'var(--surface)':'rgba(13,92,107,.02)')+';transition:background .1s" onmouseenter="this.style.background=\'rgba(13,92,107,.06)\'" onmouseleave="this.style.background=\''+(even?'var(--surface)':'rgba(13,92,107,.02)')+'\'">';
-    html+='<td style="padding:10px 16px;color:var(--muted);font-size:12px">'+(i+1)+'</td>';
-    html+='<td style="padding:10px 16px;font-weight:600;color:var(--text)">'+b.name+'</td>';
-    html+='<td style="padding:10px 16px;font-family:monospace;font-size:12px;color:var(--cyan)">'+b.regId+'</td>';
-    html+='<td style="padding:10px 16px"><span style="background:rgba(13,92,107,.1);color:var(--cyan);padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700">Category I</span></td>';
-    html+='<td style="padding:10px 16px"><span style="background:rgba(26,158,107,.1);color:#1A9E6B;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700">● Active</span></td>';
+    var bg=i%2===0?'var(--surface)':'rgba(13,92,107,.02)';
+    html+='<tr style="border-bottom:1px solid var(--border);background:'+bg+'">';
+    html+='<td style="padding:9px 14px;color:var(--muted);font-size:11px;min-width:40px">'+(i+1)+'</td>';
+    html+='<td style="padding:9px 14px;font-weight:600;color:var(--text)">'+b.name+'</td>';
+    html+='<td style="padding:9px 14px"><span style="font-family:monospace;font-size:12px;color:var(--cyan);background:rgba(29,158,117,.08);padding:2px 8px;border-radius:4px">'+b.regId+'</span></td>';
+    html+='<td style="padding:9px 14px"><span style="background:rgba(26,158,107,.1);color:#1A9E6B;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700">&#9679; Active</span></td>';
     html+='</tr>';
   });
   html+='</tbody></table></div>';
-  html+='<div style="font-size:11px;color:var(--muted);margin-top:12px;padding:8px">Source: SEBI Official Register of Merchant Bankers · Data as of 2024-25 · For current status verify at sebi.gov.in</div>';
+  html+='<div style="font-size:11px;color:var(--muted);margin-top:8px">Source: SEBI Official Register · Verify at sebi.gov.in</div>';
   html+='</div>';
   return html;
+}
+
+function closeUpgradeModal(){ var o=document.getElementById("upgrade-overlay"); if(o) o.remove(); }
+
+function showUpgradeContact(){
+  var waMsg = encodeURIComponent('Hi ipowork team,\n\nI am a SEBI-registered Merchant Banker and would like to activate my paid plan on the MB Portal.\n\nFirm: ' + (SESS.firm||'') + '\nSEBI Reg: ' + (SESS.regId||SESS.email||'') + '\nEmail: ' + (SESS.email||''));
+  var waUrl = 'https://wa.me/918851059588?text=' + waMsg;
+  // Show modal
+  var overlay = document.createElement('div');
+  overlay.id = 'upgrade-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px)';
+  overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:28px;width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
+    + '<div style="font-size:17px;font-weight:900;color:#08404D">Activate Your Plan</div>'
+    + '<button onclick="document.closeUpgradeModal()//remove" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6B8A94">&times;</button>'
+    + '</div>'
+    + '<div style="background:rgba(13,92,107,.05);border:1px solid rgba(13,92,107,.15);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:#08404D">'
+    + '<strong>&#9200; Activation within 10 minutes</strong><br>'
+    + 'After verifying your SEBI registration &amp; payment, your account is activated instantly.'
+    + '</div>'
+    + '<div style="display:grid;gap:10px;margin-bottom:16px">'
+    + '<a href="' + waUrl + '" target="_blank" style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">'
+    + '<svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.554 4.116 1.526 5.845L.057 23.428a.5.5 0 00.609.61l5.703-1.497A11.93 11.93 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 01-5.034-1.387l-.36-.214-3.733.979.996-3.638-.234-.374A9.82 9.82 0 012.182 12c0-5.419 4.399-9.818 9.818-9.818 5.419 0 9.818 4.399 9.818 9.818 0 5.419-4.399 9.818-9.818 9.818z"/></svg>'
+    + 'WhatsApp: +91 88510 59588</a>'
+    + '<a href="mailto:partners@ipowork.com?subject=MB Plan Activation - ' + encodeURIComponent(SESS.firm||SESS.email||'') + '&body=' + encodeURIComponent('Hi ipowork team,\n\nPlease activate my MB portal plan.\n\nFirm: ' + (SESS.firm||'') + '\nSEBI Reg: ' + (SESS.regId||'') + '\nEmail: ' + (SESS.email||'')) + '" style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:#1A5C8A;color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">'
+    + '<svg width="24" height="24" fill="#fff" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>'
+    + 'Email: partners@ipowork.com</a>'
+    + '</div>'
+    + '<div style="font-size:11px;color:#6B8A94;text-align:center">&#9989; SEBI Cat I verification + payment required &nbsp;&#183;&nbsp; Activation in ~10 min</div>'
+    + '</div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) closeUpgradeModal(); });
 }
 
 function renderMain(){
