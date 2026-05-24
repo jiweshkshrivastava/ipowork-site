@@ -1223,6 +1223,29 @@ initSide();
 /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
    START RESEARCH
 \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+
+function drGateLogin(){
+  var email = (document.getElementById('dr-gate-email')||{}).value||'';
+  var pw    = (document.getElementById('dr-gate-pw')||{}).value||'';
+  var err   = document.getElementById('dr-gate-err');
+  email = email.trim().toLowerCase();
+  var u = IPOWORK_USERS[email];
+  if(!u){ if(err) err.textContent='Email not registered.'; return; }
+  if(u.password !== pw){ if(err) err.textContent='Incorrect password.'; return; }
+  CURRENT_USER = {email:email, name:u.name||email, plan:u.plan||'paid'};
+  try{ localStorage.setItem('ipowork_session', JSON.stringify({email:email,token:btoa(email+pw),ts:Date.now()})); }catch(e){}
+  var gate = document.getElementById('dr-access-gate');
+  if(gate) gate.style.display='none';
+  startResearch();
+}
+
+
+function setDepth(d, el){
+  S.depth = d;
+  document.querySelectorAll('.d-btn').forEach(function(b){ b.classList.remove('active','on'); });
+  if(el){ el.classList.add('active','on'); }
+}
+
 async function startResearch(){
   // Check login
   if(!drIsLoggedIn()){
@@ -1723,8 +1746,11 @@ var CURRENT_USER = null;
         // Also check saved approved users
         var extra = JSON.parse(localStorage.getItem('ipowork_approved_users')||'{}');
         u = u || extra[sess.email];
-        if(u && u.approved && sess.token === btoa(sess.email + u.password)){
-          CURRENT_USER = {email: sess.email, name: u.name, plan: u.plan};
+        if(u && u.approved){
+          CURRENT_USER = {email: sess.email, name: u.name||sess.email, plan: u.plan||'paid'};
+        } else if(sess.email) {
+          // Accept any saved session even if user not in local IPOWORK_USERS
+          CURRENT_USER = {email: sess.email, name: sess.email.split('@')[0], plan: 'paid'};
         }
       }
     }
@@ -1734,7 +1760,16 @@ var CURRENT_USER = null;
   } catch(e){}
 })();
 
-function drIsLoggedIn(){ return !!(CURRENT_USER && CURRENT_USER.email); }
+function drIsLoggedIn(){
+  // Check CURRENT_USER from session
+  if(CURRENT_USER && CURRENT_USER.email) return true;
+  // Fallback: check localStorage directly  
+  try {
+    var sess = JSON.parse(localStorage.getItem('ipowork_session')||'null');
+    if(sess && sess.email) return true;
+  } catch(e){}
+  return false;
+}
 
 function drShowGate(){
   var gate = document.getElementById('dr-access-gate');
@@ -1814,6 +1849,8 @@ function drLogin(){
   } catch(e){}
   drCloseGate();
   updateUserBadge();
+  // Auto-start if user clicked Run button before login
+  if(window._pendingStart){ window._pendingStart=false; startResearch(); }
 }
 
 function drLogout(){
