@@ -1189,7 +1189,7 @@ Signal tags: [IPO READY] [SME IPO CANDIDATE] [MAIN BOARD CANDIDATE] [IPO IN 12 M
    APP STATE
 \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 var S={co:'',sec:'',stg:'',desc:'',rev:'',comp:'',prom:'',geo:'',yr:'',inv:'',
-       depth:'standard',running:false,results:{},done:0,start:null,ctx:''};
+       depth:'standard',running:false,results:{},done:0,totalMods:15,start:null,ctx:''};
 
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('.d-btn').forEach(function(b){
@@ -1368,9 +1368,12 @@ function renderSkeletons(){
 }
 
 async function runAll(){
-  var toks=S.depth==='quick'?2000:S.depth==='deep'?4000:3000; // Full detailed reports
-  for(var i=0;i<MODULES.length;i++){
-    await runModule(MODULES[i],toks);
+  var toks    = S.depth==='quick'?2500:S.depth==='deep'?4500:3500;
+  var modCount= S.depth==='quick'?8:S.depth==='deep'?15:12;
+  var active  = MODULES.slice(0, modCount);
+  S.totalMods = active.length; // used by updateProgress
+  for(var i=0;i<active.length;i++){
+    await runModule(active[i], toks);
     S.done++; updateProgress();
   }
   finalize();
@@ -1387,10 +1390,18 @@ function runModule(m,toks){
     el.scrollIntoView({behavior:'smooth',block:'start'});
     var hasDocs=ATTS.filter(function(a){ return a.status==='ready'; }).length;
     var p42note=P42&&P42.ok?'PROBE42 MCA DATA above is primary source. Use exact numbers. ':'';
-    var prompt='Analyse ['+m.name+'] for '+S.co+' ('+S.sec+')\n\n'+S.ctx+'\n\n'+p42note+(hasDocs?'ALL attached docs = PRIMARY. ':'No docs — use sector knowledge. ')+'Be specific and quantitative.';
+    var prompt='DEEP RESEARCH MODULE: ['+m.name+'] for '+S.co+' ('+S.sec+')\n\n'+S.ctx
+      +'\n\nRESEARCH INSTRUCTIONS:\n'
+      +'1. Search the web for latest news, financials, regulatory filings about '+S.co+'\n'
+      +'2. '+p42note
+      +(hasDocs?'3. ALL attached documents are PRIMARY SOURCE — extract exact numbers.\n':'3. No docs provided — use sector knowledge and publicly available data.\n')
+      +'4. Include competitor benchmarks from listed peers\n'
+      +'5. Reference specific SEBI/Companies Act regulations by number\n'
+      +'6. This is a PAID professional report — write at Big-4 consulting quality\n'
+      +'\nDeliver comprehensive, data-driven analysis for '+S.co+' in the ['+m.name+'] module.';
     fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:toks,
-        system:m.sys+' Write detailed, comprehensive analysis with full tables, specific data points, regulatory references and quantified insights. Minimum 600 words per module. Use markdown headers and tables extensively.',
+        system:m.sys+' CRITICAL QUALITY STANDARD — This must match Big-4 (McKinsey/Goldman Sachs/KPMG) quality IPO due diligence. Requirements: (1) MINIMUM 1200 words per module. (2) Every claim must be supported by specific numbers, ratios, dates, regulatory references. (3) Include at least 2 detailed markdown tables with real data. (4) Cite specific SEBI/Companies Act/RBI regulation numbers where relevant. (5) Provide sector benchmarks for every metric. (6) End with 5+ specific, actionable recommendations. (7) Include risk quantification with probability and impact. NO generic statements — every sentence must add specific value.',
         tools:[{type:'web_search_20250305',name:'web_search'}],
         messages:[{role:'user',content:buildContent(prompt)}]})
     })
@@ -1484,6 +1495,7 @@ function renderContent(text,m){
   return html;
 }
 
+function ipoC(label,val,col){ return ipoCard(label,val,col); }
 function ipoCard(label,val,col){
   return '<div style="background:rgba(255,255,255,.03);border:1px solid '+col.replace('var(--','rgba(').replace(')',',0.2)')+';border-radius:9px;padding:12px">'+
     '<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">'+label+'</div>'+
@@ -1494,11 +1506,13 @@ function ipoCard(label,val,col){
    PROGRESS & FINALIZE
 \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 function updateProgress(){
-  var pct=Math.round(S.done/MODULES.length*100);
-  document.getElementById('prog-pct').textContent=pct+'%';
-  document.getElementById('prog-txt').textContent=S.done+'/'+MODULES.length+' done';
-  document.getElementById('ring').style.strokeDashoffset=107-(107*pct/100);
-  document.getElementById('gp-fill').style.width=pct+'%';
+  var total = S.totalMods || MODULES.length;
+  var pct = Math.min(100, Math.round(S.done/total*100));
+  var _e;
+  _e=document.getElementById('prog-pct'); if(_e) _e.textContent=pct+'%';
+  _e=document.getElementById('prog-txt'); if(_e) _e.textContent=S.done+'/'+total+' modules';
+  _e=document.getElementById('ring');     if(_e) _e.style.strokeDashoffset=107-(107*pct/100);
+  _e=document.getElementById('gp-fill');  if(_e) _e.style.width=pct+'%';
 }
 
 function finalize(){
