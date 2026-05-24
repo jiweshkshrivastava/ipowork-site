@@ -841,6 +841,30 @@ function handleAdminClick(){
 function saveReportToStore(tier, cname, sector, result){
   try {
     updateFullReportBtn();
+    // Save to shared MB portal leads (visible to MBs)
+    var score = result ? (result.ipo_score||result.score||0) : 0;
+    var status = score>=75?'HOT':score>=55?'WARM':'COLD';
+    if(tier!=='free' && cname && cname!=='' && score>0){
+      var leadKey = 'lead:'+Date.now();
+      var leadData = JSON.stringify({
+        code: 'IPW-'+Math.floor(Math.random()*9000+1000),
+        cname_hash: btoa(cname).substring(0,8), // partial hash for matching
+        sector: sector||'Other',
+        exchange: result&&result.exchange||'',
+        aira: score,
+        status: status,
+        tier: tier,
+        ts: new Date().toISOString(),
+        // Revenue/PAT visible, name hidden
+        revenue_cr: result&&result.revenue_cr||0,
+        pat_cr: result&&result.pat_cr||0
+      });
+      try {
+        if(window.storage && window.storage.set) {
+          window.storage.set(leadKey, leadData, true); // shared=true → visible to MBs
+        }
+      } catch(se){}
+    }
     var store = JSON.parse(localStorage.getItem('aira_report_log')||'[]');
     store.unshift({
       tier: tier,

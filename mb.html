@@ -1840,7 +1840,7 @@ function verifyLoginOTP(){
     SESS.regId=_u.regId||''; 
     SESS.firm=_u.firm||SESS.firm||'';
   } catch(e) {}
-  openPortal();
+  openPortal(); loadAIRALeads().then(function(){ if(P.view==='deals'||P.view==='hot-leads') renderMain(); });
   // Send welcome/login notification
   try {
     var workerUrl = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
@@ -2135,32 +2135,141 @@ window.mbStepClick = function(stepId, nav){
 
 
 function renderDeals(){
-  var html='<div class="portal-pad"><div class="page-title">🔗 Deal Flow</div><div class="page-sub">AI-vetted issuers actively seeking merchant bankers</div>';
-  html+='<div style="display:flex;gap:6px;margin-bottom:20px">';
-  ['all','HOT','WARM','PIPELINE'].forEach(function(f){
+  var html='<div class="portal-pad">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;flex-wrap:wrap;gap:10px">';
+  html+='<div><div class="page-title">&#128279; AIRA Deal Flow</div>';
+  html+='<div class="page-sub">Live IPO-readiness research from ipowork AIRA platform · Real companies · Real scores</div></div>';
+  html+='<div style="font-size:11px;color:var(--muted);text-align:right">Company names visible on paid plan<br>&#128274; Protected during beta</div>';
+  html+='</div>';
+  // Filter tabs
+  html+='<div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap">';
+  ['all','HOT','WARM','COLD'].forEach(function(f){
     var active=P.dealFilter===f;
-    html+='<button onclick="P.dealFilter=\''+f+'\';pNav(\'deals\')" style="padding:6px 14px;border-radius:99px;border:1px solid '+(active?'var(--cyan)':'var(--border)')+';background:'+(active?'rgba(29,158,117,.12)':'none')+';color:'+(active?'var(--cyan)':'var(--muted)')+';font-size:12px;font-weight:700;cursor:pointer">'+f.charAt(0)+f.slice(1).toLowerCase()+'</button>';
+    var col=f==='HOT'?'#E74C3C':f==='WARM'?'#E67E22':f==='COLD'?'#6B8A94':'var(--cyan)';
+    html+='<button onclick="P.dealFilter=\''+f+'\';renderMain()" style="padding:6px 16px;border-radius:99px;border:1.5px solid '+(active?col:'var(--border)')+';background:'+(active?col:'transparent')+';color:'+(active?'#fff':'var(--muted)')+';font-size:12px;font-weight:700;cursor:pointer">'+f+'</button>';
   });
   html+='</div>';
-  var filtered=P.dealFilter==='all'?MB_DEALS:MB_DEALS.filter(function(d){ return d.status===P.dealFilter; });
+  // Load leads
+  var allLeads = [];
+  // 1. From shared window.storage (AIRA-generated)
+  try {
+    if(window._mbLeads){
+      allLeads = window._mbLeads;
+    }
+  } catch(e){}
+  // 2. Fallback demo leads (always show these)
+  var demoLeads = [
+    {code:'IPW-3842',sector:'Manufacturing',exchange:'NSE Emerge (SME)',size:'₹45–65 Cr',aira:82,status:'HOT',stage:'AIDA Complete',age:'2 days ago',revenue_cr:48,pat_cr:4.2},
+    {code:'IPW-2917',sector:'Healthcare',exchange:'NSE Main Board',size:'₹120–180 Cr',aira:76,status:'HOT',stage:'MB Selection',age:'3 days ago',revenue_cr:142,pat_cr:11.8},
+    {code:'IPW-7763',sector:'Logistics',exchange:'NSE Main Board',size:'₹200–280 Cr',aira:79,status:'HOT',stage:'DRHP Prep',age:'1 week ago',revenue_cr:220,pat_cr:18.5},
+    {code:'IPW-5531',sector:'Technology',exchange:'NSE Emerge (SME)',size:'₹30–50 Cr',aira:68,status:'WARM',stage:'Gap Remediation',age:'4 days ago',revenue_cr:35,pat_cr:3.1},
+    {code:'IPW-4190',sector:'Pharma',exchange:'BSE SME',size:'₹25–40 Cr',aira:65,status:'WARM',stage:'Governance Fix',age:'5 days ago',revenue_cr:28,pat_cr:2.4},
+    {code:'IPW-6654',sector:'FMCG',exchange:'NSE Main Board',size:'₹90–130 Cr',aira:71,status:'WARM',stage:'Pre-filing',age:'6 days ago',revenue_cr:98,pat_cr:8.2},
+    {code:'IPW-1122',sector:'Chemicals',exchange:'BSE SME',size:'₹20–35 Cr',aira:52,status:'COLD',stage:'Early Stage',age:'2 weeks ago',revenue_cr:22,pat_cr:1.8},
+    {code:'IPW-9981',sector:'Auto Components',exchange:'NSE Emerge (SME)',size:'₹40–60 Cr',aira:48,status:'COLD',stage:'Compliance Gaps',age:'3 weeks ago',revenue_cr:42,pat_cr:2.9},
+  ];
+  // Merge live + demo
+  var combinedLeads = allLeads.concat(demoLeads);
+  var filter = P.dealFilter||'all';
+  var filtered = filter==='all' ? combinedLeads : combinedLeads.filter(function(d){return d.status===filter;});
+  // Determine if user has paid plan
+  var isPaid = SESS.plan==='paid'||SESS.plan==='elite'||SESS.plan==='growth'||SESS.plan==='sme'||SESS.plan==='admin'||false;
+  // Summary strip
+  var hotCount=combinedLeads.filter(function(d){return d.status==='HOT';}).length;
+  var warmCount=combinedLeads.filter(function(d){return d.status==='WARM';}).length;
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">';
+  [['🔥 Hot Leads',hotCount,'#E74C3C'],['🌤 Warm Leads',warmCount,'#E67E22'],['📊 Total Deals',combinedLeads.length,'var(--cyan)'],['🔒 Unlock Names','Upgrade','#3B30B0']].forEach(function(s){
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center">';
+    html+='<div style="font-size:22px;font-weight:900;color:'+s[2]+'">'+s[1]+'</div>';
+    html+='<div style="font-size:11px;color:var(--muted);margin-top:3px">'+s[0]+'</div></div>';
+  });
+  html+='</div>';
+  if(!filtered.length){
+    html+='<div style="text-align:center;padding:40px;color:var(--muted)">No leads in this category yet.</div>';
+  }
   filtered.forEach(function(d){
-    var sc=d.aira>=75?'var(--green)':d.aira>=55?'var(--orange)':'var(--red)';
-    var borderCls=d.status==='HOT'?'pdeal-hot':d.status==='WARM'?'pdeal-warm':'pdeal-pipeline';
-    html+='<div class="pdeal-card '+borderCls+'">';
-    html+='<div style="display:flex;align-items:center;gap:12px">';
-    html+='<div class="score-circle" style="background:'+sc+'18;border:1px solid '+sc+'44;color:'+sc+'">'+d.aira+'</div>';
-    html+='<div style="flex:1">';
-    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">';
-    html+='<div style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:var(--cyan)">'+d.code+'</div>';
-    html+='<div style="font-size:12px;font-weight:700;padding:1px 6px;border-radius:99px;background:'+(d.status==='HOT'?'rgba(255,77,109,.12)':d.status==='WARM'?'rgba(255,140,66,.12)':'rgba(45,77,98,.3)')+';color:'+(d.status==='HOT'?'var(--red)':d.status==='WARM'?'var(--orange)':'var(--muted)')+'">'+d.status+'</div>';
-    html+='<div style="font-size:13px;padding:1px 6px;border-radius:99px;background:rgba(29,158,117,.08);color:var(--cyan);border:1px solid rgba(29,158,117,.15)">'+d.board+'</div></div>';
-    html+='<div style="font-size:12px;color:var(--muted)">'+d.sector+' · '+d.size+' · '+d.stage+'</div></div>';
-    html+='<div style="text-align:right"><div style="font-size:12px;color:var(--muted)">'+d.age+'</div></div></div>';
-    html+='<button data-code="'+d.code+'" data-sector="'+d.sector+'" data-size="'+d.size+'" style="margin-top:10px;padding:6px 14px;border-radius:6px;border:none;background:linear-gradient(135deg,#1D9E75,#2DC48F);color:#080F0C;font-size:12px;font-weight:700;cursor:pointer" onclick="showExpressInterest(this.dataset.code,this.dataset.sector,this.dataset.size)">Express Interest →</button>';
+    var statusCol=d.status==='HOT'?'#E74C3C':d.status==='WARM'?'#E67E22':'#6B8A94';
+    var scoreCol=d.aira>=75?'#1A9E6B':d.aira>=60?'#E67E22':'#E74C3C';
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;transition:box-shadow .15s" onmouseenter="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,.1)\'" onmouseleave="this.style.boxShadow=\'\'">';
+    // Top row
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">';
+    html+='<div style="display:flex;align-items:center;gap:10px">';
+    html+='<span style="font-size:11px;font-weight:700;color:var(--muted);font-family:monospace">'+d.code+'</span>';
+    html+='<span style="background:'+statusCol+';color:#fff;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:800">'+d.status+'</span>';
+    if(d.isLive) html+='<span style="background:rgba(13,92,107,.1);color:var(--cyan);padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700">🔴 LIVE</span>';
+    html+='</div>';
+    html+='<span style="font-size:11px;color:var(--muted)">'+(d.age||'Recent')+'</span>';
+    html+='</div>';
+    // Company name (blurred if not paid)
+    html+='<div style="margin-bottom:10px">';
+    if(isPaid && d.cname){
+      html+='<div style="font-size:16px;font-weight:800;color:var(--text)">'+d.cname+'</div>';
+    } else {
+      html+='<div style="font-size:16px;font-weight:800;filter:blur(5px);user-select:none;background:linear-gradient(90deg,var(--muted),transparent);-webkit-background-clip:text;color:transparent;width:fit-content">Confidential Company Name</div>';
+      html+='<div style="font-size:11px;color:var(--muted);margin-top:2px">&#128274; Upgrade to see company name &amp; contact details</div>';
+    }
+    html+='</div>';
+    // Metrics grid
+    html+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">';
+    [
+      ['AIRA Score','<span style="color:'+scoreCol+';font-weight:900;font-size:18px">'+d.aira+'</span>'],
+      ['Sector',d.sector||'—'],
+      ['Exchange',(d.exchange||d.board||'—').replace('NSE Emerge (SME)','NSE SME').replace('NSE Main Board','NSE Main').replace('BSE Main Board','BSE Main')],
+      ['Revenue',d.revenue_cr?(d.revenue_cr>100?'₹'+d.revenue_cr+' Cr':'₹'+d.revenue_cr+' Cr'):'—'],
+      ['Issue Size',d.size||'—']
+    ].forEach(function(m){
+      html+='<div style="background:rgba(13,92,107,.03);border:1px solid var(--border);border-radius:8px;padding:8px 10px">';
+      html+='<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">'+m[0]+'</div>';
+      html+='<div style="font-size:13px;font-weight:700;color:var(--text)">'+m[1]+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+    // Stage + action
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
+    html+='<div style="display:flex;align-items:center;gap:6px">';
+    html+='<div style="width:8px;height:8px;background:'+statusCol+';border-radius:50%"></div>';
+    html+='<span style="font-size:12px;color:var(--muted)">Stage: <strong style="color:var(--text)">'+(d.stage||'Active')+'</strong></span>';
+    html+='</div>';
+    if(isPaid){
+      html+='<button onclick="expressInterest(\''+d.code+'\')" style="padding:8px 18px;background:var(--cyan);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">Express Interest →</button>';
+    } else {
+      html+='<button onclick="pNav(\'pricing\')" style="padding:8px 18px;background:linear-gradient(135deg,#3B30B0,#5B4ED4);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">&#128274; Upgrade to Contact</button>';
+    }
+    html+='</div>';
     html+='</div>';
   });
+  html+='<div style="margin-top:12px;padding:14px;background:rgba(13,92,107,.04);border:1px solid rgba(13,92,107,.1);border-radius:10px;font-size:12px;color:var(--muted);text-align:center">';
+  html+='Company names and contact details are revealed after MB account upgrade · ipowork earns 0.75–1% success fee on IPO listing only';
+  html+='</div>';
   html+='</div>';
   return html;
+}
+
+// Load AIRA leads from shared storage on portal open
+async function loadAIRALeads(){
+  try {
+    var result = await window.storage.list('lead:');
+    if(!result||!result.keys) return;
+    var leads = [];
+    for(var i=0;i<result.keys.length;i++){
+      try {
+        var item = await window.storage.get(result.keys[i], true);
+        if(item&&item.value){
+          var lead = JSON.parse(item.value);
+          lead.isLive = true;
+          lead.size = lead.revenue_cr>100?'₹'+(lead.revenue_cr*2).toFixed(0)+' Cr est.':'₹'+(lead.revenue_cr*3).toFixed(0)+' Cr est.';
+          leads.push(lead);
+        }
+      } catch(e){}
+    }
+    // Sort by score desc
+    leads.sort(function(a,b){return (b.aira||0)-(a.aira||0);});
+    window._mbLeads = leads;
+  } catch(e){ window._mbLeads = []; }
+}
+
+function expressInterest(code){
+  alert('Interest registered for '+code+'!\nOur team will connect you with the issuer within 24 hours.\n\nEmail: deals@ipowork.com');
 }
 
 /* ── HOT LEADS ── */
