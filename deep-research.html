@@ -1288,6 +1288,8 @@ async function startResearch(){
 function buildCtx(){
   var nl='\n';
   var c='Company: '+S.co+nl+'Sector: '+S.sec+nl;
+  // Add web search instruction
+  c+='NOTE: Search the web for latest news, financials and information about '+S.co+' to supplement the analysis.'+nl;
   if(S.stg) c+='Stage: '+S.stg+nl;
   if(S.desc) c+='Description: '+S.desc+nl;
   if(S.rev) c+='Revenue: '+S.rev+nl;
@@ -1366,7 +1368,7 @@ function renderSkeletons(){
 }
 
 async function runAll(){
-  var toks=S.depth==='quick'?600:S.depth==='deep'?1200:900; // Reduced to avoid worker timeout
+  var toks=S.depth==='quick'?2000:S.depth==='deep'?4000:3000; // Full detailed reports
   for(var i=0;i<MODULES.length;i++){
     await runModule(MODULES[i],toks);
     S.done++; updateProgress();
@@ -1387,7 +1389,10 @@ function runModule(m,toks){
     var p42note=P42&&P42.ok?'PROBE42 MCA DATA above is primary source. Use exact numbers. ':'';
     var prompt='Analyse ['+m.name+'] for '+S.co+' ('+S.sec+')\n\n'+S.ctx+'\n\n'+p42note+(hasDocs?'ALL attached docs = PRIMARY. ':'No docs — use sector knowledge. ')+'Be specific and quantitative.';
     fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:toks,system:m.sys,messages:[{role:'user',content:buildContent(prompt)}]})
+      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:toks,
+        system:m.sys+' Write detailed, comprehensive analysis with full tables, specific data points, regulatory references and quantified insights. Minimum 600 words per module. Use markdown headers and tables extensively.',
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:buildContent(prompt)}]})
     })
     .then(function(r){ return r.json(); })
     .then(function(d){ var txt=(d.content||[]).map(function(c){ return c.text||''; }).join(''); if(!txt) txt='Analysis unavailable. Please retry.'; onDone(m,txt); resolve(); })
@@ -1947,14 +1952,6 @@ document.addEventListener('DOMContentLoaded', function(){ updateUserBadge(); });
 </div>
 
 
-document.addEventListener('DOMContentLoaded', function(){
-  var badge = document.getElementById('version-badge');
-  if(badge) badge.title = 'Build: 20260524_1522';
-  console.log('deep-research.html loaded - Build 20260524_1522');
-  console.log('setDepth defined:', typeof setDepth);
-  console.log('S.depth default:', S.depth);
-  console.log('d-btn count:', document.querySelectorAll('.d-btn').length);
-});
 
 
 <!-- Missing elements referenced by JS -->
