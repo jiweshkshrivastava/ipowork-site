@@ -1528,7 +1528,7 @@ export default {
           }), {headers:{...CORS,'Content-Type':'application/json'}});
         }
       }
-      return new Response('ipowork Worker v10.32 OK',{headers:{...CORS,'Content-Type':'text/plain'}});
+      return new Response('ipowork Worker v11.0 OK — deep_research_module ready',{headers:{...CORS,'Content-Type':'text/plain'}});
     }
     let body={};
     try{body=await req.json();}catch(e){}
