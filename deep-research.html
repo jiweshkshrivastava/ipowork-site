@@ -1375,104 +1375,96 @@ function renderSkeletons(){
 }
 
 async function runAll(){
-  // Architecture: 5 comprehensive sections using Sonnet
-  // Each section covers multiple domains for a complete Big-4 quality report
   var model = 'claude-sonnet-4-20250514';
   var toks  = 8000;
-  
+
   var SECTIONS = [
-    {
-      id:'governance',num:1,icon:'🏢',name:'Governance, Promoters & Corporate Structure',cat:'Governance',col:'#A78BFA',
-      sys:'You are a senior corporate governance expert and investment banker. Write a COMPREHENSIVE, DETAILED analysis covering: (1) Corporate Identity - incorporation details, CIN, registered office, company type, paid-up capital, authorized capital, company age, any restructuring. (2) Promoter Intelligence - promoter names, DINs, qualifications, track record, other directorships, skin in the game, governance behaviour, RPTs, director remuneration, succession planning, key-man risk. (3) Board Composition - all directors, their designations, gender, DINs, independence ratio, audit committee, governance quality. (4) Shareholding Pattern - from paid-up capital, any pledging, ESOP. Use ALL Probe42/MCA data provided. Write minimum 1500 words with 3+ detailed tables. End with Governance Score: X/10 and signal tags [TAG].'
-    },
-    {
-      id:'financial',num:2,icon:'💰',name:'Financial Health, Capital Structure & Valuation',cat:'Financial',col:'#34D399',
-      sys:'You are a senior CA with Big-4 experience specializing in IPO financial due diligence. Write COMPREHENSIVE financial analysis covering: (1) P&L Analysis - revenue, PAT, EBITDA margins for FY22/FY23/FY24 with YoY growth. (2) Balance Sheet - assets, liabilities, net worth, debt, D/E ratio, working capital. (3) Return Metrics - ROE, ROCE, ROIC, ROA with sector benchmarks. (4) Cash Flow Quality - OCF vs PAT, FCF, earnings quality forensics. (5) Capital Structure - debt composition, lenders, equity rounds, cap table. (6) Valuation - P/E, EV/EBITDA, comparable transactions, IPO valuation range. Use ALL financial data from Probe42. Show calculations. Write minimum 2000 words with 4+ tables. End with Financial Score: X/10.'
-    },
-    {
-      id:'business',num:3,icon:'🏗️',name:'Business Model, Market & Competitive Intelligence',cat:'Core',col:'#E8B040',
-      sys:'You are a strategy consultant and market research analyst. Write COMPREHENSIVE analysis covering: (1) Business Model - value proposition, revenue streams, unit economics, pricing power, moat analysis. (2) Market Opportunity - TAM/SAM/SOM with numbers, India market sizing, growth rates, trends. (3) Competitive Landscape - 5-7 competitors (listed and unlisted), market share, benchmarking table. (4) Operations - supply chain, capacity, certifications, technology, scalability. (5) Sales & Marketing - GTM, customer profile, concentration, brand strength, retention. Use all available data. Research the sector thoroughly. Write minimum 1800 words with 3+ tables. End with Business Score: X/10.'
-    },
-    {
-      id:'legal',num:4,icon:'⚖️',name:'Legal, Compliance, ESG & Human Capital',cat:'Regulatory',col:'#F87171',
-      sys:'You are a regulatory compliance expert and ESG analyst. Write COMPREHENSIVE analysis covering: (1) Regulatory Compliance - all licenses, NOCs, registrations, GST, ROC filings status, Companies Act compliance. (2) Litigation & Legal Risk - any disputes, contingent liabilities, director liabilities. (3) ESG - environmental impact, governance quality, social responsibility, BRSR readiness. (4) Human Capital - leadership team, employee count, productivity, ESOP, culture, succession. (5) Technology - IT systems, digital maturity, cybersecurity. Cite specific SEBI/Companies Act/RBI regulation numbers. Write minimum 1500 words with 2+ tables. End with Compliance Score: X/10.'
-    },
-    {
-      id:'ipo',num:5,icon:'🚀',name:'Strategic Positioning, Economics & IPO Readiness',cat:'IPO',col:'#E8B040',
-      sys:'You are a senior investment banker specializing in India IPOs. Write COMPREHENSIVE analysis covering: (1) Strategic Vision - growth strategy, expansion plans, M&A, innovation pipeline, 5-year outlook. (2) Macro Economics - India GDP, sector policy, RBI rates, China+1, PLI benefits, structural tailwinds. (3) Micro Economics - pricing power, Porter 5 Forces, entry barriers, competitive dynamics. (4) IPO Readiness - 7 hidden investment bank parameters: promoter credibility, earnings quality, scalability, IPO story strength, institutional appetite, peer valuation feasibility, post-listing stability. (5) Final Verdict - SME IPO / Main Board / Not Ready, timeline, valuation range. Write minimum 2000 words with 3+ tables. End with IPO Readiness Score: X/10.'
-    }
+    {id:'s1',icon:'🏢',name:'Governance, Promoters & Corporate Structure',cat:'Governance',col:'#A78BFA',
+     sys:'You are a senior corporate governance expert. Analyse this company covering ALL of: (1) Corporate identity - CIN, incorporation date, registered office, company type, capital structure with exact numbers. (2) ALL Directors - list every director by name, DIN, gender, designation, date of appointment. (3) Board analysis - size, independence ratio, committee status. (4) Shareholding - paid-up capital breakdown, promoter holding, any pledging. (5) ESOP status. (6) Governance quality assessment. (7) Related party transactions. Use EXACT numbers from the data. Tables are mandatory. Minimum 1500 words. End: Governance Score: X/10'},
+    {id:'s2',icon:'💰',name:'Financial Health, Capital Structure & Valuation',cat:'Financial',col:'#34D399',
+     sys:'You are a senior CA with Big-4 IPO experience. Analyse ALL financials: (1) P&L - exact revenue/PAT/EBITDA for FY22/FY23/FY24 with YoY growth rates. (2) Margin analysis with sector benchmarks. (3) Balance sheet - assets, liabilities, net worth, total debt, D/E. (4) Return ratios - ROE, ROCE, ROA with benchmark comparison tables. (5) Working capital - debtor days, inventory days, cash conversion cycle. (6) Cash flow quality - OCF vs PAT analysis. (7) Capital structure - all charges/lenders. (8) Valuation - P/E, EV/EBITDA, comparable companies, IPO valuation range. Show ALL calculations. Minimum 2000 words. End: Financial Score: X/10'},
+    {id:'s3',icon:'🏗️',name:'Business Model, Market Intelligence & Operations',cat:'Core',col:'#E8B040',
+     sys:'You are a strategy consultant. Analyse: (1) Business model - what exactly does the company do, revenue streams, unit economics, pricing power, competitive moat. (2) Market - TAM/SAM/SOM with India-specific numbers, growth rates, sector trends. (3) Competitors - 5+ named competitors with comparison table (revenue, margins, market cap if listed). (4) Operations - supply chain, capacity, certifications, technology systems, scalability. (5) Sales & marketing - customer profile, concentration, GTM strategy, brand. (6) Strategic recommendations with specific timelines. Minimum 1800 words. End: Business Score: X/10'},
+    {id:'s4',icon:'⚖️',name:'Legal, Compliance, ESG & Human Capital',cat:'Regulatory',col:'#F87171',
+     sys:'You are a regulatory compliance expert. Analyse: (1) ALL regulatory compliance - list each regulation by name and number (Companies Act 2013, SEBI ICDR, GST, EPFO, PCB approvals, sector-specific licences). State compliance status for each. (2) Litigation and legal risks. (3) Tax compliance - GST registration status, direct tax, TDS. (4) ESG - environmental impact, sustainability, BRSR readiness. (5) Human capital - leadership team profiles, employee productivity, ESOP, culture. (6) Technology & digital maturity. Create a compliance matrix table. Minimum 1500 words. End: Compliance Score: X/10'},
+    {id:'s5',icon:'🚀',name:'Strategy, Economics & IPO Readiness Assessment',cat:'IPO',col:'#F59E0B',
+     sys:'You are a senior investment banker specialising in Indian IPOs. Deliver: (1) Strategic vision and 5-year growth roadmap. (2) Macro economics - India GDP context, sector policy (SWM Rules 2016, RPO obligations, PLI), RBI rates impact. (3) Porter Five Forces analysis for this specific company. (4) ALL 7 hidden IBD parameters scored individually: Promoter Credibility X/10, Earnings Quality X/10, Scalability X/10, IPO Story Strength X/10, Institutional Appetite X/10, Peer Valuation X/10, Post-listing Stability X/10. (5) RECOMMENDED IPO TRACK: [SME/Main Board/Not Ready]. (6) ESTIMATED TIMELINE: [months]. (7) VALUATION RANGE: [low Cr - high Cr]. (8) 10-point action plan. Minimum 2000 words. End: IPO Readiness Score: X/10'}
   ];
-  
+
   S.totalMods = SECTIONS.length;
-  
+  var cont = document.getElementById('res-cont');
+  if(cont) cont.innerHTML = '';
+
   for(var i=0; i<SECTIONS.length; i++){
     var sec = SECTIONS[i];
-    // Show module card
-    var el = document.getElementById('res-cont');
-    if(el){
-      var card = document.createElement('div');
-      card.className='mcard running expanded';
-      card.id = 'mr-'+sec.id;
-      card.innerHTML = 
-        '<div class="mc-head" style="padding:14px 18px;display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,'+sec.col+'22,'+sec.col+'11);border-radius:14px 14px 0 0">'+
-        '<div style="font-size:22px">'+sec.icon+'</div>'+
-        '<div style="font-weight:800;font-size:14px;color:#08404D;flex:1">Section '+sec.num+'/5: '+sec.name+'</div>'+
-        '<span style="font-size:10px;padding:3px 9px;border-radius:99px;background:'+sec.col+'22;color:'+sec.col+';border:1px solid '+sec.col+'44;font-weight:700">'+sec.cat+'</span>'+
-        '<div id="ms-'+sec.id+'" style="font-size:12px;color:var(--mu)">Analysing...</div>'+
-        '</div>'+
-        '<div id="ml-'+sec.id+'" style="display:flex;padding:16px;align-items:center;gap:12px;font-size:13px;color:var(--mu)">'+
-        '<div class="spin"></div><div>Running comprehensive analysis with Probe42 data...</div></div>'+
-        '<div id="mb-'+sec.id+'" class="mc-body" style="display:none;padding:18px 20px"></div>';
-      el.appendChild(card);
-      card.scrollIntoView({behavior:'smooth',block:'start'});
-    }
-    
-    var prompt = 'COMPREHENSIVE PROFESSIONAL ANALYSIS REPORT\n'
-      +'Company: '+S.co+'\nSector: '+S.sec+(S.stg?' | Stage: '+S.stg:'')+'\n\n'
-      +S.ctx
-      +'\n\nINSTRUCTIONS: Write a detailed, professional-grade analysis for Section '+sec.num+' ('+sec.name+'). '
-      +'Use ONLY the data provided above (Probe42/MCA verified). '
-      +'Be specific with numbers, dates, and regulatory references. '
-      +'Include sector benchmarks. Format with markdown headers and tables. '
-      +'Minimum 1500 words. No generic statements.';
-    
+
+    // Create card
+    var card = document.createElement('div');
+    card.className = 'mcard expanded';
+    card.id = 'mr-'+sec.id;
+    card.style.marginBottom = '24px';
+    card.innerHTML =
+      '<div class="mc-head" style="cursor:pointer">'
+      +'<div class="mc-icon" style="background:'+sec.col+'22;font-size:18px">'+sec.icon+'</div>'
+      +'<div style="flex:1"><div class="mc-title" style="color:#1A2E35;font-size:14px;font-weight:800">Section '+(i+1)+'/'+SECTIONS.length+': '+sec.name+'</div></div>'
+      +'<span style="font-size:10px;padding:3px 9px;border-radius:99px;background:'+sec.col+'22;color:'+sec.col+';border:1px solid '+sec.col+'44;font-weight:700">'+sec.cat+'</span>'
+      +'<div id="ms-'+sec.id+'" style="font-size:12px;color:#6B8A94;margin-left:10px;flex-shrink:0">Analysing…</div>'
+      +'<div class="mc-tog">▾</div>'
+      +'</div>'
+      +'<div id="ml-'+sec.id+'" class="mc-load"><div class="spin"></div><div>Running Sonnet analysis with Probe42 data — this takes 60-90 seconds per section…</div></div>'
+      +'<div id="mb-'+sec.id+'" class="mc-body" style="display:block;padding:20px 24px"></div>';
+
+    if(cont) cont.appendChild(card);
+    card.scrollIntoView({behavior:'smooth', block:'start'});
+
+    var prompt = 'COMPANY: '+S.co+' | SECTOR: '+S.sec+(S.stg?' | STAGE: '+S.stg:'')+' | CIN: '+(P42&&P42.cin||'N/A')
+      +'\n\n'+S.ctx
+      +'\n\nWrite comprehensive Big-4 quality analysis for: '+sec.name
+      +'\n\nRules: Use ONLY Probe42/MCA data above. Show exact numbers. '
+      +'Cite Companies Act/SEBI sections. Include sector benchmarks. '
+      +'Minimum 1500 words. Minimum 3 markdown tables. '
+      +'Do NOT say let me search. Write directly as senior consultant.';
+
     try {
-      var resp = await fetch(WORKER, {method:'POST', headers:{'Content-Type':'application/json'},
+      var resp = await fetch(WORKER, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          type:'claudeProxy', model:model, max_tokens:toks,
+          type:'claudeProxy',
+          model: model,
+          max_tokens: toks,
           system: sec.sys,
           messages:[{role:'user', content: buildContent(prompt)}]
         })
       });
       var data = await resp.json();
       var txt = (data.content||[]).map(function(c){return c.text||'';}).join('').trim();
-      if(!txt) txt = 'Analysis unavailable for this section. Please retry.';
-      
-      // Render result
+      if(!txt && data.error) txt = 'Error: '+JSON.stringify(data.error);
+      if(!txt) txt = 'No response received. Check API key and retry.';
+
       var loadEl = document.getElementById('ml-'+sec.id);
-      if(loadEl) loadEl.style.display='none';
+      if(loadEl) loadEl.style.display = 'none';
       var stEl = document.getElementById('ms-'+sec.id);
-      if(stEl) stEl.textContent='✓ Done';
+      if(stEl){ stEl.textContent='✓ Done'; stEl.style.color='#1A9E6B'; }
       var bodyEl = document.getElementById('mb-'+sec.id);
-      if(bodyEl){
-        bodyEl.innerHTML = renderContent(txt, sec);
-        bodyEl.style.display='block';
-      }
+      if(bodyEl) bodyEl.innerHTML = renderContent(txt, sec);
       var cardEl = document.getElementById('mr-'+sec.id);
-      if(cardEl){ cardEl.classList.remove('running'); cardEl.classList.add('done'); }
-      
+      if(cardEl){ cardEl.classList.add('done'); }
+
       S.results[sec.id] = txt;
-      // Extract score
-      var sm = txt.match(/Score:\s*(\d+\.?\d*)\/10/);
+      var sm = txt.match(/Score:\s*(\d+\.?\d*)\/10/i);
       if(sm) S.results['sc_'+sec.id] = parseFloat(sm[1]);
-      
+
     } catch(e){
-      var stEl2 = document.getElementById('ms-'+sec.id);
-      if(stEl2) stEl2.textContent = 'Error - retry';
-      var bodyEl2 = document.getElementById('mb-'+sec.id);
-      if(bodyEl2){ bodyEl2.innerHTML='<div style="color:var(--red);padding:12px">Error: '+e.message+'</div>'; bodyEl2.style.display='block'; }
+      var stEl3 = document.getElementById('ms-'+sec.id);
+      if(stEl3){ stEl3.textContent='Error'; stEl3.style.color='#C0392B'; }
+      var loadEl3 = document.getElementById('ml-'+sec.id);
+      if(loadEl3) loadEl3.style.display='none';
+      var bodyEl3 = document.getElementById('mb-'+sec.id);
+      if(bodyEl3) bodyEl3.innerHTML='<div style="color:#C0392B;padding:12px;background:#FEF0EE;border-radius:8px"><b>Error:</b> '+e.message+'</div>';
+      S.results[sec.id] = 'Error: '+e.message;
     }
-    
+
     S.done++;
     updateProgress();
   }
