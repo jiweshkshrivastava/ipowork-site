@@ -1376,7 +1376,7 @@ function renderSkeletons(){
 }
 
 async function runAll(){
-  var toks = S.depth==='quick'?1200:S.depth==='deep'?2000:1500;
+  var toks = S.depth==='quick'?700:S.depth==='deep'?2000:1300;
   var modCount = S.depth==='quick'?5:S.depth==='deep'?15:10;
   var active = MODULES.slice(0, modCount);
   S.totalMods = active.length;
@@ -1406,10 +1406,10 @@ function runModule(m, toks){
     var hasDocs = ATTS.filter(function(a){ return a.status==='ready'; }).length;
     var p42ctx = (P42&&P42.ok&&P42.ctx) ? P42.ctx : '';
 
-    var prompt = 'Analyse ['+m.name+'] for '+S.co+' ('+S.sec+').'
-      +'\n\n'+S.ctx
-      +'\n\nWrite structured analysis with: ## Executive Summary, ## Detailed Analysis (all sub-sections), ## Data Table (markdown), ## Key Findings (5 bullets), ## Risks (5 items), ## Recommendations (5 items), ## Score: X/10, signal tags [TAG].'
-      +(hasDocs?' Use attached documents as primary source.':' Use context data and sector knowledge.');
+    var prompt = 'Analyse for ['+m.name+'] dimension:\n\n'+S.ctx
+      +'\n\nThis is a private/unlisted company. '
+      +(hasDocs?'ALL attached documents are PRIMARY source — extract specific figures, names, dates from documents. ':'No documents attached — use sector knowledge. ')
+      +'Be direct, specific, quantitative. Reference India context. State clearly when data is unavailable.';
 
     fetch(WORKER, {
       method:'POST',
@@ -1418,21 +1418,26 @@ function runModule(m, toks){
         type:'claudeProxy',
         model:'claude-haiku-4-5-20251001',
         max_tokens: toks,
-        system: m.sys + '\n\nIMPORTANT: Follow the exact output format requested. Be specific and quantitative. Use all data from the company context provided. Do not use generic statements.',
+        system: m.sys,
         messages:[{role:'user', content: buildContent(prompt)}]
       })
     })
     .then(function(r){ return r.json(); })
     .then(function(d){
       var txt = (d.content||[]).map(function(c){ return c.text||''; }).join('').trim();
-      if(!txt && d.error) txt = 'API Error: '+(d.error.message||JSON.stringify(d.error));
-      if(!txt) txt = 'No response — please retry.';
+      // If Anthropic returned an error (timeout, overload etc) - throw to trigger retry
+      if(!txt || (d.error && d.error.type)) throw new Error(d.error?d.error.message:'Empty response');
       onDone(m, txt);
       resolve();
     })
     .catch(function(err){
-      onDone(m, 'Error: '+(err&&err.message?err.message:'Network error. Check connection.'));
-      resolve();
+      // Retry once with lower tokens on error
+      fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:800,
+          system:m.sys,messages:[{role:'user',content:'Brief analysis of ['+m.name+'] for '+S.co+'. '+S.ctx.substring(0,1000)+' Be concise with key findings and score X/10.'}]})
+      }).then(function(r2){return r2.json();})
+      .then(function(d2){var t2=(d2.content||[]).map(function(c){return c.text||'';}).join('');onDone(m,t2||'Module unavailable — retry.');resolve();})
+      .catch(function(){onDone(m,'Module unavailable — please retry.');resolve();});
     });
   });
 }
