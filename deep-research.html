@@ -1205,10 +1205,17 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 function initSide(){
-  var el=document.getElementById('mod-list'); el.innerHTML='';
-  MODULES.forEach(function(m){
+  var el=document.getElementById('mod-list'); if(!el) return; el.innerHTML='';
+  var SIDE_ITEMS=[
+    {id:'governance',num:1,name:'Governance & Promoters',cat:'Governance',col:'#A78BFA'},
+    {id:'financial',num:2,name:'Financial Health & Valuation',cat:'Financial',col:'#34D399'},
+    {id:'business',num:3,name:'Business Model & Market',cat:'Core',col:'#E8B040'},
+    {id:'legal',num:4,name:'Legal, Compliance & ESG',cat:'Regulatory',col:'#F87171'},
+    {id:'ipo',num:5,name:'Strategy & IPO Readiness',cat:'IPO',col:'#E8B040'},
+  ];
+  SIDE_ITEMS.forEach(function(m){
     var d=document.createElement('div'); d.className='mod-item'; d.id='mi-'+m.id;
-    d.innerHTML='<div class="module-dot md-pending" id="dot-'+m.id+'">'+m.num+'</div>'+
+    d.innerHTML='<div class="mod-dot dp" id="dot-'+m.id+'">'+m.num+'</div>'+
       '<div class="module-name">'+m.name+'</div>'+
       '<span class="module-cat" style="background:rgba(255,255,255,.04);color:var(--dim)">'+m.cat+'</span>';
     d.addEventListener('click',function(){ var t=document.getElementById('mr-'+m.id); if(t) t.scrollIntoView({behavior:'smooth',block:'start'}); });
@@ -1282,7 +1289,7 @@ async function startResearch(){
   _e=document.getElementById('co-chip');   if(_e) _e.style.display='block';
   _e=document.getElementById('ov-score');  if(_e) _e.classList.add('on');
   try{ buildSourceBadges(); }catch(ex){}
-  S.ctx=buildCtx(); renderSkeletons(); runAll();
+  document.getElementById('res-cont').innerHTML=''; S.ctx=buildCtx(); runAll();
 }
 
 function buildCtx(){
@@ -1368,20 +1375,106 @@ function renderSkeletons(){
 }
 
 async function runAll(){
-  var model   = 'claude-haiku-4-5-20251001';
-  var toks    = S.depth==='quick'?2000:S.depth==='deep'?4000:3000;
-  var modCount= S.depth==='quick'?5:S.depth==='deep'?15:10;
-  var active  = MODULES.slice(0, modCount);
-  S.totalMods = active.length;
-  // Run in batches of 3 (parallel) for speed
-  var batchSize = 3;
-  for(var i=0; i<active.length; i+=batchSize){
-    var batch = active.slice(i, i+batchSize);
-    await Promise.all(batch.map(function(mod){
-      return runModule(mod, toks, model).then(function(){
-        S.done++; updateProgress();
+  // Architecture: 5 comprehensive sections using Sonnet
+  // Each section covers multiple domains for a complete Big-4 quality report
+  var model = 'claude-sonnet-4-20250514';
+  var toks  = 8000;
+  
+  var SECTIONS = [
+    {
+      id:'governance',num:1,icon:'🏢',name:'Governance, Promoters & Corporate Structure',cat:'Governance',col:'#A78BFA',
+      sys:'You are a senior corporate governance expert and investment banker. Write a COMPREHENSIVE, DETAILED analysis covering: (1) Corporate Identity - incorporation details, CIN, registered office, company type, paid-up capital, authorized capital, company age, any restructuring. (2) Promoter Intelligence - promoter names, DINs, qualifications, track record, other directorships, skin in the game, governance behaviour, RPTs, director remuneration, succession planning, key-man risk. (3) Board Composition - all directors, their designations, gender, DINs, independence ratio, audit committee, governance quality. (4) Shareholding Pattern - from paid-up capital, any pledging, ESOP. Use ALL Probe42/MCA data provided. Write minimum 1500 words with 3+ detailed tables. End with Governance Score: X/10 and signal tags [TAG].'
+    },
+    {
+      id:'financial',num:2,icon:'💰',name:'Financial Health, Capital Structure & Valuation',cat:'Financial',col:'#34D399',
+      sys:'You are a senior CA with Big-4 experience specializing in IPO financial due diligence. Write COMPREHENSIVE financial analysis covering: (1) P&L Analysis - revenue, PAT, EBITDA margins for FY22/FY23/FY24 with YoY growth. (2) Balance Sheet - assets, liabilities, net worth, debt, D/E ratio, working capital. (3) Return Metrics - ROE, ROCE, ROIC, ROA with sector benchmarks. (4) Cash Flow Quality - OCF vs PAT, FCF, earnings quality forensics. (5) Capital Structure - debt composition, lenders, equity rounds, cap table. (6) Valuation - P/E, EV/EBITDA, comparable transactions, IPO valuation range. Use ALL financial data from Probe42. Show calculations. Write minimum 2000 words with 4+ tables. End with Financial Score: X/10.'
+    },
+    {
+      id:'business',num:3,icon:'🏗️',name:'Business Model, Market & Competitive Intelligence',cat:'Core',col:'#E8B040',
+      sys:'You are a strategy consultant and market research analyst. Write COMPREHENSIVE analysis covering: (1) Business Model - value proposition, revenue streams, unit economics, pricing power, moat analysis. (2) Market Opportunity - TAM/SAM/SOM with numbers, India market sizing, growth rates, trends. (3) Competitive Landscape - 5-7 competitors (listed and unlisted), market share, benchmarking table. (4) Operations - supply chain, capacity, certifications, technology, scalability. (5) Sales & Marketing - GTM, customer profile, concentration, brand strength, retention. Use all available data. Research the sector thoroughly. Write minimum 1800 words with 3+ tables. End with Business Score: X/10.'
+    },
+    {
+      id:'legal',num:4,icon:'⚖️',name:'Legal, Compliance, ESG & Human Capital',cat:'Regulatory',col:'#F87171',
+      sys:'You are a regulatory compliance expert and ESG analyst. Write COMPREHENSIVE analysis covering: (1) Regulatory Compliance - all licenses, NOCs, registrations, GST, ROC filings status, Companies Act compliance. (2) Litigation & Legal Risk - any disputes, contingent liabilities, director liabilities. (3) ESG - environmental impact, governance quality, social responsibility, BRSR readiness. (4) Human Capital - leadership team, employee count, productivity, ESOP, culture, succession. (5) Technology - IT systems, digital maturity, cybersecurity. Cite specific SEBI/Companies Act/RBI regulation numbers. Write minimum 1500 words with 2+ tables. End with Compliance Score: X/10.'
+    },
+    {
+      id:'ipo',num:5,icon:'🚀',name:'Strategic Positioning, Economics & IPO Readiness',cat:'IPO',col:'#E8B040',
+      sys:'You are a senior investment banker specializing in India IPOs. Write COMPREHENSIVE analysis covering: (1) Strategic Vision - growth strategy, expansion plans, M&A, innovation pipeline, 5-year outlook. (2) Macro Economics - India GDP, sector policy, RBI rates, China+1, PLI benefits, structural tailwinds. (3) Micro Economics - pricing power, Porter 5 Forces, entry barriers, competitive dynamics. (4) IPO Readiness - 7 hidden investment bank parameters: promoter credibility, earnings quality, scalability, IPO story strength, institutional appetite, peer valuation feasibility, post-listing stability. (5) Final Verdict - SME IPO / Main Board / Not Ready, timeline, valuation range. Write minimum 2000 words with 3+ tables. End with IPO Readiness Score: X/10.'
+    }
+  ];
+  
+  S.totalMods = SECTIONS.length;
+  
+  for(var i=0; i<SECTIONS.length; i++){
+    var sec = SECTIONS[i];
+    // Show module card
+    var el = document.getElementById('res-cont');
+    if(el){
+      var card = document.createElement('div');
+      card.className='mcard running expanded';
+      card.id = 'mr-'+sec.id;
+      card.innerHTML = 
+        '<div class="mc-head" style="padding:14px 18px;display:flex;align-items:center;gap:11px;background:linear-gradient(135deg,'+sec.col+'22,'+sec.col+'11);border-radius:14px 14px 0 0">'+
+        '<div style="font-size:22px">'+sec.icon+'</div>'+
+        '<div style="font-weight:800;font-size:14px;color:#08404D;flex:1">Section '+sec.num+'/5: '+sec.name+'</div>'+
+        '<span style="font-size:10px;padding:3px 9px;border-radius:99px;background:'+sec.col+'22;color:'+sec.col+';border:1px solid '+sec.col+'44;font-weight:700">'+sec.cat+'</span>'+
+        '<div id="ms-'+sec.id+'" style="font-size:12px;color:var(--mu)">Analysing...</div>'+
+        '</div>'+
+        '<div id="ml-'+sec.id+'" style="display:flex;padding:16px;align-items:center;gap:12px;font-size:13px;color:var(--mu)">'+
+        '<div class="spin"></div><div>Running comprehensive analysis with Probe42 data...</div></div>'+
+        '<div id="mb-'+sec.id+'" class="mc-body" style="display:none;padding:18px 20px"></div>';
+      el.appendChild(card);
+      card.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+    
+    var prompt = 'COMPREHENSIVE PROFESSIONAL ANALYSIS REPORT\n'
+      +'Company: '+S.co+'\nSector: '+S.sec+(S.stg?' | Stage: '+S.stg:'')+'\n\n'
+      +S.ctx
+      +'\n\nINSTRUCTIONS: Write a detailed, professional-grade analysis for Section '+sec.num+' ('+sec.name+'). '
+      +'Use ONLY the data provided above (Probe42/MCA verified). '
+      +'Be specific with numbers, dates, and regulatory references. '
+      +'Include sector benchmarks. Format with markdown headers and tables. '
+      +'Minimum 1500 words. No generic statements.';
+    
+    try {
+      var resp = await fetch(WORKER, {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          type:'claudeProxy', model:model, max_tokens:toks,
+          system: sec.sys,
+          messages:[{role:'user', content: buildContent(prompt)}]
+        })
       });
-    }));
+      var data = await resp.json();
+      var txt = (data.content||[]).map(function(c){return c.text||'';}).join('').trim();
+      if(!txt) txt = 'Analysis unavailable for this section. Please retry.';
+      
+      // Render result
+      var loadEl = document.getElementById('ml-'+sec.id);
+      if(loadEl) loadEl.style.display='none';
+      var stEl = document.getElementById('ms-'+sec.id);
+      if(stEl) stEl.textContent='✓ Done';
+      var bodyEl = document.getElementById('mb-'+sec.id);
+      if(bodyEl){
+        bodyEl.innerHTML = renderContent(txt, sec);
+        bodyEl.style.display='block';
+      }
+      var cardEl = document.getElementById('mr-'+sec.id);
+      if(cardEl){ cardEl.classList.remove('running'); cardEl.classList.add('done'); }
+      
+      S.results[sec.id] = txt;
+      // Extract score
+      var sm = txt.match(/Score:\s*(\d+\.?\d*)\/10/);
+      if(sm) S.results['sc_'+sec.id] = parseFloat(sm[1]);
+      
+    } catch(e){
+      var stEl2 = document.getElementById('ms-'+sec.id);
+      if(stEl2) stEl2.textContent = 'Error - retry';
+      var bodyEl2 = document.getElementById('mb-'+sec.id);
+      if(bodyEl2){ bodyEl2.innerHTML='<div style="color:var(--red);padding:12px">Error: '+e.message+'</div>'; bodyEl2.style.display='block'; }
+    }
+    
+    S.done++;
+    updateProgress();
   }
   finalize();
 }
@@ -1546,7 +1639,10 @@ function finalize(){
   document.getElementById('prog-txt').textContent='Done in '+elapsed+'s';
   /* Weighted overall score using PE/VC weighting */
   var ws=0,wt=0;
-  MODULES.forEach(function(m){ var sc=S.results['sc_'+m.id]; if(sc!==undefined){ ws+=sc*(m.weight||.067); wt+=(m.weight||.067); } });
+  ['governance','financial','business','legal','ipo'].forEach(function(id,i){
+    var w=[0.2,0.25,0.2,0.15,0.2][i];
+    var sc=S.results['sc_'+id]; if(sc!==undefined){ ws+=sc*w; wt+=w; }
+  });
   var ov=wt>0?Math.round(ws/wt*10)/10:'\u2014';
   var gr=ov>=8?'STRONG BUY':ov>=7?'BUY':ov>=6?'MODERATE':ov>=5?'CAUTIOUS':'HIGH RISK';
   var gc=ov>=7?'var(--green)':ov>=6?'var(--amber)':ov>=5?'var(--orange)':'var(--red)';
@@ -1563,14 +1659,11 @@ function finalize(){
 function renderSummary(ov,gr,gc,elapsed){
   /* Category groupings for scorecard */
   var cats={
-    'Governance':['corporate-identity','promoter-intelligence'],
-    'Financial':['financial-health','capital-structure'],
-    'Core':['business-model','operations'],
-    'Market':['market-intelligence','sales-consumer'],
-    'Digital & People':['technology-digital','human-resources'],
-    'Regulatory':['legal-compliance','esg-sustainability'],
-    'Strategy':['strategic-positioning','macro-economics'],
-    'IPO':['ipo-readiness']
+    'Governance':['governance'],
+    'Financial':['financial'],
+    'Business & Market':['business'],
+    'Legal & ESG':['legal'],
+    'IPO Readiness':['ipo']
   };
   var cs={};
   Object.keys(cats).forEach(function(cat){
@@ -1580,8 +1673,8 @@ function renderSummary(ov,gr,gc,elapsed){
   });
   /* Collect all signals */
   var sigCount={};
-  Object.keys(S.results).forEach(function(k){
-    if(k.indexOf('sc_')===0||k.indexOf('ipo_')===0) return;
+  ['governance','financial','business','legal','ipo'].forEach(function(k){
+    var kk = k;
     (S.results[k]&&S.results[k].match&&(S.results[k].match(/\[([A-Z][A-Z ]+)\]/g)||[])).forEach(function(s){var t=s.replace(/\[|\]/g,'').trim();sigCount[t]=(sigCount[t]||0)+1;});
   });
   var topSigs=Object.keys(sigCount).sort(function(a,b){return sigCount[b]-sigCount[a];}).slice(0,16);
@@ -1590,7 +1683,7 @@ function renderSummary(ov,gr,gc,elapsed){
 
   /* Risk heat map \u2014 modules with score < 6 */
   var risks=[];
-  MODULES.forEach(function(m){ var sc=S.results['sc_'+m.id]; if(sc!==undefined&&sc<6) risks.push({name:m.name,score:sc,col:sc<4?'var(--red)':'var(--orange)'}); });
+  ['governance','financial','business','legal','ipo'].forEach(function(id){ var sc=S.results['sc_'+id]; if(sc!==undefined&&sc<6) risks.push({name:id.charAt(0).toUpperCase()+id.slice(1),score:sc,col:sc<4?'var(--red)':'var(--orange)'}); });
 
   var docs=ATTS.filter(function(a){return a.status==='ready';});
 
