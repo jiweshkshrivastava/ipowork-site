@@ -340,134 +340,179 @@ async function runSearch(){
   var revMin = parseInt(document.getElementById('rev-min').value)||50;
   var revMax = parseInt(document.getElementById('rev-max').value)||500;
   var patMin = parseInt(document.getElementById('pat-min').value)||5;
-  var age = document.getElementById('f-age').value||'5';
-  var track = document.getElementById('f-track').value;
+  var age    = document.getElementById('f-age').value||'5';
+  var track  = document.getElementById('f-track').value;
+  var sectors = SELECTED_NICS.map(function(n){return NIC_LABELS[n];}).join(', ');
 
   var btn = document.getElementById('search-btn');
   btn.disabled = true;
-  btn.innerHTML = '⟳ Searching<span class="ldots"></span>';
+  btn.innerHTML = '&#9167; Searching…';
 
-  // Show loading state
+  RESULTS=[]; SELECTED.clear();
   document.getElementById('results-inner').innerHTML =
-    '<div class="state-box"><div class="state-icon" style="animation:spin 1s linear infinite;display:inline-block">⟳</div>'
-    +'<div class="state-title">Finding companies<span class="ldots"></span></div>'
-    +'<div class="state-sub">AI is searching for '+SEARCH_COUNT+' IPO-ready companies in '+(state||'India')+'<br/>Sector: '+SELECTED_NICS.map(function(n){return NIC_LABELS[n]||n;}).join(', ')+'<br/>Revenue: ₹'+revMin+' Cr – ₹'+revMax+' Cr</div></div>';
+    '<div class="state-box"><div style="font-size:40px;margin-bottom:12px">&#128269;</div>'
+    +'<div class="state-title">Searching for companies…</div>'
+    +'<div class="state-sub">Step 1: AI generating company names<br/>Step 2: MCA lookup for real CINs<br/>Step 3: Probe42 financial verification</div></div>';
 
-  RESULTS = [];
-  SELECTED.clear();
+  try {
+    // STEP 1: Claude generates real company NAMES (not CINs)
+    var prompt = 'List '+SEARCH_COUNT+' real Indian companies. State: '+(state||'India')+'. Sector: '+sectors+'. Revenue Rs '+revMin+' Cr to Rs '+revMax+' Cr approx. PAT above Rs '+patMin+' Cr. Incorporated '+age+'+ years ago. IPO candidates. One company name per line, exact MCA registered name, ending Private Limited. No CIN numbers. No numbering.';
 
-  try{
-    // Use Claude to find company names + CINs
-    var sectors = SELECTED_NICS.map(function(n){return NIC_LABELS[n];}).join(', ');
-    var prompt = 'Find '+SEARCH_COUNT+' real Indian Private Limited companies that:\n'
-      +'- Are registered in: '+(state||'India (any state)')+'\n'
-      +'- Operate in: '+sectors+' (NIC codes: '+SELECTED_NICS.map(function(n){return n+'xxx';}).join(', ')+')\n'
-      +'- Revenue: approximately ₹'+revMin+' Cr to ₹'+revMax+' Cr\n'
-      +'- PAT (profit): ₹'+patMin+' Cr or more\n'
-      +'- Incorporated: '+age+'+ years ago\n'
-      +'- IPO track: '+(track==='sme'?'SME IPO candidates':track==='main'?'Main Board candidates':'any')+'\n\n'
-      +'IMPORTANT: List REAL companies with CORRECT CIN numbers from MCA.\n'
-      +'Format each entry EXACTLY as:\n'
-      +'CIN: U24100GJ2008PTC052456\n'
-      +'Name: XYZ Chemicals Private Limited\n\n'
-      +'List '+SEARCH_COUNT+' companies, one per entry.';
-
-    var resp = await fetch(WORKER, {method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:2000,
-        system:'You are an expert on Indian companies and MCA records. Provide accurate CIN numbers for real companies.',
+    var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1000,
+        system:'You are an expert on Indian manufacturing and services companies. List real company names that match the criteria. Only list companies you are confident exist.',
         messages:[{role:'user',content:prompt}]
       })
     });
     var data = await resp.json();
     var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
 
-    // Parse CINs and names
-    var lines = txt.split('\n');
-    var companies = [];
-    var current = {};
-    lines.forEach(function(line){
-      line = line.trim();
-      var cinMatch = line.match(/CIN[:\s]+([A-Z]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6})/i);
-      var nameMatch = line.match(/Name[:\s]+(.+)/i);
-      if(cinMatch){ current.cin = cinMatch[1].toUpperCase(); }
-      if(nameMatch){ current.name = nameMatch[1].trim(); }
-      if(current.cin && current.name){
-        companies.push({cin:current.cin, name:current.name});
-        current = {};
-      }
-    });
+    // Parse company names
+    var names = txt.split('\n')
+      .map(function(l){ return l.replace(/^\d+[\.\)]\s*/,'').replace(/^[-•*]\s*/,'').trim(); })
+      .filter(function(l){ return l.length>5 && l.toLowerCase().includes('private') || l.toLowerCase().includes('pvt') || l.length>10; })
+      .slice(0,SEARCH_COUNT);
 
-    if(!companies.length){
-      // Try simpler extraction
-      var cinRe = /([A-Z]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6})/g;
-      var m;
-      while((m=cinRe.exec(txt))!==null){
-        companies.push({cin:m[1], name:'Company ('+m[1]+')'});
-      }
-    }
-
-    if(!companies.length){
+    if(!names.length){
       document.getElementById('results-inner').innerHTML =
-        '<div class="state-box"><div class="state-icon">😕</div>'
-        +'<div class="state-title">No results found</div>'
-        +'<div class="state-sub">Try broader filters — fewer sectors,<br/>wider revenue range, or different state.</div></div>';
-      btn.disabled=false; btn.innerHTML='🔍 Find IPO Prospects';
+        '<div class="state-box"><div style="font-size:40px">&#128532;</div>'
+        +'<div class="state-title">No companies found</div>'
+        +'<div class="state-sub">Try different filters — broader sector, wider revenue range.</div></div>';
+      btn.disabled=false; btn.innerHTML='&#128269; Find IPO Prospects';
       return;
     }
 
-    // Init results
-    RESULTS = companies.map(function(co,i){
-      return {idx:i+1, cin:co.cin, name:co.name, status:'pending', p42:null};
+    document.getElementById('results-inner').innerHTML =
+      '<div class="state-box"><div style="font-size:40px">&#128269;</div>'
+      +'<div class="state-title">Found '+names.length+' companies — verifying with Probe42…</div>'
+      +'<div class="state-sub">Fetching MCA data for each company</div></div>';
+
+    // STEP 2: For each name, search for CIN via company_search, then validate Probe42
+    RESULTS = names.map(function(name,i){
+      return {idx:i+1, name:name, cin:'', status:'searching', p42:null};
     });
 
-    renderResults();
-    document.getElementById('rc-count').textContent = RESULTS.length+' companies found';
+    // Show cards immediately
+    var grid = '<div class="co-grid" id="co-grid">';
+    RESULTS.forEach(function(item){
+      grid += '<div class="co-card" id="co-card-'+item.idx+'">'
+        +'<div class="co-sector-tag">Searching...</div>'
+        +'<div class="co-name">'+item.name+'</div>'
+        +'<div class="co-cin-tag">Looking up CIN...</div>'
+        +'<div class="co-status"><span class="co-pill pill-fetching">&#8635; Searching MCA</span></div>'
+        +'</div>';
+    });
+    grid += '</div>';
+    document.getElementById('results-inner').innerHTML = grid;
+    document.getElementById('rc-count').textContent = names.length+' companies';
 
-    // Now fetch Probe42 data for each
+    // Process each - search for CIN then validate
     for(var i=0; i<RESULTS.length; i++){
       var item = RESULTS[i];
-      item.status = 'fetching';
-      renderCard(item);
       try{
-        var p42resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({type:'probe42_raw',cin:item.cin})
+        // Search for company by name to get CIN
+        var sResp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({type:'company_search', query:item.name.replace(' Private Limited','').replace(' Pvt Ltd','').substring(0,40)})
         });
-        var p42 = await p42resp.json();
-        if(p42 && p42.company_name && p42.company_name!=='NOT FOUND'){
-          item.p42 = p42;
-          item.name = p42.company_name;
-          item.status = 'verified';
-          // Apply revenue filter
-          var rev = p42.financials ? Number(p42.financials.revenue_fy24)||0 : 0;
-          var revCr = rev/10000000;
-          var pat = p42.financials ? Number(p42.financials.pat_fy24)||0 : 0;
-          var patCr = pat/10000000;
-          if(revCr < revMin*0.5){ item.status = 'filtered'; } // too small
-          if(revMax && revCr > revMax*2){ item.status = 'filtered'; } // too big
+        var sData = await sResp.json();
+        var results = sData.results||[];
+
+        // Find best match
+        var match = null;
+        var nameLower = item.name.toLowerCase();
+        results.forEach(function(r){
+          if(!match && r.cin && r.name){
+            var rLower = r.name.toLowerCase();
+            var words = nameLower.split(' ').filter(function(w){return w.length>3;});
+            var matches = words.filter(function(w){return rLower.includes(w);}).length;
+            if(matches >= 2) match = r;
+          }
+        });
+        if(!match && results.length>0) match = results[0];
+
+        if(match && match.cin){
+          item.cin = match.cin;
+          item.name = match.name || item.name;
+          item.status = 'fetching';
+          updateCard(item);
+
+          // Now fetch Probe42 data
+          var p42Resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({type:'probe42_raw', cin:item.cin})
+          });
+          var p42 = await p42Resp.json();
+
+          if(p42 && p42.company_name && p42.company_name!=='NOT FOUND'){
+            item.p42 = p42;
+            item.name = p42.company_name;
+            // Check revenue filter
+            var rev = Number((p42.financials||{}).revenue_fy24)||0;
+            var revCr = rev/10000000;
+            if(revCr > 0 && revCr < revMin*0.3){
+              item.status='filtered';
+            } else {
+              item.status='verified';
+            }
+          } else {
+            item.status='notfound';
+          }
         } else {
-          item.status = 'notfound';
+          item.status='notfound';
+          item.cin='CIN not found';
         }
       } catch(e){
-        item.status = 'notfound';
+        item.status='notfound';
+        item.cin='Error: '+e.message;
       }
-      renderCard(item);
-      await sleep(200);
+      updateCard(item);
+      await sleep(400);
     }
 
-    // Update count
     var verified = RESULTS.filter(function(r){return r.status==='verified';}).length;
-    document.getElementById('rc-count').textContent = verified+' verified of '+RESULTS.length+' found';
+    document.getElementById('rc-count').textContent = verified+' verified of '+names.length+' found';
 
   } catch(e){
     document.getElementById('results-inner').innerHTML =
-      '<div class="state-box"><div class="state-icon">⚠️</div>'
-      +'<div class="state-title">Search failed</div>'
+      '<div class="state-box"><div style="font-size:40px">&#9888;&#65039;</div>'
+      +'<div class="state-title">Search error</div>'
       +'<div class="state-sub">'+e.message+'</div></div>';
   }
 
   btn.disabled=false;
-  btn.innerHTML='🔍 Find IPO Prospects';
+  btn.innerHTML='&#128269; Find IPO Prospects';
 }
+
+
+function updateCard(item){
+  var card = document.getElementById('co-card-'+item.idx);
+  if(!card) return;
+  var f = item.p42&&item.p42.financials||{};
+  var statusHtml='';
+  if(item.status==='verified') statusHtml='<span class="co-pill pill-verified">&#10003; Probe42 Verified</span>';
+  else if(item.status==='fetching') statusHtml='<span class="co-pill pill-fetching">&#8635; Fetching P42</span>';
+  else if(item.status==='searching') statusHtml='<span class="co-pill pill-fetching">&#8635; Searching MCA</span>';
+  else if(item.status==='notfound') statusHtml='<span class="co-pill pill-notfound">Not Found</span>';
+  else if(item.status==='filtered') statusHtml='<span class="co-pill pill-notfound">Revenue Mismatch</span>';
+  var metricsHtml='';
+  if(item.p42&&item.p42.financials){
+    metricsHtml='<div class="co-metrics">'
+      +'<div class="co-metric"><div class="co-metric-v">'+fmt(f.revenue_fy24)+'</div><div class="co-metric-l">Revenue</div></div>'
+      +'<div class="co-metric"><div class="co-metric-v">'+fmt(f.pat_fy24)+'</div><div class="co-metric-l">PAT</div></div>'
+      +'<div class="co-metric"><div class="co-metric-v">'+(f.roe?parseFloat(f.roe).toFixed(1)+'%':'&#8212;')+'</div><div class="co-metric-l">ROE</div></div>'
+      +'<div class="co-metric"><div class="co-metric-v">'+(f.revenue_growth?parseFloat(f.revenue_growth).toFixed(0)+'%':'&#8212;')+'</div><div class="co-metric-l">Growth</div></div>'
+      +'</div>';
+  }
+  var isSel = SELECTED.has(item.cin);
+  card.className='co-card'+(isSel?' selected':'');
+  card.innerHTML='<div class="co-check">'+(isSel?'&#10003;':'')+'</div>'
+    +'<div class="co-sector-tag">'+(item.cin.substring(4,9)||'MCA')+'</div>'
+    +'<div class="co-name">'+item.name+'</div>'
+    +'<div class="co-cin-tag">'+(item.cin||'Searching...')+'</div>'
+    +metricsHtml
+    +'<div class="co-status">'+statusHtml+'</div>';
+  card.onclick=function(){ if(item.cin&&item.status==="verified") toggleSelect(item.cin); };
+}
+
 
 function fmt(v){
   if(!v||isNaN(v)) return '—';
