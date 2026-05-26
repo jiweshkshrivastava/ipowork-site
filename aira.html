@@ -146,6 +146,77 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 .admin-auth-card{background:#fff;border-radius:16px;padding:28px;width:360px;max-width:95vw;box-shadow:0 20px 40px rgba(0,0,0,.2)}
 [id^="content-"]{min-height:400px}
 
+
+/* ════ UNIVERSAL MOBILE FIX ════ */
+@media(max-width:768px){
+  /* App layout — stack sidebar below on mobile */
+  .app{flex-direction:column !important;height:auto !important;overflow:visible !important}
+  .side{width:100% !important;height:auto !important;max-height:200px !important;overflow-x:auto !important;overflow-y:hidden !important;border-right:none !important;border-bottom:1px solid var(--bd,#E2E8EA) !important;flex-direction:row !important;position:relative !important}
+  .side .mod-list{flex-direction:row !important;overflow-x:auto !important;padding:8px !important;white-space:nowrap !important}
+  .side .side-foot{display:none !important}
+  .side .side-head{padding:10px !important;flex-shrink:0 !important}
+  .main{overflow-y:auto !important;height:calc(100vh - 54px - 200px) !important}
+
+  /* Input phase */
+  .inp-phase{padding:16px !important}
+  .fgrid{grid-template-columns:1fr !important}
+  .fgrid .full{grid-column:1 !important}
+  .inp-hero{margin-bottom:16px !important}
+  .inp-title{font-size:clamp(22px,6vw,32px) !important;line-height:1.2 !important}
+  .inp-sub{font-size:12px !important}
+  .depth-row{flex-wrap:wrap !important;gap:6px !important}
+  .d-btn{font-size:12px !important;padding:5px 10px !important}
+  .start-btn{font-size:13px !important;padding:12px !important}
+
+  /* Portal layout */
+  .portal-sidebar,#psidebar{width:60px !important;overflow:hidden !important}
+  .portal-sidebar .nav-item{padding:12px 6px !important;justify-content:center !important}
+  .portal-sidebar .nav-lbl,.portal-sidebar .nav-sec{display:none !important}
+  .portal-sidebar .nav-icon{font-size:18px !important}
+  #pmain{margin-left:60px !important}
+
+  /* Portal topbar */
+  .portal-topbar{padding:0 12px !important}
+  .portal-pad{padding:16px !important}
+
+  /* Cards grid */
+  .stats-grid,.kpi-grid,.score-grid{grid-template-columns:1fr 1fr !important}
+  .sc-grid{grid-template-columns:repeat(2,1fr) !important}
+
+  /* Topbar */
+  .bar{padding:0 12px !important}
+  .bar-tag{display:none !important}
+  .bar-right .btn-g{display:none !important}
+
+  /* Results phase */
+  .res-phase{padding:12px !important}
+  .mcard{margin-bottom:12px !important}
+  .mc-head{padding:10px 12px !important}
+  .mc-body{padding:12px !important}
+  .ac table{font-size:11px !important}
+  .ac th,.ac td{padding:6px 8px !important}
+
+  /* Export bar */
+  .export-bar{padding:8px 12px !important;gap:6px !important}
+  .export-bar .btn{padding:8px 12px !important;font-size:12px !important}
+
+  /* Data panel */
+  .data-panel{margin-bottom:12px !important}
+  .act-row{grid-template-columns:1fr 1fr 1fr !important;gap:6px !important}
+  .ab-lbl{font-size:11px !important}
+  .ab-icon{font-size:18px !important}
+  .ab-sub{display:none !important}
+
+  /* Portal pages */
+  .page-title{font-size:18px !important}
+  .fgrid-2{grid-template-columns:1fr !important}
+}
+@media(max-width:480px){
+  .stats-grid,.kpi-grid,.score-grid{grid-template-columns:1fr !important}
+  .sc-grid{grid-template-columns:repeat(2,1fr) !important}
+  .portal-pad{padding:12px !important}
+}
+
 </style>
 </head>
 <body>
@@ -3579,6 +3650,45 @@ async function runDeepResearchFull(){
     // THE LOCKED DATA BLOCK — passed verbatim to all 15 modules
     // AI is FORBIDDEN from computing any figure that contradicts this block
     // ══════════════════════════════════════════════════════════════════════
+
+
+    // ── MISSING VARIABLES NEEDED BY VERIFIED_FINANCIALS ────────────────
+    var yr22lbl = f.fy22_year || 'FY22';
+    var yr23lbl = f.fy23_year || 'FY23';
+
+    // Valuation multiples by sector
+    var sectorMults = {
+      Manufacturing:{pe:28,ev:16}, Pharma:{pe:35,ev:22},
+      'IT Services':{pe:40,ev:28}, 'Financial Services':{pe:18,ev:12},
+      Infrastructure:{pe:22,ev:14}, FMCG:{pe:45,ev:30}, Other:{pe:25,ev:18}
+    };
+    var sm  = sectorMults[sector] || sectorMults.Other;
+    var sPE = sm.pe;
+    var sEV = sm.ev;
+
+    // DCF calculation
+    var fcfDR    = +(pat * 0.65).toFixed(2);
+    var dcfVal   = 0;
+    for(var _i=1; _i<=5; _i++) dcfVal += fcfDR * Math.pow(1.15,_i) / Math.pow(1.13,_i);
+    var tvVal    = +(fcfDR * Math.pow(1.15,5) * 1.05 / 0.08 / Math.pow(1.13,5)).toFixed(1);
+    dcfVal       = +(dcfVal + parseFloat(tvVal)).toFixed(1);
+
+    // Share count from paid-up capital
+    var paidUpCap   = +(parseFloat(f.paid_up_capital)||parseFloat(f.share_capital)||0).toFixed(2);
+    var sharesOutCr = paidUpCap > 0 ? +(paidUpCap * 100000 / 10 / 10000000).toFixed(4) : 0;
+    var shareNote   = paidUpCap > 0
+      ? 'Paid-up capital: ₹'+paidUpCap+' Cr | FV ₹10 | Shares: '+sharesOutCr+' Cr'
+      : 'Share count unavailable — source from MCA paid-up capital before pricing';
+    var ppsBand = sharesOutCr > 0 && baseVal > 0
+      ? 'Price band: ₹'+(+(baseVal*0.8/sharesOutCr).toFixed(0))+'–₹'+(+(baseVal/sharesOutCr).toFixed(0))+' per share'
+      : 'Per-share price requires share count — do not estimate without it';
+
+    // PAT margin vs growth labels
+    var patMargin      = +(rev > 0 ? pat/rev*100 : 0).toFixed(2);
+    var patMarginLabel = 'PAT Margin (FY24): '+patMargin+'%  ← PAT/Revenue ratio, NOT a growth rate';
+    var patGrowthLabel = (pat23>0&&pat23!==pat)
+      ? 'PAT YoY Growth: '+patYoY+'%'
+      : 'PAT YoY Growth: N/A (FY23 data unavailable)';
 
     // ── WEBSITE DATA FETCH ─────────────────────────────────────────────
     var website = (p42&&p42.website)||'';

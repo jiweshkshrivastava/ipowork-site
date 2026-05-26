@@ -1538,6 +1538,50 @@ export default {
       return new Response(JSON.stringify({error:'ANTHROPIC_API_KEY not set — add it in Cloudflare Worker Secrets'}),{status:503,headers:{...CORS,'Content-Type':'application/json'}});
     }
     try {
+      
+async function probe42Search(body, key, env) {
+  const { state, sector, nic_prefix, revenue_min, revenue_max, profit_min, count } = body;
+  const probeKey = env.PROBE42_KEY || '';
+  
+  // Step 1: Use Claude to generate company names for this criteria
+  const prompt = `List ${count||20} real Indian private limited companies that:
+- Are registered in: ${state || 'any Indian state'}
+- Operate in sector: ${sector || 'manufacturing'}
+- NIC code starting with: ${nic_prefix || ''}
+- Estimated revenue: ₹${revenue_min||50} Cr to ₹${revenue_max||500} Cr
+- Are profitable (PAT > ₹${profit_min||5} Cr)
+- Are likely IPO candidates in 2025-2027
+
+For each company, provide ONLY:
+CIN: [full 21-char CIN]
+Name: [company name]
+
+Format as a simple list. Only include companies you are confident exist with these CINs.`;
+
+  const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
+      messages: [{role:'user', content: prompt}]
+    })
+  });
+  const claudeData = await claudeResp.json();
+  const txt = (claudeData.content||[]).map(c=>c.text||'').join('');
+  
+  // Parse CINs from response
+  const cinMatches = txt.match(/[ULuUl]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}/gi) || [];
+  const uniqueCINs = [...new Set(cinMatches.map(c=>c.toUpperCase()))].slice(0, count||20);
+  
+  return new Response(JSON.stringify({
+    cins: uniqueCINs,
+    raw: txt,
+    count: uniqueCINs.length
+  }), {status:200, headers:{...CORS,'Content-Type':'application/json'}});
+}
+
+if(t==='probe42_search') return probe42Search(body,key,env);
       if(t==='probe42_raw')    return probe42Raw(body.cin,env.PROBE42_KEY,env);
       if(t==='send_email')     return sendEmail(body,env);
       if(t==='company_search') return companySearch(body.query||'',key);

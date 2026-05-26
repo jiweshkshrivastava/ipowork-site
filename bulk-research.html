@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ipowork Bulk IPO Pipeline Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F9FB;--sur:#FFFFFF;--teal:#08404D;--teal2:#0D5C6B;--cyan:#1A7D90;
+  --amber:#E88A2E;--green:#1A9E6B;--red:#C0392B;--purple:#5B6FEC;
+  --text:#1A2E35;--muted:#6B8A94;--dim:#9AB0B8;--border:rgba(13,92,107,.12);
+  --sh:0 2px 16px rgba(13,92,107,.08);--sh2:0 8px 40px rgba(13,92,107,.14);
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+  --bar:56px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:9px}
+
+/* ── TOPBAR ── */
+.bar{height:var(--bar);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 1px 0 var(--border)}
+.bar-logo{font-family:var(--serif);font-weight:900;font-size:21px;color:var(--teal);letter-spacing:-.3px}
+.bar-logo sup{font-size:9px;color:var(--amber);font-family:var(--font);font-weight:800;letter-spacing:.5px;vertical-align:super}
+.bar-tag{font-size:10px;font-weight:700;color:var(--cyan);padding:3px 10px;border-radius:6px;background:rgba(13,92,107,.07);border:1px solid rgba(13,92,107,.12)}
+.bar-back{margin-left:auto;font-size:12px;color:var(--muted);text-decoration:none;padding:7px 14px;border:1px solid var(--border);border-radius:7px;transition:.15s}
+.bar-back:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* ── LAYOUT ── */
+.wrap{margin-top:var(--bar);display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - var(--bar))}
+
+/* ── LEFT PANEL ── */
+.left{background:#fff;border-right:1px solid var(--border);padding:24px;overflow-y:auto;height:calc(100vh - var(--bar));position:sticky;top:var(--bar)}
+.panel-title{font-family:var(--serif);font-size:17px;font-weight:900;color:var(--teal);margin-bottom:4px}
+.panel-sub{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.section-head{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:18px 0 10px}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:14px;background:rgba(13,92,107,.02)}
+.upload-zone:hover,.upload-zone.over{border-color:var(--amber);background:rgba(232,138,46,.04)}
+.upload-zone .icon{font-size:28px;margin-bottom:8px}
+.upload-zone .lbl{font-size:13px;font-weight:700;color:var(--text)}
+.upload-zone .sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* CIN textarea */
+.cin-area{width:100%;height:110px;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--mono);font-size:12px;color:var(--text);resize:vertical;outline:none;background:#FAFAF8;transition:.2s;line-height:1.7}
+.cin-area:focus{border-color:var(--cyan);background:#fff}
+.cin-area::placeholder{color:var(--dim)}
+
+/* Filters */
+.filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.filter-sel{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:12px;color:var(--text);background:#fff;outline:none;cursor:pointer}
+.filter-sel:focus{border-color:var(--cyan)}
+
+/* Run button */
+.run-btn{width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#08404D,#1A7D90);color:#fff;font-family:var(--font);font-weight:800;font-size:14px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.run-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(13,92,107,.25)}
+.run-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* Progress */
+.prog-box{background:linear-gradient(135deg,rgba(13,92,107,.06),rgba(13,92,107,.02));border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:14px;display:none}
+.prog-box.on{display:block}
+.prog-bar-wrap{height:6px;background:rgba(13,92,107,.1);border-radius:3px;overflow:hidden;margin:8px 0}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--cyan));border-radius:3px;transition:width .4s;width:0}
+.prog-txt{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.prog-stat{font-size:13px;font-weight:700;color:var(--teal);margin-bottom:4px}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:9px;padding:12px;text-align:center}
+.stat-n{font-family:var(--serif);font-size:22px;font-weight:900;line-height:1}
+.stat-l{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+
+/* ── RIGHT PANEL ── */
+.right{padding:28px 32px;overflow-y:auto;height:calc(100vh - var(--bar))}
+
+/* Pipeline table */
+.pipeline-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.pipe-title{font-family:var(--serif);font-size:20px;font-weight:900;color:var(--teal)}
+.pipe-count{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(13,92,107,.08);color:var(--teal);border:1px solid var(--border)}
+.export-btns{margin-left:auto;display:flex;gap:8px}
+.e-btn{padding:7px 14px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-family:var(--font);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s;display:flex;align-items:center;gap:5px}
+.e-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.e-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.e-btn.primary:hover{background:var(--teal2)}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.ftab{padding:5px 14px;border-radius:99px;border:1.5px solid var(--border);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s;background:#fff}
+.ftab:hover{border-color:var(--cyan);color:var(--cyan)}
+.ftab.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.ftab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.dot-hot{background:#E74C3C}.dot-warm{background:#E88A2E}.dot-cold{background:#6B8A94}.dot-all{background:var(--teal)}
+
+/* Table */
+.pipe-table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--sh)}
+.pipe-table th{padding:11px 14px;text-align:left;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;background:rgba(13,92,107,.03);border-bottom:1px solid var(--border);white-space:nowrap}
+.pipe-table td{padding:12px 14px;border-bottom:1px solid rgba(13,92,107,.06);vertical-align:middle;font-size:13px}
+.pipe-table tr:last-child td{border-bottom:none}
+.pipe-table tr:hover td{background:rgba(13,92,107,.02)}
+.pipe-table tr.running-row td{background:rgba(232,138,46,.04)}
+
+/* Score badge */
+.score-badge{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;font-family:var(--mono);font-size:14px;font-weight:800;flex-shrink:0}
+.score-hot{background:rgba(231,76,60,.12);color:#E74C3C;border:1.5px solid rgba(231,76,60,.25)}
+.score-warm{background:rgba(232,138,46,.12);color:#E88A2E;border:1.5px solid rgba(232,138,46,.25)}
+.score-cold{background:rgba(107,138,148,.1);color:#6B8A94;border:1.5px solid rgba(107,138,148,.2)}
+.score-na{background:rgba(13,92,107,.06);color:var(--muted);border:1.5px solid var(--border)}
+
+/* Status pill */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.pill-pending{background:rgba(107,138,148,.1);color:var(--muted)}
+.pill-running{background:rgba(232,138,46,.12);color:var(--amber);animation:pulse 1.2s infinite}
+.pill-done{background:rgba(26,158,107,.1);color:var(--green)}
+.pill-error{background:rgba(192,57,43,.08);color:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Track badge */
+.track{font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px}
+.track-sme{background:rgba(91,111,236,.12);color:var(--purple)}
+.track-main{background:rgba(26,158,107,.12);color:var(--green)}
+.track-not{background:rgba(192,57,43,.08);color:var(--red)}
+
+/* Co name */
+.co-name{font-weight:700;color:var(--teal);font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.co-cin{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.co-sector{font-size:11px;color:var(--muted)}
+
+/* Action btn */
+.act-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+.act-btn:hover{border-color:var(--teal);color:var(--teal)}
+.act-btn.view{border-color:var(--cyan);color:var(--cyan)}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .icon{font-size:48px;margin-bottom:14px;opacity:.4}
+.empty h3{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:8px}
+.empty p{font-size:13px;line-height:1.8}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.on{display:flex}
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:960px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.25)}
+.modal-head{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.modal-title{font-family:var(--serif);font-size:17px;font-weight:900;color:var(--teal);flex:1}
+.modal-close{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s}
+.modal-close:hover{background:rgba(13,92,107,.08)}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.modal-body .ac{font-size:13px;line-height:1.8;color:var(--text)}
+.modal-body .ac h1,.modal-body .ac h2,.modal-body .ac h3{color:var(--teal);margin:16px 0 8px}
+.modal-body .ac h1{font-size:16px;font-family:var(--serif)}
+.modal-body .ac h2{font-size:14px}
+.modal-body .ac h3{font-size:13px}
+.modal-body .ac table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}
+.modal-body .ac th{background:var(--teal);color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px}
+.modal-body .ac td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.modal-body .ac tbody tr:nth-child(even) td{background:rgba(13,92,107,.02)}
+.modal-body .ac ul{padding-left:18px;margin:8px 0}
+.modal-body .ac li{margin-bottom:5px}
+.modal-body .ac strong{color:var(--teal)}
+.modal-body .sig{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;margin:2px}
+.modal-body .sg{background:rgba(26,158,107,.1);color:var(--green);border:1px solid rgba(26,158,107,.2)}
+.modal-body .sr{background:rgba(192,57,43,.08);color:var(--red);border:1px solid rgba(192,57,43,.15)}
+.modal-body .sa{background:rgba(232,138,46,.1);color:var(--amber);border:1px solid rgba(232,138,46,.2)}
+
+/* Responsive */
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.left{height:auto;position:static}.right{padding:20px}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="bar">
+  <div class="bar-logo">ipowork<sup>AI</sup></div>
+  <div class="bar-tag">🔬 Bulk Pipeline Engine</div>
+  <a href="cin-finder.html" class="bar-back">🔍 CIN Finder</a>
+  <a href="aira.html" class="bar-back">← AIRA</a>
+</div>
+
+<!-- MAIN -->
+<div class="wrap">
+
+  <!-- LEFT: CONTROLS -->
+  <div class="left">
+    <div class="panel-title">Bulk IPO Research</div>
+    <div class="panel-sub">Upload CINs or paste them below. The engine will fetch Probe42 data and run AI analysis on each company automatically.</div>
+
+    <div class="section-head">📂 Upload CIN List</div>
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('csv-pick').click()">
+      <div class="icon">📋</div>
+      <div class="lbl">Drop CSV / Excel file</div>
+      <div class="sub">One CIN per row — column header "CIN" or just paste below</div>
+    </div>
+    <input type="file" id="csv-pick" accept=".csv,.xlsx,.xls,.txt" style="display:none"/>
+
+    <div class="section-head">✏️ Or Paste CINs</div>
+    <textarea class="cin-area" id="cin-input" placeholder="U21100MH2010PTC123456&#10;L17110KA1997PLC044050&#10;U74900DL2015PTC123456&#10;...one per line (up to 100)"></textarea>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;margin-bottom:14px" id="cin-count">0 CINs entered</div>
+
+    <div class="section-head">⚙️ Research Settings</div>
+    <div class="filter-row">
+      <select class="filter-sel" id="depth-sel">
+        <option value="quick">Quick (5 modules)</option>
+        <option value="standard" selected>Standard (12 mod)</option>
+        <option value="deep">Deep (15 mod)</option>
+      </select>
+      <select class="filter-sel" id="sector-filter">
+        <option value="">All Sectors</option>
+        <option>Pharma & Healthcare</option>
+        <option>Manufacturing</option>
+        <option>IT / SaaS</option>
+        <option>Chemicals</option>
+        <option>Renewables / Energy</option>
+        <option>FMCG / Consumer</option>
+        <option>Auto Ancillaries</option>
+        <option>Logistics</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="filter-row">
+      <select class="filter-sel" id="track-filter">
+        <option value="">All Tracks</option>
+        <option value="sme">SME IPO (≥65)</option>
+        <option value="main">Main Board (≥78)</option>
+      </select>
+      <select class="filter-sel" id="concurrency">
+        <option value="1">1 at a time</option>
+        <option value="2" selected>2 at a time</option>
+        <option value="3">3 at a time</option>
+      </select>
+    </div>
+
+    <button class="run-btn" id="run-btn" onclick="startBulkRun()">
+      🚀 Start Bulk Research
+    </button>
+    <button class="run-btn" id="stop-btn" onclick="stopRun()" style="display:none;background:linear-gradient(135deg,#C0392B,#E74C3C);margin-top:8px">
+      ⏹ Stop Research
+    </button>
+
+    <!-- Progress -->
+    <div class="prog-box" id="prog-box">
+      <div class="prog-stat" id="prog-stat">Starting...</div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill" id="prog-fill"></div></div>
+      <div class="prog-txt" id="prog-txt">Initialising...</div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-n" id="stat-done" style="color:var(--green)">0</div>
+          <div class="stat-l">Done</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-n" id="stat-hot" style="color:#E74C3C">0</div>
+          <div class="stat-l">Hot (≥78)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-n" id="stat-warm" style="color:var(--amber)">0</div>
+          <div class="stat-l">Warm (≥65)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: PIPELINE TABLE -->
+  <div class="right">
+    <div class="pipeline-header">
+      <div class="pipe-title">IPO Pipeline</div>
+      <div class="pipe-count" id="pipe-count">0 companies</div>
+      <div class="export-btns">
+        <button class="e-btn" onclick="exportCSV()">📊 Export CSV</button>
+        <button class="e-btn" onclick="exportExcel()">📗 Export Excel</button>
+        <button class="e-btn primary" onclick="exportHotList()">🔥 Export Hot List PDF</button>
+      </div>
+    </div>
+
+    <div class="filter-tabs">
+      <div class="ftab on" data-f="all" onclick="filterTable('all',this)"><span class="dot dot-all"></span>All</div>
+      <div class="ftab" data-f="hot" onclick="filterTable('hot',this)"><span class="dot dot-hot"></span>Hot ≥78</div>
+      <div class="ftab" data-f="warm" onclick="filterTable('warm',this)"><span class="dot dot-warm"></span>Warm ≥65</div>
+      <div class="ftab" data-f="cold" onclick="filterTable('cold',this)"><span class="dot dot-cold"></span>Cold &lt;65</div>
+      <div class="ftab" data-f="pending" onclick="filterTable('pending',this)">⏳ Pending</div>
+    </div>
+
+    <div id="table-wrap">
+      <div class="empty" id="empty-state">
+        <div class="icon">🏭</div>
+        <h3>Ready to build your IPO pipeline</h3>
+        <p>Paste CINs on the left and click<br><b>Start Bulk Research</b><br>The engine will auto-fetch Probe42 data,<br>run AI analysis, and score each company.</p>
+      </div>
+      <table class="pipe-table" id="pipe-table" style="display:none">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Company</th>
+            <th>Score</th>
+            <th>IPO Track</th>
+            <th>Revenue</th>
+            <th>ROE</th>
+            <th>Governance</th>
+            <th>Financial</th>
+            <th>IPO Ready</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="pipe-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div style="font-size:20px" id="modal-icon">🏢</div>
+      <div class="modal-title" id="modal-title">Company Analysis</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+// Auto-load CINs from CIN Finder
+window.addEventListener('load',function(){
+  var cins = sessionStorage.getItem('bulk_cins');
+  if(cins){
+    var ta = document.getElementById('cin-input');
+    if(ta){ ta.value=cins; ta.dispatchEvent(new Event('input')); }
+    sessionStorage.removeItem('bulk_cins');
+    // Show a toast
+    setTimeout(function(){
+      var n = cins.split('\n').filter(Boolean).length;
+      document.getElementById('cin-count').textContent = n+' CINs loaded from CIN Finder ✅';
+      document.getElementById('cin-count').style.color='var(--green,#1A9E6B)';
+    },100);
+  }
+});
+var PIPELINE = []; // [{cin, name, status, score, modules, p42data, ...}]
+var RUNNING = false;
+var STOP_FLAG = false;
+var CURRENT_FILTER = 'all';
+
+// ── CIN INPUT TRACKING ──
+document.getElementById('cin-input').addEventListener('input', function(){
+  var cins = parseCINs(this.value);
+  document.getElementById('cin-count').textContent = cins.length + ' CIN' + (cins.length!==1?'s':'') + ' entered';
+});
+
+// ── FILE UPLOAD ──
+document.getElementById('csv-pick').addEventListener('change', function(){
+  var file = this.files[0];
+  if(!file) return;
+  var ext = file.name.split('.').pop().toLowerCase();
+  if(ext==='csv'||ext==='txt'){
+    var r = new FileReader();
+    r.onload = function(e){
+      var lines = e.target.result.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+      var cins = lines.map(function(l){
+        // Handle CSV with headers
+        l = l.replace(/["']/g,'').split(',')[0].trim();
+        return l.match(/^[ULuUl]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/i) ? l.toUpperCase() : null;
+      }).filter(Boolean);
+      document.getElementById('cin-input').value = cins.join('\n');
+      document.getElementById('cin-count').textContent = cins.length + ' CINs loaded from file';
+    };
+    r.readAsText(file);
+  }
+  this.value = '';
+});
+
+// Drag and drop
+var dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('over');});
+dz.addEventListener('drop',function(e){
+  e.preventDefault(); dz.classList.remove('over');
+  document.getElementById('csv-pick').files = e.dataTransfer.files;
+  document.getElementById('csv-pick').dispatchEvent(new Event('change'));
+});
+
+function parseCINs(text){
+  return text.split(/[\n,;]+/).map(function(s){ return s.trim().toUpperCase(); })
+    .filter(function(s){ return s.length >= 10; });
+}
+
+// ── MAIN RUN ──
+async function startBulkRun(){
+  var rawCINs = parseCINs(document.getElementById('cin-input').value);
+  if(!rawCINs.length){ alert('Please enter at least one CIN.'); return; }
+  if(rawCINs.length > 100){ alert('Maximum 100 CINs per batch.'); return; }
+
+  RUNNING = true; STOP_FLAG = false;
+  document.getElementById('run-btn').style.display = 'none';
+  document.getElementById('stop-btn').style.display = 'block';
+  document.getElementById('prog-box').classList.add('on');
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('pipe-table').style.display = 'table';
+
+  var depth = document.getElementById('depth-sel').value;
+  var concurrency = parseInt(document.getElementById('concurrency').value);
+
+  // Init pipeline
+  PIPELINE = rawCINs.map(function(cin, i){
+    return {idx:i+1, cin:cin, name:'Fetching...', status:'pending', score:null,
+      revenue:null, roe:null, track:null, modules:{}, p42:null};
+  });
+
+  renderTable();
+  updateStats();
+
+  // Process in batches
+  var total = PIPELINE.length;
+  var done = 0;
+
+  for(var i=0; i<total; i+=concurrency){
+    if(STOP_FLAG) break;
+    var batch = PIPELINE.slice(i, i+concurrency);
+    await Promise.all(batch.map(function(item){
+      return processCompany(item, depth).then(function(){
+        done++;
+        updateProgBar(done, total);
+        updateStats();
+        renderTable();
+      });
+    }));
+  }
+
+  RUNNING = false;
+  document.getElementById('run-btn').style.display = 'block';
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('prog-stat').textContent = '✅ Research complete — ' + total + ' companies analysed';
+  renderTable();
+  updateStats();
+}
+
+function stopRun(){
+  STOP_FLAG = true;
+  RUNNING = false;
+  document.getElementById('run-btn').style.display = 'block';
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('prog-stat').textContent = '⏹ Stopped by user';
+}
+
+async function processCompany(item, depth){
+  item.status = 'fetching';
+  renderRow(item);
+
+  // Step 1: Fetch Probe42 data
+  try{
+    var p42resp = await fetch(WORKER, {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type:'probe42_raw', cin: item.cin})
+    });
+    var p42data = await p42resp.json();
+    if(p42data && p42data.company_name && p42data.company_name !== 'NOT FOUND'){
+      item.p42 = p42data;
+      item.name = p42data.company_name;
+      item.revenue = p42data.financials ? p42data.financials.revenue_fy24 : null;
+      item.roe = p42data.financials ? p42data.financials.roe : null;
+      item.sector = p42data.sector || 'Other';
+    } else {
+      item.name = item.cin;
+      item.status = 'error';
+      item.error = 'Company not found in Probe42';
+      renderRow(item);
+      return;
+    }
+  } catch(e){
+    item.name = item.cin;
+    item.status = 'error';
+    item.error = 'Probe42 fetch failed';
+    renderRow(item);
+    return;
+  }
+
+  if(STOP_FLAG){ item.status = 'pending'; renderRow(item); return; }
+
+  // Step 2: Run key AI modules (IPO readiness + Financial + Governance)
+  item.status = 'analysing';
+  renderRow(item);
+
+  var toks = depth==='quick'?800:depth==='deep'?2000:1300;
+  var keyModules = depth==='quick'
+    ? ['ipo-readiness','financial-health','corporate-identity']
+    : ['ipo-readiness','financial-health','corporate-identity','promoter-intelligence','business-model'];
+
+  var f = item.p42.financials||{};
+  var co = item.p42.company||{};
+  var ctx = 'Company: '+item.name+' | CIN: '+item.cin
+    +' | Sector: '+(item.sector||'Unknown')
+    +' | Revenue FY24: '+fmt(f.revenue_fy24)
+    +' | PAT: '+fmt(f.pat_fy24)
+    +' | Net Worth: '+fmt(f.net_worth)
+    +' | D/E: '+(f.debt_equity_ratio||'N/A')+'x'
+    +' | ROE: '+(f.roe||'N/A')+'%'
+    +' | ROCE: '+(f.roce||'N/A')+'%'
+    +' | Revenue Growth: '+(f.revenue_growth||'N/A')+'%'
+    +' | Paid-up Capital: '+fmt(co.paid_up_capital||item.p42.paid_up_capital)
+    +' | Incorporation: '+(co.incorporation_date||item.p42.date_of_incorporation||'N/A')
+    +' | Directors: '+(item.p42.directors||[]).length
+    +' | Charges: '+(item.p42.charges||[]).length
+    +' | EPFO: '+(item.p42.compliance&&item.p42.compliance.epfo_registered?'Yes':'No')
+    +' | Defaulter: '+(item.p42.compliance&&item.p42.compliance.defaulter?'YES':'No');
+
+  for(var mi=0; mi<keyModules.length; mi++){
+    if(STOP_FLAG) break;
+    var modId = keyModules[mi];
+    var modSys = getModuleSys(modId);
+    try{
+      var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:toks,
+          system:modSys,
+          messages:[{role:'user',content:'Analyse ['+modId+'] for '+item.name+' ('+item.cin+').\n\n'+ctx+'\n\nBe concise. End with Score: X/10 and signal tags [TAG].'}]
+        })
+      });
+      var d = await resp.json();
+      var txt = (d.content||[]).map(function(c){return c.text||'';}).join('').trim();
+      if(txt){
+        item.modules[modId] = txt;
+        var sm = txt.match(/Score:\s*(\d+\.?\d*)\/10/i);
+        if(sm) item.modules['sc_'+modId] = parseFloat(sm[1]);
+      }
+    } catch(e){}
+    await sleep(300); // small delay between calls
+  }
+
+  // Calculate overall score
+  var scores = [];
+  var weights = {'ipo-readiness':0.35,'financial-health':0.30,'corporate-identity':0.10,
+    'promoter-intelligence':0.15,'business-model':0.10};
+  var ws=0,wt=0;
+  Object.keys(weights).forEach(function(k){
+    var s = item.modules['sc_'+k];
+    if(s!==undefined){ ws+=s*weights[k]; wt+=weights[k]; }
+  });
+  item.score = wt>0 ? Math.round(ws/wt*10)/10 : null;
+
+  // Determine track
+  if(item.score>=7.8) item.track='main';
+  else if(item.score>=6.5) item.track='sme';
+  else item.track='cold';
+
+  // Get IPO timeline from IPO module
+  if(item.modules['ipo-readiness']){
+    var tl = item.modules['ipo-readiness'].match(/ESTIMATED TIMELINE[:\s]+([^\n\.]+)/i);
+    item.ipoTimeline = tl ? tl[1].trim() : null;
+    var vl = item.modules['ipo-readiness'].match(/VALUATION RANGE[:\s]+([^\n\.]+)/i);
+    item.valuation = vl ? vl[1].trim() : null;
+    var tk = item.modules['ipo-readiness'].match(/RECOMMENDED IPO TRACK[:\s]+([^\n\.]+)/i);
+    item.ipoTrack = tk ? tk[1].trim() : null;
+  }
+
+  item.status = 'done';
+  renderRow(item);
+}
+
+function fmt(v){
+  if(!v||isNaN(v)) return 'N/A';
+  var n = Number(v);
+  return n>=10000000 ? '₹'+(n/10000000).toFixed(1)+' Cr' : n>=100000 ? '₹'+(n/100000).toFixed(1)+' L' : '₹'+n.toFixed(0);
+}
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+
+// ── RENDER ──
+function renderTable(){
+  var filtered = PIPELINE.filter(function(item){
+    if(CURRENT_FILTER==='all') return true;
+    if(CURRENT_FILTER==='hot') return item.score>=7.8;
+    if(CURRENT_FILTER==='warm') return item.score>=6.5 && item.score<7.8;
+    if(CURRENT_FILTER==='cold') return item.score!==null && item.score<6.5;
+    if(CURRENT_FILTER==='pending') return item.status==='pending'||item.status==='fetching'||item.status==='analysing';
+    return true;
+  });
+  document.getElementById('pipe-count').textContent = filtered.length + ' compan'+(filtered.length===1?'y':'ies');
+  var tbody = document.getElementById('pipe-tbody');
+  tbody.innerHTML = '';
+  filtered.forEach(function(item){ renderRowTo(item, tbody); });
+}
+
+function renderRow(item){
+  var row = document.getElementById('row-'+item.cin);
+  if(row) row.remove();
+  var tbody = document.getElementById('pipe-tbody');
+  renderRowTo(item, tbody, item.idx);
+}
+
+function renderRowTo(item, tbody){
+  var row = document.createElement('tr');
+  row.id = 'row-'+item.cin;
+  if(item.status==='analysing'||item.status==='fetching') row.className='running-row';
+
+  var scoreHtml = item.score!==null
+    ? '<div class="score-badge '+(item.score>=7.8?'score-hot':item.score>=6.5?'score-warm':'score-cold')+'">'+item.score+'</div>'
+    : '<div class="score-badge score-na">—</div>';
+
+  var trackHtml = '';
+  if(item.track==='main') trackHtml='<span class="track track-main">Main Board</span>';
+  else if(item.track==='sme') trackHtml='<span class="track track-sme">SME IPO</span>';
+  else if(item.track==='cold') trackHtml='<span class="track track-not">Not Ready</span>';
+
+  var statusHtml = '';
+  if(item.status==='pending') statusHtml='<span class="pill pill-pending">⏳ Pending</span>';
+  else if(item.status==='fetching') statusHtml='<span class="pill pill-running">⟳ Fetching P42</span>';
+  else if(item.status==='analysing') statusHtml='<span class="pill pill-running">⟳ Analysing</span>';
+  else if(item.status==='done') statusHtml='<span class="pill pill-done">✓ Done</span>';
+  else if(item.status==='error') statusHtml='<span class="pill pill-error">⚠ Error</span>';
+
+  var govSc = item.modules['sc_corporate-identity'];
+  var finSc = item.modules['sc_financial-health'];
+  var ipoSc = item.modules['sc_ipo-readiness'];
+
+  row.innerHTML = '<td style="color:var(--muted);font-size:12px">'+item.idx+'</td>'
+    +'<td><div class="co-name" title="'+item.name+'">'+item.name+'</div><div class="co-cin">'+item.cin+'</div></td>'
+    +'<td>'+scoreHtml+'</td>'
+    +'<td>'+trackHtml+'</td>'
+    +'<td style="font-family:var(--mono);font-size:12px">'+(item.revenue?fmt(item.revenue):'—')+'</td>'
+    +'<td style="font-family:var(--mono);font-size:12px">'+(item.roe?parseFloat(item.roe).toFixed(1)+'%':'—')+'</td>'
+    +'<td>'+(govSc!==undefined?'<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+(govSc>=7?'var(--green)':govSc>=5?'var(--amber)':'var(--red)')+'">'+govSc+'/10</span>':'<span style="color:var(--dim)">—</span>')+'</td>'
+    +'<td>'+(finSc!==undefined?'<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+(finSc>=7?'var(--green)':finSc>=5?'var(--amber)':'var(--red)')+'">'+finSc+'/10</span>':'<span style="color:var(--dim)">—</span>')+'</td>'
+    +'<td>'+(ipoSc!==undefined?'<span style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+(ipoSc>=7?'var(--green)':ipoSc>=5?'var(--amber)':'var(--red)')+'">'+ipoSc+'/10</span>':'<span style="color:var(--dim)">—</span>')+'</td>'
+    +'<td>'+statusHtml+'</td>'
+    +'<td>'+(item.status==='done'?'<button class="act-btn view" onclick="viewDetails(\''+item.cin+'\')">View →</button>':'')+'</td>';
+
+  tbody.appendChild(row);
+}
+
+function filterTable(f, el){
+  CURRENT_FILTER = f;
+  document.querySelectorAll('.ftab').forEach(function(t){ t.classList.remove('on'); });
+  el.classList.add('on');
+  renderTable();
+}
+
+function updateProgBar(done, total){
+  var pct = Math.round(done/total*100);
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-stat').textContent = done+'/'+total+' companies processed ('+pct+'%)';
+  document.getElementById('prog-txt').textContent = 'ETA: ~'+(Math.round((total-done)*15/60))+' min remaining';
+  document.getElementById('stat-done').textContent = done;
+}
+
+function updateStats(){
+  var hot = PIPELINE.filter(function(i){ return i.score!==null&&i.score>=7.8; }).length;
+  var warm = PIPELINE.filter(function(i){ return i.score!==null&&i.score>=6.5&&i.score<7.8; }).length;
+  document.getElementById('stat-hot').textContent = hot;
+  document.getElementById('stat-warm').textContent = warm;
+}
+
+// ── DETAIL MODAL ──
+function viewDetails(cin){
+  var item = PIPELINE.find(function(i){ return i.cin===cin; });
+  if(!item) return;
+
+  document.getElementById('modal-title').textContent = item.name + ' — Full Analysis';
+  var body = document.getElementById('modal-body');
+
+  var html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
+  // Score cards
+  var scoreColor = item.score>=7.8?'var(--red)':item.score>=6.5?'var(--amber)':'var(--green)';
+  html += '<div style="background:linear-gradient(135deg,var(--teal),var(--cyan));border-radius:12px;padding:16px;text-align:center;color:#fff">';
+  html += '<div style="font-family:var(--serif);font-size:36px;font-weight:900;line-height:1">'+(item.score||'—')+'</div>';
+  html += '<div style="font-size:10px;font-weight:700;opacity:.7;margin-top:4px">OVERALL SCORE / 10</div></div>';
+  html += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">';
+  html += '<div style="font-size:14px;font-weight:800;color:var(--teal)">'+(item.ipoTrack||item.track||'—')+'</div>';
+  html += '<div style="font-size:10px;color:var(--muted);margin-top:4px">RECOMMENDED TRACK</div></div>';
+  html += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">';
+  html += '<div style="font-size:14px;font-weight:800;color:var(--teal)">'+(item.ipoTimeline||'—')+'</div>';
+  html += '<div style="font-size:10px;color:var(--muted);margin-top:4px">IPO TIMELINE</div></div>';
+  html += '</div>';
+
+  // Module scores grid
+  var mods = [
+    {id:'corporate-identity',name:'Governance'},
+    {id:'promoter-intelligence',name:'Promoters'},
+    {id:'financial-health',name:'Financials'},
+    {id:'ipo-readiness',name:'IPO Ready'},
+    {id:'business-model',name:'Business'}
+  ];
+  html += '<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">';
+  mods.forEach(function(m){
+    var sc = item.modules['sc_'+m.id];
+    var c = sc!==undefined ? (sc>=7?'var(--green)':sc>=5?'var(--amber)':'var(--red)') : 'var(--dim)';
+    html += '<div style="padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;text-align:center;min-width:80px">';
+    html += '<div style="font-family:var(--mono);font-size:16px;font-weight:800;color:'+c+'">'+(sc!==undefined?sc+'/10':'—')+'</div>';
+    html += '<div style="font-size:10px;color:var(--muted);margin-top:2px">'+m.name+'</div></div>';
+  });
+  html += '</div>';
+
+  // Module content
+  Object.keys(item.modules).forEach(function(k){
+    if(k.indexOf('sc_')===0) return;
+    var modName = k.replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+    html += '<div style="margin-bottom:20px;padding:16px;background:#FAFAF8;border-radius:10px;border:1px solid var(--border)">';
+    html += '<div style="font-size:12px;font-weight:800;color:var(--teal);margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px">'+modName+'</div>';
+    html += '<div class="ac">'+renderMarkdown(item.modules[k])+'</div></div>';
+  });
+
+  body.innerHTML = html;
+  document.getElementById('detail-modal').classList.add('on');
+}
+
+function closeModal(){
+  document.getElementById('detail-modal').classList.remove('on');
+}
+
+function renderMarkdown(txt){
+  return txt
+    .replace(/^### (.+)/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)/gm,'<h1>$1</h1>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/^[-•] (.+)/gm,'<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
+    .replace(/\[([A-Z][A-Z ]+)\]/g,function(_,s){
+      var pos=['STRONG','MOAT','SCALABLE','LEADER','CLEAN','CASH','DEBT FREE','EXPORT','HIGH COMPLIANCE','IPO READY','COMPELLING','PROVEN'];
+      var neg=['RISK','STRESS','WEAK','CONCERN','LEVERAGE','PLEDGE','RPT','DISPUTE','LOSS','GAP'];
+      var cls = pos.some(function(p){return s.indexOf(p)>-1;}) ? 'sg' : neg.some(function(p){return s.indexOf(p)>-1;}) ? 'sr' : 'sa';
+      return '<span class="sig '+cls+'">'+s+'</span>';
+    })
+    .replace(/\n\n+/g,'</p><p>')
+    .replace(/^(.+)$/,'<p>$1</p>');
+}
+
+// ── EXPORTS ──
+function exportCSV(){
+  var rows = [['#','CIN','Company','Score','IPO Track','Revenue','ROE','Governance','Financial','IPO Ready','Timeline','Valuation']];
+  PIPELINE.forEach(function(item){
+    var f = item.p42&&item.p42.financials||{};
+    rows.push([
+      item.idx, item.cin, item.name,
+      item.score||'', item.ipoTrack||item.track||'',
+      item.revenue ? (Number(item.revenue)/10000000).toFixed(2)+' Cr' : '',
+      item.roe ? parseFloat(item.roe).toFixed(1)+'%' : '',
+      item.modules['sc_corporate-identity']||'',
+      item.modules['sc_financial-health']||'',
+      item.modules['sc_ipo-readiness']||'',
+      item.ipoTimeline||'', item.valuation||''
+    ]);
+  });
+  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c||'').replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+  var blob = new Blob([csv],{type:'text/csv'});
+  var a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='ipowork-pipeline-'+Date.now()+'.csv'; a.click();
+}
+
+function exportExcel(){
+  if(typeof XLSX==='undefined'){ alert('Excel library loading. Try again in a moment.'); return; }
+  var data = [['#','CIN','Company Name','Overall Score','IPO Track','Revenue (Cr)','ROE %','Governance Score','Financial Score','IPO Readiness Score','Recommended Timeline','Valuation Range','Status']];
+  PIPELINE.forEach(function(item){
+    data.push([
+      item.idx, item.cin, item.name,
+      item.score||'', item.ipoTrack||item.track||'',
+      item.revenue ? (Number(item.revenue)/10000000).toFixed(2) : '',
+      item.roe ? parseFloat(item.roe).toFixed(1) : '',
+      item.modules['sc_corporate-identity']||'',
+      item.modules['sc_financial-health']||'',
+      item.modules['sc_ipo-readiness']||'',
+      item.ipoTimeline||'', item.valuation||'',
+      item.status||''
+    ]);
+  });
+  var ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:5},{wch:22},{wch:35},{wch:12},{wch:14},{wch:12},{wch:8},{wch:12},{wch:12},{wch:14},{wch:18},{wch:18},{wch:10}];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'IPO Pipeline');
+  XLSX.writeFile(wb, 'ipowork-pipeline-'+Date.now()+'.xlsx');
+}
+
+function exportHotList(){
+  var hot = PIPELINE.filter(function(i){ return i.score && i.score>=6.5 && i.status==='done'; });
+  hot.sort(function(a,b){ return (b.score||0)-(a.score||0); });
+  if(!hot.length){ alert('No scored companies yet. Run research first.'); return; }
+  var w = window.open('','_blank');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>ipowork Hot Pipeline</title>';
+  html += '<style>body{font-family:Arial,sans-serif;font-size:12px;color:#1A2E35;margin:0;padding:0}';
+  html += '.cover{background:#08404D;color:#fff;padding:40px;min-height:200px}';
+  html += '.cover h1{font-size:28px;font-weight:900;margin-bottom:8px}';
+  html += '.cover p{opacity:.7;font-size:14px}';
+  html += '.body{padding:30px}';
+  html += 'table{width:100%;border-collapse:collapse;margin:20px 0}';
+  html += 'th{background:#08404D;color:#fff;padding:8px 10px;text-align:left;font-size:10px}';
+  html += 'td{padding:8px 10px;border-bottom:1px solid #E0EAF0;font-size:11px}';
+  html += 'tr:nth-child(even) td{background:#F7FAFB}';
+  html += '.score{font-weight:800;font-size:14px}';
+  html += '.hot{color:#E74C3C}.warm{color:#E88A2E}';
+  html += '@page{size:A4;margin:10mm}</style></head><body>';
+  html += '<div class="cover"><h1>ipowork AI Pipeline Report</h1>';
+  html += '<p>Generated: '+new Date().toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})+'</p>';
+  html += '<p>'+hot.length+' IPO-ready companies · Sorted by readiness score</p></div>';
+  html += '<div class="body"><h2 style="color:#08404D;margin-bottom:16px">IPO Pipeline — Scored Companies</h2>';
+  html += '<table><thead><tr><th>#</th><th>Company</th><th>CIN</th><th>Score</th><th>Track</th><th>Revenue</th><th>ROE</th><th>Governance</th><th>Financial</th><th>IPO Ready</th><th>Timeline</th></tr></thead><tbody>';
+  hot.forEach(function(item,i){
+    var f = item.p42&&item.p42.financials||{};
+    var cls = item.score>=7.8?'hot':'warm';
+    html += '<tr><td>'+(i+1)+'</td><td><b>'+item.name+'</b></td><td style="font-family:monospace">'+item.cin+'</td>';
+    html += '<td><span class="score '+cls+'">'+item.score+'/10</span></td>';
+    html += '<td>'+(item.ipoTrack||item.track||'')+'</td>';
+    html += '<td>'+(item.revenue?'₹'+(Number(item.revenue)/10000000).toFixed(1)+' Cr':'—')+'</td>';
+    html += '<td>'+(item.roe?parseFloat(item.roe).toFixed(1)+'%':'—')+'</td>';
+    html += '<td>'+(item.modules['sc_corporate-identity']||'—')+'</td>';
+    html += '<td>'+(item.modules['sc_financial-health']||'—')+'</td>';
+    html += '<td>'+(item.modules['sc_ipo-readiness']||'—')+'</td>';
+    html += '<td>'+(item.ipoTimeline||'—')+'</td></tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="margin-top:20px;padding:12px;background:#F0F9FB;border-radius:8px;font-size:10px;color:#6B8A94">';
+  html += 'AI-generated analysis for research purposes only. Not investment advice. Verify with audited financials and independent advisors. © ipowork.com</div>';
+  html += '</div></body></html>';
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 800);
+}
+
+// ── MODULE SYSTEM PROMPTS (compact versions for bulk) ──
+function getModuleSys(id){
+  var prompts = {
+    'corporate-identity': 'You are a corporate governance expert. Assess corporate identity, board quality, shareholding, and compliance. Be direct and quantitative. End with Score: X/10 and signal tags.',
+    'promoter-intelligence': 'You are an executive profiler. Assess promoter track record, credibility, governance behaviour, and leadership quality. Be specific. End with Score: X/10 and signal tags.',
+    'financial-health': 'You are a senior CA. Assess revenue quality, margins, earnings quality, working capital, and return metrics vs sector benchmarks. Be quantitative. End with Score: X/10 and signal tags.',
+    'business-model': 'You are a strategy consultant. Assess value proposition, revenue architecture, moat, scalability, and competitive position. End with Score: X/10 and signal tags.',
+    'ipo-readiness': 'You are a senior investment banker specialising in Indian IPOs. Assess the 7 hidden IBD parameters: promoter credibility, earnings quality, scalability, IPO story, institutional appetite, peer valuation, post-listing stability. State: RECOMMENDED IPO TRACK: [SME IPO / Main Board / Not Ready], ESTIMATED TIMELINE: [months], VALUATION RANGE: [₹Cr range]. End with IPO Readiness Score: X/10.'
+  };
+  return prompts[id] || 'You are an investment analyst. Provide a concise professional assessment. End with Score: X/10.';
+}
+
+// Close modal on overlay click
+document.getElementById('detail-modal').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
+});
+</script>
+</body>
+</html>
