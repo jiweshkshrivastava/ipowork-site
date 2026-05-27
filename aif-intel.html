@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ipowork AIF Intelligence — 1910 SEBI Registered AIFs</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F7F9;--sur:#fff;--teal:#08404D;--teal2:#0D5C6B;--cyan:#1A7D90;
+  --amber:#E88A2E;--green:#1A9E6B;--red:#C0392B;--purple:#5B4ED4;
+  --text:#1A2E35;--muted:#6B8A94;--dim:#9AB0B8;--border:rgba(13,92,107,.12);
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+  --bar:54px;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:9px}
+
+/* TOPBAR */
+.bar{height:var(--bar);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 1px 8px rgba(13,92,107,.06)}
+.bar-logo{font-family:var(--serif);font-weight:900;font-size:20px;color:var(--teal)}
+.bar-logo sup{font-size:9px;color:var(--amber);font-weight:800;letter-spacing:.5px;vertical-align:super}
+.bar-tag{font-size:10px;font-weight:700;color:var(--cyan);padding:3px 10px;border-radius:6px;background:rgba(13,92,107,.07);border:1px solid rgba(13,92,107,.12)}
+.bar-links{margin-left:auto;display:flex;gap:8px}
+.bar-link{font-size:12px;color:var(--muted);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:7px;font-weight:600;transition:.15s}
+.bar-link:hover{border-color:var(--cyan);color:var(--cyan)}
+.bar-link.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#08404D 0%,#0D5C6B 60%,#1A7D90 100%);color:#fff;padding:40px 40px 36px;margin-top:var(--bar);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;opacity:.04;background:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%);background-size:20px 20px}
+.hero-inner{max-width:1100px;margin:0 auto;position:relative;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px}
+.hero-left h1{font-family:var(--serif);font-size:clamp(24px,3.5vw,38px);font-weight:900;line-height:1.1;margin-bottom:8px}
+.hero-left h1 span{color:#F0C060}
+.hero-left p{font-size:13px;opacity:.75;line-height:1.8;max-width:500px}
+.hero-stats{display:flex;gap:24px;margin-top:16px;flex-wrap:wrap}
+.h-stat{text-align:center}
+.h-stat-n{font-family:var(--serif);font-size:24px;font-weight:900;color:#F0C060}
+.h-stat-l{font-size:10px;opacity:.6;margin-top:2px;font-weight:600}
+.hero-cta{display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.hero-cta .btn-primary{padding:13px 28px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;font-family:var(--font);transition:.2s}
+.hero-cta .btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,138,46,.4)}
+.hero-cta .btn-sec{padding:10px 22px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font);text-decoration:none;display:inline-block;text-align:center}
+
+/* TABS */
+.tabs{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:var(--bar);z-index:90}
+.tabs-inner{max-width:1100px;margin:0 auto;display:flex;padding:0 28px;gap:4px}
+.tab{padding:14px 18px;font-size:13px;font-weight:700;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:.15s;font-family:var(--font)}
+.tab:hover{color:var(--teal)}
+.tab.on{color:var(--teal);border-bottom-color:var(--teal)}
+
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:28px;padding-bottom:80px}
+
+/* SEARCH + FILTERS */
+.search-bar{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(13,92,107,.06)}
+.search-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px}
+.search-inp{width:100%;padding:12px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font);font-size:14px;color:var(--text);outline:none;transition:.2s;background:var(--bg)}
+.search-inp:focus{border-color:var(--cyan);background:#fff;box-shadow:0 0 0 3px rgba(26,125,144,.08)}
+.search-btn{padding:12px 24px;background:var(--teal);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;font-family:var(--font);transition:.2s;white-space:nowrap}
+.search-btn:hover{background:var(--teal2)}
+.filter-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.filter-sel{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);background:#fff;outline:none;cursor:pointer;transition:.2s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%236B8A94' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.filter-sel:focus{border-color:var(--cyan)}
+
+/* RESULTS HEADER */
+.results-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.results-count{font-size:14px;font-weight:800;color:var(--teal);flex:1}
+.results-actions{display:flex;gap:8px}
+.r-btn{padding:8px 16px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-family:var(--font);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+.r-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.r-btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.r-btn.primary:hover{background:var(--teal2)}
+
+/* AIF CARD */
+.aif-grid{display:grid;gap:12px}
+.aif-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:20px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;transition:.2s;cursor:default}
+.aif-card:hover{border-color:var(--cyan);box-shadow:0 4px 20px rgba(13,92,107,.1)}
+.aif-card.selected{border-color:var(--teal);background:rgba(13,92,107,.02)}
+.aif-tags{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.cat-tag{font-size:10px;font-weight:800;padding:2px 9px;border-radius:99px}
+.focus-tag{font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;background:rgba(13,92,107,.08);color:var(--teal);border:1px solid rgba(13,92,107,.15)}
+.aif-name{font-weight:800;font-size:15px;color:var(--text);margin-bottom:4px;line-height:1.3}
+.aif-meta{font-size:12px;color:var(--muted);margin-bottom:12px;font-family:var(--mono)}
+.aif-metrics{display:flex;gap:20px;flex-wrap:wrap}
+.aif-metric{display:flex;flex-direction:column;gap:2px}
+.aif-metric-v{font-family:var(--mono);font-size:14px;font-weight:800;color:var(--text)}
+.aif-metric-l{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.aif-sectors{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}
+.sector-chip{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(13,92,107,.06);color:var(--teal);font-weight:600}
+.aif-actions{display:flex;flex-direction:column;gap:7px;align-items:flex-end;min-width:120px}
+.aif-btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.15s;white-space:nowrap;width:100%;text-align:center}
+.aif-btn-primary{background:var(--teal);color:#fff;border:none}
+.aif-btn-primary:hover{background:var(--teal2)}
+.aif-btn-sec{background:#fff;color:var(--muted);border:1.5px solid var(--border);text-decoration:none;display:block}
+.aif-btn-sec:hover{border-color:var(--cyan);color:var(--cyan)}
+.aif-btn-wa{background:#25D366;color:#fff;border:none}
+.aif-btn-wa:hover{background:#20BA5C}
+
+/* DEAL DISTRIBUTION PANEL */
+.deal-panel{background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:20px;display:none}
+.deal-panel.on{display:block}
+.deal-panel-title{font-size:15px;font-weight:800;color:var(--teal);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.deal-form{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.form-field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+.form-inp{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;color:var(--text);outline:none;background:#FAFAF8;transition:.2s}
+.form-inp:focus{border-color:var(--cyan);background:#fff}
+
+/* DISTRIBUTION LIST SIDEBAR */
+.layout{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+.dist-sidebar{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;position:sticky;top:calc(var(--bar)+60px)}
+.dist-title{font-size:14px;font-weight:800;color:var(--teal);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.dist-count{font-size:11px;background:var(--teal);color:#fff;padding:2px 8px;border-radius:99px;font-weight:700}
+.dist-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(13,92,107,.04);border-radius:8px;margin-bottom:6px;font-size:12px}
+.dist-name{font-weight:700;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px}
+.dist-remove{background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0 4px}
+.dist-actions{margin-top:14px;display:grid;gap:8px}
+.dist-btn{width:100%;padding:11px;border:none;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer;font-family:var(--font);transition:.2s}
+.dist-btn-wa{background:#25D366;color:#fff}
+.dist-btn-wa:hover{background:#20BA5C}
+.dist-btn-email{background:var(--teal);color:#fff}
+.dist-btn-email:hover{background:var(--teal2)}
+.dist-empty{text-align:center;padding:20px;color:var(--muted);font-size:12px}
+
+/* AI MATCH */
+.ai-match-box{background:linear-gradient(135deg,rgba(91,78,212,.06),rgba(91,78,212,.02));border:1.5px solid rgba(91,78,212,.2);border-radius:14px;padding:20px;margin-bottom:20px}
+.ai-match-title{font-size:14px;font-weight:800;color:var(--purple);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ai-match-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.ai-sel{width:100%;padding:9px 12px;border:1.5px solid rgba(91,78,212,.2);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);background:#fff;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%235B4ED4' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;transition:.2s}
+.ai-sel:focus{border-color:var(--purple)}
+.ai-btn{width:100%;padding:12px;background:linear-gradient(135deg,#5B4ED4,#7B6EF4);color:#fff;border:none;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer;font-family:var(--font)}
+.ai-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(91,78,212,.3)}
+.ai-result{margin-top:14px;display:none}
+.ai-result.on{display:block}
+.ai-result-item{padding:10px 14px;border-radius:9px;margin-bottom:7px;font-size:12px;border-left:3px solid}
+.ai-high{background:rgba(26,158,107,.06);border-color:var(--green);color:var(--text)}
+.ai-med{background:rgba(232,138,46,.06);border-color:var(--amber);color:var(--text)}
+.ai-low{background:rgba(13,92,107,.04);border-color:var(--muted);color:var(--muted)}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#08404D;color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 6px 24px rgba(0,0,0,.3);display:none;white-space:nowrap}
+
+/* Responsive */
+@media(max-width:900px){.layout{grid-template-columns:1fr}.dist-sidebar{position:static}.filter-row{grid-template-columns:1fr 1fr}.ai-match-grid{grid-template-columns:1fr 1fr}.deal-form{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.filter-row{grid-template-columns:1fr}.search-row{grid-template-columns:1fr}.hero-cta{align-items:stretch}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="bar">
+  <div class="bar-logo">ipowork<sup>AI</sup></div>
+  <div class="bar-tag">🏛️ AIF Intelligence</div>
+  <div class="bar-links">
+    <a href="mb.html" class="bar-link">🏦 MB Portal</a>
+    <a href="deep-research.html" class="bar-link">🧠 Deep Research</a>
+    <a href="aira.html" class="bar-link">📊 AIRA</a>
+    <a href="index.html" class="bar-link">← Home</a>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-left">
+      <h1>India's <span>AIF Intelligence</span><br/>Platform</h1>
+      <p>Search 1,500+ SEBI-registered Alternative Investment Funds. Filter by category, sector, ticket size and geography. Match deals to the right investors instantly.</p>
+      <div class="hero-stats">
+        <div class="h-stat"><div class="h-stat-n">1,910</div><div class="h-stat-l">SEBI AIFs</div></div>
+        <div class="h-stat"><div class="h-stat-n">₹12L Cr+</div><div class="h-stat-l">Total Corpus</div></div>
+        <div class="h-stat"><div class="h-stat-n">Cat I/II/III</div><div class="h-stat-l">All Categories</div></div>
+        <div class="h-stat"><div class="h-stat-n">AI Match</div><div class="h-stat-l">Deal → Investor</div></div>
+      </div>
+    </div>
+    <div class="hero-cta">
+      <button class="btn-primary" onclick="showDealPanel()">🚀 Match Deal to Investors</button>
+      <a href="mb.html" class="btn-sec">← Back to MB Portal</a>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tabs-inner">
+    <button class="tab on" onclick="showTab('search',this)">🔍 Search AIFs</button>
+    <button class="tab" onclick="showTab('match',this)">🎯 AI Deal Match</button>
+    <button class="tab" onclick="showTab('distribute',this)">📡 Distribute Deal</button>
+    <button class="tab" onclick="showTab('watchlist',this)">⭐ My Watchlist</button>
+    <button class="tab" onclick="showTab('pricing',this)">💰 Pricing</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- DEAL DISTRIBUTION PANEL (shown when Match Deal clicked) -->
+<div class="deal-panel" id="deal-panel">
+  <div class="deal-panel-title">
+    <span>🚀 Upload Deal for AI Matching</span>
+    <button onclick="hideDealPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button>
+  </div>
+  <div class="deal-form">
+    <div class="form-field"><label>Issuer Name</label><input class="form-inp" id="d-issuer" placeholder="e.g. ABC NBFC Ltd"/></div>
+    <div class="form-field"><label>Deal Type</label>
+      <select class="form-inp" id="d-type">
+        <option>NCD - Secured</option><option>NCD - Unsecured</option>
+        <option>Commercial Paper</option><option>SME IPO</option>
+        <option>Main Board IPO</option><option>Private Equity</option>
+        <option>Structured Debt</option><option>Real Estate Debt</option>
+        <option>AIF Raise</option>
+      </select>
+    </div>
+    <div class="form-field"><label>Deal Size (₹ Cr)</label><input class="form-inp" id="d-size" placeholder="e.g. 50"/></div>
+    <div class="form-field"><label>Yield / Return</label><input class="form-inp" id="d-yield" placeholder="e.g. 11.25% or 20% IRR"/></div>
+    <div class="form-field"><label>Rating</label><input class="form-inp" id="d-rating" placeholder="e.g. A+, AA-, Unrated"/></div>
+    <div class="form-field"><label>Sector</label>
+      <select class="form-inp" id="d-sector">
+        <option>NBFC / Finance</option><option>Real Estate</option>
+        <option>Manufacturing</option><option>Technology</option>
+        <option>Healthcare</option><option>Infrastructure</option>
+        <option>Consumer / FMCG</option><option>Renewables</option>
+      </select>
+    </div>
+  </div>
+  <button onclick="runDealMatch()" style="padding:13px 32px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer">🎯 Find Matching AIFs →</button>
+</div>
+
+<!-- AI MATCH RESULT -->
+<div class="ai-match-box" id="match-result" style="display:none">
+  <div class="ai-match-title">🎯 AI Investor Match Results <span id="match-subtitle" style="font-size:12px;font-weight:400;color:var(--muted)"></span></div>
+  <div id="match-content"></div>
+  <button onclick="applyMatchFilter()" style="margin-top:12px;padding:10px 20px;background:var(--purple);color:#fff;border:none;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer">Filter AIF List by These Matches →</button>
+</div>
+
+<!-- SEARCH SECTION -->
+<div id="tab-search">
+  <div class="search-bar">
+    <div class="search-row">
+      <input class="search-inp" id="aif-search" placeholder="🔍 Search by fund name, manager, investment focus..." onkeyup="renderAIFs()"/>
+      <button class="search-btn" onclick="renderAIFs()">Search</button>
+    </div>
+    <div class="filter-row" style="grid-template-columns:repeat(4,1fr)">
+      <select class="filter-sel" id="f-cat" onchange="renderAIFs()">
+        <option value="">All Categories</option>
+        <option value="I">Category I (VC, SME, Social)</option>
+        <option value="II">Category II (PE, Debt, RE)</option>
+        <option value="III">Category III (Hedge, Listed)</option>
+      </select>
+      <select class="filter-sel" id="f-focus" onchange="renderAIFs()">
+        <option value="">All Industry Focus</option>
+        <option>Agriculture</option>
+        <option>Alpha / Hedge</option>
+        <option>Angel Investing</option>
+        <option>Consumer</option>
+        <option>Distressed Assets</option>
+        <option>Diversified</option>
+        <option>Equity / Public Markets</option>
+        <option>Generalist</option>
+        <option>Growth Equity</option>
+        <option>Healthcare</option>
+        <option>India Consumption</option>
+        <option>Internet / Digital</option>
+        <option>Logistics</option>
+        <option>Real Estate</option>
+        <option>Special Situations</option>
+        <option>Startup Accelerator</option>
+        <option>Technology</option>
+        <option>Venture Capital</option>
+        <option>Women-focused</option>
+      </select>
+      <select class="filter-sel" id="f-state" onchange="renderAIFs()">
+        <option value="">All States</option>
+      </select>
+      <select class="filter-sel" id="f-ticket" onchange="renderAIFs()">
+        <option value="">All Cities</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="results-header">
+        <div class="results-count" id="results-count">Loading AIFs...</div>
+        <div class="results-actions">
+          <button class="r-btn" onclick="selectAll()">Select All</button>
+          <button class="r-btn" onclick="clearSelection()">Clear</button>
+          <button class="r-btn primary" onclick="addSelectedToDist()">+ Add to Distribution List</button>
+        </div>
+      </div>
+      <div class="aif-grid" id="aif-grid"></div>
+    </div>
+
+    <!-- DISTRIBUTION SIDEBAR -->
+    <div class="dist-sidebar">
+      <div class="dist-title">
+        📡 Distribution List
+        <span class="dist-count" id="dist-count">0</span>
+      </div>
+      <div id="dist-list"><div class="dist-empty">Add AIFs from search results to build your distribution list</div></div>
+      <div class="dist-actions" id="dist-actions" style="display:none">
+        <button class="dist-btn dist-btn-wa" onclick="distWhatsApp()">📱 WhatsApp Blast</button>
+        <button class="dist-btn dist-btn-email" onclick="distEmail()">📧 Email Campaign</button>
+        <button class="r-btn" onclick="clearDist()" style="width:100%;text-align:center">🗑 Clear List</button>
+      </div>
+
+      <!-- AI DEAL MATCH quick form -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:800;color:var(--purple);margin-bottom:12px">🎯 Quick AI Match</div>
+        <select class="ai-sel" id="q-type" style="margin-bottom:8px">
+          <option>NCD - Secured</option><option>NCD - Unsecured</option>
+          <option>Commercial Paper</option><option>SME IPO</option>
+          <option>Private Equity</option><option>Real Estate Debt</option>
+        </select>
+        <select class="ai-sel" id="q-yield" style="margin-bottom:8px">
+          <option>8-11% (Investment Grade)</option>
+          <option>11-16% (High Yield Debt)</option>
+          <option>16-25%+ (PE / Equity)</option>
+        </select>
+        <select class="ai-sel" id="q-size" style="margin-bottom:12px">
+          <option>₹5-25 Cr</option><option>₹25-100 Cr</option>
+          <option>₹100-500 Cr</option><option>₹500 Cr+</option>
+        </select>
+        <button class="ai-btn" onclick="runQuickMatch()">🎯 Match Investors</button>
+        <div class="ai-result" id="quick-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI MATCH TAB -->
+<div id="tab-match" style="display:none">
+  <div class="ai-match-box" style="background:linear-gradient(135deg,rgba(91,78,212,.08),rgba(91,78,212,.03));border-color:rgba(91,78,212,.25)">
+    <div class="ai-match-title" style="font-size:16px">🎯 AI Deal-to-Investor Matching Engine</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:18px">Enter your deal details — AI will identify the best-fit AIFs, family offices, and institutional investors from our 1,910 database</div>
+    <div class="ai-match-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div><label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">DEAL TYPE</label>
+        <select class="ai-sel" id="m-type"><option>NCD - Secured</option><option>NCD - Unsecured</option><option>Commercial Paper</option><option>SME IPO</option><option>Main Board IPO</option><option>Private Equity</option><option>Structured Debt</option></select></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">SIZE</label>
+        <select class="ai-sel" id="m-size"><option>₹5-25 Cr</option><option>₹25-100 Cr</option><option>₹100-500 Cr</option><option>₹500 Cr+</option></select></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">SECTOR</label>
+        <select class="ai-sel" id="m-sector"><option>NBFC / Finance</option><option>Real Estate</option><option>Manufacturing</option><option>Technology</option><option>Healthcare</option><option>Infrastructure</option><option>Consumer</option><option>Renewables</option></select></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">YIELD / RETURN</label>
+        <select class="ai-sel" id="m-yield"><option>8-11%</option><option>11-16%</option><option>16-25%+</option></select></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">TENOR</label>
+        <select class="ai-sel" id="m-tenor"><option>0-6 months</option><option>6-18 months</option><option>18-36 months</option><option>3-7 years</option></select></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px">RATING</label>
+        <select class="ai-sel" id="m-rating"><option>AAA / AA+</option><option>AA / AA-</option><option>A+ / A</option><option>BBB / Unrated</option></select></div>
+    </div>
+    <button class="ai-btn" onclick="runFullMatch()" style="padding:13px 32px;font-size:14px">🎯 Generate Investor Shortlist →</button>
+    <div class="ai-result" id="full-match-result"></div>
+  </div>
+</div>
+
+<!-- DISTRIBUTE TAB -->
+<div id="tab-distribute" style="display:none">
+  <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px">
+    <div style="font-size:16px;font-weight:800;color:var(--teal);margin-bottom:6px">📡 Deal Distribution Engine</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Create a deal alert and blast it to your selected AIF distribution list via WhatsApp or email</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="form-field"><label>Issuer</label><input class="form-inp" id="dist-issuer" placeholder="Company name"/></div>
+      <div class="form-field"><label>Deal Type</label><select class="form-inp" id="dist-type"><option>NCD</option><option>CP</option><option>IPO</option><option>PE</option><option>Structured Debt</option></select></div>
+      <div class="form-field"><label>Size (₹ Cr)</label><input class="form-inp" id="dist-size" placeholder="e.g. 100"/></div>
+      <div class="form-field"><label>Yield / Return</label><input class="form-inp" id="dist-yield" placeholder="e.g. 11.5%"/></div>
+    </div>
+    <div class="form-field" style="margin-bottom:16px"><label>Key Highlights</label>
+      <textarea class="form-inp" id="dist-notes" style="height:80px;resize:none" placeholder="Rating, security, use of funds, promoter background..."></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <button onclick="blastWhatsApp()" style="padding:13px;background:#25D366;color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer">📱 WhatsApp Blast</button>
+      <button onclick="blastEmail()" style="padding:13px;background:var(--teal);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer">📧 Email Campaign</button>
+      <button onclick="copyDealAlert()" style="padding:13px;background:#fff;color:var(--teal);border:1.5px solid var(--teal);border-radius:10px;font-weight:800;font-size:14px;cursor:pointer">📋 Copy Deal Alert</button>
+    </div>
+  </div>
+</div>
+
+<!-- WATCHLIST TAB -->
+<div id="tab-watchlist" style="display:none">
+  <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center">
+    <div style="font-size:40px;margin-bottom:14px">⭐</div>
+    <div style="font-size:17px;font-weight:800;color:var(--teal);margin-bottom:8px">My AIF Watchlist</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px">AIFs you've starred appear here for quick access</div>
+    <div id="watchlist-content"><div style="color:var(--muted);font-size:13px">No AIFs in watchlist yet — star any AIF from search results</div></div>
+  </div>
+</div>
+<!-- PRICING TAB -->
+<div id="tab-pricing" style="display:none">
+  <div style="max-width:900px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-family:var(--serif);font-size:28px;font-weight:900;color:var(--teal);margin-bottom:8px">AIF Intelligence Pricing</div>
+      <div style="font-size:14px;color:var(--muted)">Standalone subscription — access 1,910 SEBI AIFs, AI matching, deal distribution</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+
+      <!-- STARTER -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Starter</div>
+        <div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--teal);line-height:1">₹15,000<span style="font-size:13px;font-weight:400;color:var(--muted)">/mo</span></div>
+        <div style="font-size:11px;color:var(--muted);margin:6px 0 16px">₹1,50,000/year (save 17%)</div>
+        <div style="display:grid;gap:8px;margin-bottom:20px">
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Search 1,910 SEBI AIFs</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Filter by Cat/sector/ticket</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Export contact list (50/mo)</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Watchlist (up to 25 AIFs)</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:8px"><span style="color:var(--dim)">—</span>AI investor matching</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:8px"><span style="color:var(--dim)">—</span>Deal distribution engine</div>
+        </div>
+        <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20want%20to%20subscribe%20to%20AIF%20Intelligence%20Starter%20plan%20%E2%82%B915%2C000%2Fmo" target="_blank" style="display:block;text-align:center;padding:12px;background:var(--teal);color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:13px">Get Started →</a>
+      </div>
+
+      <!-- PROFESSIONAL ★ -->
+      <div style="background:linear-gradient(135deg,rgba(13,92,107,.06),rgba(13,92,107,.02));border:2px solid var(--cyan);border-radius:16px;padding:24px;position:relative">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--cyan);color:#fff;font-size:10px;font-weight:800;padding:3px 16px;border-radius:99px;white-space:nowrap">⭐ MOST POPULAR</div>
+        <div style="font-size:11px;font-weight:800;color:var(--cyan);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Professional</div>
+        <div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--teal);line-height:1">₹35,000<span style="font-size:13px;font-weight:400;color:var(--muted)">/mo</span></div>
+        <div style="font-size:11px;color:var(--muted);margin:6px 0 16px">₹3,50,000/year (save 17%)</div>
+        <div style="display:grid;gap:8px;margin-bottom:20px">
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Everything in Starter</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>AI deal-to-investor matching</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Deal distribution engine</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>WhatsApp + email blasts</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Unlimited export</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:8px"><span style="color:var(--dim)">—</span>White-label reports</div>
+        </div>
+        <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20want%20to%20subscribe%20to%20AIF%20Intelligence%20Professional%20plan%20%E2%82%B935%2C000%2Fmo" target="_blank" style="display:block;text-align:center;padding:12px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:13px">Activate Professional →</a>
+      </div>
+
+      <!-- ENTERPRISE -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px">
+        <div style="font-size:11px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Enterprise</div>
+        <div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--purple);line-height:1">₹75,000<span style="font-size:13px;font-weight:400;color:var(--muted)">/mo</span></div>
+        <div style="font-size:11px;color:var(--muted);margin:6px 0 16px">₹7,50,000/year (save 17%)</div>
+        <div style="display:grid;gap:8px;margin-bottom:20px">
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Everything in Professional</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>White-label AIF reports</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>API access (custom integration)</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Dedicated account manager</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Priority AIF database updates</div>
+          <div style="font-size:12px;color:var(--text);display:flex;gap:8px"><span style="color:var(--green);font-weight:700">✓</span>Custom investor intelligence</div>
+        </div>
+        <a href="https://wa.me/918851059588?text=Hi%20ipowork%2C%20I%20want%20to%20discuss%20AIF%20Intelligence%20Enterprise%20plan" target="_blank" style="display:block;text-align:center;padding:12px;background:var(--purple);color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:13px">Talk to Sales →</a>
+      </div>
+    </div>
+
+    <!-- Deal Distribution pricing -->
+    <div style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:16px">📡 Deal Distribution — Pay Per Deal</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div style="padding:16px;background:rgba(13,92,107,.04);border-radius:10px;text-align:center">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:900;color:var(--teal)">₹5,000</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin:4px 0">Deal Alert Blast</div>
+          <div style="font-size:11px;color:var(--muted)">WhatsApp + email to matched AIFs</div>
+        </div>
+        <div style="padding:16px;background:rgba(232,138,46,.06);border-radius:10px;text-align:center;border:1px solid rgba(232,138,46,.2)">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:900;color:var(--amber)">₹15,000</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin:4px 0">Featured Deal</div>
+          <div style="font-size:11px;color:var(--muted)">Priority placement + larger AIF list</div>
+        </div>
+        <div style="padding:16px;background:rgba(91,78,212,.06);border-radius:10px;text-align:center">
+          <div style="font-family:var(--serif);font-size:22px;font-weight:900;color:var(--purple)">₹25,000</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin:4px 0">Full Distribution</div>
+          <div style="font-size:11px;color:var(--muted)">All channels + follow-up tracking</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:14px;background:rgba(13,92,107,.04);border-radius:10px;font-size:12px;color:var(--muted);text-align:center">
+      All prices exclusive of GST &nbsp;·&nbsp; No lock-in contracts — cancel anytime &nbsp;·&nbsp; 
+      <a href="https://wa.me/918851059588" target="_blank" style="color:var(--teal);font-weight:700">📱 WhatsApp: +91 88510 59588</a> &nbsp;·&nbsp;
+      <a href="mailto:partners@ipowork.com" style="color:var(--teal);font-weight:700">partners@ipowork.com</a>
+    </div>
+  </div>
+</div>
+
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+var DIST_LIST = [];
+var SELECTED = new Set();
+var WATCHLIST = [];
+try{ WATCHLIST = JSON.parse(localStorage.getItem('aif_watchlist')||'[]'); }catch(e){}
+
+// ── AIF DATABASE — loaded from aif-data.json ──
+var AIF_DATA = [];
+
+function normalizeAIF(a) {
+  var cat = a.category ? a.category.replace('Cat ','') : 'Unknown';
+  return {
+    id: a.id,
+    name: a.name || '',
+    reg: a.reg_no || '',
+    cat: cat,
+    focus: a.industry || 'Diversified',
+    state: a.state || '',
+    city: a.city || '',
+    manager: a.contact || '',
+    sectors: a.industry ? [a.industry] : [],
+    email: a.email || '',
+    phone: a.phone || '',
+    validity: a.validity || '',
+    address: a.address || ''
+  };
+}
+
+async function loadAIFData(){
+  var countEl = document.getElementById('results-count');
+  if(countEl) countEl.textContent = 'Loading 1,910 AIFs...';
+  try {
+    var resp = await fetch('aif-data.json');
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    var json = await resp.json();
+    AIF_DATA = (json.aifs || []).map(normalizeAIF);
+    populateFilters();
+  } catch(e) {
+    if(countEl) countEl.textContent = 'Error loading AIF data — '+e.message;
+    console.error('AIF load error:', e);
+  }
+  renderAIFs();
+  updateDistSidebar();
+}
+
+function populateFilters(){
+  // States
+  var states = [...new Set(AIF_DATA.map(function(a){return a.state;}).filter(Boolean))].sort();
+  var stateEl = document.getElementById('f-state');
+  if(stateEl){
+    stateEl.innerHTML = '<option value="">All States</option>'
+      + states.map(function(s){return '<option>'+s+'</option>';}).join('');
+  }
+  // Cities
+  var cities = [...new Set(AIF_DATA.map(function(a){return a.city;}).filter(Boolean))].sort();
+  var cityEl = document.getElementById('f-ticket');
+  if(cityEl){
+    cityEl.innerHTML = '<option value="">All Cities</option>'
+      + cities.map(function(c){return '<option>'+c+'</option>';}).join('');
+  }
+}
+
+// ── RENDER ──
+function renderAIFs(){
+  var search  = (document.getElementById('aif-search')||{value:''}).value.toLowerCase();
+  var cat     = (document.getElementById('f-cat')||{value:''}).value;
+  var focus   = (document.getElementById('f-focus')||{value:''}).value;
+  var city    = (document.getElementById('f-ticket')||{value:''}).value;
+  var state   = (document.getElementById('f-state')||{value:''}).value;
+
+  var filtered = AIF_DATA.filter(function(a){
+    if(search && !a.name.toLowerCase().includes(search) && !(a.manager||'').toLowerCase().includes(search) && !(a.focus||'').toLowerCase().includes(search) && !(a.city||'').toLowerCase().includes(search)) return false;
+    if(cat && a.cat !== cat) return false;
+    if(focus && a.focus !== focus) return false;
+    if(city && a.city !== city) return false;
+    if(state && a.state !== state) return false;
+    return true;
+  });
+
+  var el = document.getElementById('results-count');
+  if(el) el.textContent = filtered.length + ' AIFs found';
+  var grid = document.getElementById('aif-grid');
+  if(!grid) return;
+
+  if(!filtered.length){
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">No AIFs match your filters</div>';
+    return;
+  }
+
+  var html = '';
+  filtered.forEach(function(a){
+    var catCol = a.cat==='I'?'#1A9E6B':a.cat==='II'?'#5B4ED4':'#E88A2E';
+    var isSel  = SELECTED.has(a.id);
+    var isWL   = WATCHLIST.includes(a.id);
+    html += '<div class="aif-card'+(isSel?' selected':'')+'" id="aif-'+a.id+'">'
+      +'<div>'
+      +'<div class="aif-tags">'
+      +'<span class="cat-tag" style="background:'+catCol+'22;color:'+catCol+';border:1px solid '+catCol+'44">Cat '+a.cat+'</span>'
+      +'<span class="focus-tag">'+a.focus+'</span>'
+      +(isSel?'<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(13,92,107,.12);color:var(--teal)">✓ Selected</span>':'')
+      +'</div>'
+      +'<div class="aif-name">'+a.name+'</div>'
+      +'<div class="aif-meta">'+a.reg+' · '+(a.city||a.state||'')+'</div>'
+      +'<div class="aif-metrics">'
+      +'<div class="aif-metric"><div class="aif-metric-v" style="font-size:12px">'+(a.city||'—')+'</div><div class="aif-metric-l">City</div></div>'
+      +'<div class="aif-metric"><div class="aif-metric-v" style="font-size:12px">'+(a.state||'—')+'</div><div class="aif-metric-l">State</div></div>'
+      +'<div class="aif-metric"><div class="aif-metric-v" style="font-size:11px;color:var(--green)">'+(a.validity||'—')+'</div><div class="aif-metric-l">Validity</div></div>'
+      +'</div>'
+      +(a.manager?'<div class="aif-sectors"><span class="sector-chip">👤 '+a.manager+'</span></div>':'')
+      +'<div class="aif-sectors" style="margin-top:'+(a.manager?'4px':'10px')+'">'
+      +a.sectors.map(function(s){return '<span class="sector-chip">'+s+'</span>';}).join('')
+      +'</div>'
+      +'</div>'
+      +'<div class="aif-actions">'
+      +'<button class="aif-btn aif-btn-primary" onclick="toggleSelect('+a.id+')">'+(isSel?'✓ Selected':'+ Add to List')+'</button>'
+      +'<a href="mailto:'+a.email+'" class="aif-btn aif-btn-sec">✉ Contact</a>'
+      +'<button class="aif-btn" onclick="toggleWatchlist('+a.id+')" style="background:'+(isWL?'rgba(232,138,46,.1)':'#fff')+';color:'+(isWL?'var(--amber)':'var(--muted)')+';border:1.5px solid '+(isWL?'var(--amber)':'var(--border)')+'">'+  (isWL?'⭐ Starred':'☆ Star')+'</button>'
+      +'<button class="aif-btn aif-btn-wa" onclick="waContact('+a.id+')">📱 WhatsApp</button>'
+      +'</div>'
+      +'</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function toggleSelect(id){
+  if(SELECTED.has(id)) SELECTED.delete(id);
+  else SELECTED.add(id);
+  renderAIFs();
+  updateDistSidebar();
+}
+
+function selectAll(){
+  AIF_DATA.forEach(function(a){ SELECTED.add(a.id); });
+  renderAIFs(); updateDistSidebar();
+}
+
+function clearSelection(){
+  SELECTED.clear();
+  renderAIFs(); updateDistSidebar();
+}
+
+function addSelectedToDist(){
+  SELECTED.forEach(function(id){
+    var a = AIF_DATA.find(function(x){return x.id===id;});
+    if(a && !DIST_LIST.find(function(d){return d.id===id;})) DIST_LIST.push(a);
+  });
+  updateDistSidebar();
+  showToast(DIST_LIST.length+' AIFs in distribution list');
+}
+
+function updateDistSidebar(){
+  var el = document.getElementById('dist-list');
+  var cnt = document.getElementById('dist-count');
+  var acts = document.getElementById('dist-actions');
+  if(cnt) cnt.textContent = DIST_LIST.length;
+  if(acts) acts.style.display = DIST_LIST.length ? 'grid' : 'none';
+  if(!el) return;
+  if(!DIST_LIST.length){
+    el.innerHTML = '<div class="dist-empty">Add AIFs to build your distribution list</div>';
+    return;
+  }
+  el.innerHTML = DIST_LIST.map(function(a,i){
+    return '<div class="dist-item"><span class="dist-name" title="'+a.name+'">'+a.name+'</span>'
+      +'<button class="dist-remove" onclick="removeDist('+i+')">×</button></div>';
+  }).join('');
+}
+
+function removeDist(i){
+  DIST_LIST.splice(i,1);
+  updateDistSidebar();
+}
+
+function clearDist(){
+  DIST_LIST=[];
+  SELECTED.clear();
+  updateDistSidebar();
+  renderAIFs();
+}
+
+function toggleWatchlist(id){
+  var idx = WATCHLIST.indexOf(id);
+  if(idx>-1) WATCHLIST.splice(idx,1);
+  else WATCHLIST.push(id);
+  try{localStorage.setItem('aif_watchlist',JSON.stringify(WATCHLIST));}catch(e){}
+  renderAIFs();
+  renderWatchlist();
+  showToast(WATCHLIST.includes(id)?'Added to watchlist':'Removed from watchlist');
+}
+
+function renderWatchlist(){
+  var el = document.getElementById('watchlist-content');
+  if(!el) return;
+  var wl = AIF_DATA.filter(function(a){return WATCHLIST.includes(a.id);});
+  if(!wl.length){ el.innerHTML='<div style="color:var(--muted);font-size:13px">No AIFs starred yet</div>'; return; }
+  el.innerHTML = wl.map(function(a){
+    return '<div style="padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><div style="font-weight:700;font-size:13px">'+a.name+'</div><div style="font-size:11px;color:var(--muted)">'+a.focus+' · '+(a.city||a.state||'')+'</div></div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button onclick="toggleSelect('+a.id+')" style="padding:6px 12px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">+ Add</button>'
+      +'<button onclick="toggleWatchlist('+a.id+')" style="padding:6px 12px;background:#fff;color:var(--amber);border:1px solid var(--amber);border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Unstar</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function waContact(id){
+  var a = AIF_DATA.find(function(x){return x.id===id;});
+  if(!a) return;
+  var msg = encodeURIComponent('Hello, I am reaching out from ipowork regarding a potential deal opportunity that matches '+a.name+" 's investment mandate. Would you be open to a brief discussion?");
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
+
+function distWhatsApp(){
+  if(!DIST_LIST.length){showToast('Add AIFs to distribution list first');return;}
+  var names = DIST_LIST.slice(0,5).map(function(a){return a.name;}).join(', ');
+  var issuer  = document.getElementById('dist-issuer')||{value:'[Issuer]'};
+  var dtype   = document.getElementById('dist-type')||{value:'Deal'};
+  var dsize   = document.getElementById('dist-size')||{value:''};
+  var dyield  = document.getElementById('dist-yield')||{value:''};
+  var msg = encodeURIComponent('Deal Alert from ipowork: '+dtype.value+' by '+(issuer.value||'Issuer')+'. Size: Rs '+(dsize.value||'TBD')+' Cr. Yield: '+(dyield.value||'TBD')+'. Please contact us for full IM and deal details.');
+  window.open('https://wa.me/?text='+msg,'_blank');
+  showToast('WhatsApp blast prepared for '+DIST_LIST.length+' AIFs');
+}
+
+function blastWhatsApp(){
+  var issuer = (document.getElementById('dist-issuer')||{}).value||'Issuer';
+  var dtype  = (document.getElementById('dist-type')||{}).value||'Deal';
+  var dsize  = (document.getElementById('dist-size')||{}).value||'TBD';
+  var dyield = (document.getElementById('dist-yield')||{}).value||'TBD';
+  var notes  = (document.getElementById('dist-notes')||{}).value||'';
+  var msg = encodeURIComponent('Deal Alert - ipowork: '+dtype+' | '+issuer+' | Rs '+dsize+' Cr | '+dyield+'. '+notes+' Reply for IM.');
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
+
+function blastEmail(){
+  var issuer = (document.getElementById('dist-issuer')||{}).value||'Issuer';
+  var dtype  = (document.getElementById('dist-type')||{}).value||'Deal';
+  var dsize  = (document.getElementById('dist-size')||{}).value||'TBD';
+  var dyield = (document.getElementById('dist-yield')||{}).value||'TBD';
+  var notes  = (document.getElementById('dist-notes')||{}).value||'';
+  var emails = DIST_LIST.filter(function(a){return a.email;}).map(function(a){return a.email;}).join(',');
+  var subject = encodeURIComponent('Deal Alert: '+dtype+' | '+issuer+' | Rs '+dsize+' Cr');
+  var body = encodeURIComponent('Dear Investment Team,\n\nWe have an opportunity that may match your mandate:\n\nDeal: '+dtype+'\nIssuer: '+issuer+'\nSize: Rs '+dsize+' Cr\nYield/Return: '+dyield+'\n\n'+notes+'\n\nPlease reply to receive the Information Memorandum.\n\nRegards\nipowork Capital Markets Platform');
+  window.location.href = 'mailto:'+emails+'?subject='+subject+'&body='+body;
+}
+
+function distEmail(){blastEmail();}
+
+function copyDealAlert(){
+  var issuer = (document.getElementById('dist-issuer')||{}).value||'[Issuer]';
+  var dtype  = (document.getElementById('dist-type')||{}).value||'[Type]';
+  var dsize  = (document.getElementById('dist-size')||{}).value||'[Size]';
+  var dyield = (document.getElementById('dist-yield')||{}).value||'[Yield]';
+  var notes  = (document.getElementById('dist-notes')||{}).value||'';
+  var text = 'DEAL ALERT\n\nType: '+dtype+'\nIssuer: '+issuer+'\nSize: Rs '+dsize+' Cr\nYield: '+dyield+'\n\n'+notes+'\n\nSource: ipowork AIF Intelligence Platform';
+  navigator.clipboard.writeText(text).then(function(){showToast('Deal alert copied to clipboard');});
+}
+
+// AI MATCHING
+async function runQuickMatch(){
+  var type  = (document.getElementById('q-type')||{}).value||'NCD';
+  var yield_ = (document.getElementById('q-yield')||{}).value||'11-16%';
+  var size  = (document.getElementById('q-size')||{}).value||'Rs 50 Cr';
+  var el = document.getElementById('quick-result');
+  if(el){ el.classList.add('on'); el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted)">⟳ Matching...</div>'; }
+  try{
+    var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:600,
+        system:'You are an expert on Indian AIF investor preferences. Be concise and specific.',
+        messages:[{role:'user',content:'Top 5 AIF types for: '+type+', size '+size+', yield '+yield_+'. List briefly with match probability HIGH/MEDIUM.'}]
+      })
+    });
+    var data = await resp.json();
+    var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
+    if(el){
+      el.innerHTML = txt.split('\n').filter(Boolean).map(function(l){
+        var isH=l.toLowerCase().includes('high');
+        var isM=l.toLowerCase().includes('medium');
+        return '<div class="ai-result-item '+(isH?'ai-high':isM?'ai-med':'ai-low')+'">'+l+'</div>';
+      }).join('');
+    }
+  }catch(e){if(el) el.innerHTML='<div style="color:var(--red);padding:10px">Error: '+e.message+'</div>';}
+}
+
+async function runFullMatch(){
+  var el = document.getElementById('full-match-result');
+  if(el){el.classList.add('on');el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted)">⟳ Scanning 1,910 AIFs...</div>';}
+  var type   = document.getElementById('m-type').value;
+  var size   = document.getElementById('m-size').value;
+  var sector = document.getElementById('m-sector').value;
+  var yield_ = document.getElementById('m-yield').value;
+  var tenor  = document.getElementById('m-tenor').value;
+  var rating = document.getElementById('m-rating').value;
+  try{
+    var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1500,
+        system:'You are an expert on Indian institutional investors. Provide specific, actionable matching.',
+        messages:[{role:'user',content:'Find top 10 investors for: '+type+', '+size+', '+sector+', yield '+yield_+', tenor '+tenor+', rating '+rating+'. For each: fund type, why match, ticket, approach. Be specific to India.'}]
+      })
+    });
+    var data = await resp.json();
+    var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
+    if(el){
+      el.innerHTML = '<div style="margin-bottom:12px;font-weight:700;color:var(--purple)">Top Investor Matches for your deal:</div>'
+        +txt.split('\n').filter(Boolean).map(function(l){
+          var isH=l.toLowerCase().includes('high');
+          var isM=l.toLowerCase().includes('medium');
+          var isNum=/^\d+\./.test(l.trim());
+          if(isNum) return '<div style="font-weight:800;font-size:14px;color:var(--text);margin-top:12px;padding:8px 12px;background:rgba(91,78,212,.06);border-radius:8px">'+l+'</div>';
+          return '<div class="ai-result-item '+(isH?'ai-high':isM?'ai-med':'ai-low')+'">'+l+'</div>';
+        }).join('')
+        +'<div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+        +'<button onclick="showTab(\'search\',null)" style="padding:11px;background:var(--teal);color:#fff;border:none;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer">🔍 Search AIF Database</button>'
+        +'<button onclick="showTab(\'distribute\',null)" style="padding:11px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer">📡 Distribute Deal</button>'
+        +'</div>';
+    }
+  }catch(e){if(el) el.innerHTML='<div style="color:var(--red);padding:16px">Error: '+e.message+'</div>';}
+}
+
+async function runDealMatch(){
+  var issuer = (document.getElementById('d-issuer')||{}).value||'';
+  var type   = (document.getElementById('d-type')||{}).value||'NCD';
+  var size   = (document.getElementById('d-size')||{}).value||'';
+  var yield_ = (document.getElementById('d-yield')||{}).value||'';
+  var rating = (document.getElementById('d-rating')||{}).value||'';
+  var sector = (document.getElementById('d-sector')||{}).value||'';
+  if(!issuer||!size){alert('Please enter issuer and deal size');return;}
+  var mbox = document.getElementById('match-result');
+  var msub = document.getElementById('match-subtitle');
+  var mcontent = document.getElementById('match-content');
+  if(mbox) mbox.style.display='block';
+  if(msub) msub.textContent = issuer+' | '+type+' | Rs '+size+' Cr | '+yield_;
+  if(mcontent) mcontent.innerHTML='<div style="text-align:center;padding:20px;color:var(--purple)">⟳ AI matching from 1,910 AIFs...</div>';
+  hideDealPanel();
+  try{
+    var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1000,
+        system:'Expert on Indian AIF investor matching. Be concise and specific.',
+        messages:[{role:'user',content:'Match investors for: '+type+' by '+issuer+', Rs '+size+' Cr, yield '+yield_+', rating '+rating+', sector '+sector+'. Top 8 AIF types with probability HIGH/MEDIUM.'}]
+      })
+    });
+    var data = await resp.json();
+    var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
+    if(mcontent){
+      mcontent.innerHTML = txt.split('\n').filter(Boolean).map(function(l){
+        var isH=l.toLowerCase().includes('high');
+        var isM=l.toLowerCase().includes('medium');
+        return '<div class="ai-result-item '+(isH?'ai-high':isM?'ai-med':'ai-low')+'">'+l+'</div>';
+      }).join('');
+    }
+  }catch(e){if(mcontent) mcontent.innerHTML='<div style="color:var(--red)">Error: '+e.message+'</div>';}
+}
+
+function applyMatchFilter(){
+  showTab('search',null);
+  showToast('Showing AIFs matching your deal criteria');
+}
+
+function showDealPanel(){ document.getElementById('deal-panel').classList.add('on'); }
+function hideDealPanel(){ document.getElementById('deal-panel').classList.remove('on'); }
+
+function showTab(name, el){
+  ['search','match','distribute','watchlist','pricing'].forEach(function(t){
+    var div = document.getElementById('tab-'+t);
+    if(div) div.style.display = t===name?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  if(el) el.classList.add('on');
+  if(name==='watchlist') renderWatchlist();
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  if(!t) return;
+  t.textContent=msg; t.style.display='block';
+  setTimeout(function(){t.style.display='none';},3000);
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', function(){
+  loadAIFData();
+});
+</script>
+</body>
+</html>

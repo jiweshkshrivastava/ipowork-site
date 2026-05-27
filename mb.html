@@ -1754,9 +1754,10 @@ var NAV_ITEMS = [
   {id:'deals',     icon:'🔗', label:'Deal Sourcing',     badge:'LIVE'},
   {id:'hot-leads', icon:'⚡', label:'Hot Leads',         badge:'3'},
   {id:'pipeline',  icon:'📊', label:'Pipeline',          badge:''},
-  
+
   {id:'ai',        icon:'🤖', label:'IPO AI Advisors',   badge:'9'},
   {id:'bankers',   icon:'🏦', label:'MB Directory',      badge:'242'},
+  {id:'aif-link',  icon:'🏛️', label:'AIF Intelligence →', badge:'1500+'},
 ];
 
 var SEBI_MERCHANT_BANKERS = [
@@ -2114,6 +2115,8 @@ function renderMain(){
   else if(P.view==='ai-chat')   content=renderAIChat();
   else if(P.view==='checklist') content=renderChecklist();
   else if(P.view==='bankers')   content=renderBankers();
+
+  else if(P.view==='aif-link'){ window.open('aif-intel.html','_blank'); content=renderDashboard(); }
   else content='<div class="portal-pad"><div class="page-title">Coming Soon</div></div>';
   document.getElementById('portal-main').innerHTML=content;
   bindChat();
@@ -2422,59 +2425,124 @@ function renderPipeline(){
 function renderPricing(){
   var html = '<div class="portal-pad">';
   html += '<div class="page-title">&#128179; Plans &amp; Pricing</div>';
-  html += '<div class="page-sub">Upgrade to unlock full deal flow, hot lead alerts and AI tools</div>';
+  html += '<div class="page-sub">Choose the right plan for your practice — upgrade anytime, no lock-in</div>';
 
-  // Top CTA banner — hardcoded URLs, no dynamic encoding
-  html += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:14px;padding:20px 24px;margin:16px 0 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">';
+  // Contact CTA
+  html += '<div style="background:linear-gradient(135deg,#08404D,#0D5C6B);border-radius:14px;padding:20px 24px;margin:0 0 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">';
   html += '<div><div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:4px">&#9200; Activation in 10 minutes</div>';
   html += '<div style="font-size:12px;color:rgba(255,255,255,.65)">WhatsApp or email — SEBI verification + payment = instant access</div></div>';
   html += '<div style="display:flex;gap:10px;flex-wrap:wrap">';
-  html += '<a href="' + ('https://wa.me/918851059588?text=' + encodeURIComponent('Hi ipowork team,\n\nI am a SEBI registered Merchant Banker and want to activate my MB Portal plan.\n\nFirm: ' + (SESS.firm||'Not filled') + '\nSEBI Reg: ' + (SESS.regId||SESS.email||'Not filled') + '\nEmail: ' + (SESS.email||''))) + '" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:#25D366;color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:14px">&#128242; +91 88510 59588</a>';
-  html += '<a href="mailto:partners@ipowork.com?subject=MB Plan Activation" style="display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:rgba(255,255,255,.15);color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:14px;border:1px solid rgba(255,255,255,.3)">&#128231; partners@ipowork.com</a>';
+  html += '<a href="https://wa.me/918851059588?text=' + encodeURIComponent('Hi ipowork, I want to activate my MB Portal plan.\nFirm: ' + (SESS.firm||'') + '\nSEBI Reg: ' + (SESS.regId||'') + '\nEmail: ' + (SESS.email||'')) + '" target="_blank" style="display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:#25D366;color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:13px">&#128242; WhatsApp</a>';
+  html += '<a href="mailto:partners@ipowork.com?subject=MB Plan Activation" style="display:inline-flex;align-items:center;gap:8px;padding:11px 20px;background:rgba(255,255,255,.15);color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.3)">&#128231; Email Us</a>';
   html += '</div></div>';
 
-  // 4 plan cards in 2x2 grid
-  var plans = [
-    {name:'Tier 4 — Emerging',      mo:'25,000',  qtr:'75,000',   yr:'2,50,000',  leads:'7 leads / quarter',
-     col:'#6B8A94', best:false,
-     feat:['Readiness Score access','ALMS issuer match','Basic company profiles','Email support']},
-    {name:'Tier 3 — SME Specialist', mo:'50,000',  qtr:'1,50,000', yr:'5,00,000',  leads:'15 leads / quarter',
-     col:'#1A5C8A', best:false,
-     feat:['All Tier 4 features','Hot lead alerts','AIDA pre-scan access','MIBE sector intel']},
-    {name:'Tier 2 — Growth',         mo:'75,000',  qtr:'2,25,000', yr:'7,50,000',  leads:'30 leads / quarter',
-     col:'#08404D', best:true,
-     feat:['All Tier 3 features','Priority lead queue','Full ALMS + AIDA suite','RJT pipeline tracking']},
-    {name:'Tier 1 — Elite',          mo:'1,50,000',qtr:'4,50,000', yr:'15,00,000', leads:'Unlimited leads',
-     col:'#3B30B0', best:false,
-     feat:['All Tier 2 features','1st priority always','Co-branding options','Dedicated Account Manager']},
+  // ── SECTION 1: MB PORTAL PLANS ──
+  html += '<div style="font-size:13px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">&#127970; MB Portal — Deal Execution OS</div>';
+
+  var mbPlans = [
+    {name:'Tier 4',  sub:'Emerging',        mo:'25,000',  yr:'2,50,000',  col:'#6B8A94', best:false,
+     feat:['7 IPO leads/quarter','AIRA readiness scores','Company profiles (basic)','Email support','Deal pipeline tracker']},
+    {name:'Tier 3',  sub:'SME Specialist',  mo:'50,000',  yr:'5,00,000',  col:'#1A5C8A', best:false,
+     feat:['15 leads/quarter','All Tier 4 features','Hot lead alerts','AI company analysis','DRHP repository access']},
+    {name:'Tier 2',  sub:'Growth &#11088;', mo:'75,000',  yr:'7,50,000',  col:'#08404D', best:true,
+     feat:['30 leads/quarter','All Tier 3 features','Priority lead queue','AIF Intelligence access','MB directory 242+']},
+    {name:'Tier 1',  sub:'Elite',           mo:'1,50,000',yr:'15,00,000', col:'#3B30B0', best:false,
+     feat:['Unlimited leads','All Tier 2 features','1st priority always','Dedicated account manager','Co-branding options']},
   ];
 
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">';
-
-  for(var i=0; i<plans.length; i++){
-    var p = plans[i];
-    html += '<div style="border:' + (p.best ? '2px solid #0D5C6B' : '1px solid var(--border)') + ';border-radius:14px;padding:22px;background:' + (p.best ? 'rgba(13,92,107,.06)' : 'var(--surface)') + ';position:relative">';
-
-    if(p.best) html += '<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#0D5C6B;color:#fff;font-size:10px;font-weight:800;padding:3px 14px;border-radius:99px;white-space:nowrap">&#11088; BEST VALUE</div>';
-
-    html += '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">' + p.name + '</div>';
-    html += '<div style="font-size:28px;font-weight:900;color:' + p.col + ';line-height:1.1">&#8377;' + p.mo + '<span style="font-size:13px;font-weight:500;color:var(--muted)">/mo</span></div>';
-    html += '<div style="font-size:11px;color:var(--muted);margin:4px 0 12px">&#8377;' + p.qtr + '/qtr &nbsp;&middot;&nbsp; &#8377;' + p.yr + '/yr</div>';
-    html += '<div style="background:rgba(13,92,107,.1);border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:14px;display:inline-block">' + p.leads + '</div><br><br>';
-
-    for(var j=0; j<p.feat.length; j++){
-      html += '<div style="font-size:12px;color:var(--muted);padding:3px 0">&#10003;&nbsp;' + p.feat[j] + '</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">';
+  for(var i=0;i<mbPlans.length;i++){
+    var p=mbPlans[i];
+    html += '<div style="border:'+(p.best?'2px solid #0D5C6B':'1px solid var(--border)')+';border-radius:14px;padding:18px;background:'+(p.best?'rgba(13,92,107,.05)':'#fff')+';position:relative">';
+    if(p.best) html += '<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#0D5C6B;color:#fff;font-size:10px;font-weight:800;padding:3px 12px;border-radius:99px;white-space:nowrap">&#11088; BEST VALUE</div>';
+    html += '<div style="font-size:11px;font-weight:800;color:'+p.col+';text-transform:uppercase;letter-spacing:.5px">'+p.name+'</div>';
+    html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">'+p.sub+'</div>';
+    html += '<div style="font-family:var(--serif);font-size:26px;font-weight:900;color:'+p.col+';line-height:1">&#8377;'+p.mo+'<span style="font-size:11px;font-weight:400;color:var(--muted)">/mo</span></div>';
+    html += '<div style="font-size:10px;color:var(--muted);margin:3px 0 12px">&#8377;'+p.yr+'/yr</div>';
+    for(var j=0;j<p.feat.length;j++){
+      html += '<div style="font-size:11px;color:var(--muted);padding:2px 0;display:flex;gap:6px"><span style="color:var(--green);font-weight:700">&#10003;</span>'+p.feat[j]+'</div>';
     }
-
-    html += '<a href="' + ('https://wa.me/918851059588?text=' + encodeURIComponent('Hi ipowork team,\n\nI want to activate the ' + p.name + ' plan.\n\nFirm: ' + (SESS.firm||'Not filled') + '\nSEBI Reg: ' + (SESS.regId||SESS.email||'Not filled') + '\nEmail: ' + (SESS.email||'') + '\n\nPlease confirm fee and payment details.')) + '" target="_blank" style="display:block;text-align:center;padding:12px;background:' + p.col + ';color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:13px;margin-top:16px">Activate ' + p.name + ' — WhatsApp &#128242;</a>';
+    html += '<a href="https://wa.me/918851059588?text='+encodeURIComponent('Hi ipowork, I want to activate '+p.name+' '+p.sub.replace('&#11088;','★')+' plan. Firm: '+(SESS.firm||''))+' " target="_blank" style="display:block;text-align:center;padding:10px;background:'+p.col+';color:#fff;border-radius:9px;text-decoration:none;font-weight:700;font-size:12px;margin-top:14px">Activate &#128242;</a>';
     html += '</div>';
   }
-
   html += '</div>';
-  html += '<div style="padding:12px;background:rgba(0,0,0,.04);border-radius:9px;font-size:11px;color:var(--muted);text-align:center">All prices excl. GST &nbsp;&middot;&nbsp; 0.75&#8211;1% success fee on IPO closures &nbsp;&middot;&nbsp; SEBI Cat I required</div>';
+
+  // ── SECTION 2: AIF INTELLIGENCE ──
+  html += '<div style="font-size:13px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">&#127963;&#65039; AIF Intelligence — Standalone Platform</div>';
+  html += '<div style="background:rgba(91,78,212,.04);border:1px solid rgba(91,78,212,.15);border-radius:14px;padding:20px;margin-bottom:28px">';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">';
+
+  var aifPlans = [
+    {name:'Starter',      mo:'15,000', col:'#08404D', feat:['Search 1500+ SEBI AIFs','Filter by cat/sector/ticket','Export 50 contacts/mo','Watchlist 25 AIFs']},
+    {name:'Professional', mo:'35,000', col:'#1A7D90', best:true, feat:['Everything in Starter','AI deal-investor matching','Deal distribution engine','WhatsApp + email blasts','Unlimited export']},
+    {name:'Enterprise',   mo:'75,000', col:'#5B4ED4', feat:['Everything in Professional','White-label reports','API access','Dedicated account manager','Custom intelligence']},
+  ];
+
+  for(var i=0;i<aifPlans.length;i++){
+    var a=aifPlans[i];
+    html += '<div style="background:#fff;border:1px solid '+(a.best?'var(--cyan)':'var(--border)')+';border-radius:12px;padding:16px;position:relative">';
+    if(a.best) html += '<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--cyan);color:#fff;font-size:10px;font-weight:800;padding:2px 12px;border-radius:99px;white-space:nowrap">POPULAR</div>';
+    html += '<div style="font-size:12px;font-weight:800;color:'+a.col+'">'+a.name+'</div>';
+    html += '<div style="font-family:var(--serif);font-size:24px;font-weight:900;color:'+a.col+';margin:4px 0">&#8377;'+a.mo+'<span style="font-size:11px;font-weight:400;color:var(--muted)">/mo</span></div>';
+    for(var j=0;j<a.feat.length;j++){
+      html += '<div style="font-size:11px;color:var(--muted);padding:2px 0">&#10003; '+a.feat[j]+'</div>';
+    }
+    html += '<a href="https://wa.me/918851059588?text='+encodeURIComponent('Hi, I want AIF Intelligence '+a.name+' plan')+' " target="_blank" style="display:block;text-align:center;padding:9px;background:'+a.col+';color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px;margin-top:12px">Subscribe &#128242;</a>';
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '<div style="font-size:12px;color:var(--muted);text-align:center">Also available at <a href="aif-intel.html" target="_blank" style="color:var(--purple);font-weight:700">ipowork.com/aif-intel.html</a> as standalone platform</div>';
+  html += '</div>';
+
+  // ── SECTION 3: AIRA + RESEARCH REPORTS ──
+  html += '<div style="font-size:13px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">&#128202; AIRA + Research Reports — Pay Per Report</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">';
+
+  var reports = [
+    {name:'AIRA Score',       price:'₹1,140', desc:'AI IPO readiness score with 50-parameter analysis, governance + financial assessment',col:'#08404D'},
+    {name:'Deep Research',    price:'₹4,999', desc:'Full 15-module company intelligence report — 30+ pages, investor-grade analysis',col:'#1A5C8A'},
+    {name:'Valuation Report', price:'₹2,999', desc:'AI-assisted valuation with peer benchmarking, DCF range, IPO price band estimate',col:'#5B4ED4'},
+  ];
+
+  for(var i=0;i<reports.length;i++){
+    var r=reports[i];
+    html += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center">';
+    html += '<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">'+r.name+'</div>';
+    html += '<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+r.col+';margin-bottom:10px">'+r.price+'</div>';
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:14px">'+r.desc+'</div>';
+    html += '<a href="aira.html" style="display:block;padding:9px;background:'+r.col+';color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px">Run Report &#8594;</a>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // ── SECTION 4: DEAL DISTRIBUTION ──
+  html += '<div style="font-size:13px;font-weight:800;color:#25A169;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">&#128225; Deal Distribution — Pay Per Deal</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
+
+  var distPlans = [
+    {name:'Deal Alert Blast',  price:'₹5,000',  desc:'WhatsApp + email to AI-matched AIF list. Instant distribution.',col:'#08404D'},
+    {name:'Featured Deal',     price:'₹15,000', desc:'Priority placement to expanded investor list + 48hr follow-up.',col:'#1A7D90'},
+    {name:'Full Distribution', price:'₹25,000', desc:'All channels + response tracking + investor engagement report.',col:'#5B4ED4'},
+  ];
+
+  for(var i=0;i<distPlans.length;i++){
+    var d=distPlans[i];
+    html += '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center">';
+    html += '<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px">'+d.name+'</div>';
+    html += '<div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+d.col+';margin-bottom:8px">'+d.price+'<span style="font-size:11px;font-weight:400;color:var(--muted)">/deal</span></div>';
+    html += '<div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:14px">'+d.desc+'</div>';
+    html += '<a href="https://wa.me/918851059588?text='+encodeURIComponent('Hi, I want to use Deal Distribution: '+d.name)+' " target="_blank" style="display:block;padding:9px;background:'+d.col+';color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:12px">Get Started &#128242;</a>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  html += '<div style="padding:14px;background:rgba(0,0,0,.03);border-radius:10px;font-size:11px;color:var(--muted);text-align:center">';
+  html += 'All prices exclusive of GST &nbsp;&#183;&nbsp; No lock-in contracts &nbsp;&#183;&nbsp; 0.75&#8211;1% success fee on IPO closures (selective) &nbsp;&#183;&nbsp; SEBI Cat I registration required for MB Portal';
+  html += '</div>';
   html += '</div>';
   return html;
 }
+
 
 window.ppSetBilling = function(cycle){
   var isAnnual=cycle==='annual';
@@ -4760,6 +4828,3 @@ function mbSelectFirm(val){
   if(window.REG){ REG.firm = name; REG.regId = regId; }
 }
 
-</script>
-</body>
-</html
