@@ -1758,6 +1758,9 @@ var NAV_ITEMS = [
   {id:'pipeline',  icon:'📊', label:'Pipeline',          badge:''},
   {id:'deal-room', icon:'🔐', label:'Deal Room',          badge:'NEW'},
   {id:'activity',  icon:'📡', label:'Investor Activity',  badge:'LIVE'},
+  {id:'velocity',  icon:'⚡', label:'Deal Velocity',      badge:'NEW'},
+  {id:'investors', icon:'🏦', label:'Investor Directory', badge:'NEW'},
+  {id:'copilot',   icon:'🤖', label:'AI Deal Copilot',    badge:'AI'},
 
   {id:'ai',        icon:'🤖', label:'IPO AI Advisors',   badge:'9'},
   {id:'bankers',   icon:'🏦', label:'MB Directory',      badge:'242'},
@@ -2115,6 +2118,9 @@ function renderMain(){
   else if(P.view==='pipeline')  content=renderPipeline();
   else if(P.view==='deal-room') content=renderDealRoom();
   else if(P.view==='activity')  content=renderActivityFeed();
+  else if(P.view==='velocity')  content=renderVelocity();
+  else if(P.view==='investors') content=renderInvestorDir();
+  else if(P.view==='copilot')   content=renderCopilot();
   else if(P.view==='pricing')   content=renderPricing();
   else if(P.view==='bankers')    content=renderBankers();
   else if(P.view==='ai')        content=renderAIHome();
@@ -3790,7 +3796,18 @@ function crmDealHTML(d){
   h += '</div></div>';
   h += '</div>';
 
+  /* AI Investor Match section */
+  h += '<div style="padding:20px 24px;border-top:1px solid var(--border2)">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  h += '<div style="font-size:13px;font-weight:800;color:var(--tld)">🤖 AI Investor Matching</div>';
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button data-dealid="'+d.id+'" onclick="crmMatchInvestors(this.dataset.dealid)" style="padding:8px 16px;background:linear-gradient(135deg,#5B4ED4,#7B6FE4);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">⚡ Match Investors</button>';
+  h += '<button onclick="navigate(\'investors\')" style="padding:8px 14px;background:rgba(13,92,107,.08);border:1.5px solid var(--border2);color:var(--teal);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Open Directory →</button>';
+  h += '<button onclick="navigate(\'copilot\')" style="padding:8px 14px;background:rgba(232,138,46,.08);border:1.5px solid rgba(232,138,46,.2);color:var(--amber);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">AI Copilot →</button>';
+  h += '</div></div>';
+  h += '<div id="crm-match-box-'+d.id+'" style="display:none;background:var(--bg);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-top:8px"></div>';
   h += '</div>';
+
   return h;
 }
 
@@ -5234,3 +5251,356 @@ function mbSelectFirm(val){
   if(window.REG){ REG.firm = name; REG.regId = regId; }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   BUILD 1 — DEAL VELOCITY DASHBOARD
+═══════════════════════════════════════════════════════════ */
+function renderVelocity(){
+  var stages=['Sourced','Mandate Signed','DRHP Prep','SEBI Filed','Roadshow','Listed'];
+  var myTimes=[8,12,22,18,9,14];
+  var avgTimes=[10,15,30,22,11,18];
+  var topTimes=[5,8,16,14,7,10];
+  var totalMine=myTimes.reduce(function(a,b){return a+b;},0);
+  var totalAvg=avgTimes.reduce(function(a,b){return a+b;},0);
+  var totalTop=topTimes.reduce(function(a,b){return a+b;},0);
+  var savingVsAvg=totalAvg-totalMine;
+  var gapToTop=totalMine-totalTop;
+  var myDeals=(typeof CRM!=='undefined'&&CRM.deals)?CRM.deals:[];
+  var closed=myDeals.filter(function(d){return d.stage==='closed';}).length;
+  var active=myDeals.filter(function(d){return d.stage!=='closed';}).length;
+  var h='<div class="portal-pad">';
+  h+='<div style="margin-bottom:24px"><div class="page-title">⚡ Deal Velocity Dashboard</div>';
+  h+='<div class="page-sub">Your deal speed vs platform average and top performers</div></div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px">';
+  [{label:'Your Avg Close Time',val:totalMine+' days',sub:'Across all stages',col:'var(--cyan)',icon:'⏱️'},
+   {label:'Platform Average',val:totalAvg+' days',sub:'All MBs on ipowork',col:'var(--muted)',icon:'📊'},
+   {label:'Top 10% MBs',val:totalTop+' days',sub:'Goal to beat',col:'var(--green)',icon:'🏆'},
+   {label:'Your Edge vs Avg',val:(savingVsAvg>0?'+':'')+savingVsAvg+' days',sub:savingVsAvg>0?'Faster than average':'Slower than average',col:savingVsAvg>0?'var(--green)':'var(--red)',icon:'📈'}
+  ].forEach(function(k){
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px">';
+    h+='<div style="font-size:20px;margin-bottom:8px">'+k.icon+'</div>';
+    h+='<div style="font-size:22px;font-weight:900;color:'+k.col+';font-family:var(--serif)">'+k.val+'</div>';
+    h+='<div style="font-size:12px;font-weight:700;color:var(--text);margin:4px 0 2px">'+k.label+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted)">'+k.sub+'</div></div>';
+  });
+  h+='</div>';
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px">';
+  h+='<div style="font-weight:900;font-size:15px;color:var(--text);font-family:var(--serif);margin-bottom:6px">Stage-by-Stage Breakdown</div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:20px">Your time per stage vs platform average and top performers</div>';
+  h+='<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
+  [['var(--cyan)','You'],['rgba(107,138,148,.4)','Avg'],['var(--green)','Top 10%']].forEach(function(l){
+    h+='<div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:3px;background:'+l[0]+'"></div><span style="font-size:12px;font-weight:600;color:var(--text)">'+l[1]+'</span></div>';
+  });
+  h+='</div>';
+  stages.forEach(function(stage,i){
+    var max=Math.max(myTimes[i],avgTimes[i],topTimes[i]);
+    var isFaster=myTimes[i]<=avgTimes[i];
+    h+='<div style="margin-bottom:18px">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+    h+='<span style="font-size:13px;font-weight:700;color:var(--text)">'+stage+'</span>';
+    h+='<div style="display:flex;gap:12px">';
+    h+='<span style="font-size:12px;font-weight:800;color:var(--cyan)">'+myTimes[i]+'d</span>';
+    h+='<span style="font-size:12px;color:var(--muted)">avg '+avgTimes[i]+'d</span>';
+    h+='<span style="font-size:12px;color:var(--green)">top '+topTimes[i]+'d</span>';
+    h+='<span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:'+(isFaster?'rgba(26,158,107,.1)':'rgba(192,57,43,.08)')+';color:'+(isFaster?'var(--green)':'var(--red)')+'">'+( isFaster?'✓ Faster':'⚠ Slower')+'</span>';
+    h+='</div></div>';
+    [['var(--cyan)',(myTimes[i]/max*100).toFixed(0)],['rgba(107,138,148,.4)',(avgTimes[i]/max*100).toFixed(0)],['var(--green)',(topTimes[i]/max*100).toFixed(0)]].forEach(function(b){
+      h+='<div style="height:7px;background:rgba(13,92,107,.08);border-radius:4px;margin-bottom:4px;overflow:hidden"><div style="height:100%;width:'+b[1]+'%;background:'+b[0]+';border-radius:4px"></div></div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">';
+  h+='<div style="background:linear-gradient(135deg,rgba(91,78,212,.06),rgba(91,78,212,.02));border:1px solid rgba(91,78,212,.15);border-radius:14px;padding:20px">';
+  h+='<div style="font-size:13px;font-weight:800;color:var(--purple);margin-bottom:12px">🎯 Gap to Top 10%</div>';
+  h+='<div style="font-size:32px;font-weight:900;color:var(--purple);font-family:var(--serif);margin-bottom:8px">'+gapToTop+' days</div>';
+  h+='<div style="font-size:12px;color:var(--muted);line-height:1.7">Top MBs close in <strong style="color:var(--text)">'+totalTop+' days</strong>. You\'re at '+totalMine+'. Closing this gap increases deal capacity by ~'+Math.round(gapToTop/totalTop*100)+'%.</div>';
+  h+='</div>';
+  h+='<div style="background:linear-gradient(135deg,rgba(26,158,107,.06),rgba(26,158,107,.02));border:1px solid rgba(26,158,107,.15);border-radius:14px;padding:20px">';
+  h+='<div style="font-size:13px;font-weight:800;color:var(--green);margin-bottom:12px">💡 AI Recommendation</div>';
+  h+='<div style="font-size:13px;color:var(--text);line-height:1.7;margin-bottom:12px">Your <strong>DRHP Prep stage</strong> takes 22 days vs top MB average of 16. Using the AI Copilot to auto-draft IM summaries typically saves 5-7 days.</div>';
+  h+='<button onclick="navigate(\'copilot\')" style="padding:9px 16px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Open AI Copilot →</button>';
+  h+='</div></div>';
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px">';
+  h+='<div style="font-weight:900;font-size:15px;color:var(--text);font-family:var(--serif);margin-bottom:16px">🏆 Platform Leaderboard — This Month</div>';
+  var lb=[{rank:1,name:'Axis Capital',deals:6,avgDays:31,badge:'👑'},{rank:2,name:'Motilal Oswal IB',deals:5,avgDays:34,badge:'🥈'},{rank:3,name:'ICICI Securities',deals:8,avgDays:36,badge:'🥉'},{rank:4,name:'You',deals:active+closed,avgDays:totalMine,badge:'📍',isMe:true},{rank:5,name:'Emkay Global',deals:4,avgDays:44,badge:''},{rank:6,name:'JM Financial',deals:5,avgDays:47,badge:''},{rank:7,name:'Anand Rathi',deals:3,avgDays:52,badge:''},{rank:8,name:'IIFL Securities',deals:4,avgDays:55,badge:''}];
+  lb.sort(function(a,b){return a.avgDays-b.avgDays;});
+  lb.forEach(function(r,idx){
+    h+='<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;margin-bottom:6px;background:'+(r.isMe?'rgba(26,158,107,.06)':'transparent')+';border:'+(r.isMe?'1px solid rgba(26,158,107,.2)':'1px solid transparent')+'">';
+    h+='<div style="width:24px;text-align:center;font-weight:900;font-size:13px;color:'+(idx<3?'var(--amber)':'var(--muted)')+'">'+r.badge+(r.badge?'':'#'+(idx+1))+'</div>';
+    h+='<div style="flex:1;font-weight:'+(r.isMe?800:600)+';font-size:13px;color:'+(r.isMe?'var(--green)':'var(--text)')+'">'+r.name+(r.isMe?' ← You':'')+'</div>';
+    h+='<div style="font-size:12px;color:var(--muted);min-width:60px;text-align:right">'+r.deals+' deals</div>';
+    h+='<div style="font-size:13px;font-weight:800;color:'+(idx===0?'var(--green)':r.isMe?'var(--cyan)':'var(--text)')+';min-width:64px;text-align:right">'+r.avgDays+'d avg</div>';
+    h+='</div>';
+  });
+  h+='</div></div>';
+  return h;
+}
+
+function navigate(view){P.view=view;renderMain();renderSidebar();}
+
+/* ═══════════════════════════════════════════════════════════
+   BUILD 2 — INVESTOR DIRECTORY
+═══════════════════════════════════════════════════════════ */
+var INV_DB={investors:[],filter:{search:'',type:'',sector:'',city:''},loaded:false};
+var INV_SEED=[
+  {id:'FO001',type:'Family Office',name:'Bajaj Family Office',contact:'Rahul Bajaj Jr.',city:'Pune',state:'Maharashtra',sectors:['Manufacturing','Auto','Consumer'],ticket:'₹10-50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11-14%',aum:'₹2,000+ Cr',email:'invest@bajajfo.com',note:'Secured NCDs, known NBFC buyer'},
+  {id:'FO002',type:'Family Office',name:'Godrej Family Office',contact:'Pirojsha Godrej',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Consumer','FMCG'],ticket:'₹25-100 Cr',ticketMin:25,ticketMax:100,prefDebt:true,prefEquity:true,yield:'12-16%',aum:'₹5,000+ Cr',email:'investments@godrejfo.com',note:'Structured debt + long-term equity'},
+  {id:'FO003',type:'Family Office',name:'Dabur Family Office',contact:'Mohit Burman',city:'Delhi',state:'Delhi',sectors:['Healthcare','FMCG','Consumer'],ticket:'₹15-60 Cr',ticketMin:15,ticketMax:60,prefDebt:true,prefEquity:true,yield:'11-15%',aum:'₹3,500+ Cr',email:'',note:'Active in healthcare NCDs'},
+  {id:'FO004',type:'Family Office',name:'Shapoorji Pallonji FO',contact:'Shapoor Mistry',city:'Mumbai',state:'Maharashtra',sectors:['Infrastructure','Real Estate','Construction'],ticket:'₹50-200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:false,yield:'10-13%',aum:'₹8,000+ Cr',email:'',note:'Infra debt, long tenor'},
+  {id:'FO005',type:'Family Office',name:'Piramal Family Office',contact:'Anand Piramal',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Healthcare','Finance'],ticket:'₹25-150 Cr',ticketMin:25,ticketMax:150,prefDebt:true,prefEquity:true,yield:'13-18%',aum:'₹4,000+ Cr',email:'',note:'High-yield RE debt'},
+  {id:'FO006',type:'Family Office',name:'Burman Family Office',contact:'Vivek Burman',city:'Delhi',state:'Delhi',sectors:['FMCG','Consumer','Retail'],ticket:'₹10-40 Cr',ticketMin:10,ticketMax:40,prefDebt:true,prefEquity:true,yield:'10-14%',aum:'₹2,200+ Cr',email:'',note:'Conservative debt preference'},
+  {id:'FO007',type:'Family Office',name:'Premji Invest',contact:'Rishad Premji',city:'Bengaluru',state:'Karnataka',sectors:['Technology','SaaS','Consumer Tech'],ticket:'₹20-80 Cr',ticketMin:20,ticketMax:80,prefDebt:false,prefEquity:true,yield:'18-25%',aum:'₹6,000+ Cr',email:'invest@premjiinvest.com',note:'Tech equity, selective debt'},
+  {id:'FO008',type:'Family Office',name:'Murugappa Family Office',contact:'AM Muruganantham',city:'Chennai',state:'Tamil Nadu',sectors:['Manufacturing','Agri','Finance'],ticket:'₹15-50 Cr',ticketMin:15,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11-14%',aum:'₹3,000+ Cr',email:'',note:'South India, diversified'},
+  {id:'FO009',type:'Family Office',name:'TVS Family Office',contact:'Venu Srinivasan',city:'Chennai',state:'Tamil Nadu',sectors:['Auto','Manufacturing','Logistics'],ticket:'₹10-35 Cr',ticketMin:10,ticketMax:35,prefDebt:true,prefEquity:true,yield:'10-13%',aum:'₹1,800+ Cr',email:'',note:'Auto sector specialist'},
+  {id:'FO010',type:'Family Office',name:'Hinduja Family Office',contact:'Sanjay Hinduja',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Infrastructure','Media'],ticket:'₹30-120 Cr',ticketMin:30,ticketMax:120,prefDebt:true,prefEquity:true,yield:'11-15%',aum:'₹7,000+ Cr',email:'',note:'Diversified, global outlook'},
+  {id:'FO011',type:'Family Office',name:'Vedanta Family Office',contact:'Anil Agarwal',city:'Delhi',state:'Delhi',sectors:['Mining','Metals','Energy'],ticket:'₹50-200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:true,yield:'12-16%',aum:'₹10,000+ Cr',email:'',note:'Commodities & energy'},
+  {id:'FO012',type:'Family Office',name:'Tata Sons FO',contact:'N Chandrasekaran',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Consumer','Steel'],ticket:'₹100-500 Cr',ticketMin:100,ticketMax:500,prefDebt:false,prefEquity:true,yield:'15-22%',aum:'₹20,000+ Cr',email:'',note:'Large-ticket equity only'},
+  {id:'MF001',type:'Debt Fund',name:'HDFC Short Term Debt Fund',contact:'Anil Bamboli',city:'Mumbai',state:'Maharashtra',sectors:['NBFC','PSU','Corporate'],ticket:'₹50-500 Cr',ticketMin:50,ticketMax:500,prefDebt:true,prefEquity:false,yield:'7-10%',aum:'₹15,000 Cr',email:'',note:'AA+ and above, short-term'},
+  {id:'MF002',type:'Debt Fund',name:'ICICI Pru Corporate Bond',contact:'Manish Banthia',city:'Mumbai',state:'Maharashtra',sectors:['Corporate','NBFC','PSU'],ticket:'₹50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:false,yield:'7.5-10%',aum:'₹18,000 Cr',email:'',note:'High-quality corporate bonds'},
+  {id:'MF003',type:'Debt Fund',name:'Kotak Debt Hybrid Fund',contact:'Deepak Agrawal',city:'Mumbai',state:'Maharashtra',sectors:['Corporate','Real Estate','NBFC'],ticket:'₹25-150 Cr',ticketMin:25,ticketMax:150,prefDebt:true,prefEquity:false,yield:'8-11%',aum:'₹6,500 Cr',email:'',note:'Hybrid debt'},
+  {id:'MF004',type:'Debt Fund',name:'Aditya Birla Credit Risk',contact:'Maneesh Dangi',city:'Mumbai',state:'Maharashtra',sectors:['NBFC','SME','Mid-corp'],ticket:'₹25-200 Cr',ticketMin:25,ticketMax:200,prefDebt:true,prefEquity:false,yield:'9-13%',aum:'₹8,000 Cr',email:'',note:'A/A+ credit risk segment'},
+  {id:'MF005',type:'PMS',name:'Alchemy Capital Management',contact:'Hiren Ved',city:'Mumbai',state:'Maharashtra',sectors:['Consumer','Technology','Healthcare'],ticket:'₹2-15 Cr',ticketMin:2,ticketMax:15,prefDebt:false,prefEquity:true,yield:'18-28%',aum:'₹2,000 Cr',email:'info@alchemycapital.com',note:'Long-only equity, mid/small-cap'},
+  {id:'MF006',type:'PMS',name:'ASK Investment Managers',contact:'Prateek Agrawal',city:'Mumbai',state:'Maharashtra',sectors:['Consumer','Healthcare','Technology'],ticket:'₹5-30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'16-25%',aum:'₹45,000 Cr',email:'',note:'Largest PMS in India'},
+  {id:'TR001',type:'Treasury',name:'Bajaj Finance Treasury',contact:'Rajeev Jain',city:'Pune',state:'Maharashtra',sectors:['NBFC','Consumer Finance'],ticket:'₹100-1000 Cr',ticketMin:100,ticketMax:1000,prefDebt:true,prefEquity:false,yield:'7.5-9%',aum:'₹50,000 Cr',email:'',note:'Short-term CP, AAA only'},
+  {id:'TR002',type:'Treasury',name:'L&T Finance Treasury',contact:'Sachinn Joshi',city:'Mumbai',state:'Maharashtra',sectors:['Infrastructure','Manufacturing'],ticket:'₹50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:false,yield:'8-10%',aum:'₹8,000 Cr',email:'',note:'Infra focus, 1-3Y tenor'},
+  {id:'TR003',type:'Treasury',name:'Shriram Finance Treasury',contact:'Y S Chakravarti',city:'Chennai',state:'Tamil Nadu',sectors:['NBFC','Transport'],ticket:'₹50-200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:false,yield:'9-12%',aum:'₹5,000 Cr',email:'',note:'Active CP/NCD buyer'},
+  {id:'TR004',type:'Treasury',name:'Muthoot Finance Treasury',contact:'George Alexander',city:'Kochi',state:'Kerala',sectors:['Gold Finance','NBFC'],ticket:'₹25-100 Cr',ticketMin:25,ticketMax:100,prefDebt:true,prefEquity:false,yield:'9-13%',aum:'₹3,000 Cr',email:'',note:'Secured instruments only'},
+  {id:'HNI001',type:'HNI',name:'Rakesh Jhunjhunwala Estate',contact:'Rekha Jhunjhunwala',city:'Mumbai',state:'Maharashtra',sectors:['Consumer','Pharma','Finance'],ticket:'₹10-75 Cr',ticketMin:10,ticketMax:75,prefDebt:false,prefEquity:true,yield:'20-35%',aum:'₹35,000 Cr',email:'',note:'Long-term equity, small-mid cap'},
+  {id:'HNI002',type:'HNI',name:'Radhakishan Damani Family',contact:'Damani Office',city:'Mumbai',state:'Maharashtra',sectors:['Retail','Consumer','FMCG'],ticket:'₹25-100 Cr',ticketMin:25,ticketMax:100,prefDebt:false,prefEquity:true,yield:'18-30%',aum:'₹2,00,000+ Cr',email:'',note:'Concentrated, long-horizon equity'},
+  {id:'HNI003',type:'HNI',name:'Nandan Nilekani Office',contact:'Nandan Nilekani',city:'Bengaluru',state:'Karnataka',sectors:['Technology','FinTech','SaaS'],ticket:'₹5-25 Cr',ticketMin:5,ticketMax:25,prefDebt:false,prefEquity:true,yield:'20-40%',aum:'₹5,000+ Cr',email:'',note:'Early-stage tech, FinTech'},
+  {id:'HNI004',type:'HNI',name:'Uday Kotak Family',contact:'Uday Kotak',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Banking','Insurance'],ticket:'₹50-200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:true,yield:'12-18%',aum:'₹10,000+ Cr',email:'',note:'Financial sector focus'},
+];
+
+async function invLoad(){
+  if(INV_DB.loaded) return;
+  try{var r=await window.storage.get('investors:db');INV_DB.investors=r?JSON.parse(r.value):JSON.parse(JSON.stringify(INV_SEED));}catch(e){INV_DB.investors=JSON.parse(JSON.stringify(INV_SEED));}
+  INV_DB.loaded=true;
+}
+async function invSave(){try{await window.storage.set('investors:db',JSON.stringify(INV_DB.investors),true);}catch(e){}}
+
+function renderInvestorDir(){
+  invLoad().then(function(){if(!INV_DB.loaded){renderMain();}});
+  if(!INV_DB.loaded){return '<div class="portal-pad"><div style="text-align:center;padding:60px;color:var(--muted)">Loading investor database...</div></div>';}
+  var f=INV_DB.filter;
+  var types=[...new Set(INV_DB.investors.map(function(i){return i.type;}))];
+  var sectors=[...new Set(INV_DB.investors.flatMap(function(i){return i.sectors;}))].sort();
+  var filtered=INV_DB.investors.filter(function(inv){
+    if(f.search&&!inv.name.toLowerCase().includes(f.search.toLowerCase())&&!inv.sectors.join(' ').toLowerCase().includes(f.search.toLowerCase())&&!inv.city.toLowerCase().includes(f.search.toLowerCase())) return false;
+    if(f.type&&inv.type!==f.type) return false;
+    if(f.sector&&!inv.sectors.includes(f.sector)) return false;
+    return true;
+  });
+  var byType={};INV_DB.investors.forEach(function(inv){byType[inv.type]=(byType[inv.type]||0)+1;});
+  var typeColors={'Family Office':'var(--amber)','Debt Fund':'var(--cyan)','PMS':'var(--purple)','Treasury':'var(--green)','HNI':'#FF4D6D'};
+  var h='<div class="portal-pad">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">';
+  h+='<div><div class="page-title">🏦 Investor Directory</div><div class="page-sub">Family offices, debt funds, PMS, treasury desks & HNIs — '+(INV_DB.investors.length)+' investors</div></div>';
+  h+='<button onclick="invShowAdd()" style="padding:10px 20px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer">+ Add Investor</button>';
+  h+='</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px">';
+  Object.keys(byType).forEach(function(t){
+    var active=f.type===t;
+    h+='<div style="background:var(--card);border:1.5px solid '+(active?typeColors[t]||'var(--cyan)':'var(--border)')+';border-radius:12px;padding:14px;cursor:pointer;transition:.2s" onclick="INV_DB.filter.type=INV_DB.filter.type===\''+t+'\'?\'\':\''+t+'\';renderMain()">';
+    h+='<div style="font-size:20px;font-weight:900;color:'+(typeColors[t]||'var(--cyan)')+';font-family:var(--serif)">'+byType[t]+'</div>';
+    h+='<div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">'+t+'</div></div>';
+  });
+  h+='</div>';
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
+  h+='<input class="inp" placeholder="Search investor, sector, city..." value="'+(f.search||'')+'" oninput="INV_DB.filter.search=this.value;renderMain()" style="flex:1;min-width:160px;font-size:13px"/>';
+  h+='<select class="inp" style="font-size:12px" onchange="INV_DB.filter.type=this.value;renderMain()"><option value="">All Types</option>'+types.map(function(t){return '<option'+(f.type===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>';
+  h+='<select class="inp" style="font-size:12px" onchange="INV_DB.filter.sector=this.value;renderMain()"><option value="">All Sectors</option>'+sectors.map(function(s){return '<option'+(f.sector===s?' selected':'')+'>'+s+'</option>';}).join('')+'</select>';
+  h+='<button onclick="INV_DB.filter={search:\'\',type:\'\',sector:\'\',city:\'\'};renderMain()" style="padding:9px 14px;background:rgba(13,92,107,.08);border:1.5px solid var(--border);color:var(--muted);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Clear</button>';
+  h+='</div>';
+  h+='<div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px">'+filtered.length+' investors</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px">';
+  filtered.forEach(function(inv){
+    var col=typeColors[inv.type]||'var(--cyan)';
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:13px;padding:18px;transition:.2s" onmouseenter="this.style.borderColor=\'var(--cyan)\'" onmouseleave="this.style.borderColor=\'var(--border)\'">';
+    h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px">';
+    h+='<div style="flex:1"><div style="font-weight:800;font-size:14px;color:var(--text);margin-bottom:3px">'+inv.name+'</div><div style="font-size:11px;color:var(--muted)">'+inv.contact+' · '+inv.city+'</div></div>';
+    h+='<span style="font-size:10px;padding:3px 9px;border-radius:99px;font-weight:800;background:'+col+'15;color:'+col+';border:1px solid '+col+'30;white-space:nowrap">'+inv.type+'</span></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+    h+='<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:var(--text)">'+inv.ticket+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">TICKET</div></div>';
+    h+='<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:var(--amber)">'+inv.yield+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">YIELD</div></div>';
+    h+='<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:var(--text)">'+inv.aum+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">AUM</div></div>';
+    h+='</div>';
+    h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">';
+    inv.sectors.forEach(function(s){h+='<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(13,92,107,.06);color:var(--teal);font-weight:600">'+s+'</span>';});
+    h+='</div>';
+    if(inv.note) h+='<div style="font-size:11px;color:var(--muted);background:rgba(13,92,107,.03);border-radius:6px;padding:6px 8px;margin-bottom:10px;line-height:1.5">'+inv.note+'</div>';
+    h+='<div style="display:flex;gap:6px;margin-bottom:10px">';
+    if(inv.prefDebt)   h+='<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(26,158,107,.1);color:var(--green);font-weight:700;border:1px solid rgba(26,158,107,.2)">✓ Debt</span>';
+    if(inv.prefEquity) h+='<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(91,78,212,.1);color:var(--purple);font-weight:700;border:1px solid rgba(91,78,212,.2)">✓ Equity</span>';
+    h+='</div>';
+    h+='<div style="display:flex;gap:7px">';
+    h+='<button onclick="invAddToDist(\''+inv.id+'\')" style="flex:1;padding:8px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">+ Add to Deal</button>';
+    if(inv.email) h+='<a href="mailto:'+inv.email+'" style="padding:8px 12px;background:var(--card);border:1.5px solid var(--border);color:var(--muted);border-radius:7px;font-size:11px;font-weight:700;text-decoration:none">✉</a>';
+    h+='<button onclick="invWhatsApp(\''+inv.id+'\')" style="padding:8px 12px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:11px;cursor:pointer">📱</button>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+  h+='<div id="inv-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:20px">';
+  h+='<div style="background:var(--card);border-radius:16px;width:100%;max-width:540px;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto">';
+  h+='<div style="font-weight:900;font-size:17px;color:var(--text);margin-bottom:18px;font-family:var(--serif)">🏦 Add Investor</div>';
+  h+='<div style="display:grid;gap:12px">';
+  h+='<input id="inv-name" class="inp" placeholder="Investor / Fund Name" style="width:100%;font-size:13px"/>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  h+='<select id="inv-type" class="inp" style="width:100%;font-size:13px"><option>Family Office</option><option>Debt Fund</option><option>PMS</option><option>Treasury</option><option>HNI</option></select>';
+  h+='<input id="inv-city" class="inp" placeholder="City" style="width:100%;font-size:13px"/></div>';
+  h+='<input id="inv-contact" class="inp" placeholder="Contact Person" style="width:100%;font-size:13px"/>';
+  h+='<input id="inv-email" class="inp" type="email" placeholder="Email (optional)" style="width:100%;font-size:13px"/>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  h+='<input id="inv-ticket" class="inp" placeholder="Ticket (e.g. ₹10-50 Cr)" style="width:100%;font-size:13px"/>';
+  h+='<input id="inv-yield" class="inp" placeholder="Target Yield %" style="width:100%;font-size:13px"/></div>';
+  h+='<input id="inv-sectors" class="inp" placeholder="Sectors (comma separated)" style="width:100%;font-size:13px"/>';
+  h+='<textarea id="inv-note" class="inp" placeholder="Investment preferences..." style="width:100%;font-size:13px;height:60px;resize:vertical"></textarea>';
+  h+='<div style="display:flex;gap:10px">';
+  h+='<button onclick="invCreate()" style="flex:1;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:9px;font-weight:800;font-size:14px;cursor:pointer">Add</button>';
+  h+='<button onclick="document.getElementById(\'inv-modal\').style.display=\'none\'" style="padding:13px 20px;background:var(--card);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-weight:700;font-size:14px;cursor:pointer">Cancel</button>';
+  h+='</div></div></div></div>';
+  h+='</div>';
+  return h;
+}
+function invShowAdd(){var m=document.getElementById('inv-modal');if(m)m.style.display='flex';}
+function invCreate(){
+  var name=(document.getElementById('inv-name')||{}).value||'';
+  if(!name){showToast('Enter investor name');return;}
+  var sectors=((document.getElementById('inv-sectors')||{}).value||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+  INV_DB.investors.unshift({id:'INV'+Date.now().toString(36).toUpperCase(),type:(document.getElementById('inv-type')||{}).value||'Family Office',name:name,contact:(document.getElementById('inv-contact')||{}).value||'',city:(document.getElementById('inv-city')||{}).value||'',state:'',sectors:sectors,ticket:(document.getElementById('inv-ticket')||{}).value||'',ticketMin:0,ticketMax:999,prefDebt:true,prefEquity:true,yield:(document.getElementById('inv-yield')||{}).value||'',aum:'—',email:(document.getElementById('inv-email')||{}).value||'',note:(document.getElementById('inv-note')||{}).value||''});
+  invSave();document.getElementById('inv-modal').style.display='none';showToast('Investor added');renderMain();
+}
+function invAddToDist(id){
+  var inv=INV_DB.investors.find(function(i){return i.id===id;});
+  if(!inv)return;
+  var msg=encodeURIComponent('Deal Alert from ipowork: We have a deal matching '+inv.name+"'s mandate in "+inv.sectors[0]+'. Please contact us for the IM.');
+  window.open('https://wa.me/?text='+msg,'_blank');showToast('Distribution initiated for '+inv.name);
+}
+function invWhatsApp(id){
+  var inv=INV_DB.investors.find(function(i){return i.id===id;});
+  if(!inv)return;
+  var msg=encodeURIComponent('Hello '+inv.contact+', reaching out from ipowork. We have a deal matching '+inv.name+"'s mandate in "+inv.sectors[0]+'. Would you be open to a brief conversation?');
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BUILD 3 — AI DEAL COPILOT
+═══════════════════════════════════════════════════════════ */
+function renderCopilot(){
+  var tools=[
+    {id:'memo',icon:'📄',title:'Deal Memo Generator',sub:'Auto-draft a professional deal memo from basic inputs',color:'var(--cyan)'},
+    {id:'shortlist',icon:'🏦',title:'Investor Shortlist AI',sub:'AI picks top 10 matching investors for your deal',color:'var(--purple)'},
+    {id:'im',icon:'📋',title:'IM Summary Writer',sub:'Convert detailed IM into a crisp 1-page executive summary',color:'var(--amber)'},
+    {id:'followup',icon:'💬',title:'Follow-up Email Drafter',sub:'Draft personalised follow-ups for each investor interaction',color:'var(--green)'},
+    {id:'risk',icon:'⚠️',title:'Deal Risk Flags',sub:'AI scans deal and flags potential investor objections',color:'#FF4D6D'},
+    {id:'pitch',icon:'🎯',title:'Investor Pitch Script',sub:'Generate a 3-minute verbal pitch for roadshow presentations',color:'var(--teal)'},
+  ];
+  var h='<div class="portal-pad">';
+  h+='<div style="margin-bottom:24px"><div class="page-title">🤖 AI Deal Copilot</div><div class="page-sub">AI-powered deal memos, investor shortlists, IM summaries & follow-up drafts</div></div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">';
+  tools.forEach(function(t){
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:.2s" onmouseenter="this.style.borderColor=\''+t.color+'\'" onmouseleave="this.style.borderColor=\'var(--border)\'" onclick="copilotOpen(\''+t.id+'\')">';
+    h+='<div style="width:42px;height:42px;border-radius:11px;background:'+t.color+'20;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:14px">'+t.icon+'</div>';
+    h+='<div style="font-weight:800;font-size:14px;color:var(--text);margin-bottom:6px">'+t.title+'</div>';
+    h+='<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px">'+t.sub+'</div>';
+    h+='<div style="font-size:12px;font-weight:700;color:'+t.color+'">Open Tool →</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div id="copilot-panel" style="display:none;margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden">';
+  h+='<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">';
+  h+='<div id="copilot-title" style="font-weight:800;font-size:15px;color:var(--text)"></div>';
+  h+='<button onclick="document.getElementById(\'copilot-panel\').style.display=\'none\'" style="padding:6px 12px;background:rgba(13,92,107,.08);border:1.5px solid var(--border);color:var(--muted);border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">✕</button></div>';
+  h+='<div id="copilot-form" style="padding:20px;border-bottom:1px solid var(--border)"></div>';
+  h+='<div id="copilot-output" style="padding:20px;display:none"><div id="copilot-result" style="font-size:13px;line-height:1.9;color:var(--text);white-space:pre-wrap"></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:14px">';
+  h+='<button onclick="copilotCopy()" style="padding:9px 18px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📋 Copy</button>';
+  h+='<button onclick="copilotRefine()" style="padding:9px 18px;background:rgba(91,78,212,.1);border:1.5px solid rgba(91,78,212,.2);color:var(--purple);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 Refine</button>';
+  h+='</div></div></div></div>';
+  return h;
+}
+var COPILOT_ACTIVE={tool:'',prompt:''};
+function copilotOpen(tool){
+  COPILOT_ACTIVE.tool=tool;
+  var panel=document.getElementById('copilot-panel'),form=document.getElementById('copilot-form'),title=document.getElementById('copilot-title'),out=document.getElementById('copilot-output');
+  if(!panel||!form||!title)return;
+  out.style.display='none';panel.style.display='block';
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+  var forms={
+    memo:{title:'📄 Deal Memo Generator',fields:[{id:'cp-issuer',label:'Issuer Name',ph:'e.g. Acme NBFC Ltd'},{id:'cp-type',label:'Instrument',ph:'NCD / CP / IPO'},{id:'cp-size',label:'Deal Size',ph:'₹75 Crore'},{id:'cp-yield',label:'Yield / Returns',ph:'11.5% p.a.'},{id:'cp-tenor',label:'Tenor',ph:'24 months'},{id:'cp-sector',label:'Sector',ph:'Housing Finance'},{id:'cp-rating',label:'Credit Rating',ph:'A+ / AA-'},{id:'cp-security',label:'Security',ph:'First charge on receivables'}],btn:'Generate Deal Memo'},
+    shortlist:{title:'🏦 Investor Shortlist AI',fields:[{id:'cp-type',label:'Deal Type',ph:'NCD / SME IPO'},{id:'cp-size',label:'Deal Size',ph:'₹50 Crore'},{id:'cp-yield',label:'Target Yield',ph:'11-14%'},{id:'cp-sector',label:'Sector',ph:'NBFC / Healthcare'},{id:'cp-rating',label:'Rating',ph:'A+ / Unrated'},{id:'cp-tenor',label:'Tenor',ph:'18-36 months'}],btn:'Get Investor Shortlist'},
+    im:{title:'📋 IM Summary Writer',fields:[{id:'cp-issuer',label:'Company',ph:'Company name'},{id:'cp-biz',label:'Business',ph:'Business model & revenue'},{id:'cp-fin',label:'Financials',ph:'Revenue, PAT, Net Worth, D/E'},{id:'cp-usp',label:'Highlights',ph:'Key investment reasons'},{id:'cp-risk',label:'Risks',ph:'Key risk factors'}],btn:'Generate IM Summary'},
+    followup:{title:'💬 Follow-up Drafter',fields:[{id:'cp-investor',label:'Investor',ph:'Motilal Family Office'},{id:'cp-issuer',label:'Deal',ph:'Zenith NBFC NCD'},{id:'cp-last',label:'Last Interaction',ph:'Sent IM 3 days ago'},{id:'cp-ask',label:'Ask',ph:'Schedule a call'}],btn:'Draft Follow-up'},
+    risk:{title:'⚠️ Risk Flags',fields:[{id:'cp-issuer',label:'Issuer',ph:'Company name'},{id:'cp-type',label:'Deal Type',ph:'NCD / IPO'},{id:'cp-fin',label:'Financials',ph:'Revenue, debt, margins'},{id:'cp-sector',label:'Sector',ph:'Sector & competition'},{id:'cp-promoter',label:'Promoter',ph:'Background notes'}],btn:'Analyse Risk Flags'},
+    pitch:{title:'🎯 Pitch Script',fields:[{id:'cp-issuer',label:'Company',ph:'Company name'},{id:'cp-type',label:'Deal Type',ph:'NCD / SME IPO'},{id:'cp-size',label:'Size',ph:'₹100 Crore'},{id:'cp-usp',label:'Top 3 Reasons',ph:'Why this deal is compelling'},{id:'cp-audience',label:'Audience',ph:'Family office focused on NBFC'}],btn:'Generate Pitch'}
+  };
+  var cfg=forms[tool];if(!cfg)return;
+  title.textContent=cfg.title;
+  var fh='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px">';
+  cfg.fields.forEach(function(f){fh+='<div><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px">'+f.label+'</label><input id="'+f.id+'" class="inp" placeholder="'+f.ph+'" style="width:100%;font-size:13px"/></div>';});
+  fh+='</div><button onclick="copilotRun()" style="padding:12px 28px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:9px;font-weight:800;font-size:14px;cursor:pointer">'+cfg.btn+' →</button>';
+  form.innerHTML=fh;
+}
+async function copilotRun(){
+  var out=document.getElementById('copilot-output'),res=document.getElementById('copilot-result');
+  if(!out||!res)return;
+  out.style.display='block';res.textContent='⟳ AI generating... 5-10 seconds';
+  var inputs=document.querySelectorAll('#copilot-form .inp'),context=[];
+  inputs.forEach(function(inp){if(inp.value.trim())context.push(inp.previousElementSibling.textContent+': '+inp.value.trim());});
+  context=context.join('\n');
+  var prompts={
+    memo:'Write a professional deal memo for Indian capital markets:\n\n'+context+'\n\nInclude: Executive Summary, Issuer Profile, Deal Structure, Investment Rationale, Risk Factors, Call-to-Action.',
+    shortlist:'Top 10 Indian institutional investor types for this deal:\n\n'+context+'\n\nFor each: name, match probability (HIGH/MEDIUM), ticket size, approach tip. Specific to India.',
+    im:'Write a 1-page IM executive summary for:\n\n'+context+'\n\nSections: Company Overview, Financial Snapshot, Deal Terms, Investment Highlights, Risk Summary.',
+    followup:'Draft a professional follow-up email (150-200 words) for:\n\n'+context+'\n\nWarm, specific, clear call-to-action. Include subject line.',
+    risk:'Identify 5-8 investor risk flags for this deal:\n\n'+context+'\n\nFor each: flag name, severity (HIGH/MEDIUM/LOW), explanation, suggested mitigation.',
+    pitch:'Write a 3-minute investor pitch for:\n\n'+context+'\n\nStructure: Hook (30s), Overview (45s), Deal Structure (45s), Why Now (30s), Call to Action (30s).'
+  };
+  COPILOT_ACTIVE.prompt=prompts[COPILOT_ACTIVE.tool]||context;
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1200,system:'Expert Indian capital markets advisor. Use SEBI, DRHP, NCD, CP, SME IPO terminology.',messages:[{role:'user',content:COPILOT_ACTIVE.prompt}]})});
+    var data=await resp.json();
+    res.textContent=(data.content||[]).map(function(c){return c.text||'';}).join('')||'No response.';
+    out.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){res.textContent='Error: '+e.message;}
+}
+async function copilotRefine(){
+  var res=document.getElementById('copilot-result');var cur=res?res.textContent:'';
+  if(!cur||cur.startsWith('⟳'))return;res.textContent='⟳ Refining...';
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1200,system:'Expert Indian capital markets advisor.',messages:[{role:'user',content:COPILOT_ACTIVE.prompt},{role:'assistant',content:cur},{role:'user',content:'Make it more concise, add 2-3 actionable insights specific to Indian capital markets.'}]})});
+    var data=await resp.json();
+    res.textContent=(data.content||[]).map(function(c){return c.text||'';}).join('')||cur;
+  }catch(e){res.textContent='Refine error: '+e.message;}
+}
+function copilotCopy(){var res=document.getElementById('copilot-result');if(!res)return;navigator.clipboard.writeText(res.textContent).then(function(){showToast('Copied to clipboard');});}
+
+/* ═══════════════════════════════════════════════════════════
+   BUILD 4 — CRM ↔ AIF INVESTOR MATCHING INTEGRATION
+═══════════════════════════════════════════════════════════ */
+async function crmMatchInvestors(dealId){
+  var deal=(typeof CRM!=='undefined'&&CRM.deals)?CRM.deals.find(function(d){return d.id===dealId;}):null;
+  if(!deal){showToast('Deal not found');return;}
+  var mbox=document.getElementById('crm-match-box-'+dealId);
+  if(!mbox)return;
+  mbox.style.display='block';
+  mbox.innerHTML='<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px">⟳ AI matching across 1,910 AIFs + investor database...</div>';
+  var prompt='Deal: '+deal.company+', type: '+(deal.type||'equity')+ ', sector: '+(deal.sector||'not specified')+', size: '+(deal.size||'not specified')+', stage: '+deal.stage+'. Top 8 Indian institutional investors most likely to invest. For each: type, probability (HIGH/MEDIUM), ticket size, why they match.';
+  try{
+    var resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:900,system:'Expert in Indian institutional investor matching.',messages:[{role:'user',content:prompt}]})});
+    var data=await resp.json();var txt=(data.content||[]).map(function(c){return c.text||'';}).join('');
+    mbox.innerHTML='<div style="font-size:12px;font-weight:800;color:var(--purple);margin-bottom:10px">🤖 AI Matched Investors</div>'
+      +txt.split('\n').filter(Boolean).map(function(l){
+        var isH=l.toLowerCase().includes('high'),isM=l.toLowerCase().includes('medium'),isNum=/^\d+\./.test(l.trim());
+        if(isNum)return '<div style="font-weight:800;font-size:13px;color:var(--text);margin-top:8px;padding:6px 10px;background:rgba(91,78,212,.05);border-radius:7px">'+l+'</div>';
+        return '<div style="font-size:12px;padding:3px 0;color:var(--muted);padding-left:8px;border-left:2px solid '+(isH?'var(--green)':isM?'var(--amber)':'var(--border)')+'">'+l+'</div>';
+      }).join('')
+      +'<div style="display:flex;gap:8px;margin-top:12px">'
+      +'<button onclick="navigate(\'investors\')" style="padding:8px 14px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Open Investor Directory →</button>'
+      +'<button onclick="navigate(\'activity\')" style="padding:8px 14px;background:rgba(13,92,107,.08);border:1.5px solid var(--border);color:var(--teal);border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">View Activity</button>'
+      +'</div>';
+  }catch(e){mbox.innerHTML='<div style="color:var(--red);font-size:12px">Error: '+e.message+'</div>';}
+}
+</script>
+
+</body>
+</html>

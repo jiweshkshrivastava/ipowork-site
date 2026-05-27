@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ipowork — Debt Distribution Board | CP · NCD · Bonds · Private Placements</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F2F5F7;--sur:#fff;--teal:#08404D;--teal2:#0D5C6B;--cyan:#1A7D90;
+  --amber:#E88A2E;--green:#1A9E6B;--red:#C0392B;--purple:#5B4ED4;--navy:#1A2E35;
+  --text:#1A2E35;--muted:#6B8A94;--dim:#9AB0B8;--border:rgba(13,92,107,.12);
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:9px}
+
+/* TOPBAR */
+.bar{height:54px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 1px 8px rgba(13,92,107,.06)}
+.bar-logo{font-family:var(--serif);font-weight:900;font-size:20px;color:var(--teal)}
+.bar-logo sup{font-size:9px;color:var(--amber);font-weight:800;vertical-align:super}
+.bar-tag{font-size:10px;font-weight:700;color:var(--cyan);padding:3px 10px;border-radius:6px;background:rgba(13,92,107,.07);border:1px solid rgba(13,92,107,.12)}
+.bar-links{margin-left:auto;display:flex;gap:8px}
+.bar-link{font-size:12px;color:var(--muted);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:7px;font-weight:600;transition:.15s}
+.bar-link:hover{border-color:var(--cyan);color:var(--cyan)}
+.bar-link.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#08404D 0%,#0D5C6B 55%,#1A4A5C 100%);color:#fff;padding:44px 40px 40px;margin-top:54px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;opacity:.03;background:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%);background-size:24px 24px}
+.hero-inner{max-width:1200px;margin:0 auto;position:relative;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px}
+.hero-h{font-family:var(--serif);font-size:clamp(24px,3vw,38px);font-weight:900;line-height:1.1;margin-bottom:8px}
+.hero-h span{color:#F0C060}
+.hero-sub{font-size:13px;opacity:.75;line-height:1.8;max-width:500px}
+.hero-stats{display:flex;gap:28px;margin-top:18px;flex-wrap:wrap}
+.hst{text-align:center}
+.hst-n{font-family:var(--serif);font-size:22px;font-weight:900;color:#F0C060}
+.hst-l{font-size:10px;opacity:.6;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.hero-cta{display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+.btn-post{padding:13px 28px;background:linear-gradient(135deg,#E88A2E,#C9932A);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;font-family:var(--font);transition:.2s}
+.btn-post:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(232,138,46,.4)}
+
+/* MAIN */
+.main{max-width:1200px;margin:0 auto;padding:28px;padding-bottom:80px}
+
+/* FILTERS */
+.filters{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px;box-shadow:0 2px 12px rgba(13,92,107,.05)}
+.f-row{display:grid;grid-template-columns:1fr repeat(5,auto);gap:10px;align-items:center;flex-wrap:wrap}
+.f-inp{padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);outline:none;transition:.2s;width:100%}
+.f-inp:focus{border-color:var(--cyan);background:#fff}
+.f-sel{padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;background:#fff;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%236B8A94' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;min-width:130px}
+
+/* TABS */
+.type-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.type-tab{padding:9px 18px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--muted);transition:.15s;font-family:var(--font)}
+.type-tab:hover{border-color:var(--cyan);color:var(--cyan)}
+.type-tab.on{color:#fff;border-color:transparent}
+
+/* DEAL CARD */
+.deals-grid{display:grid;gap:14px}
+.deal-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:22px;transition:.2s;position:relative;overflow:hidden}
+.deal-card:hover{border-color:var(--cyan);box-shadow:0 4px 24px rgba(13,92,107,.1);transform:translateY(-1px)}
+.deal-card.featured{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+.dc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.dc-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.dc-badge{font-size:10px;font-weight:800;padding:3px 9px;border-radius:99px}
+.dc-name{font-weight:900;font-size:16px;color:var(--text);margin-bottom:4px;font-family:var(--serif)}
+.dc-issuer{font-size:12px;color:var(--muted)}
+.dc-metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.dc-metric{padding:10px 12px;text-align:center;border-right:1px solid var(--border)}
+.dc-metric:last-child{border-right:none}
+.dc-mv{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text)}
+.dc-ml{font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.dc-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.dc-tags{display:flex;gap:6px;flex-wrap:wrap}
+.dc-tag{font-size:11px;padding:3px 8px;border-radius:4px;background:rgba(13,92,107,.06);color:var(--teal);font-weight:600}
+.dc-actions{display:flex;gap:8px}
+.dc-btn{padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:.15s;border:none;white-space:nowrap}
+.dc-btn-primary{background:var(--teal);color:#fff}
+.dc-btn-primary:hover{background:var(--teal2)}
+.dc-btn-sec{background:#fff;border:1.5px solid var(--border);color:var(--muted)}
+.dc-btn-sec:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* FEATURED ribbon */
+.featured-ribbon{position:absolute;top:14px;right:-28px;background:var(--amber);color:#fff;font-size:9px;font-weight:800;padding:4px 32px;transform:rotate(45deg);letter-spacing:.8px;text-transform:uppercase}
+
+/* DEADLINE bar */
+.deadline-bar{height:4px;border-radius:2px;margin-top:10px;background:rgba(13,92,107,.08);overflow:hidden}
+.deadline-fill{height:100%;border-radius:2px}
+
+/* POST MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.on{display:flex}
+.modal-box{background:#fff;border-radius:18px;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.3)}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.modal-title{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal)}
+.modal-body{padding:24px}
+.field{margin-bottom:16px}
+.field-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+.inp{padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;color:var(--text);background:#fff;outline:none;transition:.2s;width:100%}
+.inp:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(26,125,144,.08)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.btn-submit{width:100%;padding:14px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;font-family:var(--font);margin-top:8px}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(13,92,107,.25)}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--teal);color:#fff;padding:12px 24px;border-radius:99px;font-weight:700;font-size:13px;display:none;z-index:9999;box-shadow:0 8px 32px rgba(13,92,107,.35)}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:16px}
+
+@media(max-width:768px){
+  .f-row{grid-template-columns:1fr 1fr}
+  .dc-metrics{grid-template-columns:repeat(3,1fr)}
+  .dc-metric:nth-child(3){border-right:none}
+  .dc-metric:nth-child(4){border-top:1px solid var(--border)}
+  .dc-metric:nth-child(5){border-top:1px solid var(--border)}
+  .form-grid{grid-template-columns:1fr}
+  .hero{padding:28px 20px}
+  .main{padding:16px}
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="bar-logo">ipowork<sup>AI</sup></div>
+  <span class="bar-tag">📊 Debt Distribution Board</span>
+  <div class="bar-links">
+    <a href="mb.html" class="bar-link">MB Portal</a>
+    <a href="aif-intel.html" class="bar-link">AIF Intel</a>
+    <a href="index.html" class="bar-link">Home</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-h">India's <span>Institutional</span> Debt<br/>Distribution Marketplace</div>
+      <div class="hero-sub">Live CP, NCD, Bond and Private Placement deals — searchable, filterable, and ready for institutional distribution.</div>
+      <div class="hero-stats">
+        <div class="hst"><div class="hst-n" id="live-count">—</div><div class="hst-l">Live Deals</div></div>
+        <div class="hst"><div class="hst-n" id="total-size">—</div><div class="hst-l">Total Pipeline</div></div>
+        <div class="hst"><div class="hst-n">1,910+</div><div class="hst-l">AIF Investors</div></div>
+        <div class="hst"><div class="hst-n">242</div><div class="hst-l">Merchant Bankers</div></div>
+      </div>
+    </div>
+    <div class="hero-cta">
+      <button class="btn-post" onclick="showPost()">+ Post Your Deal</button>
+      <a href="mb.html" style="padding:10px 22px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:9px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;text-align:center">Open MB Portal →</a>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="f-row">
+      <input class="f-inp" id="f-search" placeholder="🔍 Search issuer, sector, keyword..." oninput="renderDeals()"/>
+      <select class="f-sel" id="f-type" onchange="renderDeals()">
+        <option value="">All Types</option>
+        <option>NCD</option><option>CP</option><option>Bond</option>
+        <option>Private Placement</option><option>SME IPO</option>
+      </select>
+      <select class="f-sel" id="f-rating" onchange="renderDeals()">
+        <option value="">All Ratings</option>
+        <option>AAA</option><option>AA+</option><option>AA</option><option>AA-</option>
+        <option>A+</option><option>A</option><option>A-</option><option>BBB+</option><option>Unrated</option>
+      </select>
+      <select class="f-sel" id="f-yield" onchange="renderDeals()">
+        <option value="">All Yields</option>
+        <option value="low">7-10% (Investment Grade)</option>
+        <option value="mid">10-14% (High Grade)</option>
+        <option value="high">14%+ (Equity/PE)</option>
+      </select>
+      <select class="f-sel" id="f-sector" onchange="renderDeals()">
+        <option value="">All Sectors</option>
+        <option>NBFC</option><option>Real Estate</option><option>Manufacturing</option>
+        <option>Healthcare</option><option>Technology</option><option>Infrastructure</option>
+        <option>Financial Services</option><option>Consumer</option><option>Logistics</option>
+      </select>
+      <button onclick="clearFilters()" style="padding:9px 16px;background:rgba(13,92,107,.06);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Clear</button>
+    </div>
+  </div>
+
+  <!-- Type tabs -->
+  <div class="type-tabs" id="type-tabs"></div>
+
+  <!-- Results header -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+    <div style="font-size:14px;font-weight:800;color:var(--teal);flex:1" id="res-count"></div>
+    <div style="display:flex;gap:8px">
+      <select id="sort-by" class="f-sel" onchange="renderDeals()" style="min-width:140px">
+        <option value="newest">Newest First</option>
+        <option value="yield-high">Yield: High → Low</option>
+        <option value="size-high">Size: High → Low</option>
+        <option value="closing">Closing Soon</option>
+        <option value="featured">Featured First</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Deal grid -->
+  <div class="deals-grid" id="deals-grid"></div>
+
+</div>
+
+<!-- Post Deal Modal -->
+<div class="modal-overlay" id="post-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title">📢 Post a Deal</div>
+      <button onclick="hidePost()" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label class="field-label">Issuer / Company Name *</label><input class="inp" id="p-issuer" placeholder="e.g. Acme Finance Ltd"/></div>
+        <div class="field"><label class="field-label">Instrument Type *</label>
+          <select class="inp" id="p-type"><option>NCD</option><option>CP</option><option>Bond</option><option>Private Placement</option><option>SME IPO</option></select>
+        </div>
+        <div class="field"><label class="field-label">Deal Size (₹ Crore) *</label><input class="inp" id="p-size" type="number" placeholder="75"/></div>
+        <div class="field"><label class="field-label">Target Yield (%)</label><input class="inp" id="p-yield" placeholder="11.5%"/></div>
+        <div class="field"><label class="field-label">Tenor</label><input class="inp" id="p-tenor" placeholder="24 months"/></div>
+        <div class="field"><label class="field-label">Credit Rating</label>
+          <select class="inp" id="p-rating"><option value="">Select rating</option><option>AAA</option><option>AA+</option><option>AA</option><option>AA-</option><option>A+</option><option>A</option><option>A-</option><option>BBB+</option><option>Unrated</option></select>
+        </div>
+        <div class="field"><label class="field-label">Sector *</label>
+          <select class="inp" id="p-sector"><option>NBFC</option><option>Real Estate</option><option>Manufacturing</option><option>Healthcare</option><option>Technology</option><option>Infrastructure</option><option>Financial Services</option><option>Consumer</option><option>Logistics</option></select>
+        </div>
+        <div class="field"><label class="field-label">Closing Date</label><input class="inp" id="p-close" type="date"/></div>
+      </div>
+      <div class="field"><label class="field-label">Security / Collateral</label><input class="inp" id="p-security" placeholder="e.g. First charge on receivables, Secured by property"/></div>
+      <div class="field"><label class="field-label">Deal Highlights (3-4 bullet points)</label><textarea class="inp" id="p-desc" rows="3" placeholder="• What makes this deal compelling&#10;• Key financial metrics&#10;• Use of proceeds"></textarea></div>
+      <div class="field"><label class="field-label">Contact Email *</label><input class="inp" id="p-email" type="email" placeholder="arranger@firm.com"/></div>
+      <div style="background:rgba(232,138,46,.06);border:1px solid rgba(232,138,46,.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--amber);font-weight:600">
+        ⭐ Featured listing (₹15,000) gets highlighted placement, pinned to top, and priority AIF match distribution. Contact <a href="mailto:partners@ipowork.com" style="color:var(--amber)">partners@ipowork.com</a>
+      </div>
+      <button class="btn-submit" onclick="submitDeal()">Post Deal Free →</button>
+    </div>
+  </div>
+</div>
+
+<!-- IM Request Modal -->
+<div class="modal-overlay" id="im-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="im-modal-title">Request Information Memorandum</div>
+      <button onclick="hideIM()" style="background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.7">Submit your details and the arranger will share the full IM and deal documentation within 24 hours.</p>
+      <div class="form-grid">
+        <div class="field"><label class="field-label">Your Name</label><input class="inp" id="im-name" placeholder="Name"/></div>
+        <div class="field"><label class="field-label">Organisation</label><input class="inp" id="im-org" placeholder="Fund / Family Office name"/></div>
+        <div class="field"><label class="field-label">Email</label><input class="inp" id="im-email" type="email" placeholder="you@fund.com"/></div>
+        <div class="field"><label class="field-label">Ticket Size Interest</label><input class="inp" id="im-ticket" placeholder="₹10-25 Crore"/></div>
+      </div>
+      <div class="field"><label class="field-label">Any specific questions?</label><textarea class="inp" id="im-note" rows="2" placeholder="Optional"></textarea></div>
+      <button class="btn-submit" onclick="submitIM()" style="background:linear-gradient(135deg,#E88A2E,#C9932A)">Request IM →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+var ACTIVE_TYPE = '';
+var DEALS = [];
+
+var SEED_DEALS = [
+  {id:'DB001',issuer:'Aadhar Housing Finance Ltd',type:'NCD',size:500,yield:'9.75%',yieldN:9.75,tenor:'36 months',rating:'AA',sector:'NBFC',security:'Secured — First pari-passu charge on receivables',highlights:['₹500 Cr issue, green-shoe option ₹250 Cr','AA rated by CRISIL & ICRA','Disbursed ₹15,200 Cr in FY24, 99.4% collection efficiency','Strong retail AUM growth — 28% CAGR over 3 years'],contact:'ib@aadhar.co.in',arranger:'Axis Capital',posted:'2 days ago',daysToClose:18,featured:true,views:234,imReqs:12},
+  {id:'DB002',issuer:'Shriram Finance Ltd',type:'NCD',size:1500,yield:'8.90%',yieldN:8.90,tenor:'60 months',rating:'AA+',sector:'NBFC',security:'Secured — Hypothecation of vehicle receivables',highlights:['₹1,500 Cr NCD with ₹1,500 Cr green-shoe','AA+ CRISIL — highest rating in commercial vehicle NBFC','₹2.3 lakh Cr AUM, well-diversified borrower base','Consistent 18%+ RoE over last 5 years'],contact:'treasury@shriram.com',arranger:'ICICI Securities',posted:'1 day ago',daysToClose:22,featured:true,views:412,imReqs:28},
+  {id:'DB003',issuer:'Piramal Capital & Housing',type:'NCD',size:300,yield:'11.25%',yieldN:11.25,tenor:'24 months',rating:'A+',sector:'Real Estate',security:'Secured — First charge on project receivables + land',highlights:['High-yield secured NCD — developer-linked pool','A+ rated by CARE','Strong collateral: 1.5x security cover','Quarterly interest payout structure'],contact:'alternatives@piramal.com',arranger:'JM Financial',posted:'3 days ago',daysToClose:12,featured:false,views:187,imReqs:9},
+  {id:'DB004',issuer:'Indostar Capital Finance',type:'NCD',size:200,yield:'10.50%',yieldN:10.50,tenor:'18 months',rating:'A',sector:'NBFC',security:'Secured — Pool of vehicle loan receivables',highlights:['Commercial vehicle finance specialist','A rated by ICRA','Quarterly coupon with bullet repayment','Strong parentage — Brookfield Asset Management'],contact:'capital@indostar.in',arranger:'Motilal Oswal',posted:'4 days ago',daysToClose:25,featured:false,views:143,imReqs:7},
+  {id:'DB005',issuer:'Integrow Agri Commodities',type:'CP',size:50,yield:'9.10%',yieldN:9.10,tenor:'90 days',rating:'A1+',sector:'Consumer',security:'Unsecured — A1+ rated commercial paper',highlights:['Short-duration liquid instrument','A1+ CRISIL short-term rating','Backed by agri commodity inventories','Quick turnaround — ideal treasury deployment'],contact:'treasury@integrow.in',arranger:'HDFC Securities',posted:'Today',daysToClose:8,featured:false,views:89,imReqs:4},
+  {id:'DB006',issuer:'Godrej Properties Pvt Ltd',type:'Bond',size:750,yield:'8.50%',yieldN:8.50,tenor:'48 months',rating:'AA',sector:'Real Estate',security:'Secured — First charge on project cash flows',highlights:['Godrej Group pedigree — Nifty 500 company','AA CRISIL, annualised coupon','₹2,900 Cr worth of pre-sales in pipeline','Well-diversified pan-India project portfolio'],contact:'finance@godrejproperties.com',arranger:'Kotak IB',posted:'5 days ago',daysToClose:30,featured:true,views:378,imReqs:19},
+  {id:'DB007',issuer:'Suryoday Small Finance Bank',type:'NCD',size:100,yield:'10.00%',yieldN:10.00,tenor:'30 months',rating:'A+',sector:'Financial Services',security:'Secured — Senior secured NCD',highlights:['Listed SFB with strong microfinance franchise','A+ rated by CRISIL','Quarterly coupon payout','Gross advances ₹9,800 Cr, GNPA 2.1%'],contact:'treasury@suryoday.in',arranger:'Equirus Capital',posted:'6 days ago',daysToClose:20,featured:false,views:112,imReqs:5},
+  {id:'DB008',issuer:'Gati Infralogistics Ltd',type:'Private Placement',size:150,yield:'12.00%',yieldN:12.00,tenor:'36 months',rating:'BBB+',sector:'Logistics',security:'Secured — First charge on warehousing assets + receivables',highlights:['Logistics sector growth play','BBB+ CARE — high-yield segment','Principal + interest quarterly amortization','Asset-heavy, 4.2M sqft owned warehousing capacity'],contact:'finance@gati.com',arranger:'Anand Rathi',posted:'1 week ago',daysToClose:15,featured:false,views:76,imReqs:3},
+  {id:'DB009',issuer:'Mahindra Rural Housing Finance',type:'NCD',size:400,yield:'9.25%',yieldN:9.25,tenor:'42 months',rating:'AA',sector:'NBFC',security:'Secured — First charge on housing loan receivables',highlights:['Mahindra Group entity — strong parentage','AA rated, rural affordable housing specialist','Gross loan book ₹11,500 Cr — 35% CAGR','Low NPA: GNPA 1.7%, NNPA 0.9%'],contact:'treasury@mrhfl.in',arranger:'Emkay Global',posted:'1 week ago',daysToClose:35,featured:false,views:198,imReqs:11},
+  {id:'DB010',issuer:'Pristine Healthcare Ltd',type:'SME IPO',size:65,yield:'N/A',yieldN:0,tenor:'N/A',rating:'Unrated',sector:'Healthcare',security:'N/A — Equity',highlights:['Diagnostic chain — 38 centres across 4 states','₹65 Cr IPO: ₹40 Cr fresh + ₹25 Cr OFS','EBITDA margins 28%, PAT ₹6.2 Cr FY24','SME Emerge board listing — 100% book-built'],contact:'ipo@pristinehealthcare.com',arranger:'Inventure Merchant Bankers',posted:'3 days ago',daysToClose:21,featured:false,views:92,imReqs:6},
+];
+
+window.addEventListener('DOMContentLoaded', function(){
+  loadDeals();
+  buildTypeTabs();
+});
+
+async function loadDeals(){
+  try{
+    var r = await window.storage.get('debtboard:deals');
+    var stored = r ? JSON.parse(r.value) : [];
+    DEALS = SEED_DEALS.concat(stored);
+  } catch(e){ DEALS = SEED_DEALS; }
+  renderDeals();
+  updateStats();
+}
+
+function updateStats(){
+  var live = DEALS.length;
+  var totalSize = DEALS.reduce(function(s,d){return s+(d.size||0);},0);
+  var el1 = document.getElementById('live-count');
+  var el2 = document.getElementById('total-size');
+  if(el1) el1.textContent = live;
+  if(el2) el2.textContent = '₹'+Math.round(totalSize/100)/10+'K Cr';
+}
+
+function buildTypeTabs(){
+  var types = ['All','NCD','CP','Bond','Private Placement','SME IPO'];
+  var colors = {'NCD':'#5B4ED4','CP':'#1A9E6B','Bond':'#08404D','Private Placement':'#E88A2E','SME IPO':'#C0392B'};
+  var tb = document.getElementById('type-tabs');
+  if(!tb) return;
+  tb.innerHTML = types.map(function(t){
+    var col = t==='All'?'var(--teal)':colors[t]||'var(--teal)';
+    return '<button class="type-tab'+(t==='All'?' on':'')+'" style="'+(t==='All'?'background:var(--teal)':'')+'" data-type="'+(t==='All'?'':t)+'" onclick="setType(this)">'
+      + (t!=='All'?'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+col+';margin-right:5px"></span>':'')
+      + t + '</button>';
+  }).join('');
+}
+
+function setType(el){
+  document.querySelectorAll('.type-tab').forEach(function(t){
+    t.classList.remove('on');
+    t.style.background='';
+    t.style.color='';
+    t.style.borderColor='';
+  });
+  el.classList.add('on');
+  el.style.background='var(--teal)';
+  el.style.color='#fff';
+  el.style.borderColor='var(--teal)';
+  ACTIVE_TYPE = el.dataset.type;
+  renderDeals();
+}
+
+function clearFilters(){
+  document.getElementById('f-search').value='';
+  document.getElementById('f-type').value='';
+  document.getElementById('f-rating').value='';
+  document.getElementById('f-yield').value='';
+  document.getElementById('f-sector').value='';
+  document.getElementById('sort-by').value='newest';
+  ACTIVE_TYPE='';
+  document.querySelectorAll('.type-tab').forEach(function(t,i){if(i===0){t.classList.add('on');t.style.background='var(--teal)';t.style.color='#fff';}else{t.classList.remove('on');t.style.background='';t.style.color='';}});
+  renderDeals();
+}
+
+function renderDeals(){
+  var search = (document.getElementById('f-search')||{value:''}).value.toLowerCase();
+  var ftype  = ACTIVE_TYPE || (document.getElementById('f-type')||{value:''}).value;
+  var frating= (document.getElementById('f-rating')||{value:''}).value;
+  var fyield = (document.getElementById('f-yield')||{value:''}).value;
+  var fsector= (document.getElementById('f-sector')||{value:''}).value;
+  var sort   = (document.getElementById('sort-by')||{value:'newest'}).value;
+
+  var deals = DEALS.filter(function(d){
+    if(search && !d.issuer.toLowerCase().includes(search) && !d.sector.toLowerCase().includes(search) && !(d.arranger||'').toLowerCase().includes(search)) return false;
+    if(ftype && d.type!==ftype) return false;
+    if(frating && d.rating!==frating) return false;
+    if(fyield==='low' && d.yieldN>10) return false;
+    if(fyield==='mid' && (d.yieldN<10||d.yieldN>14)) return false;
+    if(fyield==='high' && d.yieldN<14) return false;
+    if(fsector && d.sector!==fsector) return false;
+    return true;
+  });
+
+  if(sort==='yield-high') deals.sort(function(a,b){return b.yieldN-a.yieldN;});
+  else if(sort==='size-high') deals.sort(function(a,b){return b.size-a.size;});
+  else if(sort==='closing') deals.sort(function(a,b){return a.daysToClose-b.daysToClose;});
+  else if(sort==='featured') deals.sort(function(a,b){return (b.featured?1:0)-(a.featured?1:0);});
+
+  var rc = document.getElementById('res-count');
+  if(rc) rc.textContent = deals.length+' deals · ₹'+(deals.reduce(function(s,d){return s+d.size;},0).toLocaleString('en-IN'))+' Cr total';
+
+  var grid = document.getElementById('deals-grid');
+  if(!grid) return;
+  if(!deals.length){
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">No deals match your filters</div><div style="font-size:13px">Try clearing some filters or post your own deal</div></div>';
+    return;
+  }
+
+  var typeColors = {'NCD':'#5B4ED4','CP':'#1A9E6B','Bond':'#08404D','Private Placement':'#E88A2E','SME IPO':'#C0392B'};
+  var ratingColors = {'AAA':'#1A9E6B','AA+':'#1A9E6B','AA':'#2DC48F','AA-':'#2DC48F','A+':'#F28C00','A':'#F28C00','A-':'#E88A2E','BBB+':'#C0392B','Unrated':'#6B8A94'};
+
+  grid.innerHTML = deals.map(function(d){
+    var tc = typeColors[d.type]||'var(--teal)';
+    var rc2 = ratingColors[d.rating]||'var(--muted)';
+    var closingUrgent = d.daysToClose <= 10;
+    var closePct = Math.max(10, 100 - (d.daysToClose/45*100));
+    var html = '<div class="deal-card'+(d.featured?' featured':'')+'">';
+    if(d.featured) html += '<div class="featured-ribbon">Featured</div>';
+
+    html += '<div class="dc-top">';
+    html += '<div>';
+    html += '<div class="dc-badges">';
+    html += '<span class="dc-badge" style="background:'+tc+'15;color:'+tc+';border:1px solid '+tc+'30">'+d.type+'</span>';
+    html += '<span class="dc-badge" style="background:'+rc2+'12;color:'+rc2+';border:1px solid '+rc2+'30">'+d.rating+'</span>';
+    html += '<span class="dc-badge" style="background:rgba(13,92,107,.06);color:var(--teal)">'+d.sector+'</span>';
+    if(closingUrgent) html += '<span class="dc-badge" style="background:rgba(192,57,43,.08);color:var(--red);animation:pulse 2s infinite">⏰ '+d.daysToClose+'d left</span>';
+    html += '</div>';
+    html += '<div class="dc-name">'+d.issuer+'</div>';
+    html += '<div class="dc-issuer">Arranged by '+d.arranger+' · Posted '+d.posted+'</div>';
+    html += '</div>';
+    html += '<div style="text-align:right;flex-shrink:0">';
+    html += '<div style="font-size:20px;font-weight:900;color:var(--teal);font-family:var(--mono)">'+d.yield+'</div>';
+    html += '<div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px">Target Yield</div>';
+    html += '</div></div>';
+
+    // Metrics strip
+    html += '<div class="dc-metrics">';
+    html += '<div class="dc-metric"><div class="dc-mv">₹'+d.size+' Cr</div><div class="dc-ml">Deal Size</div></div>';
+    html += '<div class="dc-metric"><div class="dc-mv">'+d.tenor+'</div><div class="dc-ml">Tenor</div></div>';
+    html += '<div class="dc-metric"><div class="dc-mv" style="color:'+rc2+'">'+d.rating+'</div><div class="dc-ml">Rating</div></div>';
+    html += '<div class="dc-metric"><div class="dc-mv">'+d.views+'</div><div class="dc-ml">Views</div></div>';
+    html += '<div class="dc-metric"><div class="dc-mv" style="color:var(--green)">'+d.imReqs+'</div><div class="dc-ml">IM Requests</div></div>';
+    html += '</div>';
+
+    // Highlights
+    if(d.highlights && d.highlights.length){
+      html += '<div style="display:grid;gap:4px;margin-bottom:14px">';
+      d.highlights.slice(0,3).forEach(function(h2){
+        html += '<div style="font-size:12px;color:var(--muted);display:flex;gap:6px"><span style="color:var(--green);flex-shrink:0">✓</span><span>'+h2+'</span></div>';
+      });
+      html += '</div>';
+    }
+
+    // Security
+    html += '<div style="font-size:11px;color:var(--muted);background:rgba(13,92,107,.03);border-radius:6px;padding:6px 10px;margin-bottom:12px">🔒 '+d.security+'</div>';
+
+    // Deadline bar
+    if(!closingUrgent){
+      html += '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">Closes in '+d.daysToClose+' days</div>';
+      html += '<div class="deadline-bar"><div class="deadline-fill" style="width:'+closePct+'%;background:'+(d.daysToClose<20?'var(--amber)':'var(--green)')+'"></div></div>';
+    }
+
+    html += '<div style="height:14px"></div>';
+
+    // Actions
+    html += '<div class="dc-bottom">';
+    html += '<div class="dc-tags"><span class="dc-tag">'+d.sector+'</span></div>';
+    html += '<div class="dc-actions">';
+    html += '<button class="dc-btn dc-btn-primary" onclick="requestIM(\''+d.id+'\',\''+d.issuer.replace(/'/g,"\\'")+'\')" >📋 Request IM</button>';
+    if(d.contact) html += '<a href="mailto:'+d.contact+'" class="dc-btn dc-btn-sec">✉ Email Arranger</a>';
+    html += '<button class="dc-btn dc-btn-sec" onclick="shareAlert(\''+d.id+'\')" >📱 WhatsApp</button>';
+    html += '</div></div>';
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+function showPost(){ document.getElementById('post-modal').classList.add('on'); }
+function hidePost(){ document.getElementById('post-modal').classList.remove('on'); }
+function hideIM(){ document.getElementById('im-modal').classList.remove('on'); }
+
+function requestIM(id, issuer){
+  document.getElementById('im-modal-title').textContent = 'Request IM — '+issuer;
+  document.getElementById('im-modal').classList.add('on');
+  document.getElementById('im-modal').dataset.dealid = id;
+}
+
+function submitIM(){
+  var name  = document.getElementById('im-name').value;
+  var email = document.getElementById('im-email').value;
+  var org   = document.getElementById('im-org').value;
+  if(!name||!email){ showToast('Please fill name and email'); return; }
+  var dealId = document.getElementById('im-modal').dataset.dealid;
+  var deal = DEALS.find(function(d){return d.id===dealId;});
+  if(deal) deal.imReqs=(deal.imReqs||0)+1;
+  hideIM();
+  renderDeals();
+  showToast('IM request sent! Arranger will contact within 24h');
+}
+
+async function submitDeal(){
+  var issuer = document.getElementById('p-issuer').value;
+  var size   = document.getElementById('p-size').value;
+  var email  = document.getElementById('p-email').value;
+  if(!issuer||!size||!email){ showToast('Please fill required fields'); return; }
+  var deal = {
+    id: 'DB'+Date.now().toString(36).toUpperCase(),
+    issuer: issuer,
+    type:   document.getElementById('p-type').value,
+    size:   parseFloat(size)||0,
+    yield:  document.getElementById('p-yield').value||'—',
+    yieldN: parseFloat((document.getElementById('p-yield').value||'0').replace('%',''))||0,
+    tenor:  document.getElementById('p-tenor').value||'—',
+    rating: document.getElementById('p-rating').value||'Unrated',
+    sector: document.getElementById('p-sector').value,
+    security: document.getElementById('p-security').value||'—',
+    highlights: (document.getElementById('p-desc').value||'').split('\n').map(function(l){return l.replace(/^[•\-]\s*/,'').trim();}).filter(Boolean),
+    contact: email,
+    arranger: 'Self-listed',
+    posted: 'Just now',
+    daysToClose: 30,
+    featured: false,
+    views: 0,
+    imReqs: 0
+  };
+  DEALS.unshift(deal);
+  try{
+    var stored = DEALS.filter(function(d){return !SEED_DEALS.find(function(s){return s.id===d.id;});});
+    await window.storage.set('debtboard:deals', JSON.stringify(stored));
+  }catch(e){}
+  hidePost();
+  updateStats();
+  renderDeals();
+  showToast('Deal posted! It will go live within 24 hours after review.');
+}
+
+function shareAlert(id){
+  var d = DEALS.find(function(x){return x.id===id;});
+  if(!d) return;
+  var msg = encodeURIComponent('Deal Alert via ipowork.com:\n'+d.type+' — '+d.issuer+'\nSize: ₹'+d.size+' Cr | Yield: '+d.yield+' | Rating: '+d.rating+' | Tenor: '+d.tenor+'\n\nRequest IM: https://www.ipowork.com/debt-board.html\nFor details: '+d.contact);
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  if(!t) return;
+  t.textContent=msg;t.style.display='block';
+  setTimeout(function(){t.style.display='none';},3500);
+}
+</script>
+</body>
+</html>

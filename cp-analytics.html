@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ipowork — CP/NCD Analytics | Yield Tracker · Rating Alerts · Maturity Wall</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D1B1E;--sur:#152226;--card:#1C2D31;--card2:#223237;
+  --teal:#0EC8A4;--cyan:#1A7D90;--amber:#F0C060;--green:#2DC48F;
+  --red:#FF4D6D;--purple:#A78BFA;--blue:#60A5FA;
+  --text:#E8F4F5;--muted:#6B9BA4;--dim:#3E5A60;--border:rgba(14,200,164,.1);
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(14,200,164,.2);border-radius:9px}
+
+.bar{height:54px;background:var(--sur);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;position:fixed;top:0;left:0;right:0;z-index:100}
+.bar-logo{font-family:var(--serif);font-weight:900;font-size:20px;color:var(--teal)}
+.bar-logo sup{font-size:9px;color:var(--amber);font-weight:800;vertical-align:super}
+.bar-tag{font-size:10px;font-weight:700;color:var(--teal);padding:3px 10px;border-radius:6px;background:rgba(14,200,164,.07);border:1px solid rgba(14,200,164,.15)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0}
+.bar-links{margin-left:auto;display:flex;gap:8px}
+.bar-link{font-size:12px;color:var(--muted);text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:7px;font-weight:600;transition:.15s}
+.bar-link:hover,.bar-link.active{border-color:var(--teal);color:var(--teal)}
+
+.hero{background:linear-gradient(135deg,#0D1B1E 0%,#152226 60%,#1A2E35 100%);padding:40px 40px 36px;margin-top:54px;border-bottom:1px solid var(--border)}
+.hero-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px}
+.hero-h{font-family:var(--serif);font-size:clamp(22px,3vw,36px);font-weight:900;line-height:1.1;margin-bottom:8px}
+.hero-h span{color:var(--amber)}
+.hero-sub{font-size:13px;color:var(--muted);line-height:1.8}
+.hero-stats{display:flex;gap:28px;margin-top:16px;flex-wrap:wrap}
+.hst-n{font-family:var(--serif);font-size:20px;font-weight:900;color:var(--teal)}
+.hst-l{font-size:10px;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+
+.main{max-width:1200px;margin:0 auto;padding:28px;padding-bottom:80px}
+
+/* TABS */
+.tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{padding:12px 18px;font-size:13px;font-weight:700;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:.15s;font-family:var(--font);margin-bottom:-1px}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--teal);border-bottom-color:var(--teal)}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.card-title{font-family:var(--serif);font-size:15px;font-weight:900;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* KPI */
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.kpi-v{font-size:26px;font-weight:900;font-family:var(--serif)}
+.kpi-l{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:4px}
+.kpi-chg{font-size:11px;font-weight:700;margin-top:6px}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
+.tbl td{padding:10px 12px;border-bottom:1px solid rgba(14,200,164,.05);font-size:13px;color:var(--text)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(14,200,164,.03)}
+
+/* YIELD CHART */
+.yield-chart{position:relative;height:200px;display:flex;align-items:flex-end;gap:2px;padding:0 4px}
+.ybar{flex:1;border-radius:4px 4px 0 0;transition:.4s;cursor:pointer;position:relative}
+.ybar:hover{opacity:.85}
+.ybar-tip{position:absolute;top:-32px;left:50%;transform:translateX(-50%);background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;color:var(--teal);white-space:nowrap;display:none}
+.ybar:hover .ybar-tip{display:block}
+.y-labels{display:flex;gap:2px;padding:4px 4px 0;font-size:10px;color:var(--muted);font-family:var(--mono)}
+.y-label{flex:1;text-align:center;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* RATING BADGE */
+.rbadge{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:800;font-family:var(--mono)}
+.r-aaa{background:rgba(45,196,143,.12);color:var(--green);border:1px solid rgba(45,196,143,.2)}
+.r-aa{background:rgba(45,196,143,.08);color:var(--green);border:1px solid rgba(45,196,143,.15)}
+.r-a{background:rgba(240,192,96,.1);color:var(--amber);border:1px solid rgba(240,192,96,.2)}
+.r-bbb{background:rgba(255,77,109,.08);color:var(--red);border:1px solid rgba(255,77,109,.15)}
+.r-unrated{background:rgba(107,155,164,.1);color:var(--muted);border:1px solid var(--border)}
+
+/* HEATMAP */
+.heatmap-grid{display:grid;gap:6px}
+.hmap-row{display:flex;align-items:center;gap:8px}
+.hmap-label{font-size:12px;color:var(--muted);min-width:80px;text-align:right;flex-shrink:0}
+.hmap-cells{display:flex;gap:4px;flex:1}
+.hmap-cell{flex:1;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;cursor:pointer;transition:.2s}
+.hmap-cell:hover{transform:scale(1.05)}
+.hmap-col-label{font-size:10px;color:var(--dim);text-align:center;flex:1}
+
+/* MATURITY WALL */
+.mwall{display:flex;align-items:flex-end;gap:10px;height:180px;padding:0 4px}
+.mbar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.mbar{width:100%;border-radius:6px 6px 0 0;transition:.4s;cursor:pointer;min-height:4px;position:relative}
+.mbar:hover{opacity:.8}
+.mbar-v{font-size:10px;font-weight:800;color:var(--text);font-family:var(--mono)}
+.mbar-l{font-size:10px;color:var(--muted)}
+
+/* ALERT */
+.alert-item{padding:12px 14px;border-radius:10px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.ai-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* TAB PANELS */
+.tab-panel{display:none}
+.tab-panel.on{display:block}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--teal);color:#000;padding:12px 24px;border-radius:99px;font-weight:700;font-size:13px;display:none;z-index:9999}
+
+@media(max-width:768px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr 1fr}.main{padding:16px}.hero{padding:28px 20px}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="bar-logo">ipowork<sup>AI</sup></div>
+  <span class="bar-tag">📈 CP/NCD Analytics</span>
+  <div class="live-dot"></div>
+  <span style="font-size:12px;font-weight:700;color:var(--green)">Live Data</span>
+  <div class="bar-links">
+    <a href="debt-board.html" class="bar-link">Debt Board</a>
+    <a href="mb.html" class="bar-link">MB Portal</a>
+    <a href="index.html" class="bar-link">Home</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-h">CP / NCD <span>Analytics</span><br/>Intelligence Dashboard</div>
+      <div class="hero-sub">Yield tracker · Rating movements · Maturity wall · Sector liquidity · Rollover risk</div>
+      <div class="hero-stats">
+        <div><div class="hst-n">₹42.8L Cr</div><div class="hst-l">CP + NCD Market</div></div>
+        <div><div class="hst-n">9.2%</div><div class="hst-l">Avg NCD Yield</div></div>
+        <div><div class="hst-n">₹1.8L Cr</div><div class="hst-l">Matures Q3 FY25</div></div>
+        <div><div class="hst-n">84%</div><div class="hst-l">Rollover Rate</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+      <a href="debt-board.html" style="padding:12px 24px;background:linear-gradient(135deg,#0EC8A4,#0D9E83);color:#000;border:none;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;text-decoration:none">View Live Deals →</a>
+      <button onclick="showToast('Alert set for your watchlist')" style="padding:10px 22px;background:rgba(14,200,164,.08);color:var(--teal);border:1px solid rgba(14,200,164,.2);border-radius:9px;font-weight:700;font-size:13px;cursor:pointer">🔔 Set Rating Alert</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- KPI Row -->
+  <div class="grid-4" style="margin-bottom:24px">
+    <div class="kpi"><div class="kpi-v" style="color:var(--teal)">9.2%</div><div class="kpi-l">Avg NCD Yield (AA)</div><div class="kpi-chg" style="color:var(--green)">↑ +8bps vs last month</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--amber)">7.8%</div><div class="kpi-l">Avg CP Yield (A1+)</div><div class="kpi-chg" style="color:var(--red)">↓ -5bps vs last month</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--purple)">₹8.4L Cr</div><div class="kpi-l">FY25 Maturities</div><div class="kpi-chg" style="color:var(--amber)">⚠ +12% vs FY24</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--green)">84%</div><div class="kpi-l">Rollover Rate (90d)</div><div class="kpi-chg" style="color:var(--green)">↑ +2pp vs last Q</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('yield',this)">📈 Yield Tracker</button>
+    <button class="tab" onclick="showTab('ratings',this)">⭐ Rating Movements</button>
+    <button class="tab" onclick="showTab('maturity',this)">🕐 Maturity Wall</button>
+    <button class="tab" onclick="showTab('heatmap',this)">🌡️ Sector Heatmap</button>
+    <button class="tab" onclick="showTab('alerts',this)">🔔 Rating Alerts</button>
+    <button class="tab" onclick="showTab('issuers',this)">🏢 Issuer Tracker</button>
+  </div>
+
+  <!-- YIELD TRACKER -->
+  <div id="tab-yield" class="tab-panel on">
+    <div class="grid-2" style="gap:16px;margin-bottom:16px">
+
+      <!-- NCD Yield Chart -->
+      <div class="card">
+        <div class="card-title">NCD Yield by Rating (Current)</div>
+        <div class="card-sub">Indicative secondary market yields — May 2026</div>
+        <div class="yield-chart" id="ncd-chart"></div>
+        <div class="y-labels" id="ncd-labels"></div>
+      </div>
+
+      <!-- CP Yield chart -->
+      <div class="card">
+        <div class="card-title">CP Yield by Maturity Bucket</div>
+        <div class="card-sub">A1+ rated commercial paper — all-in yield</div>
+        <div class="yield-chart" id="cp-chart"></div>
+        <div class="y-labels" id="cp-labels"></div>
+      </div>
+    </div>
+
+    <!-- Yield trend table -->
+    <div class="card">
+      <div class="card-title">Yield Trend — 6 Month View</div>
+      <div class="card-sub">Month-on-month yield movement by rating category (NCD)</div>
+      <table class="tbl">
+        <thead><tr>
+          <th>Rating</th><th>Dec-25</th><th>Jan-26</th><th>Feb-26</th><th>Mar-26</th><th>Apr-26</th><th>May-26</th><th>Change</th>
+        </tr></thead>
+        <tbody id="yield-trend-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RATING MOVEMENTS -->
+  <div id="tab-ratings" class="tab-panel">
+    <div class="grid-2" style="margin-bottom:16px;gap:16px">
+      <div class="card">
+        <div class="card-title">Rating Upgrades — Last 90 Days</div>
+        <div class="card-sub">Companies upgraded by CRISIL, ICRA, CARE, India Ratings</div>
+        <div id="upgrades-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Rating Downgrades — Last 90 Days</div>
+        <div class="card-sub">Watch closely — may signal refinancing stress</div>
+        <div id="downgrades-list"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Rating Watch / On-Review</div>
+      <div class="card-sub">Entities under active rating review — direction uncertain</div>
+      <table class="tbl">
+        <thead><tr><th>Issuer</th><th>Current Rating</th><th>Agency</th><th>Watch Type</th><th>Reason</th><th>Since</th></tr></thead>
+        <tbody id="watch-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MATURITY WALL -->
+  <div id="tab-maturity" class="tab-panel">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">NCD Maturity Wall — FY25-26</div>
+      <div class="card-sub">Quarterly maturity profile — total paper maturing by rating bucket (₹ Crore)</div>
+      <div style="margin-bottom:24px">
+        <div class="mwall" id="maturity-chart"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center">
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;border-radius:3px;background:var(--green)"></div><span style="font-size:11px;color:var(--muted)">AAA/AA+</span></div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;border-radius:3px;background:var(--teal)"></div><span style="font-size:11px;color:var(--muted)">AA/AA-</span></div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;border-radius:3px;background:var(--amber)"></div><span style="font-size:11px;color:var(--muted)">A+/A/A-</span></div>
+          <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;border-radius:3px;background:var(--red)"></div><span style="font-size:11px;color:var(--muted)">BBB & below</span></div>
+        </div>
+      </div>
+      <div class="card-title" style="margin-bottom:12px">Rollover Risk Indicator</div>
+      <div id="rollover-risk"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Large Single Maturities — Next 6 Months</div>
+      <div class="card-sub">Individual paper > ₹200 Cr maturing — refinancing watch list</div>
+      <table class="tbl">
+        <thead><tr><th>Issuer</th><th>Type</th><th>Amount (₹ Cr)</th><th>Rating</th><th>Maturity Date</th><th>Days Left</th><th>Refinance Risk</th></tr></thead>
+        <tbody id="large-maturity-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTOR HEATMAP -->
+  <div id="tab-heatmap" class="tab-panel">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">Sector Liquidity Heatmap</div>
+      <div class="card-sub">Spread over G-sec by rating and sector — darker = tighter spread (more liquid)</div>
+      <div style="margin:16px 0 8px;display:flex;gap:4px;padding-left:88px">
+        <div class="hmap-col-label">AAA</div>
+        <div class="hmap-col-label">AA+/AA</div>
+        <div class="hmap-col-label">AA-/A+</div>
+        <div class="hmap-col-label">A</div>
+        <div class="hmap-col-label">A-/BBB+</div>
+      </div>
+      <div id="heatmap-grid" class="heatmap-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sector Deal Flow — Last 30 Days</div>
+      <div class="card-sub">Number of deals and total issuance volume by sector</div>
+      <div id="sector-flow"></div>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div id="tab-alerts" class="tab-panel">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🔔 Active Rating Alerts</div>
+      <div class="card-sub">Issuers with significant rating events in last 30 days</div>
+      <div id="alerts-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Set Custom Alert</div>
+      <div class="card-sub">Get notified when a specific issuer's rating changes</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+        <div><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Issuer Name</label>
+          <input id="alert-issuer" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;background:var(--card);color:var(--text);outline:none" placeholder="e.g. Shriram Finance"/>
+        </div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Alert on</label>
+          <select id="alert-type" style="width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:13px;background:var(--card);color:var(--text);outline:none">
+            <option>Any change</option><option>Downgrade only</option><option>Upgrade only</option><option>Watch/Review</option>
+          </select>
+        </div>
+        <button onclick="addAlert()" style="padding:10px 20px;background:var(--teal);color:#000;border:none;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer">+ Add Alert</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUER TRACKER -->
+  <div id="tab-issuers" class="tab-panel">
+    <div class="card">
+      <div class="card-title">Top Debt Issuers — Market Intelligence</div>
+      <div class="card-sub">Outstanding issuance, rating, sector, and recent activity</div>
+      <table class="tbl">
+        <thead><tr><th>Issuer</th><th>Sector</th><th>Outstanding (₹ Cr)</th><th>Rating</th><th>Last Issuance</th><th>Next Maturity</th><th>Status</th></tr></thead>
+        <tbody id="issuers-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var USER_ALERTS = [];
+
+// ── DATA ──────────────────────────────────────────────────────────
+
+var NCD_YIELDS = [
+  {rating:'AAA',yield:8.0,spread:0.55},{rating:'AA+',yield:8.5,spread:1.05},{rating:'AA',yield:9.2,spread:1.75},
+  {rating:'AA-',yield:9.8,spread:2.35},{rating:'A+',yield:10.5,spread:3.05},{rating:'A',yield:11.2,spread:3.75},
+  {rating:'A-',yield:12.0,spread:4.55},{rating:'BBB+',yield:13.5,spread:6.05}
+];
+
+var CP_YIELDS = [
+  {bucket:'1-30d',yield:7.4},{bucket:'31-60d',yield:7.6},{bucket:'61-90d',yield:7.8},
+  {bucket:'91-180d',yield:8.1},{bucket:'181-270d',yield:8.4},{bucket:'271-365d',yield:8.7}
+];
+
+var YIELD_TREND = [
+  {rating:'AAA',  vals:[7.85,7.80,7.75,7.72,7.78,8.00],chg:'+15bps',up:true},
+  {rating:'AA+',  vals:[8.30,8.25,8.20,8.18,8.30,8.50],chg:'+20bps',up:true},
+  {rating:'AA',   vals:[9.00,8.95,8.90,8.88,9.05,9.20],chg:'+20bps',up:true},
+  {rating:'AA-',  vals:[9.55,9.50,9.45,9.42,9.62,9.80],chg:'+25bps',up:true},
+  {rating:'A+',   vals:[10.20,10.15,10.10,10.08,10.35,10.50],chg:'+30bps',up:true},
+  {rating:'A',    vals:[11.00,10.95,10.90,10.85,11.10,11.20],chg:'+20bps',up:true},
+];
+
+var UPGRADES = [
+  {issuer:'Godrej Properties Ltd',from:'AA-',to:'AA',agency:'CRISIL',sector:'Real Estate',date:'May 12'},
+  {issuer:'Mahindra Finance',from:'AA',to:'AA+',agency:'ICRA',sector:'NBFC',date:'May 5'},
+  {issuer:'Torrent Power Ltd',from:'A+',to:'AA-',agency:'CARE',sector:'Power',date:'Apr 28'},
+  {issuer:'Cholamandalam Invest',from:'AA-',to:'AA',agency:'India Ratings',sector:'NBFC',date:'Apr 20'},
+  {issuer:'Navi Technologies',from:'A-',to:'A',agency:'CRISIL',sector:'FinTech',date:'Apr 14'},
+];
+
+var DOWNGRADES = [
+  {issuer:'Future Retail Ltd',from:'BBB',to:'D',agency:'CRISIL',sector:'Retail',date:'May 18',alert:true},
+  {issuer:'Reliance Capital Ltd',from:'D',to:'D',agency:'Multiple',sector:'Finance',date:'Apr 30',alert:false},
+  {issuer:'Sintex Industries',from:'BBB-',to:'D',agency:'ICRA',sector:'Manufacturing',date:'Apr 22',alert:true},
+  {issuer:'SREI Infrastructure',from:'D',to:'D',agency:'CARE',sector:'NBFC',date:'Apr 10',alert:false},
+  {issuer:'Altico Capital India',from:'BB',to:'D',agency:'India Ratings',sector:'NBFC',date:'Mar 28',alert:false},
+];
+
+var WATCH_LIST = [
+  {issuer:'Piramal Capital',current:'A+',agency:'CRISIL',watch:'Negative Watch',reason:'Elevated RE stress in book',since:'May 2026'},
+  {issuer:'Edelweiss Fin Serv',current:'AA-',agency:'ICRA',watch:'Rating Watch Dev.',reason:'Corporate restructuring',since:'Apr 2026'},
+  {issuer:'JM Financial',current:'AA',agency:'CARE',watch:'Stable',reason:'Reviewing post capital raise',since:'Apr 2026'},
+  {issuer:'Manappuram Finance',current:'AA-',agency:'India Ratings',watch:'Negative Watch',reason:'Gold portfolio volatility',since:'Mar 2026'},
+];
+
+var MATURITY_DATA = [
+  {q:'Q1 FY25',aaa:18000,aa:32000,a:12000,bbb:4200},
+  {q:'Q2 FY25',aaa:22000,aa:38000,a:14000,bbb:3800},
+  {q:'Q3 FY25',aaa:28000,aa:45000,a:18000,bbb:6500},
+  {q:'Q4 FY25',aaa:15000,aa:28000,a:10000,bbb:2900},
+  {q:'Q1 FY26',aaa:32000,aa:52000,a:22000,bbb:7800},
+  {q:'Q2 FY26',aaa:19000,aa:35000,a:13000,bbb:4100},
+];
+
+var LARGE_MATURITIES = [
+  {issuer:'HDFC Ltd NCD 9.2%',type:'NCD',amount:2500,rating:'AAA',date:'Jun 15, 2026',days:18,risk:'Low'},
+  {issuer:'ICICI Bank Tier 2 Bond',type:'Bond',amount:1800,rating:'AA+',date:'Jun 28, 2026',days:31,risk:'Low'},
+  {issuer:'Shriram Transport NCD',type:'NCD',amount:950,rating:'AA+',date:'Jul 10, 2026',days:43,risk:'Low'},
+  {issuer:'Piramal Capital NCD',type:'NCD',amount:600,rating:'A+',date:'Jul 22, 2026',days:55,risk:'Medium'},
+  {issuer:'Indostar Capital NCD',type:'NCD',amount:400,rating:'A',date:'Aug 5, 2026',days:69,risk:'Medium'},
+  {issuer:'Future Enterprises CP',type:'CP',amount:250,rating:'D',date:'Jun 8, 2026',days:11,risk:'High'},
+];
+
+var HEATMAP_SECTORS = ['NBFC','Real Estate','Manufacturing','Healthcare','Infrastructure','Technology'];
+var HEATMAP_SPREADS = [
+  [55, 80, 120, 180, 280],
+  [65, 110, 175, 260, 410],
+  [70, 95, 145, 220, 340],
+  [60, 85, 130, 195, 310],
+  [50, 75, 110, 165, 255],
+  [80, 130, 200, 310, 490],
+];
+
+var SECTOR_FLOW = [
+  {sector:'NBFC',deals:18,vol:8400,change:'+12%',color:'var(--teal)'},
+  {sector:'Real Estate',deals:11,vol:4200,change:'-5%',color:'var(--amber)'},
+  {sector:'Manufacturing',deals:9,vol:2800,change:'+8%',color:'var(--purple)'},
+  {sector:'Healthcare',deals:6,vol:1500,change:'+22%',color:'var(--green)'},
+  {sector:'Infrastructure',deals:7,vol:3100,change:'+3%',color:'var(--blue)'},
+  {sector:'Technology',deals:4,vol:800,change:'+45%',color:'#F472B6'},
+];
+
+var ISSUERS = [
+  {name:'Bajaj Finance Ltd',sector:'NBFC',outstanding:18500,rating:'AAA',last:'Apr 2026',next:'Jun 2026',status:'Active'},
+  {name:'HDFC Ltd',sector:'NBFC',outstanding:22000,rating:'AAA',last:'Mar 2026',next:'Jun 2026',status:'Active'},
+  {name:'Shriram Finance',sector:'NBFC',outstanding:12000,rating:'AA+',last:'May 2026',next:'Jul 2026',status:'Active'},
+  {name:'Piramal Capital',sector:'Real Estate',outstanding:5800,rating:'A+',last:'Feb 2026',next:'Jul 2026',status:'Watch'},
+  {name:'Godrej Properties',sector:'Real Estate',outstanding:4200,rating:'AA',last:'Apr 2026',next:'Sep 2026',status:'Active'},
+  {name:'L&T Finance',sector:'Infrastructure',outstanding:9500,rating:'AA+',last:'Apr 2026',next:'Aug 2026',status:'Active'},
+  {name:'Cholamandalam Inv',sector:'NBFC',outstanding:7800,rating:'AA',last:'May 2026',next:'Oct 2026',status:'Active'},
+  {name:'Indostar Capital',sector:'NBFC',outstanding:1800,rating:'A',last:'Mar 2026',next:'Aug 2026',status:'Watch'},
+  {name:'Mahindra Finance',sector:'NBFC',outstanding:8900,rating:'AA+',last:'Apr 2026',next:'Sep 2026',status:'Active'},
+];
+
+var ALERTS_DATA = [
+  {type:'downgrade',issuer:'Future Retail Ltd',detail:'BBB → D',agency:'CRISIL',time:'3 days ago',severity:'high'},
+  {type:'watch',issuer:'Piramal Capital',detail:'Placed on Negative Watch',agency:'CRISIL',time:'1 week ago',severity:'medium'},
+  {type:'upgrade',issuer:'Mahindra Finance',detail:'AA → AA+',agency:'ICRA',time:'3 weeks ago',severity:'low'},
+  {type:'downgrade',issuer:'Sintex Industries',detail:'BBB- → D',agency:'ICRA',time:'1 month ago',severity:'high'},
+  {type:'watch',issuer:'Manappuram Finance',detail:'Negative Watch maintained',agency:'India Ratings',time:'2 months ago',severity:'medium'},
+];
+
+// ── RENDER ──────────────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', function(){
+  renderYieldCharts();
+  renderYieldTrend();
+  renderRatings();
+  renderMaturityWall();
+  renderHeatmap();
+  renderSectorFlow();
+  renderAlerts();
+  renderIssuers();
+});
+
+function showTab(name, el){
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  var panel = document.getElementById('tab-'+name);
+  if(panel) panel.classList.add('on');
+  if(el) el.classList.add('on');
+}
+
+function renderYieldCharts(){
+  // NCD
+  var nc = document.getElementById('ncd-chart');
+  var nl = document.getElementById('ncd-labels');
+  if(!nc) return;
+  var maxY = Math.max.apply(null, NCD_YIELDS.map(function(d){return d.yield;}));
+  var minY = Math.min.apply(null, NCD_YIELDS.map(function(d){return d.yield;}));
+  var colors = ['#2DC48F','#2DC48F','#0EC8A4','#0EC8A4','#F0C060','#F0C060','#FF8C42','#FF4D6D'];
+  nc.innerHTML = NCD_YIELDS.map(function(d,i){
+    var h = ((d.yield - minY + 1) / (maxY - minY + 1) * 160 + 20).toFixed(0);
+    return '<div class="ybar" style="height:'+h+'px;background:'+colors[i]+';opacity:.85"><div class="ybar-tip">'+d.yield+'% | +'+d.spread+'% spread</div></div>';
+  }).join('');
+  nl.innerHTML = '<div style="display:flex;gap:2px;width:100%;padding:0 4px">'+NCD_YIELDS.map(function(d){return '<div class="y-label">'+d.rating+'</div>';}).join('')+'</div>';
+
+  // CP
+  var cc = document.getElementById('cp-chart');
+  var cl = document.getElementById('cp-labels');
+  if(!cc) return;
+  var maxC = Math.max.apply(null, CP_YIELDS.map(function(d){return d.yield;}));
+  var minC = Math.min.apply(null, CP_YIELDS.map(function(d){return d.yield;}));
+  cc.innerHTML = CP_YIELDS.map(function(d){
+    var h = ((d.yield - minC + 0.5) / (maxC - minC + 0.5) * 160 + 20).toFixed(0);
+    return '<div class="ybar" style="height:'+h+'px;background:var(--purple);opacity:.8"><div class="ybar-tip">'+d.yield+'%</div></div>';
+  }).join('');
+  cl.innerHTML = '<div style="display:flex;gap:2px;width:100%;padding:0 4px">'+CP_YIELDS.map(function(d){return '<div class="y-label">'+d.bucket+'</div>';}).join('')+'</div>';
+}
+
+function renderYieldTrend(){
+  var tb = document.getElementById('yield-trend-table');
+  if(!tb) return;
+  var months = ['Dec-25','Jan-26','Feb-26','Mar-26','Apr-26','May-26'];
+  tb.innerHTML = YIELD_TREND.map(function(r){
+    var ratingClass = r.rating.startsWith('AAA')?'r-aaa':r.rating.startsWith('AA')?'r-aa':r.rating.startsWith('A')?'r-a':'r-bbb';
+    return '<tr>'
+      +'<td><span class="rbadge '+ratingClass+'">'+r.rating+'</span></td>'
+      + r.vals.map(function(v){return '<td style="font-family:var(--mono);font-size:12px">'+v.toFixed(2)+'%</td>';}).join('')
+      +'<td style="font-weight:800;color:'+(r.up?'var(--red)':'var(--green)')+'">'+r.chg+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function ratingClass(r){
+  if(!r) return 'r-unrated';
+  if(r==='AAA') return 'r-aaa';
+  if(r.startsWith('AA')) return 'r-aa';
+  if(r.startsWith('A')) return 'r-a';
+  if(r.startsWith('BBB')) return 'r-bbb';
+  if(r==='D') return 'r-bbb';
+  return 'r-unrated';
+}
+
+function renderRatings(){
+  var ul = document.getElementById('upgrades-list');
+  var dl = document.getElementById('downgrades-list');
+  var wt = document.getElementById('watch-table');
+  if(ul) ul.innerHTML = UPGRADES.map(function(u){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="flex:1"><div style="font-weight:700;font-size:13px">'+u.issuer+'</div><div style="font-size:11px;color:var(--muted)">'+u.sector+' · '+u.agency+' · '+u.date+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +'<span class="rbadge '+ratingClass(u.from)+'">'+u.from+'</span>'
+      +'<span style="color:var(--green);font-weight:900">→</span>'
+      +'<span class="rbadge '+ratingClass(u.to)+'">'+u.to+'</span></div></div>';
+  }).join('');
+  if(dl) dl.innerHTML = DOWNGRADES.map(function(d){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);background:'+(d.alert?'rgba(255,77,109,.04)':'')+';border-radius:6px;padding:10px">'
+      +'<div style="flex:1"><div style="font-weight:700;font-size:13px;display:flex;align-items:center;gap:6px">'+d.issuer+(d.alert?'<span style="font-size:9px;padding:2px 6px;border-radius:99px;background:rgba(255,77,109,.15);color:var(--red)">⚠ Alert</span>':'')+'</div><div style="font-size:11px;color:var(--muted)">'+d.sector+' · '+d.agency+' · '+d.date+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +'<span class="rbadge '+ratingClass(d.from)+'">'+d.from+'</span>'
+      +'<span style="color:var(--red);font-weight:900">→</span>'
+      +'<span class="rbadge '+ratingClass(d.to)+'">'+d.to+'</span></div></div>';
+  }).join('');
+  if(wt) wt.innerHTML = WATCH_LIST.map(function(w){
+    var wcol = w.watch.includes('Negative')?'var(--red)':w.watch.includes('Dev')?'var(--amber)':'var(--green)';
+    return '<tr>'
+      +'<td style="font-weight:700">'+w.issuer+'</td>'
+      +'<td><span class="rbadge '+ratingClass(w.current)+'">'+w.current+'</span></td>'
+      +'<td style="color:var(--muted)">'+w.agency+'</td>'
+      +'<td style="font-weight:700;color:'+wcol+'">'+w.watch+'</td>'
+      +'<td style="font-size:12px;color:var(--muted)">'+w.reason+'</td>'
+      +'<td style="color:var(--muted)">'+w.since+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function renderMaturityWall(){
+  var mc = document.getElementById('maturity-chart');
+  var rr = document.getElementById('rollover-risk');
+  var lt = document.getElementById('large-maturity-table');
+  if(mc){
+    var maxTotal = Math.max.apply(null, MATURITY_DATA.map(function(d){return d.aaa+d.aa+d.a+d.bbb;}));
+    mc.innerHTML = MATURITY_DATA.map(function(d){
+      var total = d.aaa+d.aa+d.a+d.bbb;
+      var h = Math.max(20, (total/maxTotal)*160);
+      var aaaH = (d.aaa/total*h).toFixed(0);
+      var aaH  = (d.aa/total*h).toFixed(0);
+      var aH   = (d.a/total*h).toFixed(0);
+      var bbbH = (d.bbb/total*h).toFixed(0);
+      return '<div class="mbar-wrap">'
+        +'<div class="mbar-v">₹'+Math.round(total/100)/10+'K</div>'
+        +'<div style="display:flex;flex-direction:column;justify-content:flex-end;height:160px;gap:1px">'
+        +'<div class="mbar" style="height:'+aaaH+'px;background:var(--green)" title="AAA/AA+"></div>'
+        +'<div class="mbar" style="height:'+aaH+'px;background:var(--teal)" title="AA/AA-"></div>'
+        +'<div class="mbar" style="height:'+aH+'px;background:var(--amber)" title="A"></div>'
+        +'<div class="mbar" style="height:'+bbbH+'px;background:var(--red)" title="BBB & below"></div>'
+        +'</div>'
+        +'<div class="mbar-l">'+d.q+'</div></div>';
+    }).join('');
+  }
+  if(rr){
+    var risks = [
+      {q:'Q1 FY25',rate:88,col:'var(--green)'},
+      {q:'Q2 FY25',rate:82,col:'var(--green)'},
+      {q:'Q3 FY25',rate:79,col:'var(--amber)'},
+      {q:'Q4 FY25',rate:85,col:'var(--green)'},
+      {q:'Q1 FY26',rate:84,col:'var(--green)'},
+      {q:'Q2 FY26 (est)',rate:78,col:'var(--amber)'},
+    ];
+    rr.innerHTML = '<div style="display:grid;gap:8px">'+risks.map(function(r){
+      return '<div style="display:flex;align-items:center;gap:12px">'
+        +'<div style="min-width:90px;font-size:12px;color:var(--muted)">'+r.q+'</div>'
+        +'<div style="flex:1;height:8px;background:rgba(14,200,164,.08);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+r.rate+'%;background:'+r.col+';border-radius:4px"></div></div>'
+        +'<div style="font-size:12px;font-weight:800;color:'+r.col+';min-width:36px;text-align:right">'+r.rate+'%</div></div>';
+    }).join('')+'</div>';
+  }
+  if(lt){
+    lt.innerHTML = LARGE_MATURITIES.map(function(m){
+      var rc2 = m.risk==='High'?'var(--red)':m.risk==='Medium'?'var(--amber)':'var(--green)';
+      return '<tr>'
+        +'<td style="font-weight:700">'+m.issuer+'</td>'
+        +'<td style="color:var(--muted)">'+m.type+'</td>'
+        +'<td style="font-family:var(--mono);font-weight:800">₹'+m.amount.toLocaleString()+'</td>'
+        +'<td><span class="rbadge '+ratingClass(m.rating)+'">'+m.rating+'</span></td>'
+        +'<td style="color:var(--muted)">'+m.date+'</td>'
+        +'<td style="font-weight:800;color:'+(m.days<30?'var(--red)':'var(--muted)')+'">'+m.days+' days</td>'
+        +'<td style="font-weight:700;color:'+rc2+'">'+m.risk+'</td>'
+        +'</tr>';
+    }).join('');
+  }
+}
+
+function renderHeatmap(){
+  var grid = document.getElementById('heatmap-grid');
+  if(!grid) return;
+  var maxSpread = 500;
+  grid.innerHTML = HEATMAP_SECTORS.map(function(sector, si){
+    var spreads = HEATMAP_SPREADS[si];
+    return '<div class="hmap-row">'
+      +'<div class="hmap-label">'+sector+'</div>'
+      +'<div class="hmap-cells">'
+      + spreads.map(function(s){
+          var intensity = 1 - (s/maxSpread);
+          var r = Math.round(14 + intensity * 20);
+          var g = Math.round(50 + intensity * 148);
+          var b = Math.round(50 + intensity * 94);
+          var textColor = intensity > 0.5 ? '#000' : '#fff';
+          return '<div class="hmap-cell" style="background:rgb('+r+','+g+','+b+')" title="+'+s+'bps over G-sec"><span style="color:'+textColor+';font-size:10px;font-weight:800">'+s+'</span></div>';
+        }).join('')
+      +'</div></div>';
+  }).join('');
+}
+
+function renderSectorFlow(){
+  var sf = document.getElementById('sector-flow');
+  if(!sf) return;
+  var maxVol = Math.max.apply(null, SECTOR_FLOW.map(function(s){return s.vol;}));
+  sf.innerHTML = '<div style="display:grid;gap:10px">'
+    + SECTOR_FLOW.map(function(s){
+        var pct = (s.vol/maxVol*100).toFixed(0);
+        var up = s.change.startsWith('+');
+        return '<div style="display:flex;align-items:center;gap:12px">'
+          +'<div style="min-width:120px;font-size:13px;font-weight:700;color:var(--text)">'+s.sector+'</div>'
+          +'<div style="flex:1;height:10px;background:rgba(14,200,164,.07);border-radius:5px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+s.color+';border-radius:5px;transition:.4s"></div></div>'
+          +'<div style="font-size:12px;font-family:var(--mono);color:var(--text);min-width:80px;text-align:right">₹'+Math.round(s.vol/100)/10+'K Cr</div>'
+          +'<div style="font-size:12px;font-weight:700;color:'+(up?'var(--green)':'var(--red)')+';min-width:44px;text-align:right">'+s.change+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);min-width:55px;text-align:right">'+s.deals+' deals</div>'
+          +'</div>';
+      }).join('')
+    +'</div>';
+}
+
+function renderAlerts(){
+  var al = document.getElementById('alerts-list');
+  if(!al) return;
+  var combined = ALERTS_DATA.concat(USER_ALERTS.map(function(a){
+    return {type:'watch',issuer:a.issuer,detail:'Monitoring: '+a.alertType,agency:'User Alert',time:'Custom',severity:'medium'};
+  }));
+  al.innerHTML = combined.map(function(a){
+    var col = a.type==='downgrade'?'var(--red)':a.type==='upgrade'?'var(--green)':'var(--amber)';
+    var icon = a.type==='downgrade'?'↓':a.type==='upgrade'?'↑':'⚠';
+    var severity = a.severity==='high'?'rgba(255,77,109,.08)':a.severity==='medium'?'rgba(240,192,96,.06)':'rgba(45,196,143,.06)';
+    return '<div class="alert-item" style="background:'+severity+';border:1px solid '+col+'20;margin-bottom:8px">'
+      +'<div style="width:32px;height:32px;border-radius:8px;background:'+col+'20;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:'+col+'">'+icon+'</div>'
+      +'<div style="flex:1">'
+      +'<div style="font-weight:700;font-size:13px">'+a.issuer+' <span style="font-size:11px;font-weight:600;color:var(--muted)">· '+a.detail+'</span></div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+a.agency+' · '+a.time+'</div>'
+      +'</div>'
+      +'<span style="font-size:10px;padding:3px 9px;border-radius:99px;font-weight:800;background:'+col+'15;color:'+col+';border:1px solid '+col+'30;text-transform:capitalize">'+a.type+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+function addAlert(){
+  var issuer = (document.getElementById('alert-issuer')||{}).value||'';
+  var type   = (document.getElementById('alert-type')||{}).value||'Any change';
+  if(!issuer){ showToast('Enter issuer name'); return; }
+  USER_ALERTS.push({issuer:issuer, alertType:type});
+  document.getElementById('alert-issuer').value='';
+  renderAlerts();
+  showToast('Alert set for '+issuer);
+}
+
+function renderIssuers(){
+  var tb = document.getElementById('issuers-table');
+  if(!tb) return;
+  tb.innerHTML = ISSUERS.map(function(iss){
+    var sc = iss.status==='Active'?'var(--green)':iss.status==='Watch'?'var(--amber)':'var(--red)';
+    return '<tr>'
+      +'<td style="font-weight:700">'+iss.name+'</td>'
+      +'<td style="color:var(--muted)">'+iss.sector+'</td>'
+      +'<td style="font-family:var(--mono);font-weight:700">₹'+iss.outstanding.toLocaleString()+'</td>'
+      +'<td><span class="rbadge '+ratingClass(iss.rating)+'">'+iss.rating+'</span></td>'
+      +'<td style="color:var(--muted)">'+iss.last+'</td>'
+      +'<td style="color:var(--muted)">'+iss.next+'</td>'
+      +'<td style="font-weight:700;color:'+sc+'">'+iss.status+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;t.style.display='block';
+  setTimeout(function(){t.style.display='none';},3000);
+}
+</script>
+</body>
+</html>
