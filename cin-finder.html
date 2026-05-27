@@ -136,9 +136,43 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
 .ab-btn.primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(13,92,107,.2)}
 .ab-btn.sec{background:#fff;border:1.5px solid var(--border);color:var(--muted)}
 .ab-btn.sec:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* ADMIN GATE */
+#admin-gate{position:fixed;inset:0;background:#0A1628;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+#admin-gate.gone{display:none}
+.ag-card{background:#fff;border-radius:20px;width:100%;max-width:420px;padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.4)}
+.ag-logo{font-family:Georgia,serif;font-weight:900;font-size:24px;color:#08404D;text-align:center;margin-bottom:4px}
+.ag-logo sup{font-size:10px;color:#E88A2E;font-weight:800}
+.ag-badge{text-align:center;margin-bottom:20px}
+.ag-badge span{background:rgba(192,57,43,.08);color:#C0392B;border:1px solid rgba(192,57,43,.2);font-size:11px;font-weight:800;padding:3px 12px;border-radius:99px}
+.ag-title{font-family:Georgia,serif;font-size:20px;font-weight:900;color:#08404D;text-align:center;margin-bottom:6px}
+.ag-sub{font-size:12px;color:#6B8A94;text-align:center;margin-bottom:22px;line-height:1.6}
+.ag-inp{width:100%;padding:11px 14px;border:1.5px solid #E0EAF0;border-radius:9px;font-size:13px;outline:none;margin-bottom:10px;box-sizing:border-box;color:#1A2E35}
+.ag-inp:focus{border-color:#08404D}
+.ag-err{color:#C0392B;font-size:12px;min-height:18px;margin-bottom:8px;text-align:center}
+.ag-btn{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;font-size:14px;font-weight:800;cursor:pointer;transition:.2s}
+.ag-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(13,92,107,.25)}
+.ag-note{text-align:center;margin-top:14px;font-size:12px;color:#9AB0B8}
+
 </style>
 </head>
 <body>
+
+<!-- ADMIN GATE -->
+<div id="admin-gate">
+  <div class="ag-card">
+    <div class="ag-logo">ipowork<sup>AI</sup></div>
+    <div class="ag-badge"><span>🔒 Admin Access Only</span></div>
+    <div class="ag-title">Restricted Tool</div>
+    <div class="ag-sub">This tool is restricted to ipowork administrators.<br/>Please login with your admin credentials.</div>
+    <input class="ag-inp" id="ag-email" type="email" placeholder="Admin email" onkeydown="if(event.key==='Enter')document.getElementById('ag-pw').focus()"/>
+    <input class="ag-inp" id="ag-pw" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')adminLogin()"/>
+    <div class="ag-err" id="ag-err"></div>
+    <button class="ag-btn" onclick="adminLogin()">Login → Access Tool</button>
+    <div class="ag-note">Not an admin? <a href="aira.html" style="color:#0D5C6B;font-weight:700">Go to AIRA →</a></div>
+  </div>
+</div>
+
 <div style="background:#08404D;padding:7px 18px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:0 1px 8px rgba(0,0,0,.2)">
   <a href="index.html" style="font-family:Georgia,serif;font-weight:900;font-size:16px;color:#fff;text-decoration:none;margin-right:10px">ipowork<sup style="font-size:8px;color:#F28C00;font-weight:800">AI</sup></a>
   <a href="aira.html" style="color:rgba(255,255,255,.7);text-decoration:none;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='none'">📊 AIRA</a>
@@ -683,6 +717,46 @@ window.addEventListener('load',function(){
     }
   }
 });
+</script>
+<script>
+var ADMIN_USERS = {
+  'jiweshkshrivastava@gmail.com': 'ipowork@2007'
+};
+
+function adminLogin(){
+  var email = (document.getElementById('ag-email')||{}).value||'';
+  var pw    = (document.getElementById('ag-pw')||{}).value||'';
+  var err   = document.getElementById('ag-err');
+  email = email.trim().toLowerCase();
+  if(!ADMIN_USERS[email]){ if(err) err.textContent='Email not registered as admin.'; return; }
+  if(ADMIN_USERS[email] !== pw){ if(err) err.textContent='Incorrect password.'; return; }
+  try{ sessionStorage.setItem('ipowork_admin', btoa(email+':'+pw+':'+Date.now())); }catch(e){}
+  document.getElementById('admin-gate').classList.add('gone');
+}
+
+function checkAdminAccess(){
+  try{
+    var sess = sessionStorage.getItem('ipowork_admin');
+    if(sess){
+      var decoded = atob(sess);
+      var parts = decoded.split(':');
+      var email = parts[0];
+      var pw    = parts[1];
+      var ts    = parseInt(parts[2])||0;
+      // Session valid for 8 hours
+      if(ADMIN_USERS[email] && ADMIN_USERS[email]===pw && (Date.now()-ts) < 8*60*60*1000){
+        document.getElementById('admin-gate').classList.add('gone');
+        return;
+      }
+    }
+  }catch(e){}
+  // Show gate
+  document.getElementById('admin-gate').style.display='flex';
+}
+
+// Check on load
+window.addEventListener('DOMContentLoaded', function(){ checkAdminAccess(); });
+window.addEventListener('load', function(){ checkAdminAccess(); });
 </script>
 </body>
 </html>
