@@ -138,9 +138,10 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
 .ab-btn.sec:hover{border-color:var(--cyan);color:var(--cyan)}
 
 /* ADMIN GATE */
-#admin-gate{position:fixed;inset:0;background:#0A1628;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+body:has(#admin-gate:not(.gone)) .ipowork-nav{ display:none !important; }
+#admin-gate{position:fixed;inset:0;background:#0A1628;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px}
 #admin-gate.gone{display:none}
-.ag-card{background:#fff;border-radius:20px;width:100%;max-width:420px;padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.4)}
+.ag-card{background:#fff;border-radius:20px;width:100%;max-width:420px;padding:36px 32px;box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative;z-index:99999}
 .ag-logo{font-family:Georgia,serif;font-weight:900;font-size:24px;color:#08404D;text-align:center;margin-bottom:4px}
 .ag-logo sup{font-size:10px;color:#E88A2E;font-weight:800}
 .ag-badge{text-align:center;margin-bottom:20px}
@@ -165,7 +166,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
     <div class="ag-badge"><span>🔒 Admin Access Only</span></div>
     <div class="ag-title">Restricted Tool</div>
     <div class="ag-sub">This tool is restricted to ipowork administrators.<br/>Please login with your admin credentials.</div>
-    <input class="ag-inp" id="ag-email" type="email" placeholder="Admin email" onkeydown="if(event.key==='Enter')document.getElementById('ag-pw').focus()"/>
+    <input class="ag-inp" id="ag-email" type="email" placeholder="Admin email" onkeydown="if(event.key==='Enter'){document.getElementById('ag-pw').focus();}"/>
     <input class="ag-inp" id="ag-pw" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')adminLogin()"/>
     <div class="ag-err" id="ag-err"></div>
     <button class="ag-btn" onclick="adminLogin()">Login → Access Tool</button>
@@ -173,7 +174,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
   </div>
 </div>
 
-<div style="background:#08404D;padding:7px 18px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:0 1px 8px rgba(0,0,0,.2)">
+<div class="ipowork-nav" style="background:#08404D;padding:7px 18px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:0 1px 8px rgba(0,0,0,.2)">
   <a href="index.html" style="font-family:Georgia,serif;font-weight:900;font-size:16px;color:#fff;text-decoration:none;margin-right:10px">ipowork<sup style="font-size:8px;color:#F28C00;font-weight:800">AI</sup></a>
   <a href="aira.html" style="color:rgba(255,255,255,.7);text-decoration:none;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;transition:.15s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='none'">📊 AIRA</a>
   <a href="mb.html" style="color:rgba(255,255,255,.7);text-decoration:none;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='none'">🏦 MB Portal</a>
@@ -732,6 +733,8 @@ function adminLogin(){
   if(ADMIN_USERS[email] !== pw){ if(err) err.textContent='Incorrect password.'; return; }
   try{ sessionStorage.setItem('ipowork_admin', btoa(email+':'+pw+':'+Date.now())); }catch(e){}
   document.getElementById('admin-gate').classList.add('gone');
+  var nav=document.querySelector('.ipowork-nav');
+  if(nav) nav.style.display='';
 }
 
 function checkAdminAccess(){
@@ -750,8 +753,10 @@ function checkAdminAccess(){
       }
     }
   }catch(e){}
-  // Show gate
+  // Show gate — hide nav bar
   document.getElementById('admin-gate').style.display='flex';
+  var nav=document.querySelector('.ipowork-nav');
+  if(nav) nav.style.display='none';
 }
 
 // Check on load
