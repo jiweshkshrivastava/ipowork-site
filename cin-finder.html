@@ -254,6 +254,19 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
         <option value="main">Main Board (₹300 Cr+ revenue)</option>
       </select>
 
+      <div class="fc-section">🏢 Listing Status</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="nic-chip on" id="btn-unlisted" onclick="toggleListing('unlisted',this)" style="background:rgba(26,158,107,.08);border-color:var(--green,#1A9E6B);color:var(--green,#1A9E6B)">
+          🔒 Unlisted Only<span class="nic-code">Private Limited</span>
+        </div>
+        <div class="nic-chip" id="btn-listed" onclick="toggleListing('listed',this)">
+          📈 Listed Only<span class="nic-code">BSE / NSE</span>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;padding:7px 10px;background:rgba(26,158,107,.05);border-radius:7px;border:1px solid rgba(26,158,107,.15)">
+        💡 CIN starting with <b>U</b> = Unlisted &nbsp;·&nbsp; <b>L</b> = Listed
+      </div>
+
       <div class="fc-section">📊 Number of Results</div>
       <div class="count-row">
         <div class="cnt-btn" onclick="setCount(10,this)">10</div>
@@ -309,6 +322,27 @@ var SELECTED = new Set();
 var SEARCH_COUNT = 20;
 var SELECTED_NICS = ['24'];
 
+var LISTING_MODE = 'unlisted'; // default to unlisted only
+
+function toggleListing(mode, el){
+  LISTING_MODE = mode;
+  document.getElementById('btn-unlisted').classList.remove('on');
+  document.getElementById('btn-listed').classList.remove('on');
+  // Reset styles
+  document.getElementById('btn-unlisted').style.cssText = '';
+  document.getElementById('btn-listed').style.cssText = '';
+  el.classList.add('on');
+  if(mode==='unlisted'){
+    el.style.background='rgba(26,158,107,.08)';
+    el.style.borderColor='var(--green,#1A9E6B)';
+    el.style.color='var(--green,#1A9E6B)';
+  } else {
+    el.style.background='rgba(91,111,236,.08)';
+    el.style.borderColor='#5B6FEC';
+    el.style.color='#5B6FEC';
+  }
+}
+
 var NIC_LABELS = {
   '24':'Specialty Chemicals','21':'Pharma & APIs','28':'Machinery/Engineering',
   '29':'Auto Ancillaries','10':'Food Processing','62':'IT/SaaS',
@@ -356,7 +390,15 @@ async function runSearch(){
 
   try {
     // STEP 1: Claude generates real company NAMES (not CINs)
-    var prompt = 'List '+SEARCH_COUNT+' real Indian companies. State: '+(state||'India')+'. Sector: '+sectors+'. Revenue Rs '+revMin+' Cr to Rs '+revMax+' Cr approx. PAT above Rs '+patMin+' Cr. Incorporated '+age+'+ years ago. IPO candidates. One company name per line, exact MCA registered name, ending Private Limited. No CIN numbers. No numbering.';
+    var listingLabel = LISTING_MODE==='unlisted'
+      ? 'UNLISTED Private Limited companies (NOT listed on BSE/NSE - these are pre-IPO candidates)'
+      : 'LISTED Public Limited companies (currently listed on BSE or NSE)';
+    var prompt = 'List '+SEARCH_COUNT+' real Indian '+listingLabel+'. '
+      +'State: '+(state||'India')+'. Sector: '+sectors+'. '
+      +'Revenue approx Rs '+revMin+' Cr to Rs '+revMax+' Cr. PAT above Rs '+patMin+' Cr. '
+      +'Incorporated '+age+'+ years ago. '
+      +(LISTING_MODE==='unlisted'?'These should be strong IPO candidates NOT yet listed. ':'These should be currently traded on stock exchange. ')
+      +'One company name per line. Exact MCA registered name. No CIN numbers. No numbering.';
 
     var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1000,
@@ -445,10 +487,18 @@ async function runSearch(){
           if(p42 && p42.company_name && p42.company_name!=='NOT FOUND'){
             item.p42 = p42;
             item.name = p42.company_name;
+            // Check CIN prefix for listing status
+            var cinPrefix = item.cin.charAt(0).toUpperCase();
+            var isListed = cinPrefix === 'L';
+            var isUnlisted = cinPrefix === 'U';
+            var listingMismatch = (LISTING_MODE==='unlisted' && isListed) || (LISTING_MODE==='listed' && isUnlisted);
             // Check revenue filter
             var rev = Number((p42.financials||{}).revenue_fy24)||0;
             var revCr = rev/10000000;
-            if(revCr > 0 && revCr < revMin*0.3){
+            if(listingMismatch){
+              item.status='wrong-listing';
+              item.listingNote = isListed ? '📈 Listed company' : '🔒 Unlisted company';
+            } else if(revCr > 0 && revCr < revMin*0.3){
               item.status='filtered';
             } else {
               item.status='verified';
@@ -469,7 +519,9 @@ async function runSearch(){
     }
 
     var verified = RESULTS.filter(function(r){return r.status==='verified';}).length;
-    document.getElementById('rc-count').textContent = verified+' verified of '+names.length+' found';
+    var wrongListing = RESULTS.filter(function(r){return r.status==='wrong-listing';}).length;
+    var listingNote = wrongListing>0 ? ' ('+wrongListing+' filtered: wrong listing type)' : '';
+    document.getElementById('rc-count').textContent = verified+' verified of '+names.length+' found'+listingNote;
 
   } catch(e){
     document.getElementById('results-inner').innerHTML =
@@ -488,11 +540,17 @@ function updateCard(item){
   if(!card) return;
   var f = item.p42&&item.p42.financials||{};
   var statusHtml='';
-  if(item.status==='verified') statusHtml='<span class="co-pill pill-verified">&#10003; Probe42 Verified</span>';
+  if(item.status==='verified'){
+    var listingBadge = item.cin.charAt(0)==='L'
+      ? '<span class="co-pill" style="background:rgba(91,111,236,.1);color:#5B6FEC;border:1px solid rgba(91,111,236,.2)">&#128200; Listed</span>'
+      : '<span class="co-pill" style="background:rgba(26,158,107,.1);color:#1A9E6B;border:1px solid rgba(26,158,107,.2)">&#128274; Unlisted</span>';
+    statusHtml='<span class="co-pill pill-verified">&#10003; Verified</span>'+listingBadge;
+  }
   else if(item.status==='fetching') statusHtml='<span class="co-pill pill-fetching">&#8635; Fetching P42</span>';
   else if(item.status==='searching') statusHtml='<span class="co-pill pill-fetching">&#8635; Searching MCA</span>';
   else if(item.status==='notfound') statusHtml='<span class="co-pill pill-notfound">Not Found</span>';
   else if(item.status==='filtered') statusHtml='<span class="co-pill pill-notfound">Revenue Mismatch</span>';
+  else if(item.status==='wrong-listing') statusHtml='<span class="co-pill pill-notfound">'+(item.listingNote||'Wrong listing type')+'</span>';
   var metricsHtml='';
   if(item.p42&&item.p42.financials){
     metricsHtml='<div class="co-metrics">'
