@@ -451,6 +451,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--sl);line-height:1.
   .portal-pad{padding:12px !important}
 }
 
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
 </style>
 <script>
 /* ═══════════════════════════════════════════════════
@@ -1754,6 +1756,8 @@ var NAV_ITEMS = [
   {id:'deals',     icon:'🔗', label:'Deal Sourcing',     badge:'LIVE'},
   {id:'hot-leads', icon:'⚡', label:'Hot Leads',         badge:'3'},
   {id:'pipeline',  icon:'📊', label:'Pipeline',          badge:''},
+  {id:'deal-room', icon:'🔐', label:'Deal Room',          badge:'NEW'},
+  {id:'activity',  icon:'📡', label:'Investor Activity',  badge:'LIVE'},
 
   {id:'ai',        icon:'🤖', label:'IPO AI Advisors',   badge:'9'},
   {id:'bankers',   icon:'🏦', label:'MB Directory',      badge:'242'},
@@ -2109,6 +2113,8 @@ function renderMain(){
   else if(P.view==='deals') content=renderDeals();
   else if(P.view==='hot-leads') content=renderHotLeads();
   else if(P.view==='pipeline')  content=renderPipeline();
+  else if(P.view==='deal-room') content=renderDealRoom();
+  else if(P.view==='activity')  content=renderActivityFeed();
   else if(P.view==='pricing')   content=renderPricing();
   else if(P.view==='bankers')    content=renderBankers();
   else if(P.view==='ai')        content=renderAIHome();
@@ -4770,6 +4776,406 @@ window.drhpSetParty = async function(docId, party){
   /* Expose for portals that check inline */
   window.ipoworkAuth = { getUser: getUser };
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   DEAL ROOM — Secure IM sharing per deal with access logs
+   Storage: window.storage key 'dealroom:deals' (personal)
+═══════════════════════════════════════════════════════════════ */
+
+var DR = { deals:[], view:'list', activeDeal:null };
+
+async function drLoad(){
+  try{
+    var r = await window.storage.get('dealroom:deals');
+    DR.deals = r ? JSON.parse(r.value) : drSampleDeals();
+  } catch(e){ DR.deals = drSampleDeals(); }
+}
+async function drSave(){
+  try{ await window.storage.set('dealroom:deals', JSON.stringify(DR.deals)); }catch(e){}
+}
+function drId(){ return 'DR' + Date.now().toString(36).toUpperCase(); }
+
+function drSampleDeals(){
+  var now = Date.now();
+  return [
+    {id:'DR001', company:'Zenith Pharma Ltd', cin:'U24230MH2018PLC310421', sector:'Healthcare', size:'₹120-180 Cr', stage:'DRHP Prep', created: now - 5*86400000, accessLog:[
+      {who:'Edelweiss AIF', action:'opened IM', time: now - 3600000*2},
+      {who:'Kotak PE', action:'downloaded term sheet', time: now - 3600000*5},
+      {who:'HDFC Capital', action:'viewed for 8 min', time: now - 86400000}
+    ], docs:[
+      {name:'Information Memorandum v2.pdf', size:'2.4 MB', uploaded: now - 5*86400000, views:12},
+      {name:'Audited Financials FY24.pdf', size:'1.1 MB', uploaded: now - 4*86400000, views:8},
+      {name:'Company Presentation.pptx', size:'5.7 MB', uploaded: now - 3*86400000, views:5}
+    ], invited:['Edelweiss AIF','Kotak PE','HDFC Capital','Motilal PE'], accessCode:'ZP-8841'},
+    {id:'DR002', company:'Trident Logistics Ltd', cin:'U63090DL2015PLC288344', sector:'Logistics', size:'₹200-280 Cr', stage:'MB Selection', created: now - 10*86400000, accessLog:[
+      {who:'Piramal Alternatives', action:'opened IM', time: now - 86400000*2},
+      {who:'Northern Arc', action:'sent query', time: now - 86400000*3}
+    ], docs:[
+      {name:'IM Draft v1.pdf', size:'3.2 MB', uploaded: now - 10*86400000, views:7},
+      {name:'Valuation Report.pdf', size:'890 KB', uploaded: now - 8*86400000, views:4}
+    ], invited:['Piramal Alternatives','Northern Arc','360 ONE'], accessCode:'TL-2293'}
+  ];
+}
+
+function drTimeAgo(ts){
+  var diff = Date.now()-ts, m=Math.floor(diff/60000), h=Math.floor(m/60), d=Math.floor(h/24);
+  if(d>0) return d+'d ago'; if(h>0) return h+'h ago'; if(m>0) return m+'m ago'; return 'just now';
+}
+
+function renderDealRoom(){
+  var h = '<div class="portal-pad">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">';
+  h += '<div><div class="page-title">🔐 Deal Room</div><div class="page-sub">Secure document sharing per deal with investor access logs</div></div>';
+  h += '<button onclick="drShowCreate()" style="padding:10px 20px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer">+ New Deal Room</button>';
+  h += '</div>';
+
+  // Stats bar
+  var totalInvites = DR.deals.reduce(function(s,d){return s+d.invited.length;},0);
+  var totalViews = DR.deals.reduce(function(s,d){return s+d.docs.reduce(function(ss,doc){return ss+doc.views;},0);},0);
+  var recentActivity = DR.deals.reduce(function(s,d){return s+d.accessLog.filter(function(l){return Date.now()-l.time<86400000;}).length;},0);
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">';
+  [
+    {v:DR.deals.length, l:'Deal Rooms', c:'var(--cyan)'},
+    {v:totalInvites,    l:'Investors Invited', c:'var(--green)'},
+    {v:totalViews,      l:'Document Views', c:'var(--amber)'},
+    {v:recentActivity,  l:'Activity (24h)', c:'#FF4D6D'}
+  ].forEach(function(s){
+    h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">';
+    h += '<div style="font-size:22px;font-weight:900;color:'+s.c+';font-family:var(--serif)">'+s.v+'</div>';
+    h += '<div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">'+s.l+'</div></div>';
+  });
+  h += '</div>';
+
+  // Deal room cards
+  h += '<div style="display:grid;gap:14px">';
+  DR.deals.forEach(function(deal){
+    var recentAct = deal.accessLog.length ? deal.accessLog[0] : null;
+    var totalDocViews = deal.docs.reduce(function(s,d){return s+d.views;},0);
+    h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:.2s" '
+      + 'onmouseenter="this.style.borderColor=\'var(--cyan)\'" onmouseleave="this.style.borderColor=\'var(--border)\'">';
+
+    // Header row
+    h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px">';
+    h += '<div>';
+    h += '<div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:4px">'+deal.company+'</div>';
+    h += '<div style="font-size:12px;color:var(--muted);font-family:var(--mono)">'+deal.cin+' · '+deal.sector+' · '+deal.size+'</div>';
+    h += '</div>';
+    h += '<div style="display:flex;gap:8px;flex-shrink:0">';
+    h += '<span style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px;background:rgba(13,92,107,.08);color:var(--teal)">'+deal.stage+'</span>';
+    h += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(26,158,107,.08);color:var(--green);border:1px solid rgba(26,158,107,.2)">🔑 '+deal.accessCode+'</span>';
+    h += '</div></div>';
+
+    // Metrics row
+    h += '<div style="display:flex;gap:20px;margin-bottom:14px;flex-wrap:wrap">';
+    h += '<div style="text-align:center"><div style="font-weight:900;color:var(--cyan);font-size:16px">'+deal.docs.length+'</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Docs</div></div>';
+    h += '<div style="text-align:center"><div style="font-weight:900;color:var(--amber);font-size:16px">'+totalDocViews+'</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Views</div></div>';
+    h += '<div style="text-align:center"><div style="font-weight:900;color:var(--green);font-size:16px">'+deal.invited.length+'</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Invited</div></div>';
+    h += '<div style="text-align:center"><div style="font-weight:900;color:#FF4D6D;font-size:16px">'+deal.accessLog.length+'</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Events</div></div>';
+    h += '</div>';
+
+    // Recent activity
+    if(recentAct){
+      h += '<div style="background:rgba(255,77,109,.06);border:1px solid rgba(255,77,109,.15);border-radius:9px;padding:10px 14px;margin-bottom:12px;font-size:12px;display:flex;align-items:center;gap:8px">';
+      h += '<span style="width:6px;height:6px;border-radius:50%;background:#FF4D6D;flex-shrink:0;animation:pulse 2s infinite"></span>';
+      h += '<span style="color:var(--text)"><strong>'+recentAct.who+'</strong> '+recentAct.action+'</span>';
+      h += '<span style="margin-left:auto;color:var(--muted)">'+drTimeAgo(recentAct.time)+'</span></div>';
+    }
+
+    // Invited chips + actions
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+    h += '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+    deal.invited.forEach(function(inv){
+      h += '<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(13,92,107,.06);color:var(--teal);font-weight:600">'+inv+'</span>';
+    });
+    h += '</div>';
+    h += '<div style="display:flex;gap:8px">';
+    h += '<button onclick="drOpenRoom(\''+deal.id+'\')" style="padding:8px 16px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Open Room →</button>';
+    h += '<button onclick="drCopyLink(\''+deal.accessCode+'\')" style="padding:8px 16px;background:var(--card);border:1.5px solid var(--border);color:var(--muted);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📋 Copy Link</button>';
+    h += '</div></div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  // Create deal room modal
+  h += '<div id="dr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:20px">';
+  h += '<div style="background:var(--card);border-radius:16px;width:100%;max-width:560px;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.3)">';
+  h += '<div style="font-weight:900;font-size:17px;color:var(--text);margin-bottom:18px;font-family:var(--serif)">🔐 Create Deal Room</div>';
+  h += '<div style="display:grid;gap:14px">';
+  h += '<div><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Company Name</label><input id="dr-company" class="inp" placeholder="e.g. Acme Manufacturing Ltd" style="width:100%;font-size:14px"/></div>';
+  h += '<div><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">CIN</label><input id="dr-cin" class="inp" placeholder="U12345MH2020PLC123456" style="width:100%;font-size:14px"/></div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  h += '<div><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Sector</label><input id="dr-sector" class="inp" placeholder="Healthcare" style="width:100%;font-size:14px"/></div>';
+  h += '<div><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Deal Size</label><input id="dr-size" class="inp" placeholder="₹100-150 Cr" style="width:100%;font-size:14px"/></div>';
+  h += '</div>';
+  h += '<div><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Stage</label>';
+  h += '<select id="dr-stage" class="inp" style="width:100%;font-size:14px"><option>MB Selection</option><option>DRHP Prep</option><option>SEBI Filing</option><option>Roadshow</option><option>Listed</option></select></div>';
+  h += '<div style="display:flex;gap:10px;margin-top:6px">';
+  h += '<button onclick="drCreate()" style="flex:1;padding:13px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:9px;font-weight:800;font-size:14px;cursor:pointer">Create Room</button>';
+  h += '<button onclick="document.getElementById(\'dr-modal\').style.display=\'none\'" style="padding:13px 20px;background:var(--card);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-weight:700;font-size:14px;cursor:pointer">Cancel</button>';
+  h += '</div></div></div></div>';
+
+  // Deal detail modal
+  h += '<div id="dr-detail" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;padding:20px">';
+  h += '<div id="dr-detail-box" style="background:var(--bg);border-radius:16px;width:100%;max-width:800px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3)"></div></div>';
+
+  h += '</div>';
+  return h;
+}
+
+function drShowCreate(){
+  var m = document.getElementById('dr-modal');
+  if(m) m.style.display='flex';
+}
+
+function drCreate(){
+  var company = (document.getElementById('dr-company')||{}).value||'';
+  if(!company){ showToast('Enter company name'); return; }
+  var deal = {
+    id: drId(), company: company,
+    cin: (document.getElementById('dr-cin')||{}).value||'',
+    sector: (document.getElementById('dr-sector')||{}).value||'',
+    size: (document.getElementById('dr-size')||{}).value||'',
+    stage: (document.getElementById('dr-stage')||{}).value||'',
+    created: Date.now(), accessLog: [], docs: [], invited: [],
+    accessCode: company.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2)+'-'+Math.floor(1000+Math.random()*8999)
+  };
+  DR.deals.unshift(deal);
+  drSave();
+  document.getElementById('dr-modal').style.display='none';
+  showToast('Deal Room created: '+deal.accessCode);
+  renderMain();
+}
+
+function drOpenRoom(id){
+  var deal = DR.deals.find(function(d){return d.id===id;});
+  if(!deal) return;
+  var box = document.getElementById('dr-detail-box');
+  if(!box) return;
+  var h = '<div style="padding:24px">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">';
+  h += '<div><div style="font-size:18px;font-weight:900;color:var(--text);font-family:var(--serif)">'+deal.company+'</div>';
+  h += '<div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:4px">'+deal.cin+' · '+deal.sector+'</div></div>';
+  h += '<button onclick="document.getElementById(\'dr-detail\').style.display=\'none\'" style="padding:8px 14px;background:var(--card);border:1.5px solid var(--border);color:var(--muted);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✕ Close</button></div>';
+
+  // Documents
+  h += '<div style="font-size:13px;font-weight:800;color:var(--teal);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px">📄 Documents</div>';
+  if(deal.docs.length){
+    h += '<div style="display:grid;gap:8px;margin-bottom:20px">';
+    deal.docs.forEach(function(doc){
+      h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px">';
+      h += '<span style="font-size:18px">📎</span>';
+      h += '<div style="flex:1"><div style="font-weight:700;font-size:13px;color:var(--text)">'+doc.name+'</div>';
+      h += '<div style="font-size:11px;color:var(--muted)">'+doc.size+' · '+doc.views+' views</div></div>';
+      h += '<span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(26,158,107,.08);color:var(--green)">'+doc.views+' views</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px">No documents uploaded yet</div>';
+  }
+  h += '<button onclick="drAddDoc(\''+id+'\')" style="padding:9px 18px;background:rgba(13,92,107,.08);border:1.5px dashed rgba(13,92,107,.25);border-radius:9px;font-size:12px;font-weight:700;color:var(--teal);cursor:pointer;margin-bottom:20px">+ Upload Document</button>';
+
+  // Access log
+  h += '<div style="font-size:13px;font-weight:800;color:var(--teal);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px">📡 Access Log</div>';
+  if(deal.accessLog.length){
+    h += '<div style="display:grid;gap:8px;margin-bottom:20px">';
+    deal.accessLog.forEach(function(log){
+      h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:10px">';
+      h += '<span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></span>';
+      h += '<span style="flex:1;font-size:13px;color:var(--text)"><strong>'+log.who+'</strong> '+log.action+'</span>';
+      h += '<span style="font-size:11px;color:var(--muted)">'+drTimeAgo(log.time)+'</span></div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px">No activity yet</div>';
+  }
+
+  // Invite investors
+  h += '<div style="font-size:13px;font-weight:800;color:var(--teal);margin-bottom:12px;text-transform:uppercase;letter-spacing:.6px">🏛️ Invited Investors</div>';
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+  deal.invited.forEach(function(inv){
+    h += '<span style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(13,92,107,.08);color:var(--teal);font-weight:600">'+inv+' ✓</span>';
+  });
+  h += '</div>';
+  h += '<div style="display:flex;gap:10px">';
+  h += '<input id="dr-invite-inp" class="inp" placeholder="Add investor name..." style="flex:1;font-size:13px"/>';
+  h += '<button onclick="drInvite(\''+id+'\')" style="padding:10px 18px;background:var(--teal);color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer">+ Invite</button>';
+  h += '</div>';
+
+  h += '</div>';
+  box.innerHTML = h;
+  document.getElementById('dr-detail').style.display='flex';
+}
+
+function drInvite(id){
+  var inp = document.getElementById('dr-invite-inp');
+  var name = inp ? inp.value.trim() : '';
+  if(!name) return;
+  var deal = DR.deals.find(function(d){return d.id===id;});
+  if(!deal) return;
+  if(!deal.invited.includes(name)) deal.invited.push(name);
+  drSave();
+  inp.value='';
+  drOpenRoom(id);
+  showToast(name+' invited');
+}
+
+function drAddDoc(id){
+  var name = prompt('Document name (e.g. Information Memorandum v2.pdf):');
+  if(!name) return;
+  var deal = DR.deals.find(function(d){return d.id===id;});
+  if(!deal) return;
+  deal.docs.push({name:name, size:'—', uploaded:Date.now(), views:0});
+  drSave();
+  drOpenRoom(id);
+  showToast('Document added');
+}
+
+function drCopyLink(code){
+  var link = window.location.origin+'/deal-room?access='+code;
+  navigator.clipboard.writeText(link).then(function(){showToast('Deal Room link copied: '+code);}).catch(function(){showToast('Access Code: '+code);});
+}
+
+// Initialise Deal Room data
+drLoad();
+
+/* ═══════════════════════════════════════════════════════════════
+   INVESTOR ACTIVITY FEED — Real-time activity stream
+   Storage: window.storage key 'activity:events' (shared)
+═══════════════════════════════════════════════════════════════ */
+
+var AF = { events: [], filter: 'all' };
+
+function afLoad(){
+  // Seed with realistic live events if storage empty
+  var seed = [
+    {id:'E001', who:'Edelweiss AIF', type:'view',     deal:'Zenith Pharma Ltd',    action:'Opened IM Document',       time: Date.now()-1000*60*7,    cat:'II', city:'Mumbai',  badge:'👁️ View'},
+    {id:'E002', who:'Kotak PE Fund', type:'download',  deal:'Zenith Pharma Ltd',    action:'Downloaded Financials',    time: Date.now()-1000*60*28,   cat:'II', city:'Mumbai',  badge:'⬇️ Download'},
+    {id:'E003', who:'Northern Arc',  type:'query',     deal:'Trident Logistics',    action:'Sent deal query',          time: Date.now()-1000*60*55,   cat:'II', city:'Chennai', badge:'💬 Query'},
+    {id:'E004', who:'Piramal Alt.',  type:'view',      deal:'Trident Logistics',    action:'Viewed deck (12 min)',      time: Date.now()-1000*3600*2,  cat:'II', city:'Mumbai',  badge:'👁️ View'},
+    {id:'E005', who:'360 ONE Alt.',  type:'interest',  deal:'Zenith Pharma Ltd',    action:'Expressed soft interest',  time: Date.now()-1000*3600*4,  cat:'II', city:'Mumbai',  badge:'🤝 Interest'},
+    {id:'E006', who:'Motilal PE',    type:'view',      deal:'Zenith Pharma Ltd',    action:'Opened IM Document',       time: Date.now()-1000*3600*6,  cat:'II', city:'Mumbai',  badge:'👁️ View'},
+    {id:'E007', who:'Ivycap Venture',type:'query',     deal:'Acme FinTech',         action:'Requested valuation report', time: Date.now()-1000*3600*9, cat:'I', city:'Bengaluru', badge:'💬 Query'},
+    {id:'E008', who:'Aavishkaar Cap',type:'view',      deal:'GreenAgri Ltd',        action:'Viewed deal summary',      time: Date.now()-1000*3600*14, cat:'I', city:'Mumbai',  badge:'👁️ View'},
+    {id:'E009', who:'HDFC Capital',  type:'download',  deal:'Trident Logistics',    action:'Downloaded IM v2',         time: Date.now()-1000*86400,   cat:'II', city:'Mumbai',  badge:'⬇️ Download'},
+    {id:'E010', who:'Multiples PE',  type:'interest',  deal:'Zenith Pharma Ltd',    action:'Requested term sheet',     time: Date.now()-1000*86400*1.5, cat:'II', city:'Mumbai', badge:'🤝 Interest'},
+    {id:'E011', who:'L&T Infra Debt',type:'view',      deal:'PowerGrid SME',        action:'Opened IM Document',       time: Date.now()-1000*86400*2, cat:'II', city:'Mumbai',  badge:'👁️ View'},
+    {id:'E012', who:'Lighthouse Cat',type:'query',     deal:'TechCo Platform',      action:'Sent sector fit query',    time: Date.now()-1000*86400*3, cat:'III', city:'Mumbai', badge:'💬 Query'},
+  ];
+  AF.events = seed;
+}
+
+function afTypeColor(type){
+  return {view:'var(--cyan)', download:'var(--amber)', query:'var(--purple)', interest:'var(--green)'}[type]||'var(--muted)';
+}
+
+function renderActivityFeed(){
+  afLoad();
+  var now = Date.now();
+
+  // Compute stats
+  var today = AF.events.filter(function(e){return now-e.time < 86400000;}).length;
+  var interests = AF.events.filter(function(e){return e.type==='interest';}).length;
+  var queries = AF.events.filter(function(e){return e.type==='query';}).length;
+  var uniqueInvestors = [...new Set(AF.events.map(function(e){return e.who;}))].length;
+
+  var h = '<div class="portal-pad">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">';
+  h += '<div><div class="page-title">📡 Investor Activity Feed</div><div class="page-sub">Live stream of investor engagement across all your deals</div></div>';
+  h += '<div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#2DC48F;flex-shrink:0;animation:pulse 2s infinite"></span><span style="font-size:12px;font-weight:700;color:var(--green)">Live</span></div>';
+  h += '</div>';
+
+  // KPIs
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">';
+  [
+    {v:today,            l:'Events Today',       c:'var(--cyan)',   icon:'📊'},
+    {v:interests,        l:'Soft Interests',     c:'var(--green)',  icon:'🤝'},
+    {v:queries,          l:'Queries Received',   c:'var(--purple)', icon:'💬'},
+    {v:uniqueInvestors,  l:'Active Investors',   c:'var(--amber)',  icon:'🏛️'}
+  ].forEach(function(s){
+    h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px">';
+    h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px">'+s.icon+' '+s.l+'</div>';
+    h += '<div style="font-size:26px;font-weight:900;color:'+s.c+';font-family:var(--serif)">'+s.v+'</div></div>';
+  });
+  h += '</div>';
+
+  // Filter bar
+  h += '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">';
+  ['all','view','download','query','interest'].forEach(function(f){
+    var labels={all:'All Events',view:'👁️ Views',download:'⬇️ Downloads',query:'💬 Queries',interest:'🤝 Interests'};
+    var active = AF.filter===f;
+    h += '<button onclick="AF.filter=\''+f+'\';renderMain()" style="padding:7px 14px;border-radius:99px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid '+(active?'var(--cyan)':'var(--border)')+';background:'+(active?'rgba(26,125,144,.1)':'var(--card)')+';color:'+(active?'var(--cyan)':'var(--muted)')+'">'+labels[f]+'</button>';
+  });
+  h += '</div>';
+
+  // Activity timeline
+  var filtered = AF.filter==='all' ? AF.events : AF.events.filter(function(e){return e.type===AF.filter;});
+  h += '<div style="display:grid;gap:10px">';
+
+  // Today label
+  var todayEvents = filtered.filter(function(e){return now-e.time<86400000;});
+  var olderEvents = filtered.filter(function(e){return now-e.time>=86400000;});
+
+  if(todayEvents.length){
+    h += '<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:4px 0">Today</div>';
+    todayEvents.forEach(function(e){ h += afCard(e); });
+  }
+  if(olderEvents.length){
+    h += '<div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:4px 0;margin-top:8px">Earlier</div>';
+    olderEvents.forEach(function(e){ h += afCard(e); });
+  }
+  if(!filtered.length){
+    h += '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">No events for this filter</div>';
+  }
+
+  h += '</div>';
+
+  // Hot deals panel
+  h += '<div style="margin-top:24px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">';
+  h += '<div style="font-weight:800;font-size:14px;color:var(--text);margin-bottom:16px;font-family:var(--serif)">🔥 Deal Engagement Heatmap</div>';
+  var dealCounts = {};
+  AF.events.forEach(function(e){ dealCounts[e.deal]=(dealCounts[e.deal]||0)+1; });
+  var sorted = Object.keys(dealCounts).sort(function(a,b){return dealCounts[b]-dealCounts[a];});
+  var maxCount = dealCounts[sorted[0]]||1;
+  h += '<div style="display:grid;gap:8px">';
+  sorted.forEach(function(deal){
+    var pct = (dealCounts[deal]/maxCount)*100;
+    var interestCount = AF.events.filter(function(e){return e.deal===deal&&e.type==='interest';}).length;
+    h += '<div style="display:flex;align-items:center;gap:12px">';
+    h += '<div style="width:160px;font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+deal+'</div>';
+    h += '<div style="flex:1;height:8px;background:rgba(13,92,107,.1);border-radius:4px;overflow:hidden">';
+    h += '<div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,var(--teal),var(--cyan));border-radius:4px;transition:.4s"></div></div>';
+    h += '<div style="font-size:12px;font-weight:800;color:var(--cyan);min-width:24px;text-align:right">'+dealCounts[deal]+'</div>';
+    if(interestCount) h += '<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:rgba(26,158,107,.1);color:var(--green);font-weight:700">'+interestCount+' 🤝</span>';
+    h += '</div>';
+  });
+  h += '</div></div>';
+
+  h += '</div>';
+  return h;
+}
+
+function afCard(e){
+  var col = afTypeColor(e.type);
+  var diff = Date.now()-e.time, m=Math.floor(diff/60000), hr=Math.floor(m/60), d=Math.floor(hr/24);
+  var ago = d>0?d+'d ago':hr>0?hr+'h ago':m>0?m+'m ago':'just now';
+  var isRecent = diff < 3600000;
+  var h = '<div style="background:var(--card);border:1px solid '+(isRecent?'rgba(45,196,143,.25)':'var(--border)')+';border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden">';
+  if(isRecent) h += '<div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--green)"></div>';
+  h += '<div style="width:38px;height:38px;border-radius:10px;background:'+col+'15;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">'+e.badge.split(' ')[0]+'</div>';
+  h += '<div style="flex:1;min-width:0">';
+  h += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">';
+  h += '<span style="font-weight:800;font-size:13px;color:var(--text)">'+e.who+'</span>';
+  h += '<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:'+col+'15;color:'+col+';font-weight:700;border:1px solid '+col+'30">'+e.badge+'</span>';
+  if(isRecent) h += '<span style="font-size:10px;padding:1px 7px;border-radius:99px;background:rgba(45,196,143,.1);color:var(--green);font-weight:700;border:1px solid rgba(45,196,143,.2)">NEW</span>';
+  h += '</div>';
+  h += '<div style="font-size:12px;color:var(--muted)">'+e.action+' · <span style="color:var(--text);font-weight:600">'+e.deal+'</span></div>';
+  h += '<div style="font-size:11px;color:var(--dim);margin-top:2px">'+e.city+' · Cat '+e.cat+'</div>';
+  h += '</div>';
+  h += '<div style="font-size:11px;color:var(--muted);white-space:nowrap;text-align:right;flex-shrink:0">'+ago+'</div>';
+  h += '</div>';
+  return h;
+}
 
 </script>
 

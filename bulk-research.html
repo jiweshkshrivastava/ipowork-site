@@ -221,47 +221,60 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
 </head>
 <body>
-<div id="ag" style="position:fixed;inset:0;background:#08404D;z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px">
+<div id="ag" style="position:fixed;inset:0;background:#08404D;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;-webkit-overflow-scrolling:touch">
   <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.5)">
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:22px;font-weight:900;color:#08404D;font-family:Georgia,serif">ipowork<sup style="font-size:9px;color:#E88A2E">AI</sup></div>
       <div style="font-size:16px;font-weight:800;color:#1A2E35;margin-top:8px">&#128274; Admin Access Only</div>
       <div style="font-size:12px;color:#6B8A94;margin-top:4px">Enter admin credentials</div>
     </div>
-    <input id="ag-em" type="email" placeholder="Admin email" style="width:100%;padding:11px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:13px;margin-bottom:10px;box-sizing:border-box;display:block;outline:none"/>
-    <input id="ag-pw" type="password" placeholder="Password" style="width:100%;padding:11px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:13px;margin-bottom:10px;box-sizing:border-box;display:block;outline:none"/>
+    <input id="ag-em" type="email" autocomplete="email" inputmode="email" placeholder="Admin email" style="width:100%;padding:11px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:16px;margin-bottom:10px;box-sizing:border-box;display:block;outline:none;-webkit-appearance:none"/>
+    <input id="ag-pw" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;padding:11px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:16px;margin-bottom:10px;box-sizing:border-box;display:block;outline:none;-webkit-appearance:none"/>
     <div id="ag-er" style="color:#C0392B;font-size:12px;text-align:center;margin-bottom:8px;min-height:16px"></div>
-    <button id="ag-bt" style="width:100%;padding:13px;background:#08404D;color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:800;cursor:pointer;display:block">Login &rarr;</button>
+    <button id="ag-bt" style="width:100%;padding:14px;background:#08404D;color:#fff;border:none;border-radius:9px;font-size:16px;font-weight:800;cursor:pointer;display:block;-webkit-appearance:none;touch-action:manipulation">Login &rarr;</button>
     <div style="text-align:center;margin-top:12px;font-size:11px;color:#9AB0B8"><a href="index.html" style="color:#0D5C6B">&#8592; Back to homepage</a></div>
   </div>
 </div>
 <script>
 (function(){
-  var P='ipowork@admin99';
   var E='jiweshkshrivastava@gmail.com';
-  function hide(){ document.getElementById('ag').style.display='none'; }
+  var PW='ipowork@2007';
+  function hide(){
+    var el=document.getElementById('ag');
+    if(el){ el.style.display='none'; }
+    document.body.style.overflow='';
+  }
   function go(){
     var em=(document.getElementById('ag-em').value||'').trim().toLowerCase();
     var pw=(document.getElementById('ag-pw').value||'').trim();
     var er=document.getElementById('ag-er');
-    if(em===E && pw==='ipowork@2007'){
-      try{sessionStorage.setItem('_adm','1');}catch(x){}
+    if(em===E && pw===PW){
+      try{ sessionStorage.setItem('_adm','1'); }catch(x){}
+      try{ localStorage.setItem('_adm','1'); }catch(x){}
       hide();
     } else {
       er.textContent='Wrong email or password. Try again.';
+      document.getElementById('ag-pw').value='';
+      document.getElementById('ag-pw').focus();
     }
   }
-  // Check existing session
-  try{ if(sessionStorage.getItem('_adm')==='1'){ hide(); } }catch(x){}
-  // Wire button
+  function isAuth(){
+    try{ if(sessionStorage.getItem('_adm')==='1') return true; }catch(x){}
+    try{ if(localStorage.getItem('_adm')==='1') return true; }catch(x){}
+    return false;
+  }
+  if(isAuth()){ hide(); }
+  else { document.body.style.overflow='hidden'; }
   document.addEventListener('DOMContentLoaded',function(){
-    try{ if(sessionStorage.getItem('_adm')==='1'){ hide(); return; } }catch(x){}
+    if(isAuth()){ hide(); return; }
+    document.body.style.overflow='hidden';
     document.getElementById('ag-bt').addEventListener('click', go);
     document.getElementById('ag-pw').addEventListener('keydown',function(e){ if(e.key==='Enter') go(); });
     document.getElementById('ag-em').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('ag-pw').focus(); });
   });
 })();
 </script>
+
 
 
 
