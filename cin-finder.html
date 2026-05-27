@@ -370,168 +370,159 @@ function setCount(n, el){
 async function runSearch(){
   if(!SELECTED_NICS.length){ alert('Please select at least one industry sector.'); return; }
 
-  var state = document.getElementById('f-state').value;
-  var revMin = parseInt(document.getElementById('rev-min').value)||50;
-  var revMax = parseInt(document.getElementById('rev-max').value)||500;
-  var patMin = parseInt(document.getElementById('pat-min').value)||5;
-  var age    = document.getElementById('f-age').value||'5';
-  var track  = document.getElementById('f-track').value;
-  var sectors = SELECTED_NICS.map(function(n){return NIC_LABELS[n];}).join(', ');
+  var state    = document.getElementById('f-state').value;
+  var revMin   = parseInt(document.getElementById('rev-min').value)||50;
+  var revMax   = parseInt(document.getElementById('rev-max').value)||500;
+  var patMin   = parseInt(document.getElementById('pat-min').value)||5;
+  var ageMin   = parseInt(document.getElementById('f-age').value)||5;
+  var sectors  = SELECTED_NICS.map(function(n){return NIC_LABELS[n];}).join(', ');
 
   var btn = document.getElementById('search-btn');
-  btn.disabled = true;
-  btn.innerHTML = '&#9167; Searching…';
-
+  btn.disabled = true; btn.innerHTML = '&#9167; Searching&hellip;';
   RESULTS=[]; SELECTED.clear();
-  document.getElementById('results-inner').innerHTML =
-    '<div class="state-box"><div style="font-size:40px;margin-bottom:12px">&#128269;</div>'
-    +'<div class="state-title">Searching for companies…</div>'
-    +'<div class="state-sub">Step 1: AI generating company names<br/>Step 2: MCA lookup for real CINs<br/>Step 3: Probe42 financial verification</div></div>';
 
-  try {
-    // STEP 1: Claude generates real company NAMES (not CINs)
-    var listingLabel = LISTING_MODE==='unlisted'
-      ? 'UNLISTED Private Limited companies (NOT listed on BSE/NSE - these are pre-IPO candidates)'
-      : 'LISTED Public Limited companies (currently listed on BSE or NSE)';
-    var prompt = 'List '+SEARCH_COUNT+' real Indian '+listingLabel+'. '
-      +'State: '+(state||'India')+'. Sector: '+sectors+'. '
-      +'Revenue approx Rs '+revMin+' Cr to Rs '+revMax+' Cr. PAT above Rs '+patMin+' Cr. '
-      +'Incorporated '+age+'+ years ago. '
-      +(LISTING_MODE==='unlisted'?'These should be strong IPO candidates NOT yet listed. ':'These should be currently traded on stock exchange. ')
-      +'One company name per line. Exact MCA registered name. No CIN numbers. No numbering.';
+  showState('&#128269;','Searching MCA database&hellip;',
+    'Using sector keywords &rarr; MCA lookup &rarr; Probe42 verification<br/>No AI guessing — only real CINs from MCA');
 
-    var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1000,
-        system:'You are an expert on Indian manufacturing and services companies. List real company names that match the criteria. Only list companies you are confident exist.',
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    var data = await resp.json();
-    var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
+  // Build keyword list from sector + state
+  var KEYWORDS = buildKeywords(SELECTED_NICS, state, revMin);
+  var maxResults = SEARCH_COUNT;
 
-    // Parse company names
-    var names = txt.split('\n')
-      .map(function(l){ return l.replace(/^\d+[\.\)]\s*/,'').replace(/^[-•*]\s*/,'').trim(); })
-      .filter(function(l){ return l.length>5 && l.toLowerCase().includes('private') || l.toLowerCase().includes('pvt') || l.length>10; })
-      .slice(0,SEARCH_COUNT);
+  // Step 1: Search MCA via company_search with keywords
+  var found = [];
+  var usedCINs = {};
 
-    if(!names.length){
-      document.getElementById('results-inner').innerHTML =
-        '<div class="state-box"><div style="font-size:40px">&#128532;</div>'
-        +'<div class="state-title">No companies found</div>'
-        +'<div class="state-sub">Try different filters — broader sector, wider revenue range.</div></div>';
-      btn.disabled=false; btn.innerHTML='&#128269; Find IPO Prospects';
-      return;
-    }
-
-    document.getElementById('results-inner').innerHTML =
-      '<div class="state-box"><div style="font-size:40px">&#128269;</div>'
-      +'<div class="state-title">Found '+names.length+' companies — verifying with Probe42…</div>'
-      +'<div class="state-sub">Fetching MCA data for each company</div></div>';
-
-    // STEP 2: For each name, search for CIN via company_search, then validate Probe42
-    RESULTS = names.map(function(name,i){
-      return {idx:i+1, name:name, cin:'', status:'searching', p42:null};
-    });
-
-    // Show cards immediately
-    var grid = '<div class="co-grid" id="co-grid">';
-    RESULTS.forEach(function(item){
-      grid += '<div class="co-card" id="co-card-'+item.idx+'">'
-        +'<div class="co-sector-tag">Searching...</div>'
-        +'<div class="co-name">'+item.name+'</div>'
-        +'<div class="co-cin-tag">Looking up CIN...</div>'
-        +'<div class="co-status"><span class="co-pill pill-fetching">&#8635; Searching MCA</span></div>'
-        +'</div>';
-    });
-    grid += '</div>';
-    document.getElementById('results-inner').innerHTML = grid;
-    document.getElementById('rc-count').textContent = names.length+' companies';
-
-    // Process each - search for CIN then validate
-    for(var i=0; i<RESULTS.length; i++){
-      var item = RESULTS[i];
-      try{
-        // Search for company by name to get CIN
-        var sResp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({type:'company_search', query:item.name.replace(' Private Limited','').replace(' Pvt Ltd','').substring(0,40)})
-        });
-        var sData = await sResp.json();
-        var results = sData.results||[];
-
-        // Find best match
-        var match = null;
-        var nameLower = item.name.toLowerCase();
-        results.forEach(function(r){
-          if(!match && r.cin && r.name){
-            var rLower = r.name.toLowerCase();
-            var words = nameLower.split(' ').filter(function(w){return w.length>3;});
-            var matches = words.filter(function(w){return rLower.includes(w);}).length;
-            if(matches >= 2) match = r;
-          }
-        });
-        if(!match && results.length>0) match = results[0];
-
-        if(match && match.cin){
-          item.cin = match.cin;
-          item.name = match.name || item.name;
-          item.status = 'fetching';
-          updateCard(item);
-
-          // Now fetch Probe42 data
-          var p42Resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({type:'probe42_raw', cin:item.cin})
-          });
-          var p42 = await p42Resp.json();
-
-          if(p42 && p42.company_name && p42.company_name!=='NOT FOUND'){
-            item.p42 = p42;
-            item.name = p42.company_name;
-            // Check CIN prefix for listing status
-            var cinPrefix = item.cin.charAt(0).toUpperCase();
-            var isListed = cinPrefix === 'L';
-            var isUnlisted = cinPrefix === 'U';
-            var listingMismatch = (LISTING_MODE==='unlisted' && isListed) || (LISTING_MODE==='listed' && isUnlisted);
-            // Check revenue filter
-            var rev = Number((p42.financials||{}).revenue_fy24)||0;
-            var revCr = rev/10000000;
-            if(listingMismatch){
-              item.status='wrong-listing';
-              item.listingNote = isListed ? '📈 Listed company' : '🔒 Unlisted company';
-            } else if(revCr > 0 && revCr < revMin*0.3){
-              item.status='filtered';
-            } else {
-              item.status='verified';
-            }
-          } else {
-            item.status='notfound';
-          }
-        } else {
-          item.status='notfound';
-          item.cin='CIN not found';
+  for(var ki=0; ki<KEYWORDS.length && found.length < maxResults*2; ki++){
+    var kw = KEYWORDS[ki];
+    try{
+      var sr = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'company_search', query:kw})
+      });
+      var sd = await sr.json();
+      var results = sd.results||[];
+      results.forEach(function(r){
+        if(r.cin && !usedCINs[r.cin]){
+          // Filter by listing status
+          var cinFirst = r.cin.charAt(0).toUpperCase();
+          if(LISTING_MODE==='unlisted' && cinFirst!=='U') return;
+          if(LISTING_MODE==='listed'   && cinFirst!=='L') return;
+          usedCINs[r.cin] = true;
+          found.push({cin:r.cin, name:r.name||r.cin});
         }
-      } catch(e){
-        item.status='notfound';
-        item.cin='Error: '+e.message;
-      }
-      updateCard(item);
-      await sleep(400);
-    }
-
-    var verified = RESULTS.filter(function(r){return r.status==='verified';}).length;
-    var wrongListing = RESULTS.filter(function(r){return r.status==='wrong-listing';}).length;
-    var listingNote = wrongListing>0 ? ' ('+wrongListing+' filtered: wrong listing type)' : '';
-    document.getElementById('rc-count').textContent = verified+' verified of '+names.length+' found'+listingNote;
-
-  } catch(e){
-    document.getElementById('results-inner').innerHTML =
-      '<div class="state-box"><div style="font-size:40px">&#9888;&#65039;</div>'
-      +'<div class="state-title">Search error</div>'
-      +'<div class="state-sub">'+e.message+'</div></div>';
+      });
+    } catch(e){}
+    await sleep(200);
   }
 
-  btn.disabled=false;
-  btn.innerHTML='&#128269; Find IPO Prospects';
+  if(!found.length){
+    showState('&#128532;','No companies found in MCA',
+      'Try different filters — broader sector, different state, or wider revenue range.');
+    btn.disabled=false; btn.innerHTML='&#128269; Find IPO Prospects';
+    return;
+  }
+
+  // Trim to max results
+  found = found.slice(0, maxResults);
+
+  // Init results
+  RESULTS = found.map(function(co,i){
+    return {idx:i+1, cin:co.cin, name:co.name, status:'fetching', p42:null};
+  });
+
+  // Show skeleton cards
+  var gridHtml = '<div class="co-grid" id="co-grid">';
+  RESULTS.forEach(function(item){
+    gridHtml += '<div class="co-card" id="co-card-'+item.idx+'">'
+      +'<div class="co-sector-tag">'+item.cin.substring(4,9)+'</div>'
+      +'<div class="co-name">'+item.name+'</div>'
+      +'<div class="co-cin-tag">'+item.cin+'</div>'
+      +'<div class="co-status"><span class="co-pill pill-fetching">&#8635; Verifying via Probe42</span></div>'
+      +'</div>';
+  });
+  gridHtml += '</div>';
+  document.getElementById('results-inner').innerHTML = gridHtml;
+  document.getElementById('rc-count').textContent = found.length+' companies — verifying&hellip;';
+
+  // Step 2: Fetch Probe42 for each — this is the ONLY Probe42 call
+  var verified=0, filtered=0;
+  for(var i=0; i<RESULTS.length; i++){
+    var item = RESULTS[i];
+    try{
+      var pr = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'probe42_raw', cin:item.cin})
+      });
+      var p42 = await pr.json();
+
+      if(p42 && p42.company_name && p42.company_name!=='NOT FOUND'){
+        item.p42  = p42;
+        item.name = p42.company_name;
+        var f     = p42.financials||{};
+        var rev   = Number(f.revenue_fy24)||0;
+        var pat   = Number(f.pat_fy24)||0;
+        var revCr = rev/10000000;
+        var patCr = pat/10000000;
+
+        // Apply financial filters
+        if(revCr>0 && revCr < revMin*0.4){
+          item.status='filtered'; item.filterNote='Revenue ₹'+revCr.toFixed(1)+' Cr < min'; filtered++;
+        } else if(revMax && revCr > revMax*2.5){
+          item.status='filtered'; item.filterNote='Revenue ₹'+revCr.toFixed(1)+' Cr > max'; filtered++;
+        } else if(patCr>0 && patCr < patMin*0.3){
+          item.status='filtered'; item.filterNote='PAT ₹'+patCr.toFixed(1)+' Cr < min'; filtered++;
+        } else {
+          item.status='verified'; verified++;
+        }
+      } else {
+        item.status='notfound';
+      }
+    } catch(e){
+      item.status='notfound';
+    }
+    updateCard(item);
+    await sleep(300);
+  }
+
+  document.getElementById('rc-count').textContent =
+    verified+' verified · '+filtered+' filtered · '+RESULTS.filter(function(r){return r.status==='notfound';}).length+' not found';
+  btn.disabled=false; btn.innerHTML='&#128269; Find IPO Prospects';
+}
+
+// Build smart keyword list from NIC codes + state
+function buildKeywords(nics, state, revMin){
+  var NIC_KEYWORDS = {
+    '24':['chemicals','specialty chemicals','dyes','pigments','agrochemicals','petrochemicals'],
+    '21':['pharma','pharmaceutical','apis','formulations','biologics','nutraceuticals'],
+    '28':['machinery','engineering','fabrication','industrial equipment','pumps','valves'],
+    '29':['auto components','automotive','auto ancillary','stampings','castings','forgings'],
+    '10':['food processing','agro','agri','dairy','spices','edible oil','flour mill'],
+    '62':['software','it services','technology','saas','infotech','digital solutions'],
+    '35':['solar','wind energy','renewable','power','energy','epc'],
+    '20':['fmcg','consumer goods','personal care','home care','cosmetics'],
+    '25':['plastics','rubber','packaging','polymers','pet bottles'],
+    '26':['electronics','electrical','switchgear','cables','wires'],
+    '49':['logistics','transport','freight','warehousing','supply chain'],
+    '72':['research','r&d','biotech','laboratory','testing']
+  };
+  var stateKw = state ? state.split(' ')[0].toLowerCase() : '';
+  var keywords = [];
+  nics.forEach(function(nic){
+    var kws = NIC_KEYWORDS[nic]||[nic];
+    kws.forEach(function(kw){
+      if(stateKw) keywords.push(kw); // MCA search doesn't filter by state well, use keyword
+      keywords.push(kw+' private limited');
+    });
+  });
+  // Add revenue-based hints
+  if(revMin>=100) keywords.push('industries private limited');
+  keywords.push('private limited');
+  return keywords.slice(0,15); // max 15 keyword searches
+}
+
+function showState(icon, title, sub){
+  document.getElementById('results-inner').innerHTML =
+    '<div class="state-box"><div style="font-size:40px;margin-bottom:12px">'+icon+'</div>'
+    +'<div class="state-title">'+title+'</div>'
+    +'<div class="state-sub">'+sub+'</div></div>';
 }
 
 
