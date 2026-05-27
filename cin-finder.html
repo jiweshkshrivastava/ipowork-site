@@ -156,6 +156,46 @@ body:has(#admin-gate:not(.gone)) .ipowork-nav{ display:none !important; }
 .ag-note{text-align:center;margin-top:14px;font-size:12px;color:#9AB0B8}
 
 </style>
+<script>
+var ADMIN_USERS = {'jiweshkshrivastava@gmail.com':'ipowork@2007'};
+
+function adminLogin(){
+  var email = (document.getElementById('ag-email')||{}).value||'';
+  var pw    = (document.getElementById('ag-pw')||{}).value||'';
+  var err   = document.getElementById('ag-err');
+  email = email.trim().toLowerCase();
+  if(!ADMIN_USERS[email]){
+    if(err) err.textContent='Email not registered as admin.'; return;
+  }
+  if(ADMIN_USERS[email] !== pw){
+    if(err) err.textContent='Incorrect password. Try: ipowork@2007'; return;
+  }
+  try{ sessionStorage.setItem('ipowork_admin', email+':'+pw); }catch(e){}
+  var gate = document.getElementById('admin-gate');
+  if(gate) gate.style.display='none';
+  var nav = document.querySelector('.ipowork-nav');
+  if(nav) nav.style.display='';
+}
+
+function checkAdminAccess(){
+  try{
+    var sess = sessionStorage.getItem('ipowork_admin');
+    if(sess){
+      var parts = sess.split(':');
+      if(ADMIN_USERS[parts[0]] && ADMIN_USERS[parts[0]]===parts[1]){
+        var gate = document.getElementById('admin-gate');
+        if(gate) gate.style.display='none';
+        return;
+      }
+    }
+  }catch(e){}
+  var gate = document.getElementById('admin-gate');
+  if(gate){ gate.style.display='flex'; }
+  var nav = document.querySelector('.ipowork-nav');
+  if(nav) nav.style.display='none';
+}
+window.addEventListener('DOMContentLoaded', checkAdminAccess);
+</script>
 </head>
 <body>
 
