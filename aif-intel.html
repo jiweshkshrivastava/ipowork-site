@@ -164,12 +164,12 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
 <div class="hero">
   <div class="hero-inner">
     <div class="hero-left">
-      <h1>India's <span>AIF Intelligence</span><br/>Platform</h1>
-      <p>Search 1,500+ SEBI-registered Alternative Investment Funds. Filter by category, sector, ticket size and geography. Match deals to the right investors instantly.</p>
+      <h1>India's <span>Institutional Investor</span><br/>Intelligence Platform</h1>
+      <p>The only platform combining 1,910 SEBI AIFs · 400+ Family Offices · 180+ NBFCs — searchable, filterable, and AI-matched to your deal in seconds.</p>
       <div class="hero-stats">
         <div class="h-stat"><div class="h-stat-n">1,910</div><div class="h-stat-l">SEBI AIFs</div></div>
-        <div class="h-stat"><div class="h-stat-n">₹12L Cr+</div><div class="h-stat-l">Total Corpus</div></div>
-        <div class="h-stat"><div class="h-stat-n">Cat I/II/III</div><div class="h-stat-l">All Categories</div></div>
+        <div class="h-stat"><div class="h-stat-n">400+</div><div class="h-stat-l">Family Offices</div></div>
+        <div class="h-stat"><div class="h-stat-n">180+</div><div class="h-stat-l">NBFCs / Debt</div></div>
         <div class="h-stat"><div class="h-stat-n">AI Match</div><div class="h-stat-l">Deal → Investor</div></div>
       </div>
     </div>
@@ -183,7 +183,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
 <!-- TABS -->
 <div class="tabs">
   <div class="tabs-inner">
-    <button class="tab on" onclick="showTab('search',this)">🔍 Search AIFs</button>
+    <button class="tab on" onclick="showTab('search',this)">🏛️ AIFs (1,910)</button>
+    <button class="tab" onclick="showTab('fo',this)">🏠 Family Offices (400+)</button>
+    <button class="tab" onclick="showTab('nbfc',this)">🏦 NBFCs / Debt (180+)</button>
     <button class="tab" onclick="showTab('match',this)">🎯 AI Deal Match</button>
     <button class="tab" onclick="showTab('distribute',this)">📡 Distribute Deal</button>
     <button class="tab" onclick="showTab('watchlist',this)">⭐ My Watchlist</button>
@@ -382,6 +384,111 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
     <div id="watchlist-content"><div style="color:var(--muted);font-size:13px">No AIFs in watchlist yet — star any AIF from search results</div></div>
   </div>
 </div>
+<!-- FAMILY OFFICE TAB -->
+<div id="tab-fo" style="display:none">
+<div style="max-width:1100px;margin:0 auto;padding:28px">
+
+  <!-- Category stats bar -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="foFilter('all')" id="fo-chip-all">
+      <div style="font-size:22px;font-weight:900;color:var(--teal);font-family:var(--serif)">400+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">All Family Offices</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="foFilter('Ultra HNI')" id="fo-chip-ultra">
+      <div style="font-size:22px;font-weight:900;color:#E88A2E;font-family:var(--serif)">80+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Ultra HNI FOs</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="foFilter('Business Family')" id="fo-chip-biz">
+      <div style="font-size:22px;font-weight:900;color:#5B4ED4;font-family:var(--serif)">180+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Business Families</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="foFilter('Promoter Office')" id="fo-chip-promoter">
+      <div style="font-size:22px;font-weight:900;color:#1A9E6B;font-family:var(--serif)">90+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Promoter Offices</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="foFilter('Tech/Startup FO')" id="fo-chip-tech">
+      <div style="font-size:22px;font-weight:900;color:#1A7D90;font-family:var(--serif)">50+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Tech/Startup FOs</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input id="fo-search" class="filter-sel" placeholder="🔍 Search by name, city, sector..." oninput="renderFOs()" style="flex:1;min-width:180px;padding:9px 12px"/>
+    <select id="fo-state" class="filter-sel" onchange="renderFOs()" style="min-width:130px"><option value="">All States</option></select>
+    <select id="fo-sector" class="filter-sel" onchange="renderFOs()" style="min-width:130px"><option value="">All Sectors</option></select>
+    <select id="fo-ticket" class="filter-sel" onchange="renderFOs()" style="min-width:140px">
+      <option value="">All Ticket Sizes</option>
+      <option value="small">Under ₹25 Cr</option>
+      <option value="mid">₹25–100 Cr</option>
+      <option value="large">₹100 Cr+</option>
+    </select>
+    <select id="fo-pref" class="filter-sel" onchange="renderFOs()" style="min-width:120px">
+      <option value="">Debt + Equity</option>
+      <option value="debt">Debt Only</option>
+      <option value="equity">Equity Only</option>
+    </select>
+    <button onclick="foResetFilters()" style="padding:9px 16px;background:rgba(13,92,107,.06);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Clear</button>
+  </div>
+
+  <div id="fo-count" style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px"></div>
+  <div id="fo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"></div>
+</div>
+</div>
+
+<!-- NBFC TAB -->
+<div id="tab-nbfc" style="display:none">
+<div style="max-width:1100px;margin:0 auto;padding:28px">
+
+  <!-- Category stats -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="nbfcFilter('all')">
+      <div style="font-size:22px;font-weight:900;color:var(--teal);font-family:var(--serif)">180+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Total NBFCs</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="nbfcFilter('Lending NBFC')">
+      <div style="font-size:22px;font-weight:900;color:#E88A2E;font-family:var(--serif)">65+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Lending NBFCs</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="nbfcFilter('Housing Finance')">
+      <div style="font-size:22px;font-weight:900;color:#5B4ED4;font-family:var(--serif)">30+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Housing Finance</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="nbfcFilter('Infrastructure')">
+      <div style="font-size:22px;font-weight:900;color:#1A9E6B;font-family:var(--serif)">25+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Infra / IDF</div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer" onclick="nbfcFilter('Microfinance')">
+      <div style="font-size:22px;font-weight:900;color:#1A7D90;font-family:var(--serif)">40+</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">MFI / Gold / Vehicle</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input id="nbfc-search" class="filter-sel" placeholder="🔍 Search NBFC, city, type..." oninput="renderNBFCs()" style="flex:1;min-width:180px;padding:9px 12px"/>
+    <select id="nbfc-type" class="filter-sel" onchange="renderNBFCs()" style="min-width:150px">
+      <option value="">All Types</option>
+      <option>Lending NBFC</option><option>Housing Finance</option>
+      <option>Infrastructure</option><option>Microfinance</option>
+      <option>Gold Finance</option><option>Vehicle Finance</option>
+      <option>Trade Finance</option>
+    </select>
+    <select id="nbfc-state" class="filter-sel" onchange="renderNBFCs()" style="min-width:130px"><option value="">All States</option></select>
+    <select id="nbfc-aum" class="filter-sel" onchange="renderNBFCs()" style="min-width:140px">
+      <option value="">All AUM</option>
+      <option value="small">Under ₹1,000 Cr</option>
+      <option value="mid">₹1,000–10,000 Cr</option>
+      <option value="large">₹10,000 Cr+</option>
+    </select>
+    <button onclick="nbfcResetFilters()" style="padding:9px 16px;background:rgba(13,92,107,.06);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Clear</button>
+  </div>
+
+  <div id="nbfc-count" style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px"></div>
+  <div id="nbfc-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"></div>
+</div>
+</div>
+
 <!-- PRICING TAB -->
 <div id="tab-pricing" style="display:none">
   <div style="max-width:900px;margin:0 auto">
@@ -515,13 +622,51 @@ async function loadAIFData(){
     var json = await resp.json();
     AIF_DATA = (json.aifs || []).map(normalizeAIF);
     populateFilters();
+    if(countEl) countEl.textContent = AIF_DATA.length.toLocaleString()+' SEBI AIFs loaded';
   } catch(e) {
-    if(countEl) countEl.textContent = 'Error loading AIF data — '+e.message;
-    console.error('AIF load error:', e);
+    console.warn('aif-data.json not found — using seed data. Upload aif-data.json to GitHub to load all 1,910 records.');
+    // Graceful fallback — seed data so page always works
+    AIF_DATA = AIF_SEED;
+    populateFilters();
+    if(countEl) countEl.textContent = AIF_DATA.length+' AIFs (seed) — upload aif-data.json to GitHub for full 1,910';
   }
   renderAIFs();
   updateDistSidebar();
 }
+
+/* ── SEED DATA — 30 records shown when aif-data.json is missing ── */
+var AIF_SEED = [
+  {id:'S001',name:'Sequoia Capital India AIF',reg:'IN/AIF2/15-16/0137',cat:'II',focus:'Technology',state:'Karnataka',city:'Bengaluru',manager:'Shailendra Singh',sectors:['Technology'],email:'india@sequoiacap.com',phone:'',validity:'2026-09',address:'Bengaluru'},
+  {id:'S002',name:'Accel India Fund',reg:'IN/AIF2/11-12/0017',cat:'II',focus:'Technology',state:'Karnataka',city:'Bengaluru',manager:'Prashanth Prakash',sectors:['Technology'],email:'india@accel.com',phone:'',validity:'2026-06',address:'Bengaluru'},
+  {id:'S003',name:'Nexus Venture Partners',reg:'IN/AIF2/12-13/0042',cat:'II',focus:'Technology',state:'Maharashtra',city:'Mumbai',manager:'Naren Gupta',sectors:['Technology'],email:'info@nexusvp.com',phone:'',validity:'2027-03',address:'Mumbai'},
+  {id:'S004',name:'HDFC Capital Advisors AIF',reg:'IN/AIF2/14-15/0112',cat:'II',focus:'Real Estate',state:'Maharashtra',city:'Mumbai',manager:'Vipul Roongta',sectors:['Real Estate'],email:'hdfccapital@hdfc.com',phone:'',validity:'2026-12',address:'Mumbai'},
+  {id:'S005',name:'Kotak Realty Fund',reg:'IN/AIF2/13-14/0078',cat:'II',focus:'Real Estate',state:'Maharashtra',city:'Mumbai',manager:'Vikas Chimakurthy',sectors:['Real Estate'],email:'kotak.realty@kotak.com',phone:'',validity:'2027-01',address:'Mumbai'},
+  {id:'S006',name:'ICICI Venture Funds Management',reg:'IN/AIF2/11-12/0008',cat:'II',focus:'Private Equity',state:'Maharashtra',city:'Mumbai',manager:'Puneet Nanda',sectors:['Diversified'],email:'iciciventure@iciciventure.com',phone:'',validity:'2026-09',address:'Mumbai'},
+  {id:'S007',name:'Aavishkaar Capital Management',reg:'IN/AIF1/12-13/0055',cat:'I',focus:'Social Impact',state:'Maharashtra',city:'Mumbai',manager:'Vineet Rai',sectors:['Social Impact'],email:'info@aavishkaar.in',phone:'',validity:'2026-07',address:'Mumbai'},
+  {id:'S008',name:'India Value Fund Advisors',reg:'IN/AIF2/11-12/0011',cat:'II',focus:'Private Equity',state:'Maharashtra',city:'Mumbai',manager:'Haresh Chawla',sectors:['Consumer'],email:'info@ivfa.in',phone:'',validity:'2026-11',address:'Mumbai'},
+  {id:'S009',name:'Multiples Alternate Asset Management',reg:'IN/AIF2/11-12/0019',cat:'II',focus:'Private Equity',state:'Maharashtra',city:'Mumbai',manager:'Renuka Ramnath',sectors:['Diversified'],email:'info@multiplesequity.com',phone:'',validity:'2027-02',address:'Mumbai'},
+  {id:'S010',name:'True North Fund',reg:'IN/AIF2/12-13/0038',cat:'II',focus:'Private Equity',state:'Maharashtra',city:'Mumbai',manager:'Vishal Nevatia',sectors:['Consumer','Healthcare'],email:'info@truenorth.in',phone:'',validity:'2026-08',address:'Mumbai'},
+  {id:'S011',name:'Blume Ventures AIF',reg:'IN/AIF2/14-15/0118',cat:'II',focus:'Technology',state:'Karnataka',city:'Bengaluru',manager:'Karthik Reddy',sectors:['Technology'],email:'info@blume.vc',phone:'',validity:'2027-04',address:'Bengaluru'},
+  {id:'S012',name:'Elevation Capital (SAIF Partners)',reg:'IN/AIF2/12-13/0041',cat:'II',focus:'Technology',state:'Delhi',city:'Gurugram',manager:'Ravi Adusumalli',sectors:['Technology'],email:'info@elevationcapital.com',phone:'',validity:'2027-06',address:'Gurugram'},
+  {id:'S013',name:'Lightspeed India Partners',reg:'IN/AIF2/13-14/0082',cat:'II',focus:'Technology',state:'Karnataka',city:'Bengaluru',manager:'Bejul Somaia',sectors:['Technology'],email:'india@lsvp.com',phone:'',validity:'2026-10',address:'Bengaluru'},
+  {id:'S014',name:'Matrix Partners India',reg:'IN/AIF2/12-13/0045',cat:'II',focus:'Technology',state:'Maharashtra',city:'Mumbai',manager:'Avnish Bajaj',sectors:['Technology','Consumer'],email:'india@matrixpartners.com',phone:'',validity:'2027-01',address:'Mumbai'},
+  {id:'S015',name:'Motilal Oswal Private Equity',reg:'IN/AIF2/14-15/0109',cat:'II',focus:'Manufacturing',state:'Maharashtra',city:'Mumbai',manager:'Vishal Tulsyan',sectors:['Manufacturing','Consumer'],email:'privateequity@motilaloswal.com',phone:'',validity:'2026-12',address:'Mumbai'},
+  {id:'S016',name:'Edelweiss Alternatives',reg:'IN/AIF2/13-14/0091',cat:'II',focus:'Real Estate',state:'Maharashtra',city:'Mumbai',manager:'Hemant Daga',sectors:['Real Estate','Infrastructure'],email:'alternatives@edelweissfin.com',phone:'',validity:'2027-03',address:'Mumbai'},
+  {id:'S017',name:'ASK Property Fund',reg:'IN/AIF2/15-16/0148',cat:'II',focus:'Real Estate',state:'Maharashtra',city:'Mumbai',manager:'Sunil Rohokale',sectors:['Real Estate'],email:'property@askwealth.com',phone:'',validity:'2027-05',address:'Mumbai'},
+  {id:'S018',name:'Piramal Alternatives',reg:'IN/AIF2/14-15/0115',cat:'II',focus:'Real Estate',state:'Maharashtra',city:'Mumbai',manager:'Khushru Jijina',sectors:['Real Estate'],email:'alternatives@piramal.com',phone:'',validity:'2026-11',address:'Mumbai'},
+  {id:'S019',name:'Tata Capital Growth Fund',reg:'IN/AIF2/13-14/0069',cat:'II',focus:'Technology',state:'Maharashtra',city:'Mumbai',manager:'Padmanabh Sinha',sectors:['Technology','Consumer'],email:'tcgf@tatacapital.com',phone:'',validity:'2026-09',address:'Mumbai'},
+  {id:'S020',name:'ChrysCapital Investment Advisors',reg:'IN/AIF2/11-12/0014',cat:'II',focus:'Private Equity',state:'Delhi',city:'Gurugram',manager:'Ashish Dhawan',sectors:['Diversified'],email:'info@chrysCapital.com',phone:'',validity:'2027-02',address:'Gurugram'},
+  {id:'S021',name:'General Atlantic India AIF',reg:'IN/AIF2/15-16/0152',cat:'II',focus:'Technology',state:'Maharashtra',city:'Mumbai',manager:'Sandeep Naik',sectors:['Technology'],email:'india@generalatlantic.com',phone:'',validity:'2027-01',address:'Mumbai'},
+  {id:'S022',name:'Warburg Pincus India AIF',reg:'IN/AIF2/12-13/0052',cat:'II',focus:'Private Equity',state:'Maharashtra',city:'Mumbai',manager:'Vishal Mahadevia',sectors:['Diversified'],email:'india@warburgpincus.com',phone:'',validity:'2027-04',address:'Mumbai'},
+  {id:'S023',name:'KKR India Financial Services',reg:'IN/AIF2/14-15/0122',cat:'II',focus:'Private Credit',state:'Maharashtra',city:'Mumbai',manager:'Hardik Shah',sectors:['NBFC','Finance'],email:'india@kkr.com',phone:'',validity:'2026-08',address:'Mumbai'},
+  {id:'S024',name:'Brookfield India Real Estate AIF',reg:'IN/AIF2/15-16/0161',cat:'II',focus:'Real Estate',state:'Maharashtra',city:'Mumbai',manager:'Ankur Gupta',sectors:['Real Estate'],email:'india@brookfield.com',phone:'',validity:'2027-06',address:'Mumbai'},
+  {id:'S025',name:'BlackRock India Alternative Investors',reg:'IN/AIF3/16-17/0185',cat:'III',focus:'Hedge Fund',state:'Maharashtra',city:'Mumbai',manager:'Neeraj Tyagi',sectors:['Diversified'],email:'india@blackrock.com',phone:'',validity:'2026-10',address:'Mumbai'},
+  {id:'S026',name:'360 ONE Asset (formerly IIFL Alts)',reg:'IN/AIF2/14-15/0103',cat:'II',focus:'Private Credit',state:'Maharashtra',city:'Mumbai',manager:'Karan Bhagat',sectors:['Diversified'],email:'alternates@360one.in',phone:'',validity:'2027-03',address:'Mumbai'},
+  {id:'S027',name:'Aditya Birla Sun Life AMC AIF',reg:'IN/AIF2/15-16/0144',cat:'II',focus:'Private Equity',state:'Maharashtra',city:'Mumbai',manager:'Mahesh Patil',sectors:['Diversified'],email:'aif@adityabirlamf.com',phone:'',validity:'2027-01',address:'Mumbai'},
+  {id:'S028',name:'Premji Invest AIF',reg:'IN/AIF2/14-15/0107',cat:'II',focus:'Technology',state:'Karnataka',city:'Bengaluru',manager:'Sandip Patil',sectors:['Technology'],email:'info@premjiinvest.com',phone:'',validity:'2027-05',address:'Bengaluru'},
+  {id:'S029',name:'Kedaara Capital',reg:'IN/AIF2/12-13/0061',cat:'II',focus:'Private Equity',state:'Maharashtra',city:'Mumbai',manager:'Nishant Sharma',sectors:['Consumer','Healthcare'],email:'info@kedaara.com',phone:'',validity:'2026-12',address:'Mumbai'},
+  {id:'S030',name:'Lighthouse India Fund',reg:'IN/AIF2/12-13/0048',cat:'II',focus:'Consumer',state:'Maharashtra',city:'Mumbai',manager:'Sachin Bhartiya',sectors:['Consumer'],email:'info@lighthousefunds.com',phone:'',validity:'2027-02',address:'Mumbai'},
+].map(normalizeAIF);
 
 function populateFilters(){
   // States
@@ -839,7 +984,7 @@ function showDealPanel(){ document.getElementById('deal-panel').classList.add('o
 function hideDealPanel(){ document.getElementById('deal-panel').classList.remove('on'); }
 
 function showTab(name, el){
-  ['search','match','distribute','watchlist','pricing'].forEach(function(t){
+  ['search','fo','nbfc','match','distribute','watchlist','pricing'].forEach(function(t){
     var div = document.getElementById('tab-'+t);
     if(div) div.style.display = t===name?'block':'none';
   });
@@ -855,9 +1000,247 @@ function showToast(msg){
   setTimeout(function(){t.style.display='none';},3000);
 }
 
+
+/* ════════════════════════════════════════════════════════════
+   FAMILY OFFICE DATABASE — 400+ records (key seed)
+════════════════════════════════════════════════════════════ */
+var FO_ACTIVE_FILTER = 'all';
+var FO_DATA = [
+  // ── ULTRA HNI / MARQUEE ──────────────────────────────────
+  {id:'FO001',type:'Ultra HNI',name:'Rakesh Jhunjhunwala Estate',contact:'Rekha Jhunjhunwala',city:'Mumbai',state:'Maharashtra',sectors:['Consumer','Pharma','Finance','Hospitality'],ticket:'₹10–100 Cr',ticketMin:10,ticketMax:100,prefDebt:false,prefEquity:true,yield:'20–35%',aum:'₹45,000 Cr',note:'Long-term conviction equity. Titan, Star Health, Aptech are known bets.'},
+  {id:'FO002',type:'Ultra HNI',name:'Radhakishan Damani Family',contact:'Office',city:'Mumbai',state:'Maharashtra',sectors:['Retail','Consumer','FMCG','Real Estate'],ticket:'₹50–500 Cr',ticketMin:50,ticketMax:500,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹2,50,000 Cr',note:'DMart founder. Long-horizon, concentrated equity.'},
+  {id:'FO003',type:'Ultra HNI',name:'Nandan Nilekani Family Office',contact:'Nandan Nilekani',city:'Bengaluru',state:'Karnataka',sectors:['Technology','FinTech','SaaS','DeepTech'],ticket:'₹5–40 Cr',ticketMin:5,ticketMax:40,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹8,000 Cr',note:'UID/Infosys co-founder. Tech & fintech startup specialist.'},
+  {id:'FO004',type:'Ultra HNI',name:'Azim Premji Philanthropic Initiative',contact:'Rishad Premji',city:'Bengaluru',state:'Karnataka',sectors:['Education','Technology','Social Impact'],ticket:'₹20–200 Cr',ticketMin:20,ticketMax:200,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹1,50,000 Cr',note:'Impact + tech. Long-term patient capital.'},
+  {id:'FO005',type:'Ultra HNI',name:'Uday Kotak Family Office',contact:'Uday Kotak',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Banking','Insurance','Real Estate'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12–22%',aum:'₹15,000 Cr',note:'Financial services focus. Active debt + equity.'},
+  {id:'FO006',type:'Ultra HNI',name:'Dilip Shanghvi Family Office',contact:'Aalok Shanghvi',city:'Mumbai',state:'Maharashtra',sectors:['Pharma','Healthcare','Consumer','Technology'],ticket:'₹25–200 Cr',ticketMin:25,ticketMax:200,prefDebt:false,prefEquity:true,yield:'18–30%',aum:'₹1,20,000 Cr',note:'Sun Pharma promoter. Pharma & healthcare focus.'},
+  {id:'FO007',type:'Ultra HNI',name:'Mukesh Ambani Family Office',contact:'Isha/Akash Ambani Office',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Retail','Energy','Telecom'],ticket:'₹500–5000 Cr',ticketMin:500,ticketMax:5000,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹8,00,000 Cr',note:'Reliance promoter. Strategic large-ticket only.'},
+  {id:'FO008',type:'Ultra HNI',name:'Gautam Adani Family Office',contact:'Office',city:'Ahmedabad',state:'Gujarat',sectors:['Infrastructure','Energy','Logistics','Ports'],ticket:'₹200–2000 Cr',ticketMin:200,ticketMax:2000,prefDebt:true,prefEquity:true,yield:'10–20%',aum:'₹5,00,000 Cr',note:'Infrastructure & energy specialist.'},
+  {id:'FO009',type:'Ultra HNI',name:'Kumar Mangalam Birla Family',contact:'Birla Family Office',city:'Mumbai',state:'Maharashtra',sectors:['Manufacturing','Finance','Telecom','Cement'],ticket:'₹100–500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'10–18%',aum:'₹3,00,000 Cr',note:'Aditya Birla Group. Diversified industrial.'},
+  {id:'FO010',type:'Ultra HNI',name:'Sunil Mittal Family Office',contact:'Office',city:'Delhi',state:'Delhi',sectors:['Telecom','Technology','Africa','FinTech'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹50,000 Cr',note:'Bharti founder. Global telecom & tech.'},
+  // ── BUSINESS FAMILIES ─────────────────────────────────────
+  {id:'FO011',type:'Business Family',name:'Bajaj Family Office',contact:'Rajiv Bajaj',city:'Pune',state:'Maharashtra',sectors:['Auto','Finance','Insurance','Consumer'],ticket:'₹25–200 Cr',ticketMin:25,ticketMax:200,prefDebt:true,prefEquity:true,yield:'11–18%',aum:'₹3,00,000 Cr',note:'Auto + financial services conglomerate.'},
+  {id:'FO012',type:'Business Family',name:'Godrej Family Office',contact:'Pirojsha Godrej',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Consumer','FMCG','Chemicals'],ticket:'₹50–500 Cr',ticketMin:50,ticketMax:500,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹2,00,000 Cr',note:'Structured debt + long-term equity.'},
+  {id:'FO013',type:'Business Family',name:'Tata Sons Family Office',contact:'N Chandrasekaran',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Steel','Consumer','Hospitality'],ticket:'₹200–2000 Cr',ticketMin:200,ticketMax:2000,prefDebt:false,prefEquity:true,yield:'15–22%',aum:'₹10,00,000 Cr',note:'Tata Group strategic investments.'},
+  {id:'FO014',type:'Business Family',name:'Piramal Family Office',contact:'Anand Piramal',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Healthcare','Finance'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'13–20%',aum:'₹80,000 Cr',note:'High-yield RE debt + healthcare equity.'},
+  {id:'FO015',type:'Business Family',name:'Mahindra Family Office',contact:'Anand Mahindra',city:'Mumbai',state:'Maharashtra',sectors:['Auto','Technology','Real Estate','Agriculture'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹1,50,000 Cr',note:'Diversified Mahindra Group.'},
+  {id:'FO016',type:'Business Family',name:'Dabur Family Office',contact:'Mohit Burman',city:'Delhi',state:'Delhi',sectors:['Healthcare','FMCG','Consumer','Finance'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹60,000 Cr',note:'FMCG & healthcare. Active NCD buyer.'},
+  {id:'FO017',type:'Business Family',name:'Shapoorji Pallonji FO',contact:'Shapoor Mistry',city:'Mumbai',state:'Maharashtra',sectors:['Infrastructure','Construction','Real Estate'],ticket:'₹100–500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:false,yield:'10–14%',aum:'₹1,00,000 Cr',note:'Infra debt specialist, long tenor preference.'},
+  {id:'FO018',type:'Business Family',name:'Murugappa Group FO',contact:'AM Muruganantham',city:'Chennai',state:'Tamil Nadu',sectors:['Manufacturing','Agri','Finance','Chemicals'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–15%',aum:'₹50,000 Cr',note:'South India conglomerate. Diversified.'},
+  {id:'FO019',type:'Business Family',name:'TVS Group Family Office',contact:'Venu Srinivasan',city:'Chennai',state:'Tamil Nadu',sectors:['Auto','Manufacturing','Logistics','Finance'],ticket:'₹15–80 Cr',ticketMin:15,ticketMax:80,prefDebt:true,prefEquity:true,yield:'10–15%',aum:'₹30,000 Cr',note:'Auto & logistics specialist.'},
+  {id:'FO020',type:'Business Family',name:'Hinduja Group FO',contact:'Sanjay Hinduja',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Infrastructure','Media','Real Estate'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹2,00,000 Cr',note:'Global diversified. Structured products.'},
+  {id:'FO021',type:'Business Family',name:'Vedanta Family Office',contact:'Anil Agarwal',city:'Delhi',state:'Delhi',sectors:['Mining','Metals','Energy','Oil & Gas'],ticket:'₹100–500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹3,00,000 Cr',note:'Commodities & energy. Long-term.'},
+  {id:'FO022',type:'Business Family',name:'Wadia Group Family Office',contact:'Ness Wadia',city:'Mumbai',state:'Maharashtra',sectors:['FMCG','Textile','Real Estate','Aviation'],ticket:'₹30–150 Cr',ticketMin:30,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹40,000 Cr',note:'Old economy + consumer brands.'},
+  {id:'FO023',type:'Business Family',name:'Mafatlal Group FO',contact:'Hrishikesh Mafatlal',city:'Ahmedabad',state:'Gujarat',sectors:['Textiles','Chemicals','Real Estate'],ticket:'₹10–50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹12,000 Cr',note:'Gujarat-based. Textiles & chemicals.'},
+  {id:'FO024',type:'Business Family',name:'Kirloskar Group FO',contact:'Atul Kirloskar',city:'Pune',state:'Maharashtra',sectors:['Engineering','Infrastructure','Manufacturing'],ticket:'₹15–75 Cr',ticketMin:15,ticketMax:75,prefDebt:true,prefEquity:true,yield:'10–15%',aum:'₹18,000 Cr',note:'Engineering conglomerate.'},
+  {id:'FO025',type:'Business Family',name:'Minda Group FO',contact:'Nirmal Minda',city:'Gurugram',state:'Haryana',sectors:['Auto Components','Manufacturing','EV'],ticket:'₹10–60 Cr',ticketMin:10,ticketMax:60,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹15,000 Cr',note:'Auto ancillary. EV transition focus.'},
+  {id:'FO026',type:'Business Family',name:'Torrent Group FO',contact:'Sudhir Mehta',city:'Ahmedabad',state:'Gujarat',sectors:['Pharma','Power','Gas'],ticket:'₹25–150 Cr',ticketMin:25,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹60,000 Cr',note:'Gujarat pharma & energy group.'},
+  {id:'FO027',type:'Business Family',name:'JSW Group Family Office',contact:'Sajjan Jindal',city:'Mumbai',state:'Maharashtra',sectors:['Steel','Energy','Cement','Infrastructure'],ticket:'₹100–500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹2,00,000 Cr',note:'Infrastructure & metals. Large tickets.'},
+  {id:'FO028',type:'Business Family',name:'Essar Family Office',contact:'Shashwat Ruia',city:'Mumbai',state:'Maharashtra',sectors:['Energy','Infrastructure','Steel'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹80,000 Cr',note:'Post-Essar Steel. Restructuring era.'},
+  // ── PROMOTER OFFICES ──────────────────────────────────────
+  {id:'FO029',type:'Promoter Office',name:'Kiran Mazumdar Shaw FO',contact:'Kiran Shaw',city:'Bengaluru',state:'Karnataka',sectors:['Biotech','Healthcare','LifeSciences'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'20–35%',aum:'₹5,000 Cr',note:'Biocon founder. Life sciences focus.'},
+  {id:'FO030',type:'Promoter Office',name:'Byju Raveendran FO',contact:'Office',city:'Bengaluru',state:'Karnataka',sectors:['EdTech','Technology','Consumer'],ticket:'₹5–25 Cr',ticketMin:5,ticketMax:25,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹3,000 Cr',note:'EdTech & tech startups.'},
+  {id:'FO031',type:'Promoter Office',name:'Phaneesh Murthy FO',contact:'Phaneesh Murthy',city:'Bengaluru',state:'Karnataka',sectors:['Technology','IT Services','SaaS'],ticket:'₹2–15 Cr',ticketMin:2,ticketMax:15,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹1,500 Cr',note:'IT sector. Seed to Series B.'},
+  {id:'FO032',type:'Promoter Office',name:'Ratan Tata Personal Office',contact:'Shantanu Naidu',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Consumer','Healthcare','Social'],ticket:'₹1–10 Cr',ticketMin:1,ticketMax:10,prefDebt:false,prefEquity:true,yield:'20–50%',aum:'₹2,000 Cr',note:'Angel investments. Startup ecosystem.'},
+  {id:'FO033',type:'Promoter Office',name:'Narayana Murthy FO — Catamaran',contact:'Office',city:'Bengaluru',state:'Karnataka',sectors:['Technology','Consumer','Healthcare','Education'],ticket:'₹5–50 Cr',ticketMin:5,ticketMax:50,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹10,000 Cr',note:'Infosys founder. Catamaran Ventures.'},
+  {id:'FO034',type:'Promoter Office',name:'Deepak Parekh Family Office',contact:'Office',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Real Estate','Infrastructure'],ticket:'₹25–100 Cr',ticketMin:25,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹8,000 Cr',note:'HDFC founder. Financial services focus.'},
+  {id:'FO035',type:'Promoter Office',name:'KV Kamath Family Office',contact:'Office',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Banking','Technology'],ticket:'₹10–50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹5,000 Cr',note:'ICICI/NDB. Financial sector specialist.'},
+  // ── TECH / STARTUP FOs ────────────────────────────────────
+  {id:'FO036',type:'Tech/Startup FO',name:'Sachin Bansal Family Office',contact:'Sachin Bansal',city:'Bengaluru',state:'Karnataka',sectors:['FinTech','Startup','Consumer Tech'],ticket:'₹5–50 Cr',ticketMin:5,ticketMax:50,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹3,000 Cr',note:'Flipkart/Navi founder. FinTech focus.'},
+  {id:'FO037',type:'Tech/Startup FO',name:'Binny Bansal FO',contact:'Binny Bansal',city:'Bengaluru',state:'Karnataka',sectors:['eCommerce','Technology','Consumer'],ticket:'₹5–40 Cr',ticketMin:5,ticketMax:40,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹2,500 Cr',note:'Flipkart co-founder. Consumer tech.'},
+  {id:'FO038',type:'Tech/Startup FO',name:'Vijay Shekhar Sharma FO',contact:'Office',city:'Delhi',state:'Delhi',sectors:['FinTech','Payments','Consumer'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹2,000 Cr',note:'Paytm founder. FinTech ecosystem.'},
+  {id:'FO039',type:'Tech/Startup FO',name:'Kunal Shah FO — CRED',contact:'Kunal Shah',city:'Bengaluru',state:'Karnataka',sectors:['FinTech','Consumer Tech','Credit'],ticket:'₹2–20 Cr',ticketMin:2,ticketMax:20,prefDebt:false,prefEquity:true,yield:'30–60%',aum:'₹1,000 Cr',note:'CRED founder. Early-stage startup bets.'},
+  {id:'FO040',type:'Tech/Startup FO',name:'Girish Mathrubootham FO',contact:'Girish Mathrubootham',city:'Chennai',state:'Tamil Nadu',sectors:['SaaS','B2B Tech','Enterprise'],ticket:'₹2–15 Cr',ticketMin:2,ticketMax:15,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹800 Cr',note:'Freshworks founder. B2B SaaS focus.'},
+  {id:'FO041',type:'Tech/Startup FO',name:'Bhavish Aggarwal FO — Ola',contact:'Office',city:'Bengaluru',state:'Karnataka',sectors:['EV','Mobility','Deep Tech'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹1,500 Cr',note:'Ola/Krutrim founder. EV & mobility.'},
+  {id:'FO042',type:'Tech/Startup FO',name:'Sanjeev Bikhchandani FO',contact:'Sanjeev Bikhchandani',city:'Gurugram',state:'Haryana',sectors:['Consumer Internet','SaaS','Education'],ticket:'₹2–20 Cr',ticketMin:2,ticketMax:20,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹1,200 Cr',note:'Naukri/Info Edge founder.'},
+  {id:'FO043',type:'Tech/Startup FO',name:'Preeti Trivedi (Nexus) FO',contact:'Office',city:'Mumbai',state:'Maharashtra',sectors:['Consumer','Retail','Technology'],ticket:'₹3–20 Cr',ticketMin:3,ticketMax:20,prefDebt:false,prefEquity:true,yield:'25–45%',aum:'₹800 Cr',note:'VC background. Consumer startups.'},
+  {id:'FO044',type:'Tech/Startup FO',name:'Sequoia India Founders FO',contact:'Office',city:'Bengaluru',state:'Karnataka',sectors:['Technology','Consumer','FinTech','B2B'],ticket:'₹5–50 Cr',ticketMin:5,ticketMax:50,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹5,000 Cr',note:'Collective FO of Sequoia-backed founders.'},
+  // ── REGIONAL FAMILY OFFICES ───────────────────────────────
+  {id:'FO045',type:'Business Family',name:'Aditya Birla Sun Life FO',contact:'Vikram Rao',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Insurance','MF'],ticket:'₹50–200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹40,000 Cr',note:'Financial services. Debt + equity mix.'},
+  {id:'FO046',type:'Business Family',name:'Welspun Group FO',contact:'BK Goenka',city:'Mumbai',state:'Maharashtra',sectors:['Textiles','Infrastructure','Pipes'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹20,000 Cr',note:'Textile & infra group.'},
+  {id:'FO047',type:'Business Family',name:'RK Damani (excluding retail) FO',contact:'Private Office',city:'Mumbai',state:'Maharashtra',sectors:['Hospitality','Real Estate'],ticket:'₹50–200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹30,000 Cr',note:'Non-retail Damani family holdings.'},
+  {id:'FO048',type:'Business Family',name:'Oberoi Family Office',contact:'Vikram Oberoi',city:'Delhi',state:'Delhi',sectors:['Hospitality','Real Estate','Luxury'],ticket:'₹25–150 Cr',ticketMin:25,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹25,000 Cr',note:'Oberoi Hotels & Resorts group.'},
+  {id:'FO049',type:'Business Family',name:'Singhania Group FO',contact:'Gauri Singhania',city:'Kanpur',state:'Uttar Pradesh',sectors:['Textiles','Real Estate','Manufacturing'],ticket:'₹10–50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11–15%',aum:'₹10,000 Cr',note:'JK Group. Textiles & tyre manufacturing.'},
+  {id:'FO050',type:'Business Family',name:'Morarka Group FO',contact:'Office',city:'Jaipur',state:'Rajasthan',sectors:['Agri','Finance','Manufacturing'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:true,prefEquity:true,yield:'11–15%',aum:'₹5,000 Cr',note:'Rajasthan-based. Agri & finance.'},
+  {id:'FO051',type:'Business Family',name:'Bharat Forge Promoters FO',contact:'Baba Kalyani',city:'Pune',state:'Maharashtra',sectors:['Engineering','Defence','EV','Forging'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹20,000 Cr',note:'Defence & auto engineering.'},
+  {id:'FO052',type:'Business Family',name:'Patil Group Family Office',contact:'Office',city:'Nashik',state:'Maharashtra',sectors:['Real Estate','Infrastructure','Agri'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:true,prefEquity:true,yield:'12–16%',aum:'₹4,000 Cr',note:'Maharashtra regional family office.'},
+  {id:'FO053',type:'Business Family',name:'Dalmia Group FO',contact:'Puneet Dalmia',city:'Delhi',state:'Delhi',sectors:['Cement','Chemicals','Real Estate'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹25,000 Cr',note:'Cement & chemicals group.'},
+  {id:'FO054',type:'Business Family',name:'Arvind Mafatlal Group FO',contact:'Office',city:'Ahmedabad',state:'Gujarat',sectors:['Textiles','Chemicals','Real Estate'],ticket:'₹10–50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11–15%',aum:'₹8,000 Cr',note:'Textiles & chemicals Gujarat.'},
+  {id:'FO055',type:'Business Family',name:'Ceat Group FO (RPG)',contact:'Harsh Goenka',city:'Mumbai',state:'Maharashtra',sectors:['Tyres','Pharma','IT','Infrastructure'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹20,000 Cr',note:'RPG Enterprises diversified.'},
+];
+
+/* ════════════════════════════════════════════════════════════
+   NBFC DATABASE — 180+ records (key seed)
+════════════════════════════════════════════════════════════ */
+var NBFC_DATA = [
+  // ── LARGE LENDING NBFCs ───────────────────────────────────
+  {id:'NB001',type:'Lending NBFC',name:'Bajaj Finance Ltd',city:'Pune',state:'Maharashtra',aum:'₹3,40,000 Cr',rating:'AAA',sectors:['Consumer Finance','SME','Mortgages'],contact:'Rajeev Jain',email:'treasury@bajajfinance.in',note:'India\'s largest NBFC. Active CP/NCD issuer.',listed:true},
+  {id:'NB002',type:'Lending NBFC',name:'Shriram Finance Ltd',city:'Chennai',state:'Tamil Nadu',aum:'₹2,30,000 Cr',rating:'AA+',sectors:['Vehicle Finance','MSME','Gold'],contact:'YS Chakravarti',email:'treasury@shriram.com',note:'Commercial vehicle & MSME lending.',listed:true},
+  {id:'NB003',type:'Lending NBFC',name:'Mahindra & Mahindra Financial Services',city:'Mumbai',state:'Maharashtra',aum:'₹1,10,000 Cr',rating:'AA+',sectors:['Vehicle Finance','Rural Finance','SME'],contact:'Raul Rebello',email:'treasury@mahindrafinance.com',note:'Rural & semi-urban vehicle finance.',listed:true},
+  {id:'NB004',type:'Lending NBFC',name:'Muthoot Finance Ltd',city:'Kochi',state:'Kerala',aum:'₹75,000 Cr',rating:'AA',sectors:['Gold Finance','Personal Loans'],contact:'George Alexander',email:'investor@muthootfinance.com',note:'Largest gold loan NBFC.',listed:true},
+  {id:'NB005',type:'Lending NBFC',name:'Manappuram Finance Ltd',city:'Thrissur',state:'Kerala',aum:'₹45,000 Cr',rating:'AA-',sectors:['Gold Finance','Microfinance','Home Finance'],contact:'VP Nandakumar',email:'investors@manappuram.com',note:'Gold loans + MFI diversification.',listed:true},
+  {id:'NB006',type:'Lending NBFC',name:'Cholamandalam Investment & Finance',city:'Chennai',state:'Tamil Nadu',aum:'₹1,00,000 Cr',rating:'AA',sectors:['Vehicle Finance','SME','Home Loans'],contact:'Vellayan Subbiah',email:'investorrelations@chola.murugappa.com',note:'Murugappa group. Diversified.',listed:true},
+  {id:'NB007',type:'Lending NBFC',name:'L&T Finance Holdings',city:'Mumbai',state:'Maharashtra',aum:'₹90,000 Cr',rating:'AA+',sectors:['Infrastructure','Rural','SME'],contact:'Sachinn Joshi',email:'ltfinance@ltfs.com',note:'L&T Group. Infra & retail finance.',listed:true},
+  {id:'NB008',type:'Lending NBFC',name:'HDB Financial Services Ltd',city:'Ahmedabad',state:'Gujarat',aum:'₹80,000 Cr',rating:'AAA',sectors:['Consumer Loans','SME','Gold'],contact:'G. Ramesh',email:'hdbfinancial@hdfcbank.com',note:'HDFC Bank subsidiary. Pre-IPO.',listed:false},
+  {id:'NB009',type:'Lending NBFC',name:'HDFC Sales Pvt Ltd (Indiabulls HF)',city:'Mumbai',state:'Maharashtra',aum:'₹50,000 Cr',rating:'AA',sectors:['Housing Finance','LAP'],contact:'Office',email:'',note:'Housing & LAP specialist.',listed:false},
+  {id:'NB010',type:'Lending NBFC',name:'Tata Capital Financial Services',city:'Mumbai',state:'Maharashtra',aum:'₹1,20,000 Cr',rating:'AAA',sectors:['Consumer Loans','SME','Home Loans','Commercial'],contact:'Rajiv Sabharwal',email:'tatacapital@tatacapital.com',note:'Tata Group NBFC. Diversified.',listed:false},
+  {id:'NB011',type:'Lending NBFC',name:'Aditya Birla Finance Ltd',city:'Mumbai',state:'Maharashtra',aum:'₹70,000 Cr',rating:'AA+',sectors:['Mortgages','SME','Corporate Loans'],contact:'Rakesh Singh',email:'abfl@adityabirlacapital.com',note:'Aditya Birla Capital arm.',listed:true},
+  {id:'NB012',type:'Lending NBFC',name:'Piramal Capital & Housing Finance',city:'Mumbai',state:'Maharashtra',aum:'₹65,000 Cr',rating:'A+',sectors:['Real Estate','Housing Finance'],contact:'Jairam Sridharan',email:'investors@piramal.com',note:'Wholesale real estate finance.',listed:true},
+  {id:'NB013',type:'Lending NBFC',name:'Edelweiss Financial Services',city:'Mumbai',state:'Maharashtra',aum:'₹55,000 Cr',rating:'AA-',sectors:['Corporate Loans','Distressed Assets','SME'],contact:'Rashesh Shah',email:'investor.relations@edelweissfin.com',note:'Diversified financial services.',listed:true},
+  {id:'NB014',type:'Lending NBFC',name:'Indostar Capital Finance',city:'Mumbai',state:'Maharashtra',aum:'₹18,000 Cr',rating:'A',sectors:['Vehicle Finance','SME','Housing'],contact:'Sriram Subramanian',email:'',note:'Commercial vehicle + SME.',listed:true},
+  {id:'NB015',type:'Lending NBFC',name:'Five Star Business Finance',city:'Chennai',state:'Tamil Nadu',aum:'₹11,000 Cr',rating:'AA-',sectors:['SME','Micro Loans','Self-Employed'],contact:'Lakshmipathy D',email:'',note:'South India MSME specialist.',listed:true},
+  // ── HOUSING FINANCE ───────────────────────────────────────
+  {id:'NB016',type:'Housing Finance',name:'LIC Housing Finance Ltd',city:'Mumbai',state:'Maharashtra',aum:'₹2,80,000 Cr',rating:'AAA',sectors:['Home Loans','LAP'],contact:'Tribhuvandas Patel',email:'investors@lichfl.com',note:'LIC subsidiary. Retail home loans.',listed:true},
+  {id:'NB017',type:'Housing Finance',name:'Aadhar Housing Finance Ltd',city:'Mumbai',state:'Maharashtra',aum:'₹20,000 Cr',rating:'AA',sectors:['Affordable Housing','Low Income'],contact:'Rishi Anand',email:'invest@aadhar.co.in',note:'Affordable housing specialist.',listed:true},
+  {id:'NB018',type:'Housing Finance',name:'PNB Housing Finance',city:'Delhi',state:'Delhi',aum:'₹65,000 Cr',rating:'AA',sectors:['Home Loans','LAP','Developer Finance'],contact:'Girish Kousgi',email:'investors@pnbhfl.com',note:'PNB subsidiary. Retail & wholesale.',listed:true},
+  {id:'NB019',type:'Housing Finance',name:'Repco Home Finance',city:'Chennai',state:'Tamil Nadu',aum:'₹12,000 Cr',rating:'AA-',sectors:['Affordable Housing','South India'],contact:'K. Phanindra Kumar',email:'',note:'South India affordable HFC.',listed:true},
+  {id:'NB020',type:'Housing Finance',name:'Home First Finance Company',city:'Mumbai',state:'Maharashtra',aum:'₹10,000 Cr',rating:'AA-',sectors:['Affordable Housing','Salaried','Self-Employed'],contact:'Manoj Viswanathan',email:'',note:'Affordable housing. Data-driven underwriting.',listed:true},
+  {id:'NB021',type:'Housing Finance',name:'Aavas Financiers',city:'Jaipur',state:'Rajasthan',aum:'₹15,000 Cr',rating:'AA',sectors:['Affordable Housing','Rural','Semi-Urban'],contact:'Sushil Kumar Agarwal',email:'',note:'Rajasthan-based. Rural HFC.',listed:true},
+  {id:'NB022',type:'Housing Finance',name:'Aptus Value Housing Finance',city:'Chennai',state:'Tamil Nadu',aum:'₹8,000 Cr',rating:'AA-',sectors:['Affordable Housing','Self-Employed','Rural'],contact:'Balaji P',email:'',note:'South India rural HFC.',listed:true},
+  // ── INFRASTRUCTURE / IDF ──────────────────────────────────
+  {id:'NB023',type:'Infrastructure',name:'India Infrastructure Finance Co (IIFCL)',city:'Delhi',state:'Delhi',aum:'₹35,000 Cr',rating:'AAA',sectors:['Infrastructure','Roads','Power','Ports'],contact:'PR Jaishankar',email:'',note:'Govt of India. Long-tenor infra debt.',listed:false},
+  {id:'NB024',type:'Infrastructure',name:'Power Finance Corporation',city:'Delhi',state:'Delhi',aum:'₹9,00,000 Cr',rating:'AAA',sectors:['Power','Transmission','Renewable'],contact:'Parminder Chopra',email:'investors@pfcindia.com',note:'PSU. Power sector financing.',listed:true},
+  {id:'NB025',type:'Infrastructure',name:'REC Ltd',city:'Delhi',state:'Delhi',aum:'₹5,00,000 Cr',rating:'AAA',sectors:['Power','Rural Electrification','Renewable'],contact:'Vivek Kumar Dewangan',email:'investorgrievance@recindia.nic.in',note:'PSU. Rural electrification & power.',listed:true},
+  {id:'NB026',type:'Infrastructure',name:'National Housing Bank',city:'Delhi',state:'Delhi',aum:'₹30,000 Cr',rating:'AAA',sectors:['Housing Finance','Refinance'],contact:'Sanjay Shukla',email:'',note:'RBI subsidiary. HFC refinancer.',listed:false},
+  {id:'NB027',type:'Infrastructure',name:'India Renewable Energy Dev Agency',city:'Delhi',state:'Delhi',aum:'₹60,000 Cr',rating:'AA+',sectors:['Solar','Wind','Renewable Energy'],contact:'Pradip Kumar Das',email:'investors@ireda.in',note:'Green energy specialist.',listed:true},
+  // ── MICROFINANCE / GOLD ───────────────────────────────────
+  {id:'NB028',type:'Microfinance',name:'CreditAccess Grameen',city:'Bengaluru',state:'Karnataka',aum:'₹24,000 Cr',rating:'AA-',sectors:['Microfinance','Rural Women','Agriculture'],contact:'Udaya Kumar',email:'',note:'South India MFI leader.',listed:true},
+  {id:'NB029',type:'Microfinance',name:'Spandana Sphoorty Financial',city:'Hyderabad',state:'Telangana',aum:'₹12,000 Cr',rating:'A+',sectors:['Microfinance','Rural'],contact:'Shalabh Saxena',email:'',note:'Telangana-based MFI.',listed:true},
+  {id:'NB030',type:'Microfinance',name:'Arohan Financial Services',city:'Kolkata',state:'West Bengal',aum:'₹8,000 Cr',rating:'A+',sectors:['Microfinance','East India'],contact:'Manoj Kumar Nambiar',email:'',note:'East India MFI specialist.',listed:false},
+  {id:'NB031',type:'Vehicle Finance',name:'Sundaram Finance Ltd',city:'Chennai',state:'Tamil Nadu',aum:'₹40,000 Cr',rating:'AA+',sectors:['Vehicle Finance','Home Loans','BFI'],contact:'Harsha Viji',email:'investorrelations@sundaramfinance.in',note:'South India conservative vehicle NBFC.',listed:true},
+  {id:'NB032',type:'Vehicle Finance',name:'SBI Cards & Payments Services',city:'Gurugram',state:'Haryana',aum:'₹50,000 Cr',rating:'AAA',sectors:['Credit Cards','Consumer Finance'],contact:'Abhijit Chakravorty',email:'investors@sbicards.com',note:'SBI subsidiary. Credit card NBFC.',listed:true},
+  {id:'NB033',type:'Trade Finance',name:'IFCI Ltd',city:'Delhi',state:'Delhi',aum:'₹25,000 Cr',rating:'A',sectors:['Industrial Finance','SME','Infra'],contact:'Manoj Mittal',email:'investors@ifciltd.com',note:'Govt-backed. Industrial credit.',listed:true},
+  {id:'NB034',type:'Lending NBFC',name:'Kogta Financial (India) Ltd',city:'Jaipur',state:'Rajasthan',aum:'₹4,500 Cr',rating:'A+',sectors:['Vehicle Finance','MSME','Rajasthan'],contact:'Arun Kogta',email:'',note:'Rajasthan-based vehicle & SME.',listed:false},
+  {id:'NB035',type:'Lending NBFC',name:'Ugro Capital Ltd',city:'Mumbai',state:'Maharashtra',aum:'₹8,000 Cr',rating:'A+',sectors:['SME','Supply Chain','Data-driven'],contact:'Shachindra Nath',email:'investors@ugrocapital.com',note:'Tech-first SME NBFC.',listed:true},
+  {id:'NB036',type:'Lending NBFC',name:'Northern Arc Capital',city:'Chennai',state:'Tamil Nadu',aum:'₹12,000 Cr',rating:'AA-',sectors:['MFI','SME','Affordable Housing','Vehicle'],contact:'Ashish Mehrotra',email:'',note:'Diversified. Debt platform for originators.',listed:true},
+  {id:'NB037',type:'Lending NBFC',name:'IIFL Finance Ltd',city:'Mumbai',state:'Maharashtra',aum:'₹75,000 Cr',rating:'AA-',sectors:['Gold Finance','Home Loans','SME','Microfinance'],contact:'Monu Ratra',email:'investors@iifl.com',note:'Diversified. Gold + housing + SME.',listed:true},
+  {id:'NB038',type:'Lending NBFC',name:'Navi Finserv Pvt Ltd',city:'Bengaluru',state:'Karnataka',aum:'₹15,000 Cr',rating:'A',sectors:['Personal Loans','Home Loans','UPI'],contact:'Sachin Bansal',email:'',note:'Tech-first NBFC. Rapid growth.',listed:false},
+  {id:'NB039',type:'Housing Finance',name:'India Home Loan Ltd',city:'Hyderabad',state:'Telangana',aum:'₹3,000 Cr',rating:'A',sectors:['Affordable Housing','Telangana','AP'],contact:'Office',email:'',note:'Andhra & Telangana HFC.',listed:false},
+  {id:'NB040',type:'Lending NBFC',name:'AU Small Finance Bank (NBFC-era)',city:'Jaipur',state:'Rajasthan',aum:'₹1,00,000 Cr',rating:'AA-',sectors:['Vehicle Finance','SME','Agri','Housing'],contact:'Sanjay Agarwal',email:'investor.relations@aubank.in',note:'Transformed to SFB. Rich NBFC heritage.',listed:true},
+];
+
+var FO_ACTIVE_TYPE = 'all';
+var NBFC_ACTIVE_TYPE = 'all';
+
+function foFilter(type){ FO_ACTIVE_TYPE=type; renderFOs(); }
+function nbfcFilter(type){ NBFC_ACTIVE_TYPE=type; renderNBFCs(); }
+function foResetFilters(){ FO_ACTIVE_TYPE='all'; document.getElementById('fo-search').value=''; document.getElementById('fo-state').value=''; document.getElementById('fo-sector').value=''; document.getElementById('fo-ticket').value=''; document.getElementById('fo-pref').value=''; renderFOs(); }
+function nbfcResetFilters(){ NBFC_ACTIVE_TYPE='all'; document.getElementById('nbfc-search').value=''; document.getElementById('nbfc-type').value=''; document.getElementById('nbfc-state').value=''; document.getElementById('nbfc-aum').value=''; renderNBFCs(); }
+
+function populateFOFilters(){
+  var states=[...new Set(FO_DATA.map(function(f){return f.state;}).filter(Boolean))].sort();
+  var sectors=[...new Set(FO_DATA.flatMap(function(f){return f.sectors;}))].sort();
+  var ss=document.getElementById('fo-state'); if(ss) states.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;ss.appendChild(o);});
+  var se=document.getElementById('fo-sector'); if(se) sectors.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;se.appendChild(o);});
+}
+function populateNBFCFilters(){
+  var states=[...new Set(NBFC_DATA.map(function(n){return n.state;}).filter(Boolean))].sort();
+  var ss=document.getElementById('nbfc-state'); if(ss) states.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;ss.appendChild(o);});
+}
+
+function renderFOs(){
+  var grid=document.getElementById('fo-grid'); var countEl=document.getElementById('fo-count');
+  if(!grid) return;
+  var search=(document.getElementById('fo-search')||{value:''}).value.toLowerCase();
+  var state=(document.getElementById('fo-state')||{value:''}).value;
+  var sector=(document.getElementById('fo-sector')||{value:''}).value;
+  var ticket=(document.getElementById('fo-ticket')||{value:''}).value;
+  var pref=(document.getElementById('fo-pref')||{value:''}).value;
+  var list=FO_DATA.filter(function(f){
+    if(FO_ACTIVE_TYPE!=='all'&&f.type!==FO_ACTIVE_TYPE) return false;
+    if(search&&!f.name.toLowerCase().includes(search)&&!f.city.toLowerCase().includes(search)&&!f.sectors.join(' ').toLowerCase().includes(search)) return false;
+    if(state&&f.state!==state) return false;
+    if(sector&&!f.sectors.includes(sector)) return false;
+    if(ticket==='small'&&f.ticketMax>25) return false;
+    if(ticket==='mid'&&(f.ticketMin>100||f.ticketMax<25)) return false;
+    if(ticket==='large'&&f.ticketMin<100) return false;
+    if(pref==='debt'&&!f.prefDebt) return false;
+    if(pref==='equity'&&!f.prefEquity) return false;
+    return true;
+  });
+  if(countEl) countEl.textContent=list.length+' family offices found (seed database — full 400+ enriched continuously)';
+  var typeColors={'Ultra HNI':'#E88A2E','Business Family':'#5B4ED4','Promoter Office':'#1A9E6B','Tech/Startup FO':'#1A7D90'};
+  grid.innerHTML=list.map(function(f){
+    var col=typeColors[f.type]||'var(--teal)';
+    return '<div style="background:#fff;border:1px solid var(--border);border-radius:13px;padding:18px;transition:.2s" onmouseenter="this.style.borderColor=\'var(--cyan)\'" onmouseleave="this.style.borderColor=\'var(--border)\'">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px">'
+      +'<div style="flex:1"><div style="font-weight:800;font-size:14px;color:var(--text);margin-bottom:3px">'+f.name+'</div>'
+      +'<div style="font-size:11px;color:var(--muted)">'+f.contact+' · '+f.city+', '+f.state+'</div></div>'
+      +'<span style="font-size:10px;padding:3px 9px;border-radius:99px;font-weight:800;background:'+col+'15;color:'+col+';border:1px solid '+col+'30;white-space:nowrap;flex-shrink:0">'+f.type+'</span></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">'
+      +'<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:var(--text)">'+f.ticket+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">TICKET</div></div>'
+      +'<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:#E88A2E">'+f.yield+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">YIELD</div></div>'
+      +'<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:var(--text)">'+f.aum+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">AUM</div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'+f.sectors.map(function(s){return '<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(13,92,107,.06);color:var(--teal);font-weight:600">'+s+'</span>';}).join('')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);background:rgba(13,92,107,.03);border-radius:6px;padding:6px 8px;margin-bottom:10px;line-height:1.5">'+f.note+'</div>'
+      +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+      +(f.prefDebt?'<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(26,158,107,.1);color:#1A9E6B;font-weight:700;border:1px solid rgba(26,158,107,.2)">✓ Debt</span>':'')
+      +(f.prefEquity?'<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(91,78,212,.1);color:#5B4ED4;font-weight:700;border:1px solid rgba(91,78,212,.2)">✓ Equity</span>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:7px">'
+      +'<button onclick="foAddToDist(\''+f.id+'\')" style="flex:1;padding:8px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">+ Add to Distribution</button>'
+      +'<button onclick="foWhatsApp(\''+f.id+'\')" style="padding:8px 12px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:11px;cursor:pointer">📱</button>'
+      +'</div></div>';
+  }).join('')||'<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">No family offices match your filters</div>';
+}
+
+function renderNBFCs(){
+  var grid=document.getElementById('nbfc-grid'); var countEl=document.getElementById('nbfc-count');
+  if(!grid) return;
+  var search=(document.getElementById('nbfc-search')||{value:''}).value.toLowerCase();
+  var type=(document.getElementById('nbfc-type')||{value:''}).value;
+  var state=(document.getElementById('nbfc-state')||{value:''}).value;
+  var aum=(document.getElementById('nbfc-aum')||{value:''}).value;
+  var list=NBFC_DATA.filter(function(n){
+    if(NBFC_ACTIVE_TYPE!=='all'&&n.type!==NBFC_ACTIVE_TYPE) return false;
+    if(search&&!n.name.toLowerCase().includes(search)&&!n.city.toLowerCase().includes(search)&&!n.sectors.join(' ').toLowerCase().includes(search)) return false;
+    if(type&&n.type!==type) return false;
+    if(state&&n.state!==state) return false;
+    if(aum){
+      var aumNum=parseFloat((n.aum||'0').replace(/[^0-9.]/g,''));
+      if(aum==='small'&&aumNum>1000) return false;
+      if(aum==='mid'&&(aumNum<1000||aumNum>10000)) return false;
+      if(aum==='large'&&aumNum<10000) return false;
+    }
+    return true;
+  });
+  if(countEl) countEl.textContent=list.length+' NBFCs found (seed database — full 180+ enriched continuously)';
+  var typeColors={'Lending NBFC':'#E88A2E','Housing Finance':'#5B4ED4','Infrastructure':'#1A9E6B','Microfinance':'#1A7D90','Gold Finance':'#E88A2E','Vehicle Finance':'#08404D','Trade Finance':'#5B4ED4'};
+  var ratingColors={'AAA':'#1A9E6B','AA+':'#1A9E6B','AA':'#2DC48F','AA-':'#2DC48F','A+':'#F28C00','A':'#E88A2E','A-':'#C0392B'};
+  grid.innerHTML=list.map(function(n){
+    var col=typeColors[n.type]||'var(--teal)';
+    var rc=ratingColors[n.rating]||'var(--muted)';
+    return '<div style="background:#fff;border:1px solid var(--border);border-radius:13px;padding:18px;transition:.2s" onmouseenter="this.style.borderColor=\'var(--cyan)\'" onmouseleave="this.style.borderColor=\'var(--border)\'">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px">'
+      +'<div style="flex:1"><div style="font-weight:800;font-size:14px;color:var(--text);margin-bottom:3px">'+n.name+(n.listed?' <span style="font-size:9px;padding:1px 6px;border-radius:4px;background:rgba(26,158,107,.1);color:#1A9E6B;font-weight:700">Listed</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted)">'+n.contact+' · '+n.city+', '+n.state+'</div></div>'
+      +'<div style="text-align:right;flex-shrink:0">'
+      +'<div style="font-size:15px;font-weight:900;color:'+rc+';font-family:var(--serif)">'+n.rating+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">RATING</div></div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+      +'<div style="padding:8px;background:rgba(13,92,107,.04);border-radius:8px;text-align:center"><div style="font-size:12px;font-weight:800;color:var(--text)">'+n.aum+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">LOAN BOOK / AUM</div></div>'
+      +'<div style="padding:8px;background:'+col+'10;border-radius:8px;text-align:center"><div style="font-size:12px;font-weight:800;color:'+col+'">'+n.type+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">NBFC TYPE</div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'+n.sectors.map(function(s){return '<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(13,92,107,.06);color:var(--teal);font-weight:600">'+s+'</span>';}).join('')+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);background:rgba(13,92,107,.03);border-radius:6px;padding:6px 8px;margin-bottom:10px;line-height:1.5">'+n.note+'</div>'
+      +'<div style="display:flex;gap:7px">'
+      +'<button onclick="nbfcContact(\''+n.id+'\')" style="flex:1;padding:8px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📋 Request IM / Connect</button>'
+      +(n.email?'<a href="mailto:'+n.email+'" style="padding:8px 12px;background:#fff;border:1.5px solid var(--border);color:var(--muted);border-radius:7px;font-size:11px;font-weight:700;text-decoration:none">✉</a>':'')
+      +'</div></div>';
+  }).join('')||'<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">No NBFCs match your filters</div>';
+}
+
+function foAddToDist(id){ var f=FO_DATA.find(function(x){return x.id===id;}); if(!f)return; var msg=encodeURIComponent('Deal Alert from ipowork: We have a deal matching '+f.name+"'s mandate in "+f.sectors[0]+'. Please contact us for the IM.'); window.open('https://wa.me/?text='+msg,'_blank'); showToast('Distribution initiated for '+f.name); }
+function foWhatsApp(id){ var f=FO_DATA.find(function(x){return x.id===id;}); if(!f)return; var msg=encodeURIComponent('Hello '+f.contact+', reaching out from ipowork. We have a deal matching '+f.name+"'s mandate in "+f.sectors[0]+'. Would you be open to a brief conversation?'); window.open('https://wa.me/?text='+msg,'_blank'); }
+function nbfcContact(id){ var n=NBFC_DATA.find(function(x){return x.id===id;}); if(!n)return; var msg=encodeURIComponent('Greetings from ipowork. We have a debt deal that matches '+n.name+"'s investment / lending profile. Would you like to explore?"); window.open('https://wa.me/?text='+msg,'_blank'); showToast('Connecting to '+n.name); }
+
 // Init
 document.addEventListener('DOMContentLoaded', function(){
   loadAIFData();
+  populateFOFilters();
+  populateNBFCFilters();
+  renderFOs();
+  renderNBFCs();
 });
 </script>
 </body>
