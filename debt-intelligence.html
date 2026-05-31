@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ipowork — Bulk Debt Intelligence Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F2F6F7;--sur:#FFFFFF;
+  --teal:#08404D;--teal2:#0D5C6B;--cyan:#1A7D90;
+  --amber:#E88A2E;--green:#1A9E6B;--red:#C0392B;--purple:#5B6FEC;--gold:#F0C060;
+  --text:#1A2E35;--muted:#6B8A94;--dim:#9AB0B8;--border:rgba(13,92,107,.12);
+  --sh:0 2px 16px rgba(13,92,107,.08);--sh2:0 8px 40px rgba(13,92,107,.16);
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+  --bar:54px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(13,92,107,.18);border-radius:9px}
+
+/* ── TOP BAR ───────────────────────────────────────────────────── */
+.bar{height:var(--bar);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:10px;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:0 1px 0 var(--border)}
+.logo{font-family:var(--serif);font-weight:900;font-size:20px;color:var(--teal);letter-spacing:-.3px;flex-shrink:0}
+.logo sup{font-size:9px;color:var(--amber);font-family:var(--font);font-weight:800;vertical-align:super}
+.bar-chip{font-size:9px;font-weight:800;color:var(--amber);padding:2px 9px;border-radius:5px;background:rgba(232,138,46,.1);border:1px solid rgba(232,138,46,.2);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+.bar-nav{margin-left:auto;display:flex;gap:6px;align-items:center}
+.nav-link{font-size:11px;color:var(--muted);text-decoration:none;padding:5px 11px;border:1px solid var(--border);border-radius:6px;transition:.15s;white-space:nowrap;font-weight:600}
+.nav-link:hover{border-color:var(--cyan);color:var(--cyan)}
+.nav-link.admin{background:rgba(192,57,43,.06);border-color:rgba(192,57,43,.2);color:var(--red)}
+
+/* ── LAYOUT ────────────────────────────────────────────────────── */
+.wrap{margin-top:var(--bar);display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - var(--bar))}
+
+/* ── LEFT PANEL ─────────────────────────────────────────────────── */
+.left{background:#fff;border-right:1px solid var(--border);padding:20px;overflow-y:auto;height:calc(100vh - var(--bar));position:sticky;top:var(--bar);display:flex;flex-direction:column;gap:0}
+.panel-hd{font-family:var(--serif);font-size:15px;font-weight:900;color:var(--teal);line-height:1.2;margin-bottom:3px}
+.panel-sub{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.sec-hd{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;margin:14px 0 7px}
+
+/* Mode toggle */
+.mode-row{display:flex;gap:0;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:14px}
+.mode-btn{flex:1;padding:8px 6px;border:none;background:#fff;font-family:var(--font);font-size:10px;font-weight:800;color:var(--muted);cursor:pointer;transition:.2s;letter-spacing:.2px;text-transform:uppercase}
+.mode-btn.on{background:var(--teal);color:#fff}
+
+/* Textarea */
+.cin-ta{width:100%;height:105px;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--mono);font-size:11px;color:var(--text);resize:vertical;outline:none;background:#FAFAF9;transition:.2s;line-height:1.75}
+.cin-ta:focus{border-color:var(--cyan);background:#fff}
+.cin-ta::placeholder{color:var(--dim)}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border);border-radius:11px;padding:16px;text-align:center;cursor:pointer;transition:.2s;background:rgba(13,92,107,.02)}
+.upload-zone:hover,.upload-zone.over{border-color:var(--amber);background:rgba(232,138,46,.04)}
+.uz-icon{font-size:26px;margin-bottom:5px}
+.uz-lbl{font-size:12px;font-weight:700;color:var(--text)}
+.uz-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.file-badge{font-size:10px;color:var(--green);font-weight:700;text-align:center;margin-top:6px;min-height:14px}
+
+/* Filters */
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px}
+.sel{width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:11px;color:var(--text);background:#fff;outline:none;cursor:pointer;transition:.15s}
+.sel:focus{border-color:var(--cyan)}
+
+/* Signal chips */
+.sig-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.sig-chip{display:flex;align-items:center;gap:5px;padding:4px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:#fff;transition:.15s;color:var(--text);user-select:none}
+.sig-chip:hover{border-color:var(--cyan)}
+.sig-chip input{accent-color:var(--teal);width:12px;height:12px}
+.sig-chip.checked{border-color:var(--teal);background:rgba(13,92,107,.05);color:var(--teal)}
+
+/* Score slider */
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.slider-row input[type=range]{flex:1;accent-color:var(--teal);height:4px}
+.slider-val{font-family:var(--mono);font-size:15px;font-weight:900;color:var(--teal);min-width:26px;text-align:right}
+
+/* Concurrency */
+.conc-row{display:flex;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.conc-btn{flex:1;padding:6px;border:none;background:#fff;font-family:var(--font);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:.2s}
+.conc-btn.on{background:var(--teal2);color:#fff}
+
+/* Run / Stop buttons */
+.run-btn{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,#08404D,#1A7D90);color:#fff;font-family:var(--font);font-weight:800;font-size:13px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.run-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(13,92,107,.25)}
+.run-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.stop-btn{width:100%;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#C0392B,#E74C3C);color:#fff;font-family:var(--font);font-weight:800;font-size:12px;cursor:pointer;margin-top:7px;display:none}
+
+/* Progress box */
+.prog{background:linear-gradient(135deg,rgba(13,92,107,.05),rgba(13,92,107,.02));border:1px solid var(--border);border-radius:10px;padding:13px;margin-top:12px;display:none}
+.prog.on{display:block}
+.prog-hd{font-size:12px;font-weight:700;color:var(--teal);margin-bottom:5px}
+.prog-bar{height:5px;background:rgba(13,92,107,.1);border-radius:3px;overflow:hidden;margin:6px 0 5px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--cyan));border-radius:3px;transition:width .5s;width:0}
+.prog-txt{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+/* Stats cards */
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:11px}
+.sc{background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px 6px;text-align:center}
+.sc-n{font-family:var(--serif);font-size:18px;font-weight:900;line-height:1}
+.sc-l{font-size:8px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* ── RIGHT PANEL ────────────────────────────────────────────────── */
+.right{padding:22px 26px;overflow-y:auto;height:calc(100vh - var(--bar))}
+
+/* Toolbar */
+.tb{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.tb-title{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal)}
+.tb-chip{font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(13,92,107,.08);color:var(--teal);border:1px solid var(--border)}
+.tb-right{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.e-btn{padding:6px 12px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-family:var(--font);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s;display:flex;align-items:center;gap:5px}
+.e-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.e-btn.prime{background:var(--teal);color:#fff;border-color:var(--teal)}
+.e-btn.prime:hover{background:var(--teal2)}
+
+/* Filter tabs */
+.ftabs{display:flex;gap:5px;margin-bottom:13px;flex-wrap:wrap}
+.ftab{padding:4px 12px;border-radius:99px;border:1.5px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s;background:#fff;display:flex;align-items:center;gap:5px}
+.ftab.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.ftab:hover:not(.on){border-color:var(--cyan);color:var(--cyan)}
+.fdot{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+/* Table */
+.dt{width:100%;border-collapse:collapse;background:#fff;border-radius:13px;overflow:hidden;box-shadow:var(--sh)}
+.dt th{padding:9px 11px;text-align:left;font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;background:rgba(13,92,107,.03);border-bottom:1px solid var(--border);white-space:nowrap}
+.dt td{padding:10px 11px;border-bottom:1px solid rgba(13,92,107,.05);vertical-align:middle;font-size:12px}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:rgba(13,92,107,.015)}
+.dt tr.running td{background:rgba(232,138,46,.03)}
+
+/* Score badge */
+.sb{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;font-family:var(--mono);font-size:13px;font-weight:900;flex-shrink:0}
+.sb-hot{background:rgba(192,57,43,.1);color:#C0392B;border:1.5px solid rgba(192,57,43,.22)}
+.sb-high{background:rgba(232,138,46,.1);color:#E88A2E;border:1.5px solid rgba(232,138,46,.22)}
+.sb-med{background:rgba(26,125,144,.08);color:var(--cyan);border:1.5px solid rgba(26,125,144,.18)}
+.sb-low{background:rgba(107,138,148,.07);color:var(--muted);border:1.5px solid var(--border)}
+
+/* Window pill */
+.wp{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:800;white-space:nowrap}
+.wp-now{background:rgba(192,57,43,.1);color:#C0392B}
+.wp-3m{background:rgba(232,138,46,.1);color:#E88A2E}
+.wp-6m{background:rgba(26,125,144,.09);color:var(--cyan)}
+.wp-str{background:rgba(139,0,0,.1);color:#8B0000}
+.wp-wat{background:rgba(91,111,236,.09);color:var(--purple)}
+
+/* Signal tags */
+.sg{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;white-space:nowrap;display:inline-block;margin:1px}
+.sg-cp{background:rgba(192,57,43,.08);color:#C0392B}
+.sg-hire{background:rgba(91,111,236,.1);color:var(--purple)}
+.sg-rat{background:rgba(26,158,107,.1);color:var(--green)}
+.sg-alm{background:rgba(232,138,46,.1);color:#E88A2E}
+.sg-ncd{background:rgba(26,125,144,.09);color:var(--cyan)}
+.sg-ipo{background:rgba(240,192,96,.15);color:#B8860B}
+.sg-str{background:rgba(139,0,0,.09);color:#8B0000}
+.sg-arr{background:rgba(91,111,236,.08);color:var(--purple)}
+
+/* Status pill */
+.sp{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700}
+.sp-pend{background:rgba(107,138,148,.09);color:var(--muted)}
+.sp-fetch{background:rgba(232,138,46,.1);color:var(--amber);animation:blink 1.2s infinite}
+.sp-ai{background:rgba(91,111,236,.1);color:var(--purple);animation:blink 1.2s infinite}
+.sp-done{background:rgba(26,158,107,.09);color:var(--green)}
+.sp-err{background:rgba(192,57,43,.08);color:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* Company cell */
+.co-name{font-weight:700;color:var(--teal);font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.co-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+
+/* Act button */
+.act{padding:4px 10px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+.act:hover{border-color:var(--teal);color:var(--teal)}
+.act.view{border-color:var(--cyan);color:var(--cyan)}
+
+/* Empty */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .ico{font-size:52px;margin-bottom:12px;opacity:.3}
+.empty h3{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:8px}
+.empty p{font-size:12px;line-height:1.8;max-width:360px;margin:0 auto 20px}
+.empty .tip-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.tip{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;min-width:120px}
+.tip-icon{font-size:18px;margin-bottom:4px}
+.tip-t{font-size:10px;font-weight:700;color:var(--teal)}
+.tip-s{font-size:9px;color:var(--muted);margin-top:1px}
+
+/* ── DETAIL MODAL ──────────────────────────────────────────────── */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:999;align-items:center;justify-content:center;padding:20px}
+.ov.on{display:flex}
+.mbox{background:#fff;border-radius:16px;width:100%;max-width:1000px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.28)}
+.mhd{padding:14px 20px;background:var(--teal);display:flex;align-items:center;gap:12px}
+.m-title{font-family:var(--serif);font-size:15px;font-weight:900;color:#fff;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-meta{font-size:11px;color:rgba(255,255,255,.6);white-space:nowrap}
+.m-close{background:rgba(255,255,255,.14);border:none;font-size:17px;color:#fff;cursor:pointer;padding:4px 8px;border-radius:6px;flex-shrink:0;transition:.15s}
+.m-close:hover{background:rgba(255,255,255,.25)}
+
+.mtabs{display:flex;border-bottom:1px solid var(--border);background:#fafafa;padding:0 18px;gap:2px;overflow-x:auto}
+.mtab{padding:9px 13px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;flex-shrink:0}
+.mtab.on{color:var(--teal);border-bottom-color:var(--teal)}
+
+.mbody{overflow-y:auto;flex:1}
+.mpanel{padding:18px 20px;display:none}
+.mpanel.on{display:block}
+
+/* Overview KPIs */
+.kpi-bar{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:16px}
+.kpi{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:11px;text-align:center}
+.kv{font-family:var(--serif);font-size:17px;font-weight:900;color:var(--teal);line-height:1}
+.kl{font-size:8px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* Signal list */
+.slist{display:flex;flex-direction:column;gap:8px}
+.si{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:#fff}
+.si-ico{font-size:18px;flex-shrink:0;margin-top:1px}
+.si-bd .si-t{font-size:12px;font-weight:700;color:var(--text)}
+.si-bd .si-d{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.55}
+
+/* Action plan */
+.aplan{background:rgba(8,64,77,.03);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px}
+.ap-title{font-size:10px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:.6px;margin-bottom:9px}
+.ap-steps{display:flex;flex-direction:column;gap:7px}
+.ap-step{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--text)}
+.ap-n{width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+
+/* Revenue card */
+.rev-card{background:linear-gradient(135deg,var(--teal),var(--cyan));border-radius:12px;padding:13px 18px;display:flex;align-items:center;gap:16px;margin-top:12px;color:#fff}
+.rev-n{font-family:var(--serif);font-size:28px;font-weight:900;color:var(--gold)}
+.rev-l{font-size:11px;opacity:.7;margin-top:1px}
+
+/* AI text */
+.ai-block{background:#FAFAF9;border:1px solid var(--border);border-radius:9px;padding:14px;margin-top:10px}
+.ai-hd{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:7px}
+.ai-txt{font-size:11px;color:var(--text);line-height:1.75;white-space:pre-wrap}
+
+/* Markdown in modal */
+.mc h1,.mc h2,.mc h3{color:var(--teal);margin:12px 0 6px;font-family:var(--serif)}
+.mc h1{font-size:15px}.mc h2{font-size:13px}.mc h3{font-size:12px}
+.mc p{font-size:12px;line-height:1.75;margin-bottom:8px;color:var(--text)}
+.mc ul{padding-left:16px;margin-bottom:8px}.mc li{font-size:12px;margin-bottom:4px;line-height:1.6}
+.mc strong{color:var(--teal);font-weight:700}
+.mc table{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}
+.mc th{background:var(--teal);color:#fff;padding:6px 9px;text-align:left;font-size:9px;font-weight:800;text-transform:uppercase}
+.mc td{padding:6px 9px;border-bottom:1px solid var(--border)}
+.mc tbody tr:nth-child(even) td{background:rgba(13,92,107,.02)}
+.tag{display:inline-flex;padding:2px 7px;border-radius:99px;font-size:9px;font-weight:700;margin:1px}
+.tag-g{background:rgba(26,158,107,.1);color:var(--green);border:1px solid rgba(26,158,107,.2)}
+.tag-r{background:rgba(192,57,43,.08);color:var(--red);border:1px solid rgba(192,57,43,.15)}
+.tag-a{background:rgba(232,138,46,.1);color:var(--amber);border:1px solid rgba(232,138,46,.2)}
+
+/* Quick actions */
+.qa-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.qa-btn{padding:7px 13px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-family:var(--font);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+.qa-btn:hover{border-color:var(--teal);color:var(--teal)}
+.qa-btn.pri{background:var(--teal);color:#fff;border-color:var(--teal)}
+
+@media(max-width:880px){.wrap{grid-template-columns:1fr}.left{height:auto;position:static}.right{padding:16px 14px}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ ADMIN GATE ══════════════════════ -->
+<div id="ag" style="position:fixed;inset:0;background:#08404D;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:360px;box-shadow:0 24px 64px rgba(0,0,0,.55)">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="font-family:var(--serif,Georgia,serif);font-size:24px;font-weight:900;color:#08404D">ipowork<sup style="font-size:10px;color:#E88A2E;vertical-align:super">AI</sup></div>
+      <div style="margin-top:10px;font-size:15px;font-weight:800;color:#1A2E35">&#128274; Admin Access Only</div>
+      <div style="font-size:11px;color:#6B8A94;margin-top:4px">Bulk Debt Intelligence Engine · Not for MB users</div>
+    </div>
+    <input id="ag-u" type="text" placeholder="Admin username" autocomplete="username"
+      style="width:100%;padding:12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:16px;margin-bottom:10px;display:block;outline:none;font-family:inherit"/>
+    <input id="ag-p" type="password" placeholder="Password" autocomplete="current-password"
+      style="width:100%;padding:12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:16px;margin-bottom:10px;display:block;outline:none;font-family:inherit"/>
+    <div id="ag-er" style="color:#C0392B;font-size:12px;text-align:center;margin-bottom:8px;min-height:16px"></div>
+    <button id="ag-bt" style="width:100%;padding:14px;background:#08404D;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">Login &rarr;</button>
+    <div style="text-align:center;margin-top:12px"><a href="index.html" style="font-size:11px;color:#0D5C6B">&#8592; Back to homepage</a></div>
+  </div>
+</div>
+<script>
+(function(){
+  var U='ipowork@admin', P='ipowork@2007';
+  function hide(){var e=document.getElementById('ag');if(e)e.style.display='none';document.body.style.overflow='';}
+  function go(){
+    var u=(document.getElementById('ag-u').value||'').trim();
+    var p=(document.getElementById('ag-p').value||'').trim();
+    var er=document.getElementById('ag-er');
+    if(u===U&&p===P){try{sessionStorage.setItem('_adm','1')}catch(x){}try{localStorage.setItem('_adm','1')}catch(x){}hide();}
+    else{er.textContent='Wrong credentials.';document.getElementById('ag-p').value='';document.getElementById('ag-p').focus();}
+  }
+  function isAuth(){try{if(sessionStorage.getItem('_adm')==='1')return true}catch(x){}try{if(localStorage.getItem('_adm')==='1')return true}catch(x){}return false;}
+  if(isAuth())hide();else document.body.style.overflow='hidden';
+  document.addEventListener('DOMContentLoaded',function(){
+    if(isAuth()){hide();return;}
+    document.body.style.overflow='hidden';
+    document.getElementById('ag-bt').addEventListener('click',go);
+    document.getElementById('ag-p').addEventListener('keydown',function(e){if(e.key==='Enter')go();});
+    document.getElementById('ag-u').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('ag-p').focus();});
+  });
+})();
+</script>
+
+<!-- ══════════════════════ TOP BAR ══════════════════════════ -->
+<div class="bar">
+  <div class="logo">ipowork<sup>AI</sup></div>
+  <div class="bar-chip">&#128176; Bulk Debt Intel</div>
+  <div class="bar-nav">
+    <a href="cin-finder.html"    class="nav-link">&#128269; CIN Finder</a>
+    <a href="bulk-research.html" class="nav-link">&#128300; Bulk Pipeline</a>
+    <a href="debt-board.html"    class="nav-link">&#128202; Debt Board</a>
+    <a href="aif-intel.html"     class="nav-link">&#127963; AIF Intel</a>
+    <span class="nav-link admin">&#128274; Admin</span>
+  </div>
+</div>
+
+<!-- ══════════════════════ MAIN LAYOUT ═════════════════════ -->
+<div class="wrap">
+
+<!-- ─────────────────────── LEFT ────────────────────────── -->
+<div class="left">
+  <div class="panel-hd">&#128176; Bulk Debt Intelligence</div>
+  <div class="panel-sub">Identify NCD · CP · Bond · Refinancing opportunities in bulk. Listed &amp; unlisted companies. AI-scored against 8 debt-specific signals.</div>
+
+  <!-- Input mode toggle -->
+  <div class="mode-row">
+    <button id="mb-names" class="mode-btn on" onclick="setMode('names')">&#9998; Names</button>
+    <button id="mb-cin"   class="mode-btn"    onclick="setMode('cin')">&#128302; CINs</button>
+    <button id="mb-file"  class="mode-btn"    onclick="setMode('file')">&#128193; Upload</button>
+  </div>
+
+  <!-- Input areas -->
+  <div id="in-names">
+    <div class="sec-hd">Company Names — one per line, max 200</div>
+    <textarea id="ta-names" class="cin-ta" placeholder="Bajaj Finance Ltd&#10;Shriram Finance Ltd&#10;Piramal Capital Finance&#10;LIC Housing Finance Ltd&#10;India Shelter Finance Corp&#10;..."></textarea>
+    <div id="names-count" style="font-size:10px;color:var(--muted);margin-top:4px">0 companies</div>
+  </div>
+
+  <div id="in-cin" style="display:none">
+    <div class="sec-hd">MCA CINs — one per line, max 200</div>
+    <textarea id="ta-cin" class="cin-ta" placeholder="L65910MH1994PLC080410&#10;U65100MH2007PTC173165&#10;..."></textarea>
+    <div id="cin-count" style="font-size:10px;color:var(--muted);margin-top:4px">0 CINs</div>
+  </div>
+
+  <div id="in-file" style="display:none">
+    <div class="sec-hd">Excel / CSV — Column A = Name, B = CIN (optional)</div>
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('fp').click()">
+      <div class="uz-icon">&#128196;</div>
+      <div class="uz-lbl">Drop or click to upload</div>
+      <div class="uz-sub">.xlsx · .xls · .csv supported</div>
+    </div>
+    <input id="fp" type="file" accept=".xlsx,.xls,.csv" style="display:none"/>
+    <div class="file-badge" id="file-badge"></div>
+  </div>
+
+  <!-- Analysis settings -->
+  <div class="sec-hd">Analysis Settings</div>
+  <div class="f2">
+    <select id="f-type" class="sel">
+      <option value="">All Types</option>
+      <option value="nbfc">NBFCs</option>
+      <option value="hfc">Housing Finance</option>
+      <option value="mfi">Microfinance</option>
+      <option value="infra">Infrastructure</option>
+      <option value="mfg">Manufacturing / Corp</option>
+      <option value="listed">Listed Only</option>
+      <option value="unlisted">Unlisted Only</option>
+    </select>
+    <select id="f-rating" class="sel">
+      <option value="">Any Rating</option>
+      <option value="aaa">AAA</option>
+      <option value="aa">AA band</option>
+      <option value="a">A band</option>
+      <option value="unrated">Unrated / New</option>
+    </select>
+  </div>
+  <div class="f2">
+    <select id="f-window" class="sel">
+      <option value="">Any Window</option>
+      <option value="now">Raising Now</option>
+      <option value="3m">0–3 Months</option>
+      <option value="6m">3–6 Months</option>
+      <option value="stress">Stress Refi</option>
+    </select>
+    <select id="f-min-debt" class="sel">
+      <option value="">Any Debt Size</option>
+      <option value="500">₹500 Cr+</option>
+      <option value="100">₹100 Cr+</option>
+      <option value="50">₹50 Cr+</option>
+    </select>
+  </div>
+
+  <!-- Signal checkboxes -->
+  <div class="sec-hd">Detect Signals</div>
+  <div class="sig-chips" id="sig-chips">
+    <label class="sig-chip checked"><input type="checkbox" id="sc-cp"   checked/> &#128202; CP Rollover</label>
+    <label class="sig-chip checked"><input type="checkbox" id="sc-hire" checked/> &#128100; Treasury Hire</label>
+    <label class="sig-chip checked"><input type="checkbox" id="sc-alm"  checked/> &#9878; ALM Gap</label>
+    <label class="sig-chip checked"><input type="checkbox" id="sc-rat"  checked/> &#11088; Rating Change</label>
+    <label class="sig-chip checked"><input type="checkbox" id="sc-ncd"  checked/> &#128203; NCD Due</label>
+    <label class="sig-chip checked"><input type="checkbox" id="sc-ipo"  checked/> &#128640; Pre-IPO Raise</label>
+    <label class="sig-chip checked"><input type="checkbox" id="sc-str"  checked/> &#128680; Stress Refi</label>
+    <label class="sig-chip checked"><input type="checkbox" id="sc-arr"  checked/> &#128279; Arranger Gap</label>
+  </div>
+
+  <!-- Min score -->
+  <div class="sec-hd">Minimum Debt Score <span style="font-weight:400;text-transform:none;letter-spacing:0">(show only ≥ this)</span></div>
+  <div class="slider-row">
+    <input type="range" id="thresh" min="0" max="100" value="35"
+      oninput="document.getElementById('tv').textContent=this.value;updateChipStyles()"/>
+    <span class="slider-val" id="tv">35</span>
+  </div>
+
+  <!-- Concurrency -->
+  <div class="sec-hd">Parallel Workers</div>
+  <div class="conc-row">
+    <button class="conc-btn" data-v="1" onclick="setCon(1,this)">1</button>
+    <button class="conc-btn on" data-v="3" onclick="setCon(3,this)">3 ★</button>
+    <button class="conc-btn" data-v="5" onclick="setCon(5,this)">5</button>
+    <button class="conc-btn" data-v="8" onclick="setCon(8,this)">8</button>
+  </div>
+
+  <button class="run-btn" id="run-btn" onclick="runDebt()">&#9889; Run Debt Intelligence</button>
+  <button class="stop-btn" id="stop-btn" onclick="stopRun()">&#9723; Stop</button>
+
+  <div class="prog" id="prog">
+    <div class="prog-hd" id="prog-hd">Initialising…</div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+    <div class="prog-txt" id="prog-txt">Preparing analysis engine</div>
+    <div class="stat-strip">
+      <div class="sc"><div class="sc-n" id="st-done" style="color:var(--green)">0</div><div class="sc-l">Done</div></div>
+      <div class="sc"><div class="sc-n" id="st-hot"  style="color:var(--red)">0</div><div class="sc-l">Hot ≥80</div></div>
+      <div class="sc"><div class="sc-n" id="st-high" style="color:var(--amber)">0</div><div class="sc-l">High ≥60</div></div>
+      <div class="sc"><div class="sc-n" id="st-rev"  style="color:var(--teal)">₹0L</div><div class="sc-l">Rev Opp</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────── RIGHT ───────────────────────── -->
+<div class="right">
+  <div id="empty-state" class="empty">
+    <div class="ico">&#128176;</div>
+    <h3>Bulk Debt Intelligence Engine</h3>
+    <p>Paste company names or CINs on the left. The engine scores each company against 8 debt signals — NCD due, CP rollover, treasury hire, ALM gap, rating change, pre-IPO raise, stress refi, arranger gap — and ranks by opportunity.</p>
+    <div class="tip-row">
+      <div class="tip"><div class="tip-icon">&#127963;</div><div class="tip-t">Upper Layer NBFCs</div><div class="tip-s">CP/NCD issuers</div></div>
+      <div class="tip"><div class="tip-icon">&#127968;</div><div class="tip-t">HFCs &amp; MFIs</div><div class="tip-s">Private NCD</div></div>
+      <div class="tip"><div class="tip-icon">&#127959;</div><div class="tip-t">PSU Infra</div><div class="tip-s">Long-tenor bonds</div></div>
+      <div class="tip"><div class="tip-icon">&#9888;</div><div class="tip-t">Stress Refis</div><div class="tip-s">High-yield entry</div></div>
+      <div class="tip"><div class="tip-icon">&#128301;</div><div class="tip-t">Unlisted Cos</div><div class="tip-s">First NCD access</div></div>
+    </div>
+  </div>
+
+  <div id="results-area" style="display:none">
+    <div class="tb">
+      <div class="tb-title">Debt Opportunity Report</div>
+      <div class="tb-chip" id="res-chip">0 companies</div>
+      <div class="tb-right">
+        <button class="e-btn" onclick="exportCSV()">&#8659; CSV</button>
+        <button class="e-btn" onclick="exportXLSX()">&#8659; Excel</button>
+        <button class="e-btn prime" onclick="window.print()">&#128203; PDF Report</button>
+      </div>
+    </div>
+
+    <div class="ftabs">
+      <div class="ftab on" onclick="applyFilter('all',this)"><span class="fdot" style="background:var(--teal)"></span> All</div>
+      <div class="ftab" onclick="applyFilter('hot',this)"><span class="fdot" style="background:#C0392B"></span> Hot ≥80</div>
+      <div class="ftab" onclick="applyFilter('high',this)"><span class="fdot" style="background:#E88A2E"></span> High 60–79</div>
+      <div class="ftab" onclick="applyFilter('med',this)"><span class="fdot" style="background:var(--cyan)"></span> Medium</div>
+      <div class="ftab" onclick="applyFilter('now',this)">&#128308; Raising Now</div>
+      <div class="ftab" onclick="applyFilter('stress',this)">&#128680; Stress Refi</div>
+      <div class="ftab" onclick="applyFilter('pending',this)">&#8987; Pending</div>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table class="dt" id="dt">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Company</th>
+            <th>Type / Listed</th>
+            <th>Rating</th>
+            <th style="width:44px">Score</th>
+            <th>Debt Opportunity</th>
+            <th>Signals</th>
+            <th>Window</th>
+            <th>Rev Opp</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="dt-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════ DETAIL MODAL ════════════════════════ -->
+<div class="ov" id="modal">
+  <div class="mbox">
+    <div class="mhd">
+      <div class="m-title" id="m-title">Company Analysis</div>
+      <div class="m-meta" id="m-meta"></div>
+      <button class="m-close" onclick="closeModal()">&#10005;</button>
+    </div>
+    <div class="mtabs">
+      <div class="mtab on"  onclick="mTab('ov',this)">&#128202; Overview</div>
+      <div class="mtab"     onclick="mTab('sig',this)">&#128225; Signals</div>
+      <div class="mtab"     onclick="mTab('act',this)">&#127919; Action Plan</div>
+      <div class="mtab"     onclick="mTab('arr',this)">&#128279; Arranger Intel</div>
+      <div class="mtab"     onclick="mTab('ai',this)">&#129302; AI Analysis</div>
+    </div>
+    <div class="mbody">
+      <div class="mpanel on" id="mp-ov"></div>
+      <div class="mpanel"    id="mp-sig"></div>
+      <div class="mpanel"    id="mp-act"></div>
+      <div class="mpanel"    id="mp-arr"></div>
+      <div class="mpanel"    id="mp-ai"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+var PIPELINE = [];
+var RUNNING = false;
+var STOP = false;
+var CONCURRENCY = 3;
+var ACTIVE_FILTER = 'all';
+
+// ── BUILT-IN INTEL (instant, no AI call) ─────────────────────────
+var KNOWN = {
+  'bajaj finance':        {t:'Upper Layer ICC',r:'CRISIL AAA',d:270000,c:4500,u:95,w:'now', arr:'Axis Capital',ir:'treasury@bajajfinserv.in', sigs:['cp','ncd'],n:'Series XVII expected. AUM +35% YoY. Weekly CP rolling.'},
+  'bajaj housing':        {t:'Upper Layer HFC',r:'CRISIL AAA',d:82000, c:0,   u:85,w:'3m',  arr:'Kotak + Axis',ir:'atul.patni@bajajhousing.co.in',sigs:['ncd'],n:'Post-IPO growth. New AUM targets. Bajaj brand premium.'},
+  'shriram finance':      {t:'Upper Layer ICC',r:'CRISIL AA+',d:192000,c:2800,u:90,w:'3m',  arr:'AK Capital',ir:'cco@shriramfinance.in',sigs:['cp','ncd'],n:'Quarterly NCD cycle. AK Capital retail + IPOWORK adds FOs.'},
+  'cholamandalam':        {t:'Upper Layer ICC',r:'CRISIL AA+',d:130000,c:0,   u:84,w:'6m',  arr:'AK Capital',ir:'investor.relations@cholamandalam.com',sigs:['ncd'],n:'AUM +25% YoY. South India FO network.'},
+  'hdb financial':        {t:'Upper Layer ICC',r:'CRISIL AAA',d:760000,c:3200,u:96,w:'now', arr:'HDFC Bank DCM',ir:'hdbfs.investor@hdfcbank.com',sigs:['cp','ncd'],n:'Pre-IPO. External buyers urgently needed. AUM doubling.'},
+  'l&t finance':          {t:'Upper Layer ICC',r:'CRISIL AAA',d:76000, c:0,   u:80,w:'6m',  arr:'L&T Capital',ir:'investor.relations@ltfs.com',sigs:['ncd'],n:'Retail book growth post farm exit.'},
+  'mahindra finance':     {t:'Upper Layer ICC',r:'CRISIL AA+',d:92000, c:0,   u:75,w:'6m',  arr:'AK Capital',ir:'mmfsl.investors@mahindra.com',sigs:['ncd'],n:'Rural AUM H2 seasonal spike.'},
+  'mahindra & mahindra':  {t:'Upper Layer ICC',r:'CRISIL AA+',d:92000, c:0,   u:75,w:'6m',  arr:'AK Capital',ir:'mmfsl.investors@mahindra.com',sigs:['ncd'],n:'Rural AUM H2 seasonal spike.'},
+  'muthoot finance':      {t:'Upper Layer ICC',r:'CRISIL AA', d:80000, c:1800,u:88,w:'3m',  arr:'Vivro Financial',ir:'secretarial@muthootfinance.com',sigs:['cp','ncd'],n:'Gold AUM +20%. Every 3-4 months cycle.'},
+  'manappuram':           {t:'Upper Layer ICC',r:'ICRA AA-',  d:45000, c:800, u:72,w:'3m',  arr:'Vivro Financial',ir:'investors@manappuram.com',sigs:['cp','ncd'],n:'Gold + MFI diversification. Quarterly cycle.'},
+  'tata capital':         {t:'Upper Layer ICC',r:'CRISIL AAA',d:128000,c:2200,u:85,w:'3m',  arr:'AK Capital',ir:'investor.relations@tatacapital.com',sigs:['cp','ncd'],n:'Tata AAA. NPS + pension fit. Biweekly CP to NCD.'},
+  'aditya birla finance': {t:'Upper Layer ICC',r:'CRISIL AAA',d:68000, c:1600,u:68,w:'6m',  arr:'Kotak',ir:'investor.relations@adityabirlacapital.com',sigs:['cp','ncd'],n:'Group synergy. AAA premium.'},
+  'piramal':              {t:'Upper Layer ICC',r:'CRISIL AA-',d:52000, c:1100,u:95,w:'stress',arr:'AK Capital',ir:'corporate.secretarial@piramal.com',sigs:['cp','str','hire'],n:'RE stress. Irregular CP. Head capital mkts hired. Act now.'},
+  'sammaan capital':      {t:'Upper Layer ICC',r:'ICRA AA-',  d:46000, c:900, u:90,w:'stress',arr:'Edelweiss',ir:'investor.relations@sammaancapital.com',sigs:['hire','str','cp'],n:'Head wholesale borrowings hired. Entry window.'},
+  'pnb housing':          {t:'Upper Layer HFC',r:'CARE AA',   d:62000, c:0,   u:74,w:'6m',  arr:'AK Capital',ir:'investor.relations@pnbhousing.com',sigs:['alm'],n:'ALM gap. CFO = treasury head — single call.'},
+  'lic housing':          {t:'Upper Layer HFC',r:'CRISIL AAA',d:255000,c:1200,u:91,w:'now', arr:'SBI Cap',ir:'investor@lichousing.com',sigs:['ncd'],n:'NHB quota exhausted. Insurance natural buyers.'},
+  'power finance':        {t:'Infrastructure', r:'CRISIL AAA',d:840000,c:1200,u:99,w:'now', arr:'SBI Cap',ir:'investor@pfcindia.com',sigs:['ncd'],n:'Annual ₹70,000 Cr programme. Q1 always active.'},
+  'rec ltd':              {t:'Infrastructure', r:'CRISIL AAA',d:480000,c:1800,u:98,w:'now', arr:'SBI Cap',ir:'investor.relations@recindia.nic.in',sigs:['ncd'],n:'Continuous ₹80,000 Cr annually.'},
+  'irfc':                 {t:'Infrastructure', r:'CRISIL AAA',d:360000,c:2400,u:99,w:'now', arr:'SBI Cap',ir:'info@irfc.nic.in',sigs:['ncd'],n:'Railway capex. ₹60,000 Cr FY26 programme.'},
+  'ireda':                {t:'Infrastructure', r:'CRISIL AA+',d:60000, c:400, u:92,w:'now', arr:'SBI Cap',ir:'punnugrover@ireda.in',sigs:['ncd'],n:'Green bonds. ESG FOs first-mover.'},
+  'iifcl':                {t:'Infrastructure', r:'CRISIL AAA',d:35000, c:0,   u:65,w:'6m',  arr:'SBI Cap',ir:'nayaabjain@iifcl.in',sigs:['ncd'],n:'Govt of India backed. Long-tenor infra.'},
+  'hudco':                {t:'Infrastructure', r:'CRISIL AA+',d:96000, c:0,   u:82,w:'3m',  arr:'SBI Cap',ir:'helpdesk@hudco.org',sigs:['ncd'],n:'Urban housing mission. Insurance + pension buyers.'},
+  'creditaccess':         {t:'Microfinance',   r:'ICRA AA-',  d:19200, c:600, u:70,w:'3m',  arr:'Axis Bank',ir:'ir@creditaccessasia.com',sigs:['ncd','alm'],n:'International parent backstop. CFO confirmed.'},
+  'india shelter':        {t:'Housing Finance',r:'ICRA AA-',  d:6800,  c:280, u:70,w:'6m',  arr:'AK Capital',ir:'compliance@indiashelter.in',sigs:['hire','ncd'],n:'First retail NCD. CFO hire signal.'},
+  'fusion finance':       {t:'Microfinance',   r:'ICRA A',    d:8800,  c:350, u:68,w:'3m',  arr:'Edelweiss',ir:'ir@fusionmicrofinance.com',sigs:['hire','alm'],n:'Head borrowings hired. ALM gap ₹500Cr.'},
+  'five star business':   {t:'Lending NBFC',   r:'ICRA AA-',  d:11000, c:0,   u:65,w:'6m',  arr:'AK Capital',ir:'treasury@fivestargroup.in',sigs:['hire','rat'],n:'Rating AA-. Director Borrowings hired.'},
+  'vastu housing':        {t:'Housing Finance',r:'ICRA A+',   d:10000, c:0,   u:65,w:'6m',  arr:'Equirus Capital',ir:'sujay@vastuhfc.com',sigs:['hire','ncd'],n:'VP Capital Markets hired. Private NCD planned.'},
+  'can fin homes':        {t:'Housing Finance',r:'CRISIL AAA',d:28800, c:0,   u:65,w:'6m',  arr:'SBI Cap',ir:'investor@canfinhomes.com',sigs:['ncd'],n:'NHB ceiling hit. NCD for incremental growth.'},
+  'aadhar housing':       {t:'Housing Finance',r:'ICRA AA',   d:17600, c:0,   u:60,w:'6m',  arr:'AK Capital',ir:'complianceofficer@aadharhousing.com',sigs:['ncd'],n:'Post-IPO scale-up. Affordable housing.'},
+  'aavas financiers':     {t:'Housing Finance',r:'ICRA AA',   d:12000, c:0,   u:60,w:'6m',  arr:'AK Capital',ir:'ir@aavas.in',sigs:['ncd'],n:'Rural affordable housing AUM growth.'},
+  'spandana':             {t:'Microfinance',   r:'ICRA A+',   d:9600,  c:0,   u:52,w:'6m',  arr:'AK Capital',ir:'investors@spandanasphoorty.com',sigs:['ncd'],n:'MFI recovery. Reduce bank dependence.'},
+  'satin creditcare':     {t:'Microfinance',   r:'ICRA A',    d:8000,  c:0,   u:55,w:'6m',  arr:'AK Capital',ir:'ir@satincreditcare.com',sigs:['ncd'],n:'North India MFI. Refinancing bank debt.'},
+  'northern arc':         {t:'Lending NBFC',   r:'ICRA AA-',  d:0,     c:0,   u:62,w:'6m',  arr:'Axis Bank',ir:'investors@northernarc.com',sigs:['ncd','rat'],n:'Debt platform. First institutional NCD round.'},
+};
+
+function lookupKnown(name){
+  var n = name.toLowerCase();
+  for(var k in KNOWN) if(n.includes(k)) return KNOWN[k];
+  return null;
+}
+
+// Arranger strategy db
+var ARR_INTEL = {
+  'AK Capital':    {str:'Strong retail NCD distribution, HNI reach',gap:'No AIF/FO/institutional coverage',pitch:'Co-distribute: AK Capital handles retail, IPOWORK adds institutional + AIF + FOs.'},
+  'Axis Capital':  {str:'Retail HNI + some institutional',gap:'Limited family office reach',pitch:'Propose FO add-on layer — we bring ₹50-500 Cr tickets from 400+ FOs.'},
+  'SBI Cap':       {str:'PSU access, long-tenor bonds, insurance',gap:'Limited private placement network',pitch:'Complementary — IPOWORK fills FO + AIF + NPS gap.'},
+  'HDFC Bank DCM': {str:'HDFC group internal placement',gap:'Captive distribution only — external underserved',pitch:'IPOWORK fills external institutional gap — AIF + FO + NPS.'},
+  'Vivro Financial':{str:'Retail NCD, gold loan NBFCs',gap:'No AIF / institutional coverage',pitch:'Co-distribute alongside Vivro — IPOWORK handles AIF + FO segment.'},
+  'Kotak':         {str:'HNI + wealth management',gap:'Limited AIF + MFI fund coverage',pitch:'Bundle with Kotak — IPOWORK adds structured AIF + FO layer.'},
+  'Edelweiss':     {str:'Distressed + alternative credit',gap:'Limited vanilla NCD distribution',pitch:'For stressed names — IPOWORK brings higher-yield AIF buyers.'},
+  'L&T Capital':   {str:'L&T group internal',gap:'Captive only — no external network',pitch:'IPOWORK adds full external institutional reach.'},
+  'Equirus Capital':{str:'Mid-market DCM, small ticket',gap:'No AIF / large institutional reach',pitch:'Scale up distribution — IPOWORK adds AIF + FO network.'},
+};
+
+// Signal explanation db
+var SIG_DEF = {
+  cp:   {ico:'📉',t:'CP Rollover Signal',  d:'CP outstanding rising or rolling over at high frequency — signals NCD demand building. Issuer needs longer-tenor paper to extend maturity.'},
+  hire: {ico:'👤',t:'Treasury Hire Signal', d:'Treasury head or borrowings head recently hired. New hire = capital market access being built. Pitch window: first 60 days post-hire.'},
+  alm:  {ico:'⚖️',t:'ALM Gap Signal',       d:'Asset-liability mismatch detected. Short-term borrowings funding medium-long assets. Company needs longer-tenor NCD to close the gap.'},
+  rat:  {ico:'⭐',t:'Rating Change Signal',  d:'Recent rating upgrade opens new investor base. AA- unlocks MF access. AA+ unlocks insurance + pension auto-allocation.'},
+  ncd:  {ico:'📋',t:'NCD Maturity Signal',  d:'Existing NCD(s) maturing within 12 months. Refinancing demand is high-probability and high-urgency. Pitch the rollover.'},
+  ipo:  {ico:'🚀',t:'Pre-IPO Raise Signal', d:'Pre-IPO NCD common for companies filing DRHP. Raises ₹500–3,000 Cr before listing. Investors get quasi-equity returns.'},
+  str:  {ico:'🚨',t:'Stress Refinancing',   d:'Financial stress signal — irregular CP, rising costs, real estate exposure. Entry window for higher-yield NCD deal at premium pricing.'},
+  arr:  {ico:'🔗',t:'Arranger Gap Signal',  d:'Incumbent arranger has limited FO/AIF reach. IPOWORK can co-distribute and add ₹100-500 Cr institutional layer on top.'},
+};
+
+// ── UI HELPERS ─────────────────────────────────────────────────
+function setMode(m){
+  ['names','cin','file'].forEach(function(id){
+    var el = document.getElementById('in-'+id);
+    if(el) el.style.display = id===m?'block':'none';
+    var btn = document.getElementById('mb-'+id);
+    if(btn){ btn.classList.toggle('on', id===m); }
+  });
+}
+
+function setCon(v, el){
+  CONCURRENCY = v;
+  document.querySelectorAll('.conc-btn').forEach(function(b){ b.classList.remove('on'); });
+  el.classList.add('on');
+}
+
+function updateChipStyles(){
+  document.querySelectorAll('.sig-chip').forEach(function(c){
+    c.classList.toggle('checked', c.querySelector('input').checked);
+  });
+}
+
+function getCheckedSigs(){
+  return ['cp','hire','alm','rat','ncd','ipo','str','arr'].filter(function(s){
+    var el = document.getElementById('sc-'+s); return el && el.checked;
+  });
+}
+
+// Input parsing
+function getNames(){
+  var mode = document.querySelector('.mode-btn.on').id.replace('mb-','');
+  if(mode==='names') return (document.getElementById('ta-names').value||'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  if(mode==='cin')   return (document.getElementById('ta-cin').value||'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  return window._uploadedNames||[];
+}
+
+// File upload
+document.addEventListener('DOMContentLoaded',function(){
+  var fp = document.getElementById('fp');
+  if(fp) fp.addEventListener('change', function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(ev){
+      try{
+        var wb = XLSX.read(ev.target.result,{type:'array'});
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var data = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        var names = data.slice(1).map(function(row){ return String(row[0]||'').trim(); }).filter(Boolean);
+        window._uploadedNames = names;
+        document.getElementById('file-badge').textContent = 'Loaded: '+f.name+' ('+names.length+' companies)';
+      }catch(err){
+        document.getElementById('file-badge').textContent = 'Error reading file';
+      }
+    };
+    r.readAsArrayBuffer(f);
+  });
+
+  var dz = document.getElementById('drop-zone');
+  if(dz){
+    dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over');});
+    dz.addEventListener('dragleave',function(){dz.classList.remove('over');});
+    dz.addEventListener('drop',function(e){
+      e.preventDefault();dz.classList.remove('over');
+      fp.files = e.dataTransfer.files;
+      fp.dispatchEvent(new Event('change'));
+    });
+  }
+
+  // Live count for name textarea
+  document.getElementById('ta-names').addEventListener('input',function(){
+    var n = this.value.split('\n').filter(function(l){return l.trim();}).length;
+    document.getElementById('names-count').textContent = n+' compan'+(n===1?'y':'ies');
+  });
+  document.getElementById('ta-cin').addEventListener('input',function(){
+    var n = this.value.split('\n').filter(function(l){return l.trim();}).length;
+    document.getElementById('cin-count').textContent = n+' CIN'+(n===1?'':'s');
+  });
+
+  // Close modal on overlay click
+  document.getElementById('modal').addEventListener('click',function(e){
+    if(e.target===this) closeModal();
+  });
+
+  // Load from CIN Finder session storage
+  var cins = sessionStorage.getItem('bulk_cins');
+  if(cins){ document.getElementById('ta-cin').value=cins; setMode('cin'); sessionStorage.removeItem('bulk_cins'); }
+});
+
+// ── AI CALL ────────────────────────────────────────────────────
+async function callAI(name, checkedSigs){
+  var sigStr = checkedSigs.join(', ');
+  var prompt = 'You are a senior debt capital markets analyst for India. Analyse this company for NCD/CP/Bond debt opportunity.\n\nCompany: '+name+'\nDetect specifically: '+sigStr+'\n\nRespond EXACTLY in this format:\nSCORE: [0-100]\nWINDOW: [Raising Now / 0-3 Months / 3-6 Months / Stress Refi / Watch]\nTYPE: [company type]\nRATING: [credit rating or Unrated]\nDEBT_OS: [estimated debt outstanding in Cr, number only, 0 if unknown]\nARRANGER: [likely incumbent arranger]\nIR_EMAIL: [IR email if known, else Unknown]\nOPP: [1 concise sentence on main opportunity]\nSIGNALS: [comma-separated subset of: cp, hire, alm, rat, ncd, ipo, str, arr]\nREV_L: [estimated ipowork fee in lakhs]\nANALYSIS:\n[3-4 sentences of detailed analysis. Be specific. Use public knowledge of Indian debt markets.]';
+  try{
+    var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:600,
+        system:'You are a senior debt capital markets analyst for India. Be precise, concise, data-driven. Use EXACT requested format.',
+        messages:[{role:'user',content:prompt}]})});
+    if(!resp.ok) return null;
+    var d = await resp.json();
+    return (d.content||[]).map(function(c){return c.text||'';}).join('').trim();
+  }catch(e){ return null; }
+}
+
+function parseAI(txt, name){
+  if(!txt) return null;
+  var g = function(k){ var m=txt.match(new RegExp(k+':\\s*(.+)','i')); return m?m[1].trim():''; };
+  return {
+    score:   parseInt(g('SCORE'))||0,
+    window:  g('WINDOW').toLowerCase().includes('now')?'now':g('WINDOW').toLowerCase().includes('3')?'3m':g('WINDOW').toLowerCase().includes('6')?'6m':g('WINDOW').toLowerCase().includes('stress')?'stress':'watch',
+    type:    g('TYPE'),
+    rating:  g('RATING'),
+    debtOs:  parseInt(g('DEBT_OS').replace(/[^0-9]/g,''))||0,
+    arranger:g('ARRANGER'),
+    irEmail: g('IR_EMAIL'),
+    opp:     g('OPP'),
+    signals: g('SIGNALS').split(',').map(function(s){return s.trim().toLowerCase();}).filter(Boolean),
+    rev:     parseInt(g('REV_L').replace(/[^0-9]/g,''))||5,
+    analysis:txt.split(/ANALYSIS:/i)[1]||'',
+    raw:     txt,
+  };
+}
+
+// ── MAIN RUN ───────────────────────────────────────────────────
+async function runDebt(){
+  var names = getNames();
+  if(!names.length){ alert('Please enter at least one company name.'); return; }
+  if(names.length > 200){ alert('Maximum 200 companies per run.'); return; }
+
+  RUNNING = true; STOP = false;
+  var thresh = parseInt(document.getElementById('thresh').value)||35;
+  var checkedSigs = getCheckedSigs();
+
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('stop-btn').style.display = 'block';
+  document.getElementById('prog').classList.add('on');
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('results-area').style.display = 'block';
+
+  // Init pipeline
+  PIPELINE = names.map(function(n,i){
+    return {idx:i+1, name:n, status:'pending', score:0, type:'', rating:'', window:'watch',
+      debtOs:0, arranger:'', irEmail:'', opp:'', signals:[], rev:0, analysis:'', raw:'', known:null};
+  });
+  renderTable();
+
+  var total = names.length;
+  var done = 0;
+
+  // Process in batches of CONCURRENCY
+  for(var i=0;i<total;i+=CONCURRENCY){
+    if(STOP) break;
+    var batch = PIPELINE.slice(i, i+CONCURRENCY);
+
+    await Promise.all(batch.map(async function(item){
+      if(STOP){ item.status='pending'; return; }
+      item.status = 'fetching';
+      renderRow(item);
+
+      var known = lookupKnown(item.name);
+      if(known){
+        // Instant scoring from built-in DB
+        item.known    = known;
+        item.score    = known.u;
+        item.type     = known.t;
+        item.rating   = known.r;
+        item.debtOs   = known.d;
+        item.window   = known.w;
+        item.arranger = known.arr;
+        item.irEmail  = known.ir;
+        item.opp      = known.n;
+        item.signals  = known.sigs.slice();
+        item.rev      = known.d>=100000?Math.round(known.d*0.001):known.d>=10000?Math.round(known.d*0.0012):known.u>=80?20:known.u>=60?10:5;
+        item.analysis = 'Known issuer from IPOWORK debt intelligence database. Data sourced from SEBI filings, annual reports, and public debt market data.';
+      } else {
+        // AI call for unknown companies
+        item.status = 'ai';
+        renderRow(item);
+        var txt = await callAI(item.name, checkedSigs);
+        if(txt){
+          var p = parseAI(txt, item.name);
+          if(p){
+            item.score    = p.score;
+            item.type     = p.type;
+            item.rating   = p.rating;
+            item.debtOs   = p.debtOs;
+            item.window   = p.window;
+            item.arranger = p.arranger;
+            item.irEmail  = p.irEmail;
+            item.opp      = p.opp;
+            item.signals  = p.signals;
+            item.rev      = p.rev;
+            item.analysis = p.analysis;
+            item.raw      = p.raw;
+          }
+        }
+      }
+
+      // Apply min score threshold
+      if(item.score < thresh) item.window = item.window==='now'||item.window==='stress' ? item.window : 'watch';
+      item.status = 'done';
+      done++;
+      updateProg(done, total);
+      renderRow(item);
+      updateStats();
+    }));
+
+    if(i+CONCURRENCY < total) await sleep(200);
+  }
+
+  RUNNING = false;
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('prog-hd').textContent = '✅ Complete — '+done+'/'+total+' analysed';
+
+  // Re-sort by score
+  PIPELINE.sort(function(a,b){ return b.score - a.score; });
+  PIPELINE.forEach(function(r,i){ r.idx=i+1; });
+  renderTable();
+}
+
+function stopRun(){
+  STOP = true; RUNNING = false;
+  document.getElementById('run-btn').disabled = false;
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('prog-hd').textContent = '⏹ Stopped by user';
+}
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+
+// ── PROGRESS ───────────────────────────────────────────────────
+function updateProg(done, total){
+  var pct = Math.round(done/total*100);
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-hd').textContent = done+' / '+total+' companies analysed ('+pct+'%)';
+  document.getElementById('prog-txt').textContent = 'ETA: ~'+Math.max(0,Math.round((total-done)*8/60))+' min remaining';
+}
+
+function updateStats(){
+  var hot  = PIPELINE.filter(function(r){ return r.score>=80&&r.status==='done'; }).length;
+  var high = PIPELINE.filter(function(r){ return r.score>=60&&r.score<80&&r.status==='done'; }).length;
+  var rev  = PIPELINE.reduce(function(s,r){ return s+(r.rev||0); }, 0);
+  document.getElementById('st-done').textContent = PIPELINE.filter(function(r){ return r.status==='done'; }).length;
+  document.getElementById('st-hot').textContent  = hot;
+  document.getElementById('st-high').textContent = high;
+  document.getElementById('st-rev').textContent  = '₹'+Math.round(rev)+'L';
+}
+
+// ── RENDER TABLE ───────────────────────────────────────────────
+function applyFilter(f, el){
+  ACTIVE_FILTER = f;
+  document.querySelectorAll('.ftab').forEach(function(t){ t.classList.remove('on'); });
+  el.classList.add('on');
+  renderTable();
+}
+
+function renderTable(){
+  var filtered = PIPELINE.filter(function(r){
+    if(ACTIVE_FILTER==='all')     return true;
+    if(ACTIVE_FILTER==='hot')     return r.score>=80;
+    if(ACTIVE_FILTER==='high')    return r.score>=60&&r.score<80;
+    if(ACTIVE_FILTER==='med')     return r.score>=35&&r.score<60;
+    if(ACTIVE_FILTER==='now')     return r.window==='now';
+    if(ACTIVE_FILTER==='stress')  return r.window==='stress';
+    if(ACTIVE_FILTER==='pending') return r.status!=='done';
+    return true;
+  });
+  document.getElementById('res-chip').textContent = filtered.length+' / '+PIPELINE.length;
+  var tbody = document.getElementById('dt-body');
+  tbody.innerHTML = '';
+  filtered.forEach(function(r){ tbody.appendChild(buildRow(r)); });
+}
+
+function renderRow(item){
+  var old = document.getElementById('drow-'+item.idx);
+  var tbody = document.getElementById('dt-body');
+  var nr = buildRow(item);
+  if(old) old.replaceWith(nr);
+  else tbody.appendChild(nr);
+}
+
+function buildRow(r){
+  var tr = document.createElement('tr');
+  tr.id = 'drow-'+r.idx;
+  if(r.status==='fetching'||r.status==='ai') tr.className='running';
+
+  var sbCls = r.score>=80?'sb-hot':r.score>=60?'sb-high':r.score>=35?'sb-med':'sb-low';
+  var wpHtml = {now:'<span class="wp wp-now">&#128308; Raising Now</span>',
+    '3m':'<span class="wp wp-3m">&#128992; 0–3 Mo</span>',
+    '6m':'<span class="wp wp-6m">&#128994; 3–6 Mo</span>',
+    stress:'<span class="wp wp-str">&#128680; Stress Refi</span>',
+    watch:'<span class="wp wp-wat">&#128064; Watch</span>'}[r.window]||'';
+
+  var sigHtml = (r.signals||[]).slice(0,4).map(function(s){
+    var cls={cp:'sg-cp',hire:'sg-hire',alm:'sg-alm',rat:'sg-rat',ncd:'sg-ncd',ipo:'sg-ipo',str:'sg-str',arr:'sg-arr'}[s]||'sg-ncd';
+    return '<span class="sg '+cls+'">'+s.toUpperCase()+'</span>';
+  }).join('');
+
+  var statusHtml = {
+    pending:'<span class="sp sp-pend">&#8987; Pending</span>',
+    fetching:'<span class="sp sp-fetch">&#8635; Fetching</span>',
+    ai:'<span class="sp sp-ai">&#129302; AI…</span>',
+    done:'<span class="sp sp-done">&#10003; Done</span>',
+    error:'<span class="sp sp-err">&#9888; Error</span>',
+  }[r.status]||'';
+
+  tr.innerHTML =
+    '<td style="color:var(--muted);font-size:10px;font-family:var(--mono)">'+r.idx+'</td>'
+    +'<td><div class="co-name" title="'+r.name+'">'+r.name+'</div>'
+    +(r.irEmail&&r.irEmail!=='Unknown'?'<div class="co-sub">'+r.irEmail+'</div>':'')+'</td>'
+    +'<td style="font-size:10px;color:var(--muted);white-space:nowrap">'+r.type+'</td>'
+    +'<td style="font-size:10px;font-weight:700;color:var(--cyan);white-space:nowrap">'+r.rating+'</td>'
+    +'<td><div class="sb '+sbCls+'">'+r.score+'</div></td>'
+    +'<td style="max-width:200px"><div style="font-size:11px;font-weight:700;color:var(--text)">'
+    +(r.debtOs?'<span style="color:var(--teal);font-family:var(--mono);font-size:11px">₹'+Math.round(r.debtOs/1000)+'K Cr</span> · ':'')
+    +(r.arranger||'')+'</div>'
+    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4">'+(r.opp||'').substring(0,90)+'</div></td>'
+    +'<td style="white-space:nowrap">'+sigHtml+'</td>'
+    +'<td>'+wpHtml+'</td>'
+    +'<td style="font-size:12px;font-weight:800;color:var(--green);white-space:nowrap">₹'+r.rev+'L</td>'
+    +'<td>'+statusHtml+'</td>'
+    +'<td>'+(r.status==='done'?'<button class="act view" onclick="openModal('+( PIPELINE.indexOf(r) )+')" >Detail</button>':'')+'</td>';
+  return tr;
+}
+
+// ── MODAL ──────────────────────────────────────────────────────
+function mTab(id, el){
+  document.querySelectorAll('.mtab').forEach(function(t){ t.classList.remove('on'); });
+  document.querySelectorAll('.mpanel').forEach(function(p){ p.classList.remove('on'); });
+  el.classList.add('on');
+  document.getElementById('mp-'+id).classList.add('on');
+}
+
+function closeModal(){ document.getElementById('modal').classList.remove('on'); }
+
+function openModal(idx){
+  var r = PIPELINE[idx]; if(!r) return;
+  document.getElementById('m-title').textContent = r.name;
+  document.getElementById('m-meta').textContent  = r.type+(r.rating?' · '+r.rating:'')+(r.debtOs?' · ₹'+Math.round(r.debtOs/1000)+'K Cr':'');
+
+  // Reset tabs
+  document.querySelectorAll('.mtab').forEach(function(t,i){t.classList.toggle('on',i===0);});
+  document.querySelectorAll('.mpanel').forEach(function(p,i){p.classList.toggle('on',i===0);});
+
+  var sc = r.score>=80?'#C0392B':r.score>=60?'#E88A2E':r.score>=35?'var(--cyan)':'var(--muted)';
+
+  // ── Overview ──
+  document.getElementById('mp-ov').innerHTML =
+    '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">'
+    +'<div style="width:72px;height:72px;border-radius:50%;background:'+sc+'18;border:3px solid '+sc+';display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0">'
+    +'<div style="font-family:var(--serif);font-size:24px;font-weight:900;color:'+sc+';line-height:1">'+r.score+'</div>'
+    +'<div style="font-size:8px;font-weight:700;color:'+sc+';text-transform:uppercase;letter-spacing:.4px">Score</div>'
+    +'</div>'
+    +'<div><div style="font-size:15px;font-weight:800;color:var(--teal);margin-bottom:3px">'+r.name+'</div>'
+    +'<div style="font-size:11px;color:var(--muted)">'+r.type+(r.rating?' · '+r.rating:'')+'</div>'
+    +(r.opp?'<div style="font-size:12px;color:var(--text);margin-top:6px;line-height:1.6">'+r.opp+'</div>':'')
+    +'</div></div>'
+
+    +'<div class="kpi-bar">'
+    +(r.debtOs?'<div class="kpi"><div class="kv">₹'+Math.round(r.debtOs/1000)+'K Cr</div><div class="kl">Debt O/S</div></div>':'')
+    +((r.known&&r.known.c)?'<div class="kpi"><div class="kv" style="color:#C0392B">₹'+r.known.c+' Cr</div><div class="kl">CP Outstanding</div></div>':'')
+    +'<div class="kpi"><div class="kv" style="color:'+sc+'">'+r.score+'</div><div class="kl">Debt Score</div></div>'
+    +'<div class="kpi"><div class="kv" style="color:var(--green)">₹'+r.rev+' L</div><div class="kl">Rev Opp</div></div>'
+    +'<div class="kpi"><div class="kv" style="font-size:12px">'+(r.window==='now'?'🔴 Now':r.window==='stress'?'🚨 Stress':r.window==='3m'?'🟠 0-3M':'🔵 3-6M')+'</div><div class="kl">Window</div></div>'
+    +'</div>'
+
+    +'<div class="rev-card">'
+    +'<div><div class="rev-n">₹'+r.rev+' L</div><div class="rev-l">ipowork Revenue Opportunity</div></div>'
+    +'<div style="margin-left:auto;text-align:right">'
+    +'<div style="font-size:11px;opacity:.75">Arranger: '+(r.arranger||'Unknown')+'</div>'
+    +(r.irEmail&&r.irEmail!=='Unknown'?'<div style="font-size:10px;opacity:.55;margin-top:2px">IR: '+r.irEmail+'</div>':'')
+    +'</div></div>'
+
+    +'<div class="qa-row">'
+    +'<button class="qa-btn pri" onclick="addPipeline(\''+r.name+'\')">+ Pipeline</button>'
+    +'<button class="qa-btn" onclick="addWatch(\''+r.name+'\')">⭐ Watchlist</button>'
+    +(r.irEmail&&r.irEmail!=='Unknown'?'<a href="mailto:'+r.irEmail+'?subject=ipowork+Debt+Distribution+Partnership" class="qa-btn" style="text-decoration:none">✉ Email IR</a>':'')
+    +'</div>';
+
+  // ── Signals ──
+  var sigsHtml = (r.signals||[]).length
+    ? (r.signals||[]).map(function(s){
+        var d = SIG_DEF[s]||{ico:'📡',t:s,d:'Signal detected.'};
+        return '<div class="si"><div class="si-ico">'+d.ico+'</div>'
+          +'<div class="si-bd"><div class="si-t">'+d.t+'</div><div class="si-d">'+d.d+'</div></div>'
+          +'<div style="flex-shrink:0;margin-left:auto"><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:rgba(26,158,107,.1);color:var(--green);border:1px solid rgba(26,158,107,.2)">Active</span></div>'
+        +'</div>';
+      }).join('')
+    : '<div style="color:var(--muted);font-size:12px;padding:12px 0">No specific signals detected for this company.</div>';
+  document.getElementById('mp-sig').innerHTML = '<div class="slist">'+sigsHtml+'</div>';
+
+  // ── Action Plan ──
+  var steps;
+  if(r.window==='now'||r.window==='stress'){
+    steps=[
+      'Check ipowork Debt Board — is deal already listed? If yes, request co-distribution slot immediately.',
+      (r.irEmail&&r.irEmail!=='Unknown'?'Email <b>'+r.irEmail+'</b> — introduce ipowork as institutional distribution partner.':'Research latest treasury contact via LinkedIn or latest exchange filing.'),
+      'Identify top 5 AIF/FO investors from ipowork database matching this instrument type and rating.',
+      'Call incumbent arranger <b>'+(r.arranger||'Unknown')+'</b> — propose co-distribution; offer to add FO + AIF layer.',
+      'Send deal IM to matched investors within 48 hours. Track opens in Activity Feed.',
+    ];
+  } else if(r.window==='3m'){
+    steps=[
+      'Add to deal pipeline CRM with "0–3 Month" tag. Set a 3-week reminder.',
+      (r.irEmail&&r.irEmail!=='Unknown'?'Warm intro now: email <b>'+r.irEmail+'</b>, follow up in 2 weeks.':'Research treasury contact before outreach.'),
+      'Pre-position ipowork platform — send investor DB capability deck to IR team.',
+      'Monitor CP outstanding on BSE / CCIL data — a spike signals acceleration.',
+      'Prepare co-distribution proposal for arranger <b>'+(r.arranger||'Unknown')+'</b>.',
+    ];
+  } else {
+    steps=[
+      'Add to watchlist. Review in 60–90 days.',
+      'Set LinkedIn alert for treasury/borrowings hire at this company.',
+      'Check Annual Report for borrowing programme size and NHB/NCD limits.',
+      'Monitor credit rating rationale for upgrade/downgrade triggers.',
+      'Build relationship with IR team proactively — no deal pressure yet.',
+    ];
+  }
+  document.getElementById('mp-act').innerHTML =
+    '<div class="aplan"><div class="ap-title">Recommended Action Plan</div>'
+    +'<div class="ap-steps">'+steps.map(function(s,i){
+      return '<div class="ap-step"><div class="ap-n">'+(i+1)+'</div><div>'+s+'</div></div>';
+    }).join('')+'</div></div>'
+    +'<div class="qa-row">'
+    +'<button class="qa-btn pri" onclick="addPipeline(\''+r.name+'\')">+ Add to Pipeline</button>'
+    +'<button class="qa-btn" onclick="addWatch(\''+r.name+'\')">⭐ Watchlist</button>'
+    +(r.irEmail&&r.irEmail!=='Unknown'?'<a href="mailto:'+r.irEmail+'?subject=ipowork+Co-distribution+Proposal&body=Dear+IR+Team%2C%0A%0AipoWork+is+India%27s+institutional+investor+platform+with+1%2C910+SEBI+AIFs+%2B+400%2B+Family+Offices+%2B+180%2B+NBFCs.+We+would+like+to+discuss+co-distribution+for+your+upcoming+NCD+programme.%0A%0AWarm+regards%2C%0AipoWork+Team" class="qa-btn" style="text-decoration:none">✉ Draft Email</a>':'')
+    +'</div>';
+
+  // ── Arranger Intel ──
+  var arr = r.arranger||'Unknown';
+  var ai = ARR_INTEL[arr]||{str:'Active DCM desk',gap:'Network details unknown — verify via Bloomberg / LinkedIn.',pitch:'Research arranger relationship before approaching issuer.'};
+  document.getElementById('mp-arr').innerHTML =
+    '<div class="kpi-bar" style="margin-bottom:14px">'
+    +'<div class="kpi"><div class="kv" style="font-size:13px">'+arr+'</div><div class="kl">Incumbent Arranger</div></div>'
+    +'<div class="kpi"><div class="kv" style="font-size:12px;color:var(--green)">Co-distribute</div><div class="kl">IPOWORK Strategy</div></div>'
+    +'</div>'
+    +'<div class="slist">'
+    +'<div class="si"><div class="si-ico">💪</div><div class="si-bd"><div class="si-t">Arranger Strength</div><div class="si-d">'+ai.str+'</div></div></div>'
+    +'<div class="si"><div class="si-ico">🎯</div><div class="si-bd"><div class="si-t">Gap IPOWORK Fills</div><div class="si-d">'+ai.gap+'</div></div></div>'
+    +'<div class="si"><div class="si-ico">🤝</div><div class="si-bd"><div class="si-t">Exact Pitch Approach</div><div class="si-d">'+ai.pitch+'</div></div></div>'
+    +'</div>';
+
+  // ── AI Analysis ──
+  var aiContent = r.analysis||r.raw||'';
+  document.getElementById('mp-ai').innerHTML = aiContent
+    ? '<div class="ai-block"><div class="ai-hd">Full AI Analysis</div>'
+      +'<div class="ai-txt">'+aiContent.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div>'
+    : '<div style="color:var(--muted);font-size:12px;padding:12px 0">This company was scored from the built-in IPOWORK intelligence database. No AI call was made.</div>';
+
+  document.getElementById('modal').classList.add('on');
+}
+
+// ── QUICK ACTIONS ──────────────────────────────────────────────
+function addPipeline(n){
+  try{var p=JSON.parse(localStorage.getItem('_dp')||'[]');if(!p.includes(n))p.push(n);localStorage.setItem('_dp',JSON.stringify(p));}catch(e){}
+  alert('✅ '+n+' added to Debt Pipeline.\nOpen Debt Board to view.');
+}
+function addWatch(n){
+  try{var w=JSON.parse(localStorage.getItem('_dw')||'[]');if(!w.includes(n))w.push(n);localStorage.setItem('_dw',JSON.stringify(w));}catch(e){}
+  alert('⭐ '+n+' added to Watchlist.');
+}
+
+// ── EXPORTS ────────────────────────────────────────────────────
+function exportCSV(){
+  if(!PIPELINE.length){alert('No results yet.');return;}
+  var rows=[['#','Company','Type','Rating','Score','Window','Signals','Debt O/S (Cr)','Arranger','IR Email','Rev (₹L)','Opportunity']];
+  PIPELINE.forEach(function(r){
+    rows.push([r.idx,r.name,r.type,r.rating,r.score,
+      {now:'Raising Now','3m':'0-3 Months','6m':'3-6 Months',stress:'Stress Refi',watch:'Watch'}[r.window]||'',
+      (r.signals||[]).join(', '),r.debtOs||'',r.arranger||'',r.irEmail||'',r.rev||'',
+      (r.opp||'').replace(/,/g,' ')]);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='ipowork_debt_intel_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+function exportXLSX(){
+  if(!PIPELINE.length){alert('No results yet.');return;}
+  if(typeof XLSX==='undefined'){alert('XLSX library loading. Try again.');return;}
+  var data=[['#','Company','Type','Rating','Debt Score','Window','Signals','Debt O/S (Cr)','CP O/S (Cr)','Arranger','IR Email','Rev Opp (₹L)','Opportunity Note']];
+  PIPELINE.forEach(function(r){
+    data.push([r.idx,r.name,r.type,r.rating,r.score,
+      {now:'Raising Now','3m':'0-3 Months','6m':'3-6 Months',stress:'Stress Refi',watch:'Watch'}[r.window]||'Watch',
+      (r.signals||[]).join(', '),r.debtOs||0,r.known&&r.known.c?r.known.c:0,
+      r.arranger||'',r.irEmail||'',r.rev||0,r.opp||'']);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:4},{wch:32},{wch:20},{wch:16},{wch:9},{wch:14},{wch:22},{wch:12},{wch:10},{wch:24},{wch:28},{wch:10},{wch:50}];
+  XLSX.utils.book_append_sheet(wb,ws,'Debt Intelligence');
+  XLSX.writeFile(wb,'ipowork_debt_intel_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+</script>
+</body>
+</html>
