@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ipowork — Debt CIN Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F2F6F7;--sur:#fff;--teal:#08404D;--teal2:#0D5C6B;--cyan:#1A7D90;
+  --amber:#E88A2E;--green:#1A9E6B;--red:#C0392B;--purple:#5B6FEC;--gold:#F0C060;
+  --text:#1A2E35;--muted:#6B8A94;--dim:#9AB0B8;--border:rgba(13,92,107,.12);
+  --sh:0 2px 16px rgba(13,92,107,.08);--sh2:0 8px 40px rgba(13,92,107,.14);
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+  --bar:54px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:9px}
+
+/* BAR */
+.bar{height:var(--bar);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:10px;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:0 1px 0 var(--border)}
+.logo{font-family:var(--serif);font-weight:900;font-size:20px;color:var(--teal);letter-spacing:-.3px;flex-shrink:0}
+.logo sup{font-size:9px;color:var(--amber);font-family:var(--font);font-weight:800;vertical-align:super}
+.bar-chip{font-size:9px;font-weight:800;color:#C0392B;padding:2px 9px;border-radius:5px;background:rgba(192,57,43,.07);border:1px solid rgba(192,57,43,.18);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+.bar-nav{margin-left:auto;display:flex;gap:6px}
+.nav-a{font-size:11px;color:var(--muted);text-decoration:none;padding:5px 11px;border:1px solid var(--border);border-radius:6px;transition:.15s;font-weight:600;white-space:nowrap}
+.nav-a:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#08404D,#0D5C6B 60%,#1A7D90);padding:28px 24px 24px;margin-top:var(--bar);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;opacity:.04;background:repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%);background-size:20px 20px;pointer-events:none}
+.hero-inner{position:relative;max-width:100%}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:99px;font-size:10px;font-weight:800;color:#F0C060;letter-spacing:.4px;text-transform:uppercase;margin-bottom:10px}
+.hero h1{font-family:var(--serif);font-size:clamp(20px,4vw,32px);font-weight:900;color:#fff;line-height:1.2;margin-bottom:8px}
+.hero h1 span{color:#F0C060}
+.hero p{font-size:12px;color:rgba(255,255,255,.72);line-height:1.7;margin-bottom:14px}
+.hero-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:0;background:rgba(255,255,255,.07);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+.hs{padding:10px 4px;text-align:center;border-right:1px solid rgba(255,255,255,.1)}
+.hs:last-child{border-right:none}
+.hs-n{font-family:var(--serif);font-size:clamp(14px,2.2vw,18px);font-weight:900;color:#F0C060;line-height:1}
+.hs-l{font-size:clamp(7px,1.1vw,9px);opacity:.6;margin-top:2px;font-weight:600;line-height:1.3}
+
+/* LAYOUT */
+.main{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - var(--bar));align-items:start}
+
+/* FILTER PANEL */
+.fp{background:#fff;border-right:1px solid var(--border);padding:20px;height:calc(100vh - var(--bar));overflow-y:auto;position:sticky;top:var(--bar)}
+.fp-title{font-family:var(--serif);font-size:15px;font-weight:900;color:var(--teal);margin-bottom:3px}
+.fp-sub{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.fp-sec{font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;margin:14px 0 8px}
+
+/* Sector chips */
+.sector-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:2px}
+.sec-chip{padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;background:#fff;transition:.15s;color:var(--muted);display:flex;flex-direction:column;align-items:flex-start;min-width:90px}
+.sec-chip:hover{border-color:var(--cyan);color:var(--cyan)}
+.sec-chip.on{border-color:var(--teal);background:rgba(13,92,107,.07);color:var(--teal)}
+.sec-chip .sc-sub{font-size:8px;font-weight:600;color:var(--dim);margin-top:1px}
+.sec-chip.on .sc-sub{color:var(--muted)}
+
+/* Filters */
+.sel{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:11px;color:var(--text);background:#fff;outline:none;cursor:pointer;margin-bottom:2px;transition:.15s}
+.sel:focus{border-color:var(--cyan)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px}
+.finp{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font);font-size:11px;color:var(--text);background:#fff;outline:none;transition:.15s}
+.finp:focus{border-color:var(--cyan)}
+.range-row{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-bottom:7px}
+.rsep{font-size:11px;color:var(--muted);text-align:center}
+
+/* Listing toggle */
+.lst-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.lst-btn{padding:8px 4px;border:1.5px solid var(--border);border-radius:8px;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer;background:#fff;text-align:center;transition:.15s}
+.lst-btn:hover{border-color:var(--cyan)}
+.lst-btn.on{background:rgba(13,92,107,.08);border-color:var(--teal);color:var(--teal)}
+
+/* Signal filters */
+.sig-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.sf{display:flex;align-items:center;gap:5px;padding:4px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:#fff;color:var(--text);transition:.15s;user-select:none}
+.sf input{accent-color:var(--teal);width:11px;height:11px}
+.sf.on{border-color:var(--teal);background:rgba(13,92,107,.05);color:var(--teal)}
+
+/* Count row */
+.cnt-row{display:flex;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.cnt-btn{flex:1;padding:7px;border:none;background:#fff;font-family:var(--font);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:.2s;border-right:1px solid var(--border)}
+.cnt-btn:last-child{border-right:none}
+.cnt-btn.on{background:var(--teal);color:#fff}
+
+/* Search button */
+.search-btn{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,#C0392B,#E74C3C);color:#fff;font-family:var(--font);font-weight:800;font-size:13px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.search-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(192,57,43,.3)}
+.search-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* RESULTS PANEL */
+.rp{padding:22px;overflow-y:auto;min-height:calc(100vh - var(--bar))}
+.rp-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.rp-title{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal)}
+.rp-chip{font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(13,92,107,.08);color:var(--teal);border:1px solid var(--border)}
+.rp-acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.r-btn{padding:7px 12px;border:1.5px solid var(--border);border-radius:7px;background:#fff;font-family:var(--font);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.r-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.r-btn.prime{background:var(--red);color:#fff;border-color:var(--red)}
+.r-btn.prime:hover{background:#a93226}
+.r-btn.green{background:var(--green);color:#fff;border-color:var(--green)}
+.r-btn.green:hover{background:#148a5b}
+
+/* Filter tabs */
+.ftabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap}
+.ftab{padding:4px 12px;border-radius:99px;border:1.5px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;background:#fff;transition:.15s}
+.ftab.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.ftab:hover:not(.on){border-color:var(--cyan);color:var(--cyan)}
+
+/* Company cards grid */
+.co-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+
+/* Company card */
+.co-card{background:#fff;border:1.5px solid var(--border);border-radius:13px;padding:0;cursor:pointer;transition:.2s;overflow:hidden;position:relative}
+.co-card:hover{border-color:var(--cyan);box-shadow:var(--sh)}
+.co-card.selected{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,92,107,.08)}
+.co-card .cc-top{padding:14px 14px 0}
+.co-card .cc-check{position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--teal);transition:.15s}
+.co-card.selected .cc-check{background:var(--teal);border-color:var(--teal);color:#fff}
+.cc-sector{font-size:9px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.cc-name{font-weight:800;font-size:13px;color:var(--teal);margin-bottom:3px;line-height:1.35;padding-right:28px}
+.cc-cin{font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:10px}
+
+/* Debt metrics strip */
+.debt-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:0 0 10px;background:rgba(13,92,107,.03);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px 14px}
+.dm{text-align:center}
+.dm-v{font-family:var(--mono);font-size:12px;font-weight:900;color:var(--teal);line-height:1}
+.dm-l{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* Charges list */
+.charges-list{padding:0 14px 10px;display:flex;flex-direction:column;gap:4px}
+.charge-row{display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(13,92,107,.03);border-radius:7px;border:1px solid var(--border)}
+.ch-holder{font-size:10px;font-weight:700;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-amt{font-size:10px;font-weight:900;color:var(--teal);font-family:var(--mono);white-space:nowrap}
+.ch-date{font-size:9px;color:var(--muted);white-space:nowrap}
+.ch-more{font-size:9px;color:var(--muted);font-style:italic;padding:0 8px;margin-top:2px}
+
+/* Signal badges on card */
+.cc-sigs{display:flex;flex-wrap:wrap;gap:4px;padding:0 14px 10px}
+.csig{font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px}
+.cs-high{background:rgba(192,57,43,.08);color:#C0392B}
+.cs-med{background:rgba(232,138,46,.1);color:#E88A2E}
+.cs-low{background:rgba(26,125,144,.09);color:var(--cyan)}
+
+/* Score badge on card */
+.cc-score-row{display:flex;align-items:center;justify-content:space-between;padding:0 14px 12px}
+.cc-dscore{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;font-family:var(--mono);font-size:13px;font-weight:900}
+.ds-hot{background:rgba(192,57,43,.1);color:#C0392B;border:1.5px solid rgba(192,57,43,.2)}
+.ds-high{background:rgba(232,138,46,.1);color:#E88A2E;border:1.5px solid rgba(232,138,46,.2)}
+.ds-med{background:rgba(26,125,144,.08);color:var(--cyan);border:1.5px solid rgba(26,125,144,.18)}
+.ds-low{background:rgba(107,138,148,.07);color:var(--muted);border:1.5px solid var(--border)}
+.cc-window{font-size:10px;font-weight:800;padding:3px 9px;border-radius:99px}
+.wp-now{background:rgba(192,57,43,.1);color:#C0392B}
+.wp-3m{background:rgba(232,138,46,.1);color:#E88A2E}
+.wp-6m{background:rgba(26,125,144,.09);color:var(--cyan)}
+.wp-wat{background:rgba(91,111,236,.09);color:var(--purple)}
+
+/* Status pills */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700}
+.pf{background:rgba(232,138,46,.1);color:var(--amber);animation:pulse 1.2s infinite}
+.pv{background:rgba(26,158,107,.1);color:var(--green)}
+.pnf{background:rgba(107,138,148,.07);color:var(--muted)}
+.pe{background:rgba(192,57,43,.07);color:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* Empty state */
+.state-box{text-align:center;padding:50px 20px;color:var(--muted)}
+.sb-ico{font-size:50px;opacity:.28;margin-bottom:12px}
+.sb-t{font-family:var(--serif);font-size:17px;font-weight:900;color:var(--teal);margin-bottom:8px}
+.sb-s{font-size:12px;line-height:1.8;max-width:350px;margin:0 auto 20px}
+.tip-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.tip{background:#fff;border:1px solid var(--border);border-radius:9px;padding:10px 14px;text-align:center;min-width:110px}
+.tip-ico{font-size:18px;margin-bottom:4px}
+.tip-t{font-size:10px;font-weight:700;color:var(--teal)}
+.tip-s{font-size:9px;color:var(--muted);margin-top:1px}
+
+/* Action bar */
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:var(--teal);padding:12px 20px;display:none;align-items:center;gap:10px;z-index:100;box-shadow:0 -4px 24px rgba(0,0,0,.2)}
+.action-bar.on{display:flex}
+.ab-txt{font-size:13px;font-weight:700;color:#fff}
+.ab-btn{padding:9px 16px;border:2px solid rgba(255,255,255,.3);border-radius:8px;background:transparent;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:.15s}
+.ab-btn:hover{border-color:#fff;background:rgba(255,255,255,.1)}
+.ab-btn.prime{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.5)}
+.ab-btn.gold{background:var(--gold);color:var(--teal);border-color:var(--gold)}
+.ab-btn.gold:hover{background:#e8b040}
+
+@media(max-width:820px){.main{grid-template-columns:1fr}.fp{height:auto;position:static}.rp{padding:16px}}
+</style>
+</head>
+<body>
+
+<!-- ADMIN GATE -->
+<div id="ag" style="position:fixed;inset:0;background:#08404D;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:360px;box-shadow:0 24px 64px rgba(0,0,0,.55)">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="font-family:Georgia,serif;font-size:24px;font-weight:900;color:#08404D">ipowork<sup style="font-size:10px;color:#E88A2E;vertical-align:super">AI</sup></div>
+      <div style="margin-top:10px;font-size:15px;font-weight:800;color:#1A2E35">&#128274; Admin Access Only</div>
+      <div style="font-size:11px;color:#6B8A94;margin-top:4px">Debt CIN Finder · Not for MB users</div>
+    </div>
+    <input id="ag-u" type="text" placeholder="Admin username" autocomplete="username"
+      style="width:100%;padding:12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:16px;margin-bottom:10px;display:block;outline:none;font-family:inherit"/>
+    <input id="ag-p" type="password" placeholder="Password" autocomplete="current-password"
+      style="width:100%;padding:12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:16px;margin-bottom:10px;display:block;outline:none;font-family:inherit"/>
+    <div id="ag-er" style="color:#C0392B;font-size:12px;text-align:center;margin-bottom:8px;min-height:16px"></div>
+    <button id="ag-bt" style="width:100%;padding:14px;background:#08404D;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">Login &rarr;</button>
+    <div style="text-align:center;margin-top:12px"><a href="index.html" style="font-size:11px;color:#0D5C6B">&#8592; Back</a></div>
+  </div>
+</div>
+<script>
+(function(){
+  var U='ipowork@admin',P='ipowork@2007';
+  function hide(){var e=document.getElementById('ag');if(e)e.style.display='none';document.body.style.overflow='';}
+  function go(){
+    var u=(document.getElementById('ag-u').value||'').trim();
+    var p=(document.getElementById('ag-p').value||'').trim();
+    if(u===U&&p===P){try{sessionStorage.setItem('_adm','1')}catch(x){}try{localStorage.setItem('_adm','1')}catch(x){}hide();}
+    else{document.getElementById('ag-er').textContent='Wrong credentials.';document.getElementById('ag-p').value='';document.getElementById('ag-p').focus();}
+  }
+  function isAuth(){try{if(sessionStorage.getItem('_adm')==='1')return true}catch(x){}try{if(localStorage.getItem('_adm')==='1')return true}catch(x){}return false;}
+  if(isAuth())hide();else document.body.style.overflow='hidden';
+  document.addEventListener('DOMContentLoaded',function(){
+    if(isAuth()){hide();return;}
+    document.body.style.overflow='hidden';
+    document.getElementById('ag-bt').addEventListener('click',go);
+    document.getElementById('ag-p').addEventListener('keydown',function(e){if(e.key==='Enter')go();});
+    document.getElementById('ag-u').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('ag-p').focus();});
+  });
+})();
+</script>
+
+<!-- TOP BAR -->
+<div class="bar">
+  <div class="logo">ipowork<sup>AI</sup></div>
+  <div class="bar-chip">&#128176; Debt CIN Finder</div>
+  <div class="bar-nav">
+    <a href="cin-finder.html"          class="nav-a">&#128269; IPO CIN Finder</a>
+    <a href="debt-intelligence.html"   class="nav-a">&#128176; Debt Intel</a>
+    <a href="bulk-research.html"       class="nav-a">&#128300; Bulk Pipeline</a>
+    <a href="debt-board.html"          class="nav-a">&#128202; Debt Board</a>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">&#128176; Debt Opportunity Discovery Engine</div>
+    <h1>Find <span>Debt-Ready Companies</span><br/>Before the Mandate is Listed</h1>
+    <p>Filter by sector, state, charges, D/E ratio, listing status. Probe42 verifies charges &amp; financials. Send directly to Debt Intelligence for AI scoring.</p>
+    <div class="hero-stats">
+      <div class="hs"><div class="hs-n">1.8M+</div><div class="hs-l">MCA Companies</div></div>
+      <div class="hs"><div class="hs-n">charges[ ]</div><div class="hs-l">Debt Signal</div></div>
+      <div class="hs"><div class="hs-n">D/E Ratio</div><div class="hs-l">Leverage Filter</div></div>
+      <div class="hs"><div class="hs-n">8 Signals</div><div class="hs-l">Auto-detected</div></div>
+      <div class="hs"><div class="hs-n">&#8594; Debt Intel</div><div class="hs-l">One-click export</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- FILTER PANEL -->
+<div class="fp">
+  <div class="fp-title">&#128176; Debt Search Filters</div>
+  <div class="fp-sub">Find companies with active debt — NBFCs, HFCs, infrastructure, manufacturing. Probe42 pulls their charges list (= live lender list).</div>
+
+  <div class="fp-sec">&#128205; State / Geography</div>
+  <select class="sel" id="f-state" style="margin-bottom:10px">
+    <option value="">All India</option>
+    <option>Maharashtra</option><option>Delhi NCR</option><option>Tamil Nadu</option>
+    <option>Karnataka</option><option>Gujarat</option><option>Telangana</option>
+    <option>Kerala</option><option>Rajasthan</option><option>West Bengal</option>
+    <option>Haryana</option><option>Uttar Pradesh</option><option>Andhra Pradesh</option>
+    <option>Punjab</option><option>Madhya Pradesh</option>
+  </select>
+
+  <div class="fp-sec">&#127963; Sector</div>
+  <div class="sector-grid">
+    <div class="sec-chip on" data-sec="nbfc" onclick="toggleSec(this)">NBFC / Lending<span class="sc-sub">Finance cos</span></div>
+    <div class="sec-chip" data-sec="hfc" onclick="toggleSec(this)">Housing Finance<span class="sc-sub">Home loans</span></div>
+    <div class="sec-chip" data-sec="mfi" onclick="toggleSec(this)">Microfinance<span class="sc-sub">MFI / rural</span></div>
+    <div class="sec-chip" data-sec="infra" onclick="toggleSec(this)">Infrastructure<span class="sc-sub">Power / roads</span></div>
+    <div class="sec-chip" data-sec="mfg" onclick="toggleSec(this)">Manufacturing<span class="sc-sub">Large capex cos</span></div>
+    <div class="sec-chip" data-sec="realty" onclick="toggleSec(this)">Real Estate<span class="sc-sub">Developers</span></div>
+  </div>
+
+  <div class="fp-sec">&#128202; Debt Filters (from Probe42)</div>
+  <div class="f2">
+    <div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Min charges</div>
+      <select class="sel" id="f-charges">
+        <option value="0">Any (0+)</option>
+        <option value="1">1+ charges</option>
+        <option value="3" selected>3+ charges ★</option>
+        <option value="5">5+ charges</option>
+        <option value="10">10+ charges</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">D/E ratio</div>
+      <select class="sel" id="f-de">
+        <option value="0">Any</option>
+        <option value="0.5">0.5x+</option>
+        <option value="1" selected>1x+ ★</option>
+        <option value="2">2x+</option>
+        <option value="3">3x+ (high leverage)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="fp-sec">&#128176; Revenue Range (₹ Crore)</div>
+  <div class="range-row">
+    <input type="number" id="rev-min" class="finp" placeholder="Min" value="50"/>
+    <div class="rsep">to</div>
+    <input type="number" id="rev-max" class="finp" placeholder="Max"/>
+  </div>
+
+  <div class="fp-sec">&#127970; Company Age</div>
+  <select class="sel" id="f-age" style="margin-bottom:10px">
+    <option value="3">3+ years</option>
+    <option value="5" selected>5+ years ★</option>
+    <option value="7">7+ years</option>
+    <option value="10">10+ years</option>
+  </select>
+
+  <div class="fp-sec">&#127970; Listing Status</div>
+  <div class="lst-row">
+    <div class="lst-btn on" id="lst-both" onclick="setListing('both',this)">Both ★</div>
+    <div class="lst-btn" id="lst-unlisted" onclick="setListing('unlisted',this)">&#128274; Unlisted</div>
+    <div class="lst-btn" id="lst-listed" onclick="setListing('listed',this)">&#128200; Listed</div>
+  </div>
+
+  <div class="fp-sec">&#128226; Detect Signals</div>
+  <div class="sig-grid">
+    <label class="sf on"><input type="checkbox" id="ds-cp"   checked/> CP Rollover</label>
+    <label class="sf on"><input type="checkbox" id="ds-hire" checked/> Treasury Hire</label>
+    <label class="sf on"><input type="checkbox" id="ds-alm"  checked/> ALM Gap</label>
+    <label class="sf on"><input type="checkbox" id="ds-rat"  checked/> Rating Chg</label>
+    <label class="sf on"><input type="checkbox" id="ds-ncd"  checked/> NCD Due</label>
+    <label class="sf on"><input type="checkbox" id="ds-refin"checked/> Stress Refi</label>
+  </div>
+
+  <div class="fp-sec">&#128202; Results to fetch</div>
+  <div class="cnt-row">
+    <div class="cnt-btn" onclick="setCnt(10,this)">10</div>
+    <div class="cnt-btn on" onclick="setCnt(20,this)">20</div>
+    <div class="cnt-btn" onclick="setCnt(30,this)">30</div>
+    <div class="cnt-btn" onclick="setCnt(50,this)">50</div>
+  </div>
+
+  <button class="search-btn" id="search-btn" onclick="runSearch()">
+    &#128176; Find Debt Opportunities
+  </button>
+  <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.5">
+    MCA company_search → Probe42 charges verification<br/>No guessing — only real data
+  </div>
+</div>
+
+<!-- RESULTS PANEL -->
+<div class="rp">
+  <div class="rp-head">
+    <div class="rp-title">Debt Opportunities</div>
+    <div class="rp-chip" id="rp-chip">0 companies</div>
+    <div class="rp-acts">
+      <button class="r-btn" onclick="selectAll()">Select All</button>
+      <button class="r-btn" onclick="clearSel()">Clear</button>
+      <button class="r-btn" onclick="exportCSV()">&#8659; CSV</button>
+      <button class="r-btn prime" onclick="sendToDebtIntel()">&#128176; Send to Debt Intelligence</button>
+    </div>
+  </div>
+
+  <div class="ftabs">
+    <div class="ftab on" onclick="applyTab('all',this)">All</div>
+    <div class="ftab" onclick="applyTab('hot',this)">&#128308; Score ≥80</div>
+    <div class="ftab" onclick="applyTab('high',this)">&#128992; Score 60–79</div>
+    <div class="ftab" onclick="applyTab('charges',this)">&#128302; 5+ Charges</div>
+    <div class="ftab" onclick="applyTab('stress',this)">&#128680; Stress Signal</div>
+    <div class="ftab" onclick="applyTab('unlisted',this)">&#128274; Unlisted</div>
+  </div>
+
+  <div id="results-inner">
+    <div class="state-box">
+      <div class="sb-ico">&#128176;</div>
+      <div class="sb-t">Debt CIN Finder</div>
+      <div class="sb-s">Set your sector and debt filters on the left. Probe42 will pull the charges list for each company — that's your live lender database and debt size indicator.</div>
+      <div class="tip-row">
+        <div class="tip"><div class="tip-ico">&#127963;</div><div class="tip-t">NBFCs</div><div class="tip-s">CP/NCD issuers</div></div>
+        <div class="tip"><div class="tip-ico">&#127968;</div><div class="tip-t">HFCs</div><div class="tip-s">Private NCD</div></div>
+        <div class="tip"><div class="tip-ico">&#128302;</div><div class="tip-t">Charges ≥3</div><div class="tip-s">Active borrowers</div></div>
+        <div class="tip"><div class="tip-ico">&#128200;</div><div class="tip-t">D/E ≥1x</div><div class="tip-s">Leverage signal</div></div>
+        <div class="tip"><div class="tip-ico">&#128680;</div><div class="tip-t">Stress Refi</div><div class="tip-s">Entry window</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ACTION BAR -->
+<div class="action-bar" id="action-bar">
+  <div class="ab-txt"><span id="sel-txt">0</span> selected</div>
+  <button class="ab-btn" onclick="clearSel()">Clear</button>
+  <button class="ab-btn prime" onclick="copyNames()">&#128203; Copy Names</button>
+  <button class="ab-btn gold" onclick="sendToDebtIntel()">&#128176; Send to Debt Intelligence &#8594;</button>
+</div>
+
+<script>
+var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+var RESULTS = [];
+var SELECTED = new Set();
+var SEARCH_CNT = 20;
+var LISTING = 'both';
+var ACTIVE_SECS = ['nbfc'];
+var ACTIVE_TAB = 'all';
+
+// ── Sector keyword map ─────────────────────────────────────────
+var SEC_KW = {
+  nbfc:  ['nbfc','non banking financial','finance company','lending company','capital finance','financial services limited','credit finance','finserv'],
+  hfc:   ['housing finance','home finance','housing corporation','grih','home loans','mortgage finance','housing credit'],
+  mfi:   ['microfinance','grameen','microfin','micro finance','rural finance','women finance'],
+  infra: ['infrastructure','power finance','energy finance','road finance','port trust','electricity finance'],
+  mfg:   ['industries limited','manufacturing','steel','cement','chemicals','textiles','auto components'],
+  realty:['real estate','realty','builders','developers','construction finance','property finance'],
+};
+
+// ── Signal scoring from Probe42 data ──────────────────────────
+function scoreDebt(p42){
+  var f = p42.financials||{};
+  var charges = p42.charges||[];
+  var compliance = p42.compliance||{};
+  var score = 0;
+  var signals = [];
+  var window = 'watch';
+
+  var debtEquity = parseFloat(f.debt_equity_ratio)||0;
+  var rev = (parseFloat(f.revenue_fy24)||0)/10000000; // in Cr
+  var activeCharges = charges.filter(function(c){ return c.status!=='satisfied'; });
+  var chargeCount = activeCharges.length;
+
+  // Base score from charges (most important)
+  if(chargeCount >= 10){ score += 35; signals.push('ncd'); window='now'; }
+  else if(chargeCount >= 5){ score += 25; signals.push('ncd'); window='3m'; }
+  else if(chargeCount >= 3){ score += 18; signals.push('ncd'); window='6m'; }
+  else if(chargeCount >= 1){ score += 8; }
+
+  // D/E ratio scoring
+  if(debtEquity >= 3){ score += 25; signals.push('alm'); if(window==='watch') window='3m'; }
+  else if(debtEquity >= 2){ score += 18; if(window==='watch') window='6m'; }
+  else if(debtEquity >= 1){ score += 10; }
+
+  // Revenue size
+  if(rev >= 1000){ score += 20; }
+  else if(rev >= 500){ score += 14; }
+  else if(rev >= 100){ score += 8; }
+  else if(rev >= 50){ score += 4; }
+
+  // Stress signals
+  if(compliance.defaulter){ score += 15; signals.push('str'); window='now'; }
+  var stressHolders = ['stressed','npa','distressed'];
+  activeCharges.forEach(function(c){
+    var h = (c.holder_name||'').toLowerCase();
+    stressHolders.forEach(function(kw){ if(h.includes(kw)) signals.push('str'); });
+  });
+
+  // Recent charge creation = active borrower = CP/NCD likely
+  var recentDate = new Date();
+  recentDate.setFullYear(recentDate.getFullYear()-2);
+  var hasRecentCharge = activeCharges.some(function(c){
+    if(!c.creation_date) return false;
+    return new Date(c.creation_date) > recentDate;
+  });
+  if(hasRecentCharge){ score += 8; if(!signals.includes('ncd')) signals.push('ncd'); }
+
+  // Detect bank-heavy = NCD opportunity (replace bank debt)
+  var bankKeywords = ['sbi','hdfc','icici','axis','kotak','pnb','bank','banking'];
+  var bankChargeCount = activeCharges.filter(function(c){
+    var h = (c.holder_name||c.charge_holder||'').toLowerCase();
+    return bankKeywords.some(function(k){ return h.includes(k); });
+  }).length;
+  if(bankChargeCount >= 3){ score += 10; signals.push('arr'); }
+
+  score = Math.min(score, 99);
+
+  // Total charge amount
+  var totalDebt = activeCharges.reduce(function(s,c){
+    return s + (parseFloat(c.charge_amount)||parseFloat(c.amount)||0);
+  }, 0);
+
+  // Top 3 lenders
+  var lenders = activeCharges.slice(0,3).map(function(c){
+    return {
+      name: c.holder_name||c.charge_holder||'Unknown',
+      amt:  parseFloat(c.charge_amount)||parseFloat(c.amount)||0,
+      date: c.creation_date||c.date||'',
+    };
+  });
+
+  return {score:score, signals:[...new Set(signals)], window:window, chargeCount:chargeCount, totalDebt:totalDebt, lenders:lenders, debtEquity:debtEquity, rev:rev};
+}
+
+// ── UI helpers ─────────────────────────────────────────────────
+function toggleSec(el){
+  var sec = el.dataset.sec;
+  if(ACTIVE_SECS.includes(sec)){
+    ACTIVE_SECS = ACTIVE_SECS.filter(function(s){ return s!==sec; });
+    el.classList.remove('on');
+  } else {
+    ACTIVE_SECS.push(sec);
+    el.classList.add('on');
+  }
+}
+
+function setListing(v, el){
+  LISTING = v;
+  ['both','unlisted','listed'].forEach(function(id){
+    document.getElementById('lst-'+id).classList.remove('on');
+  });
+  el.classList.add('on');
+}
+
+function setCnt(n, el){
+  SEARCH_CNT = n;
+  document.querySelectorAll('.cnt-btn').forEach(function(b){ b.classList.remove('on'); });
+  el.classList.add('on');
+}
+
+function applyTab(t, el){
+  ACTIVE_TAB = t;
+  document.querySelectorAll('.ftab').forEach(function(b){ b.classList.remove('on'); });
+  el.classList.add('on');
+  renderGrid();
+}
+
+function showState(ico, t, s){
+  document.getElementById('results-inner').innerHTML =
+    '<div class="state-box"><div class="sb-ico">'+ico+'</div><div class="sb-t">'+t+'</div><div class="sb-s">'+s+'</div></div>';
+}
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+
+function fmtCr(v){
+  if(!v||isNaN(v)) return '—';
+  var n = Number(v);
+  if(n>=10000000) return '₹'+(n/10000000).toFixed(1)+' Cr';
+  if(n>=100000)   return '₹'+(n/100000).toFixed(1)+' L';
+  return '₹'+n.toFixed(0);
+}
+
+function fmtDebt(v){
+  if(!v||v<1) return '—';
+  if(v>=10000)  return '₹'+(v/10000).toFixed(0)+'K Cr';
+  if(v>=1000)   return '₹'+(v/1000).toFixed(1)+'K Cr';
+  if(v>=100)    return '₹'+v.toFixed(0)+' Cr';
+  return '₹'+v.toFixed(1)+' Cr';
+}
+
+// ── MAIN SEARCH ────────────────────────────────────────────────
+async function runSearch(){
+  if(!ACTIVE_SECS.length){ alert('Please select at least one sector.'); return; }
+  var state    = document.getElementById('f-state').value;
+  var minChar  = parseInt(document.getElementById('f-charges').value)||0;
+  var minDE    = parseFloat(document.getElementById('f-de').value)||0;
+  var revMin   = parseFloat(document.getElementById('rev-min').value)||0;
+  var revMax   = parseFloat(document.getElementById('rev-max').value)||0;
+  var ageMin   = parseInt(document.getElementById('f-age').value)||5;
+
+  var btn = document.getElementById('search-btn');
+  btn.disabled = true; btn.innerHTML = '&#9167; Searching MCA&hellip;';
+  RESULTS = []; SELECTED.clear();
+
+  showState('&#128269;','Searching MCA database&hellip;',
+    'Building sector keywords &rarr; MCA lookup &rarr; Probe42 charges verification');
+
+  // Build keyword list
+  var keywords = [];
+  ACTIVE_SECS.forEach(function(sec){
+    (SEC_KW[sec]||[]).forEach(function(kw){
+      keywords.push(kw);
+      if(state) keywords.push(kw);
+    });
+  });
+  keywords = keywords.slice(0, 18);
+
+  // Step 1: MCA company_search
+  var found = [], usedCINs = {};
+  for(var ki=0; ki<keywords.length && found.length < SEARCH_CNT*3; ki++){
+    try{
+      var sr = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'company_search', query:keywords[ki]})});
+      var sd = await sr.json();
+      (sd.results||[]).forEach(function(r){
+        if(!r.cin||usedCINs[r.cin]) return;
+        var c0 = r.cin.charAt(0).toUpperCase();
+        if(LISTING==='unlisted' && c0!=='U') return;
+        if(LISTING==='listed'   && c0!=='L') return;
+        usedCINs[r.cin] = true;
+        found.push({cin:r.cin, name:r.name||r.cin});
+      });
+    }catch(e){}
+    await sleep(150);
+  }
+
+  if(!found.length){
+    showState('&#128532;','No companies found',
+      'Try different sector, state, or wider filters. MCA coverage varies by region.');
+    btn.disabled=false; btn.innerHTML='&#128176; Find Debt Opportunities';
+    document.getElementById('rp-chip').textContent='0 companies';
+    return;
+  }
+
+  found = found.slice(0, SEARCH_CNT);
+
+  // Init pipeline & skeleton grid
+  RESULTS = found.map(function(co,i){
+    return {idx:i+1, cin:co.cin, name:co.name, status:'fetching',
+      p42:null, score:0, signals:[], window:'watch',
+      chargeCount:0, totalDebt:0, lenders:[], debtEquity:0, rev:0};
+  });
+
+  var gridHtml = '<div class="co-grid" id="co-grid">';
+  RESULTS.forEach(function(item){
+    gridHtml += buildSkeleton(item);
+  });
+  gridHtml += '</div>';
+  document.getElementById('results-inner').innerHTML = gridHtml;
+  document.getElementById('rp-chip').textContent = found.length+' companies — verifying&hellip;';
+
+  // Step 2: Probe42 verification for each
+  var verified=0, filtered=0;
+  for(var i=0; i<RESULTS.length; i++){
+    var item = RESULTS[i];
+    try{
+      var pr = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({type:'probe42_raw', cin:item.cin})});
+      var p42 = await pr.json();
+
+      if(p42 && p42.company_name && p42.company_name!=='NOT FOUND'){
+        item.p42  = p42;
+        item.name = p42.company_name||item.name;
+
+        var f  = p42.financials||{};
+        var co = p42.company||{};
+        var rev    = (parseFloat(f.revenue_fy24)||0)/10000000;
+        var de     = parseFloat(f.debt_equity_ratio)||0;
+        var charges= (p42.charges||[]).filter(function(c){ return c.status!=='satisfied'; });
+        var chargeCount = charges.length;
+
+        // Apply filters
+        var tooSmall = revMin>0 && rev>0 && rev<revMin*0.3;
+        var tooBig   = revMax>0 && rev>revMax*2.5;
+        var notEnoughCharges = chargeCount < minChar;
+        var notEnoughDE = minDE>0 && de>0 && de<minDE*0.5;
+
+        // Age check
+        var incDate = co.incorporation_date||p42.date_of_incorporation||'';
+        var tooYoung = false;
+        if(incDate && ageMin){
+          var yr = parseInt(incDate.split('-')[0])||parseInt(incDate.split('/')[2])||0;
+          if(yr>0 && (new Date().getFullYear()-yr) < ageMin) tooYoung = true;
+        }
+
+        if(tooSmall||tooBig||notEnoughCharges||notEnoughDE||tooYoung){
+          item.status = 'filtered';
+          item.filterNote = tooSmall?'Rev too small':tooBig?'Rev too large':notEnoughCharges?'Charges: '+chargeCount+' < '+minChar:notEnoughDE?'D/E too low':'Too young';
+          filtered++;
+        } else {
+          var scored = scoreDebt(p42);
+          item.score      = scored.score;
+          item.signals    = scored.signals;
+          item.window     = scored.window;
+          item.chargeCount= scored.chargeCount;
+          item.totalDebt  = scored.totalDebt;
+          item.lenders    = scored.lenders;
+          item.debtEquity = scored.debtEquity;
+          item.rev        = rev;
+          item.status     = 'verified';
+          verified++;
+        }
+      } else {
+        item.status = 'notfound';
+      }
+    }catch(e){ item.status = 'notfound'; }
+
+    updateCard(item);
+    await sleep(250);
+  }
+
+  // Sort by score desc
+  var grid = document.getElementById('co-grid');
+  if(grid){
+    var verified_items = RESULTS.filter(function(r){ return r.status==='verified'; });
+    verified_items.sort(function(a,b){ return b.score-a.score; });
+    verified_items.forEach(function(item){ grid.appendChild(document.getElementById('co-card-'+item.idx)); });
+  }
+
+  document.getElementById('rp-chip').textContent =
+    verified+' verified · '+filtered+' filtered';
+  btn.disabled=false; btn.innerHTML='&#128176; Find Debt Opportunities';
+  renderGrid();
+}
+
+// ── RENDER ─────────────────────────────────────────────────────
+function buildSkeleton(item){
+  return '<div class="co-card" id="co-card-'+item.idx+'">'
+    +'<div class="cc-top"><div class="cc-sector">'+item.cin.substring(4,9)+'</div>'
+    +'<div class="cc-name">'+item.name+'</div>'
+    +'<div class="cc-cin">'+item.cin+'</div></div>'
+    +'<div style="padding:10px 14px 12px"><span class="pill pf">&#8635; Verifying via Probe42&hellip;</span></div>'
+    +'</div>';
+}
+
+function updateCard(item){
+  var el = document.getElementById('co-card-'+item.idx);
+  if(!el) return;
+  var isSel = SELECTED.has(item.cin);
+  el.className = 'co-card'+(isSel?' selected':'');
+
+  if(item.status!=='verified'){
+    var note = item.filterNote?item.filterNote:item.status;
+    el.innerHTML = '<div class="cc-top">'
+      +'<div class="cc-sector">'+item.cin.substring(4,9)+'</div>'
+      +'<div class="cc-name">'+item.name+'</div>'
+      +'<div class="cc-cin">'+item.cin+'</div>'
+      +'<div style="padding-bottom:10px"><span class="pill '+(item.status==='notfound'?'pnf':'pnf')+'">'+note+'</span></div>'
+      +'</div>';
+    return;
+  }
+
+  var sbCls = item.score>=80?'ds-hot':item.score>=60?'ds-high':item.score>=40?'ds-med':'ds-low';
+  var wpCls = {now:'wp-now','3m':'wp-3m','6m':'wp-6m',watch:'wp-wat'}[item.window]||'wp-wat';
+  var wpTxt = {now:'&#128308; Raising Now','3m':'&#128992; 0–3 Months','6m':'&#128994; 3–6 Months',watch:'&#128064; Watch'}[item.window]||'Watch';
+  var sigHtml = (item.signals||[]).map(function(s){
+    var cls={ncd:'cs-high',str:'cs-high',alm:'cs-med',cp:'cs-med',arr:'cs-low',rat:'cs-low'}[s]||'cs-low';
+    return '<span class="csig '+cls+'">'+s.toUpperCase()+'</span>';
+  }).join('');
+  var isListed = item.cin.charAt(0).toUpperCase()==='L';
+
+  var lenderHtml = '';
+  if(item.lenders&&item.lenders.length){
+    lenderHtml = '<div class="charges-list">';
+    item.lenders.forEach(function(l){
+      lenderHtml += '<div class="charge-row">'
+        +'<div class="ch-holder">'+l.name+'</div>'
+        +(l.amt?'<div class="ch-amt">'+fmtDebt(l.amt/10000000)+'</div>':'')
+        +(l.date?'<div class="ch-date">'+l.date.substring(0,7)+'</div>':'')
+        +'</div>';
+    });
+    if(item.chargeCount > 3){
+      lenderHtml += '<div class="ch-more">+' +(item.chargeCount-3)+' more charges</div>';
+    }
+    lenderHtml += '</div>';
+  }
+
+  el.innerHTML =
+    '<div class="cc-top">'
+    +'<div class="cc-check">'+(isSel?'&#10003;':'')+'</div>'
+    +'<div class="cc-sector">'+item.cin.substring(4,9)+' · '+(isListed?'Listed':'Unlisted')+'</div>'
+    +'<div class="cc-name">'+item.name+'</div>'
+    +'<div class="cc-cin">'+item.cin+'</div>'
+    +'</div>'
+    +'<div class="debt-strip">'
+    +'<div class="dm"><div class="dm-v">'+item.chargeCount+'</div><div class="dm-l">Charges</div></div>'
+    +(item.debtEquity?'<div class="dm"><div class="dm-v">'+item.debtEquity.toFixed(1)+'x</div><div class="dm-l">D/E Ratio</div></div>':'<div class="dm"><div class="dm-v dm-v" style="color:var(--dim)">—</div><div class="dm-l">D/E Ratio</div></div>')
+    +(item.rev?'<div class="dm"><div class="dm-v">₹'+Math.round(item.rev)+'Cr</div><div class="dm-l">Revenue</div></div>':'<div class="dm"><div class="dm-v" style="color:var(--dim)">—</div><div class="dm-l">Revenue</div></div>')
+    +(item.totalDebt?'<div class="dm"><div class="dm-v">'+fmtDebt(item.totalDebt/10000000)+'</div><div class="dm-l">Total Debt</div></div>':'<div class="dm"><div class="dm-v" style="color:var(--dim)">—</div><div class="dm-l">Total Debt</div></div>')
+    +'</div>'
+    +lenderHtml
+    +(sigHtml?'<div class="cc-sigs">'+sigHtml+'</div>':'')
+    +'<div class="cc-score-row">'
+    +'<div class="cc-dscore '+sbCls+'">'+item.score+'</div>'
+    +'<span class="cc-window '+wpCls+'">'+wpTxt+'</span>'
+    +'</div>';
+
+  el.onclick = function(){ if(item.status==='verified') toggleSel(item.cin); };
+}
+
+function renderGrid(){
+  var filtered = RESULTS.filter(function(r){
+    if(r.status!=='verified') return ACTIVE_TAB==='all';
+    if(ACTIVE_TAB==='all')      return true;
+    if(ACTIVE_TAB==='hot')      return r.score>=80;
+    if(ACTIVE_TAB==='high')     return r.score>=60&&r.score<80;
+    if(ACTIVE_TAB==='charges')  return r.chargeCount>=5;
+    if(ACTIVE_TAB==='stress')   return r.signals.includes('str');
+    if(ACTIVE_TAB==='unlisted') return r.cin.charAt(0).toUpperCase()==='U';
+    return true;
+  });
+  document.getElementById('rp-chip').textContent = filtered.length+' companies';
+  var grid = document.getElementById('co-grid'); if(!grid) return;
+  var all = grid.querySelectorAll('.co-card');
+  all.forEach(function(c){ c.style.display='none'; });
+  filtered.forEach(function(r){
+    var el=document.getElementById('co-card-'+r.idx);
+    if(el) el.style.display='';
+  });
+}
+
+// ── SELECTION ──────────────────────────────────────────────────
+function toggleSel(cin){
+  if(SELECTED.has(cin)) SELECTED.delete(cin);
+  else SELECTED.add(cin);
+  var item = RESULTS.find(function(r){ return r.cin===cin; });
+  if(item) updateCard(item);
+  updateActionBar();
+}
+
+function selectAll(){
+  RESULTS.filter(function(r){ return r.status==='verified'; }).forEach(function(r){
+    SELECTED.add(r.cin); updateCard(r);
+  });
+  updateActionBar();
+}
+
+function clearSel(){
+  SELECTED.clear();
+  RESULTS.forEach(function(r){ updateCard(r); });
+  updateActionBar();
+}
+
+function updateActionBar(){
+  var n = SELECTED.size;
+  document.getElementById('sel-txt').textContent = n;
+  document.getElementById('action-bar').classList.toggle('on', n>0);
+}
+
+// ── SEND TO DEBT INTELLIGENCE ──────────────────────────────────
+function sendToDebtIntel(){
+  var items = SELECTED.size>0
+    ? RESULTS.filter(function(r){ return SELECTED.has(r.cin)&&r.status==='verified'; })
+    : RESULTS.filter(function(r){ return r.status==='verified'; });
+  if(!items.length){ alert('No verified companies. Wait for Probe42 verification.'); return; }
+  var names = items.map(function(r){ return r.name; });
+  sessionStorage.setItem('debt_names', names.join('\n'));
+  window.location.href = 'debt-intelligence.html?from=finder';
+}
+
+function copyNames(){
+  var items = SELECTED.size>0
+    ? RESULTS.filter(function(r){ return SELECTED.has(r.cin); })
+    : RESULTS.filter(function(r){ return r.status==='verified'; });
+  var names = items.map(function(r){ return r.name; });
+  navigator.clipboard.writeText(names.join('\n')).then(function(){
+    alert('Copied '+names.length+' company names.');
+  });
+}
+
+function exportCSV(){
+  if(!RESULTS.length){ alert('No results yet.'); return; }
+  var rows=[['#','CIN','Company','Score','Window','Signals','Charges','D/E Ratio','Revenue (Cr)','Total Debt (Est)','Top Lender','Status']];
+  RESULTS.forEach(function(r,i){
+    rows.push([i+1, r.cin, r.name, r.score,
+      {now:'Raising Now','3m':'0-3 Months','6m':'3-6 Months',watch:'Watch'}[r.window]||'',
+      (r.signals||[]).join(', '), r.chargeCount||'', r.debtEquity?r.debtEquity.toFixed(1)+'x':'',
+      r.rev?Math.round(r.rev):'', r.totalDebt?fmtDebt(r.totalDebt/10000000):'',
+      r.lenders&&r.lenders[0]?r.lenders[0].name:'', r.status]);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='ipowork_debt_cin_finder_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// Auto-receive names from sessionStorage (if redirected back)
+document.addEventListener('DOMContentLoaded',function(){
+  // Signal checkbox style sync
+  document.querySelectorAll('.sf input').forEach(function(inp){
+    inp.addEventListener('change',function(){
+      this.closest('.sf').classList.toggle('on', this.checked);
+    });
+  });
+});
+
+// Receive company names sent FROM Debt Intelligence (if user came back)
+window.addEventListener('load',function(){
+  var names = sessionStorage.getItem('debt_names');
+  if(names && window.location.search.includes('from=debtintel')){
+    sessionStorage.removeItem('debt_names');
+  }
+  // Also load into debt-intelligence if redirected there
+  if(window.location.pathname.includes('debt-intelligence') || document.title.includes('Debt Intel')){
+    var stored = sessionStorage.getItem('debt_names');
+    if(stored){
+      var ta = document.getElementById('ta-names');
+      if(ta){ ta.value=stored; ta.dispatchEvent(new Event('input')); }
+      setMode('names');
+      sessionStorage.removeItem('debt_names');
+    }
+  }
+});
+</script>
+</body>
+</html>
