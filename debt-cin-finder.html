@@ -90,6 +90,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .search-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(192,57,43,.3)}
 .search-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
+/* Preset buttons */
+.preset-btn{padding:5px 10px;border:1.5px solid var(--amber);border-radius:7px;background:rgba(232,138,46,.07);font-family:var(--font);font-size:10px;font-weight:800;color:var(--amber);cursor:pointer;transition:.15s;white-space:nowrap}
+.preset-btn:hover{background:rgba(232,138,46,.15)}
+
+/* Bucket label */
+.bucket-A{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;font-size:11px;font-weight:900;background:rgba(192,57,43,.12);color:#C0392B;border:1.5px solid rgba(192,57,43,.25)}
+.bucket-B{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;font-size:11px;font-weight:900;background:rgba(232,138,46,.12);color:#E88A2E;border:1.5px solid rgba(232,138,46,.25)}
+.bucket-C{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;font-size:11px;font-weight:900;background:rgba(26,125,144,.08);color:var(--cyan);border:1.5px solid rgba(26,125,144,.18)}
+.bucket-D{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;font-size:11px;font-weight:900;background:rgba(107,138,148,.07);color:var(--muted);border:1.5px solid var(--border)}
+
+/* Growth badge */
+.grow-badge{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px}
+.gb-up{background:rgba(26,158,107,.1);color:var(--green)}
+.gb-dn{background:rgba(192,57,43,.07);color:var(--red)}
+.gb-na{background:rgba(107,138,148,.07);color:var(--muted)}
+
 /* RESULTS PANEL */
 .rp{padding:22px;overflow-y:auto;min-height:calc(100vh - var(--bar))}
 .rp-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
@@ -245,15 +261,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 <!-- HERO -->
 <div class="hero">
   <div class="hero-inner">
-    <div class="hero-badge">&#128176; Debt Opportunity Discovery Engine</div>
-    <h1>Find <span>Debt-Ready Companies</span><br/>Before the Mandate is Listed</h1>
-    <p>Filter by sector, state, charges, D/E ratio, listing status. Probe42 verifies charges &amp; financials. Send directly to Debt Intelligence for AI scoring.</p>
+    <div class="hero-badge">&#128176; Future Debt Issuer Discovery Engine</div>
+    <h1>Find <span>Future Debt Issuers</span><br/>Not Just Existing Ones</h1>
+    <p>Only 2,000–5,000 companies drive all Indian debt-market activity out of 1.8M MCA entities. IPOWORK finds the next 1,000. Search by borrowing growth, fixed asset expansion, capex sector &amp; PE-backing — not just existing charges.</p>
     <div class="hero-stats">
-      <div class="hs"><div class="hs-n">1.8M+</div><div class="hs-l">MCA Companies</div></div>
-      <div class="hs"><div class="hs-n">charges[ ]</div><div class="hs-l">Debt Signal</div></div>
-      <div class="hs"><div class="hs-n">D/E Ratio</div><div class="hs-l">Leverage Filter</div></div>
-      <div class="hs"><div class="hs-n">8 Signals</div><div class="hs-l">Auto-detected</div></div>
-      <div class="hs"><div class="hs-n">&#8594; Debt Intel</div><div class="hs-l">One-click export</div></div>
+      <div class="hs"><div class="hs-n">2K–5K</div><div class="hs-l">Active Debt<br/>Issuers (India)</div></div>
+      <div class="hs"><div class="hs-n">1.8M+</div><div class="hs-l">MCA Universe<br/>to Mine</div></div>
+      <div class="hs"><div class="hs-n">10</div><div class="hs-l">Scoring<br/>Parameters</div></div>
+      <div class="hs"><div class="hs-n">4 Buckets</div><div class="hs-l">A/B/C/D<br/>Priority</div></div>
+      <div class="hs"><div class="hs-n">&#8594; Debt Intel</div><div class="hs-l">One-click<br/>export</div></div>
     </div>
   </div>
 </div>
@@ -263,8 +279,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
 <!-- FILTER PANEL -->
 <div class="fp">
-  <div class="fp-title">&#128176; Debt Search Filters</div>
-  <div class="fp-sub">Find companies with active debt — NBFCs, HFCs, infrastructure, manufacturing. Probe42 pulls their charges list (= live lender list).</div>
+  <div class="fp-title">&#128176; Debt Probability Engine</div>
+  <div class="fp-sub">Search for <b>future</b> debt issuers — not just existing ones. Borrowing growth + fixed asset expansion = highest predictive signal. Unlisted ₹100–1,000 Cr cos = hidden goldmine.</div>
 
   <div class="fp-sec">&#128205; State / Geography</div>
   <select class="sel" id="f-state" style="margin-bottom:10px">
@@ -277,13 +293,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   </select>
 
   <div class="fp-sec">&#127963; Sector</div>
+  <!-- Quick preset searches -->
+  <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="preset-btn" onclick="applyPreset('top100debt')">&#128176; Top 100 Debt</button>
+    <button class="preset-btn" onclick="applyPreset('capex')">&#127979; Capex Sectors</button>
+    <button class="preset-btn" onclick="applyPreset('hidden')">&#128161; Hidden Goldmine</button>
+    <button class="preset-btn" onclick="applyPreset('stress')">&#128680; Stress Refi</button>
+  </div>
+
   <div class="sector-grid">
-    <div class="sec-chip on" data-sec="nbfc" onclick="toggleSec(this)">NBFC / Lending<span class="sc-sub">Finance cos</span></div>
-    <div class="sec-chip" data-sec="hfc" onclick="toggleSec(this)">Housing Finance<span class="sc-sub">Home loans</span></div>
-    <div class="sec-chip" data-sec="mfi" onclick="toggleSec(this)">Microfinance<span class="sc-sub">MFI / rural</span></div>
-    <div class="sec-chip" data-sec="infra" onclick="toggleSec(this)">Infrastructure<span class="sc-sub">Power / roads</span></div>
-    <div class="sec-chip" data-sec="mfg" onclick="toggleSec(this)">Manufacturing<span class="sc-sub">Large capex cos</span></div>
-    <div class="sec-chip" data-sec="realty" onclick="toggleSec(this)">Real Estate<span class="sc-sub">Developers</span></div>
+    <div class="sec-chip on"  data-sec="mfg"     onclick="toggleSec(this)">Manufacturing<span class="sc-sub">₹250Cr+</span></div>
+    <div class="sec-chip"     data-sec="chem"     onclick="toggleSec(this)">Chemicals<span class="sc-sub">₹200Cr+</span></div>
+    <div class="sec-chip"     data-sec="hosp"     onclick="toggleSec(this)">Hospitals<span class="sc-sub">₹100Cr+</span></div>
+    <div class="sec-chip"     data-sec="wh"       onclick="toggleSec(this)">Warehousing<span class="sc-sub">₹100Cr+</span></div>
+    <div class="sec-chip"     data-sec="logi"     onclick="toggleSec(this)">Logistics<span class="sc-sub">₹150Cr+</span></div>
+    <div class="sec-chip"     data-sec="renew"    onclick="toggleSec(this)">Renewable Energy<span class="sc-sub">₹100Cr+</span></div>
+    <div class="sec-chip"     data-sec="epc"      onclick="toggleSec(this)">EPC / Projects<span class="sc-sub">₹250Cr+</span></div>
+    <div class="sec-chip"     data-sec="edu"      onclick="toggleSec(this)">Education<span class="sc-sub">₹100Cr+</span></div>
+    <div class="sec-chip"     data-sec="dc"       onclick="toggleSec(this)">Data Centers<span class="sc-sub">High capex</span></div>
+    <div class="sec-chip"     data-sec="nbfc"     onclick="toggleSec(this)">NBFC / Lending<span class="sc-sub">Finance cos</span></div>
+    <div class="sec-chip"     data-sec="hfc"      onclick="toggleSec(this)">Housing Finance<span class="sc-sub">Home loans</span></div>
+    <div class="sec-chip"     data-sec="mfi"      onclick="toggleSec(this)">Microfinance<span class="sc-sub">MFI / rural</span></div>
+    <div class="sec-chip"     data-sec="infra"    onclick="toggleSec(this)">Infrastructure<span class="sc-sub">Power / roads</span></div>
+    <div class="sec-chip"     data-sec="realty"   onclick="toggleSec(this)">Real Estate<span class="sc-sub">Developers</span></div>
   </div>
 
   <div class="fp-sec">&#128202; Debt Filters (from Probe42)</div>
@@ -310,6 +342,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
     </div>
   </div>
 
+  <div class="fp-sec">&#128200; Future Issuer Signals (Key)</div>
+  <div class="f2">
+    <div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">&#127968; Fixed asset growth</div>
+      <select class="sel" id="f-fa-growth">
+        <option value="0">Any</option>
+        <option value="20" selected>20%+ ★</option>
+        <option value="50">50%+</option>
+        <option value="100">100%+</option>
+      </select>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">&#128176; Borrowing growth</div>
+      <select class="sel" id="f-borrow-growth">
+        <option value="0">Any</option>
+        <option value="25" selected>25%+ ★</option>
+        <option value="50">50%+</option>
+        <option value="100">2x+ (strong signal)</option>
+      </select>
+    </div>
+  </div>
+  <div style="font-size:9px;color:var(--amber);background:rgba(232,138,46,.07);border:1px solid rgba(232,138,46,.18);border-radius:7px;padding:6px 10px;margin-bottom:10px;line-height:1.6">
+    &#128161; Borrowing growth weight=20 · Fixed asset weight=15 — highest predictors
+  </div>
+
   <div class="fp-sec">&#128176; Revenue Range (₹ Crore)</div>
   <div class="range-row">
     <input type="number" id="rev-min" class="finp" placeholder="Min" value="50"/>
@@ -330,6 +387,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
     <div class="lst-btn on" id="lst-both" onclick="setListing('both',this)">Both ★</div>
     <div class="lst-btn" id="lst-unlisted" onclick="setListing('unlisted',this)">&#128274; Unlisted</div>
     <div class="lst-btn" id="lst-listed" onclick="setListing('listed',this)">&#128200; Listed</div>
+  </div>
+
+  <div class="fp-sec">&#128302; Include Entity Types</div>
+  <div style="display:flex;gap:6px;margin-bottom:10px">
+    <label style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--text);padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;flex:1;background:#fff;transition:.15s">
+      <input type="checkbox" id="inc-llp" style="accent-color:var(--teal)"/> LLPs too
+    </label>
+    <label style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--text);padding:6px 10px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;flex:1;background:#fff;transition:.15s">
+      <input type="checkbox" id="inc-pe" checked style="accent-color:var(--teal)"/> PE-backed
+    </label>
+  </div>
+  <div style="font-size:9px;color:var(--muted);padding:5px 8px;background:rgba(13,92,107,.03);border-radius:6px;margin-bottom:10px;line-height:1.5">
+    LLPs = real estate, warehousing, holding structures — most DBs ignore them<br/>
+    PE-backed = pre-IPO funding + growth debt demand
   </div>
 
   <div class="fp-sec">&#128226; Detect Signals</div>
@@ -373,11 +444,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
   <div class="ftabs">
     <div class="ftab on" onclick="applyTab('all',this)">All</div>
-    <div class="ftab" onclick="applyTab('hot',this)">&#128308; Score ≥80</div>
-    <div class="ftab" onclick="applyTab('high',this)">&#128992; Score 60–79</div>
-    <div class="ftab" onclick="applyTab('charges',this)">&#128302; 5+ Charges</div>
-    <div class="ftab" onclick="applyTab('stress',this)">&#128680; Stress Signal</div>
-    <div class="ftab" onclick="applyTab('unlisted',this)">&#128274; Unlisted</div>
+    <div class="ftab" onclick="applyTab('bucketA',this)" style="color:#C0392B;border-color:rgba(192,57,43,.3)">Bucket A ≥90</div>
+    <div class="ftab" onclick="applyTab('bucketB',this)" style="color:#E88A2E;border-color:rgba(232,138,46,.3)">Bucket B 80–89</div>
+    <div class="ftab" onclick="applyTab('bucketC',this)">Bucket C 70–79</div>
+    <div class="ftab" onclick="applyTab('growth',this)">&#128200; Borrow Growth</div>
+    <div class="ftab" onclick="applyTab('capex',this)">&#127979; Capex Signal</div>
+    <div class="ftab" onclick="applyTab('unlisted',this)">&#128274; Unlisted Only</div>
+    <div class="ftab" onclick="applyTab('stress',this)">&#128680; Stress</div>
   </div>
 
   <div id="results-inner">
@@ -416,79 +489,190 @@ var ACTIVE_TAB = 'all';
 
 // ── Sector keyword map ─────────────────────────────────────────
 var SEC_KW = {
-  nbfc:  ['nbfc','non banking financial','finance company','lending company','capital finance','financial services limited','credit finance','finserv'],
-  hfc:   ['housing finance','home finance','housing corporation','grih','home loans','mortgage finance','housing credit'],
+  mfg:   ['manufacturing','industries limited','engineering','fabrication','steel','cement','auto components','auto ancillary','stampings','castings'],
+  chem:  ['chemicals','chemical','specialty chemicals','dyes','pigments','agrochemicals','petrochemicals','polymer'],
+  hosp:  ['hospital','healthcare','medical','diagnostics','nursing','multispecialty','health care'],
+  wh:    ['warehouse','warehousing','cold storage','logistics park','industrial park','industrial estates'],
+  logi:  ['logistics','transport','freight','supply chain','cargo','courier','3pl','express'],
+  renew: ['solar','wind energy','renewable','green energy','power generation','epc renewable','biomass','hydro'],
+  epc:   ['epc','engineering procurement','construction','project limited','infra projects','civil construction'],
+  edu:   ['education','schools','college','university','institute','learning','academy','skill development'],
+  dc:    ['data center','data centre','colocation','cloud infrastructure','telecom towers','tower'],
+  nbfc:  ['nbfc','non banking financial','finance company','lending company','capital finance','financial services limited','finserv'],
+  hfc:   ['housing finance','home finance','housing corporation','home loans','mortgage finance'],
   mfi:   ['microfinance','grameen','microfin','micro finance','rural finance','women finance'],
-  infra: ['infrastructure','power finance','energy finance','road finance','port trust','electricity finance'],
-  mfg:   ['industries limited','manufacturing','steel','cement','chemicals','textiles','auto components'],
-  realty:['real estate','realty','builders','developers','construction finance','property finance'],
+  infra: ['infrastructure','power finance','energy finance','port trust','electricity board','water treatment'],
+  realty:['real estate','realty','builders','developers','construction finance','property developers'],
 };
 
-// ── Signal scoring from Probe42 data ──────────────────────────
-function scoreDebt(p42){
+// ── LLP keyword extension ──────────────────────────────────────
+var LLP_KW = {
+  wh:    ['warehouse llp','logistics llp','storage llp'],
+  realty:['real estate llp','property llp','realty llp'],
+  infra: ['infrastructure llp','infra llp'],
+};
+
+// ── PE-backed company name patterns ───────────────────────────
+var PE_MARKERS = ['portfolio','capital partners','equity partners','growth fund','ventures','holdings'];
+
+// ── DEBT PROBABILITY ENGINE — 10-parameter weighted scoring ────
+// Based on: Revenue growth(15) + Borrowing growth(20) + Fixed asset growth(15)
+//           + EBITDA positive(10) + Revenue >100Cr(10) + Capex sector(10)
+//           + Age >5yrs(5) + PE-backed(10) + Working capital intensity(5)
+// Plus: charges count bonus, D/E bonus, stress signals
+var CAPEX_SECTORS = ['manufacturing','chemicals','chemical','hospital','pharma','warehouse','warehousing',
+  'logistics','renewable','solar','wind','energy','epc','education','data center','datacenter',
+  'infrastructure','cement','steel','construction','textile','auto','automobile'];
+
+function scoreDebt(p42, sectorName){
   var f = p42.financials||{};
   var charges = p42.charges||[];
   var compliance = p42.compliance||{};
+  var co = p42.company||{};
   var score = 0;
   var signals = [];
-  var window = 'watch';
+  var scoreBreakdown = {};
 
-  var debtEquity = parseFloat(f.debt_equity_ratio)||0;
-  var rev = (parseFloat(f.revenue_fy24)||0)/10000000; // in Cr
+  // ── Get financial values ─────────────────────────
+  var rev     = (parseFloat(f.revenue_fy24)||parseFloat(f.revenue)||0)/10000000; // Cr
+  var revPrev = (parseFloat(f.revenue_fy23)||0)/10000000;
+  var borr    = (parseFloat(f.total_borrowings)||parseFloat(f.borrowings)||0)/10000000;
+  var borrPrev= (parseFloat(f.borrowings_prev)||0)/10000000;
+  var fa      = (parseFloat(f.fixed_assets)||parseFloat(f.gross_block)||0)/10000000;
+  var faPrev  = (parseFloat(f.fixed_assets_prev)||parseFloat(f.gross_block_prev)||0)/10000000;
+  var ebitda  = parseFloat(f.ebitda)||parseFloat(f.operating_profit)||0;
+  var inventory= (parseFloat(f.inventory)||0)/10000000;
+  var receivables= (parseFloat(f.trade_receivables)||parseFloat(f.debtors)||0)/10000000;
+  var de      = parseFloat(f.debt_equity_ratio)||0;
+
   var activeCharges = charges.filter(function(c){ return c.status!=='satisfied'; });
   var chargeCount = activeCharges.length;
 
-  // Base score from charges (most important)
-  if(chargeCount >= 10){ score += 35; signals.push('ncd'); window='now'; }
-  else if(chargeCount >= 5){ score += 25; signals.push('ncd'); window='3m'; }
-  else if(chargeCount >= 3){ score += 18; signals.push('ncd'); window='6m'; }
-  else if(chargeCount >= 1){ score += 8; }
+  // ── Calc growth rates ────────────────────────────
+  var revGrowth   = revPrev>0 ? ((rev-revPrev)/revPrev*100) : 0;
+  var borrGrowth  = borrPrev>0 ? ((borr-borrPrev)/borrPrev*100) : 0;
+  var faGrowth    = faPrev>0 ? ((fa-faPrev)/faPrev*100) : 0;
 
-  // D/E ratio scoring
-  if(debtEquity >= 3){ score += 25; signals.push('alm'); if(window==='watch') window='3m'; }
-  else if(debtEquity >= 2){ score += 18; if(window==='watch') window='6m'; }
-  else if(debtEquity >= 1){ score += 10; }
+  // ── PARAMETER SCORING (max = stated weight) ──────
+  // 1. Revenue > ₹100 Cr — weight 10
+  var revScore = 0;
+  if(rev>=500){ revScore=10; }
+  else if(rev>=250){ revScore=8; }
+  else if(rev>=100){ revScore=7; }
+  else if(rev>=50){ revScore=4; }
+  score += revScore; scoreBreakdown['Revenue'] = revScore;
 
-  // Revenue size
-  if(rev >= 1000){ score += 20; }
-  else if(rev >= 500){ score += 14; }
-  else if(rev >= 100){ score += 8; }
-  else if(rev >= 50){ score += 4; }
+  // 2. Revenue growth — weight 15
+  var revGScore = 0;
+  if(revGrowth>=50){ revGScore=15; signals.push('fa'); }
+  else if(revGrowth>=25){ revGScore=10; }
+  else if(revGrowth>=10){ revGScore=6; }
+  score += revGScore; scoreBreakdown['Rev Growth'] = revGScore;
 
-  // Stress signals
-  if(compliance.defaulter){ score += 15; signals.push('str'); window='now'; }
-  var stressHolders = ['stressed','npa','distressed'];
+  // 3. Fixed asset growth — weight 15 (EXPANSION = DEBT NEED)
+  var faScore = 0;
+  if(faGrowth>=100){ faScore=15; signals.push('capex'); }
+  else if(faGrowth>=50){ faScore=12; signals.push('capex'); }
+  else if(faGrowth>=20){ faScore=8; }
+  else if(chargeCount>=5 && fa>0){ faScore=5; } // proxy: many charges + fixed assets
+  score += faScore; scoreBreakdown['FA Growth'] = faScore;
+
+  // 4. Borrowing growth — weight 20 (STRONGEST SIGNAL)
+  var borrScore = 0;
+  if(borrGrowth>=100){ borrScore=20; signals.push('borrow'); }
+  else if(borrGrowth>=50){ borrScore=16; signals.push('borrow'); }
+  else if(borrGrowth>=25){ borrScore=12; }
+  else if(borr>0 && de>=2){ borrScore=8; } // proxy: high D/E
+  else if(chargeCount>=5){ borrScore=6; } // proxy: active borrower
+  score += borrScore; scoreBreakdown['Borrow Growth'] = borrScore;
+
+  // 5. EBITDA positive — weight 10
+  var ebitdaScore = ebitda>0 ? 10 : (rev>0 ? 3 : 0);
+  score += ebitdaScore; scoreBreakdown['EBITDA'] = ebitdaScore;
+
+  // 6. Capex sector — weight 10
+  var secScore = 0;
+  var secLower = (sectorName||'').toLowerCase();
+  var compName = (p42.company_name||'').toLowerCase();
+  var isCapex = CAPEX_SECTORS.some(function(s){ return secLower.includes(s)||compName.includes(s); });
+  if(isCapex){ secScore=10; }
+  score += secScore; scoreBreakdown['Capex Sector'] = secScore;
+
+  // 7. Age > 5 years — weight 5
+  var ageScore = 0;
+  var incDate = co.incorporation_date||p42.date_of_incorporation||'';
+  if(incDate){
+    var yr = parseInt(incDate.split('-')[0])||parseInt(incDate.split('/')[2])||0;
+    var age = yr>0 ? new Date().getFullYear()-yr : 0;
+    if(age>=10){ ageScore=5; }
+    else if(age>=5){ ageScore=3; }
+  }
+  score += ageScore; scoreBreakdown['Age'] = ageScore;
+
+  // 8. PE-backed proxy — weight 10 (detect PE-style names in shareholders/directors)
+  var peScore = 0;
+  var directors = p42.directors||[];
+  var peFirms = ['sequoia','accel','matrix','tiger','lightspeed','elevation','nexus','kalaari',
+    'general atlantic','warburg','kkr','carlyle','tpg','advent','bain capital','true north',
+    'chrys','premji','piramal','multiples','kedaara','a91','360one','edelweiss alt'];
+  var isPE = directors.some(function(d){
+    var n=(d.name||d.director_name||'').toLowerCase();
+    return peFirms.some(function(p){ return n.includes(p); });
+  });
+  if(isPE){ peScore=10; signals.push('pe'); }
+  score += peScore; scoreBreakdown['PE-backed'] = peScore;
+
+  // 9. Working capital intensity — weight 5
+  var wcScore = 0;
+  if(rev>0 && (inventory+receivables)/rev > 0.3){ wcScore=5; signals.push('wc'); }
+  score += wcScore; scoreBreakdown['Working Cap'] = wcScore;
+
+  // ── Bonus: charges (beyond base score) ──────────
+  if(chargeCount>=10){ score+=10; signals.push('ncd'); }
+  else if(chargeCount>=5){ score+=7; signals.push('ncd'); }
+  else if(chargeCount>=3){ score+=4; signals.push('ncd'); }
+
+  // ── Bonus: D/E ratio ─────────────────────────────
+  if(de>=3){ score+=5; signals.push('alm'); }
+  else if(de>=2){ score+=3; }
+  else if(de>=1){ score+=2; }
+
+  // ── Stress / distress signals ────────────────────
+  if(compliance.defaulter){ score+=8; signals.push('str'); }
+  var stressKW = ['stressed','npa','distressed','reconstruction','arc'];
   activeCharges.forEach(function(c){
-    var h = (c.holder_name||'').toLowerCase();
-    stressHolders.forEach(function(kw){ if(h.includes(kw)) signals.push('str'); });
+    var h=(c.holder_name||'').toLowerCase();
+    stressKW.forEach(function(kw){ if(h.includes(kw)) signals.push('str'); });
   });
 
-  // Recent charge creation = active borrower = CP/NCD likely
-  var recentDate = new Date();
-  recentDate.setFullYear(recentDate.getFullYear()-2);
-  var hasRecentCharge = activeCharges.some(function(c){
-    if(!c.creation_date) return false;
-    return new Date(c.creation_date) > recentDate;
-  });
-  if(hasRecentCharge){ score += 8; if(!signals.includes('ncd')) signals.push('ncd'); }
-
-  // Detect bank-heavy = NCD opportunity (replace bank debt)
-  var bankKeywords = ['sbi','hdfc','icici','axis','kotak','pnb','bank','banking'];
-  var bankChargeCount = activeCharges.filter(function(c){
-    var h = (c.holder_name||c.charge_holder||'').toLowerCase();
-    return bankKeywords.some(function(k){ return h.includes(k); });
+  // ── Bank-heavy = NCD opportunity ─────────────────
+  var bankKW = ['sbi','hdfc','icici','axis','kotak','pnb','bank','banking','union','canara','boi'];
+  var bankCt = activeCharges.filter(function(c){
+    var h=(c.holder_name||c.charge_holder||'').toLowerCase();
+    return bankKW.some(function(k){ return h.includes(k); });
   }).length;
-  if(bankChargeCount >= 3){ score += 10; signals.push('arr'); }
+  if(bankCt>=3){ score+=5; signals.push('arr'); }
 
-  score = Math.min(score, 99);
+  score = Math.min(Math.round(score), 99);
 
-  // Total charge amount
+  // ── Determine window ─────────────────────────────
+  var window = 'watch';
+  if(score>=90)       window='now';
+  else if(score>=80)  window='3m';
+  else if(score>=65)  window='6m';
+
+  // Override for stress
+  if(signals.includes('str') && chargeCount>=3) window='now';
+
+  // ── Bucket ────────────────────────────────────────
+  var bucket = score>=90?'A':score>=80?'B':score>=70?'C':'D';
+
+  // ── Totals ────────────────────────────────────────
   var totalDebt = activeCharges.reduce(function(s,c){
-    return s + (parseFloat(c.charge_amount)||parseFloat(c.amount)||0);
-  }, 0);
+    return s+(parseFloat(c.charge_amount)||parseFloat(c.amount)||0);
+  },0);
 
-  // Top 3 lenders
-  var lenders = activeCharges.slice(0,3).map(function(c){
+  var lenders = activeCharges.slice(0,4).map(function(c){
     return {
       name: c.holder_name||c.charge_holder||'Unknown',
       amt:  parseFloat(c.charge_amount)||parseFloat(c.amount)||0,
@@ -496,7 +680,13 @@ function scoreDebt(p42){
     };
   });
 
-  return {score:score, signals:[...new Set(signals)], window:window, chargeCount:chargeCount, totalDebt:totalDebt, lenders:lenders, debtEquity:debtEquity, rev:rev};
+  return {
+    score:score, bucket:bucket, signals:[...new Set(signals)],
+    window:window, chargeCount:chargeCount, totalDebt:totalDebt,
+    lenders:lenders, debtEquity:de, rev:rev,
+    revGrowth:revGrowth, borrGrowth:borrGrowth, faGrowth:faGrowth,
+    borr:borr, breakdown:scoreBreakdown,
+  };
 }
 
 // ── UI helpers ─────────────────────────────────────────────────
@@ -665,8 +855,10 @@ async function runSearch(){
           item.filterNote = tooSmall?'Rev too small':tooBig?'Rev too large':notEnoughCharges?'Charges: '+chargeCount+' < '+minChar:notEnoughDE?'D/E too low':'Too young';
           filtered++;
         } else {
-          var scored = scoreDebt(p42);
+          var secLabel = ACTIVE_SECS.map(function(s){return s;}).join(",");
+          var scored = scoreDebt(p42, secLabel);
           item.score      = scored.score;
+          item.bucket     = scored.bucket||'D';
           item.signals    = scored.signals;
           item.window     = scored.window;
           item.chargeCount= scored.chargeCount;
@@ -674,6 +866,11 @@ async function runSearch(){
           item.lenders    = scored.lenders;
           item.debtEquity = scored.debtEquity;
           item.rev        = rev;
+          item.revGrowth  = scored.revGrowth||0;
+          item.borrGrowth = scored.borrGrowth||0;
+          item.faGrowth   = scored.faGrowth||0;
+          item.borr       = scored.borr||0;
+          item.breakdown  = scored.breakdown||{};
           item.status     = 'verified';
           verified++;
         }
@@ -768,8 +965,11 @@ function updateCard(item){
     +lenderHtml
     +(sigHtml?'<div class="cc-sigs">'+sigHtml+'</div>':'')
     +'<div class="cc-score-row">'
-    +'<div class="cc-dscore '+sbCls+'">'+item.score+'</div>'
-    +'<span class="cc-window '+wpCls+'">'+wpTxt+'</span>'
+    +'<div class="bucket-'+item.bucket+'">'+item.bucket+'</div>'
+    +'<div class="cc-dscore '+sbCls+'" style="margin-left:4px">'+item.score+'</div>'
+    +(item.revGrowth?'<span class="grow-badge '+(item.revGrowth>=25?'gb-up':'gb-na')+'">Rev '+(item.revGrowth>0?'+':'')+Math.round(item.revGrowth)+'%</span>':'')
+    +(item.borrGrowth?'<span class="grow-badge '+(item.borrGrowth>=25?'gb-up':item.borrGrowth<0?'gb-dn':'gb-na')+'">Borr '+(item.borrGrowth>0?'+':'')+Math.round(item.borrGrowth)+'%</span>':'')
+    +'<span class="cc-window '+wpCls+'" style="margin-left:auto">'+wpTxt+'</span>'
     +'</div>';
 
   el.onclick = function(){ if(item.status==='verified') toggleSel(item.cin); };
@@ -779,9 +979,11 @@ function renderGrid(){
   var filtered = RESULTS.filter(function(r){
     if(r.status!=='verified') return ACTIVE_TAB==='all';
     if(ACTIVE_TAB==='all')      return true;
-    if(ACTIVE_TAB==='hot')      return r.score>=80;
-    if(ACTIVE_TAB==='high')     return r.score>=60&&r.score<80;
-    if(ACTIVE_TAB==='charges')  return r.chargeCount>=5;
+    if(ACTIVE_TAB==='bucketA')  return r.bucket==='A';
+    if(ACTIVE_TAB==='bucketB')  return r.bucket==='B';
+    if(ACTIVE_TAB==='bucketC')  return r.bucket==='C';
+    if(ACTIVE_TAB==='growth')   return (r.borrGrowth||0)>=25||(r.faGrowth||0)>=20;
+    if(ACTIVE_TAB==='capex')    return r.signals.includes('capex')||r.signals.includes('fa');
     if(ACTIVE_TAB==='stress')   return r.signals.includes('str');
     if(ACTIVE_TAB==='unlisted') return r.cin.charAt(0).toUpperCase()==='U';
     return true;
@@ -822,6 +1024,60 @@ function updateActionBar(){
   var n = SELECTED.size;
   document.getElementById('sel-txt').textContent = n;
   document.getElementById('action-bar').classList.toggle('on', n>0);
+}
+
+// ── PRESET SEARCHES ───────────────────────────────────────────
+function applyPreset(name){
+  // Deselect all sectors first
+  document.querySelectorAll('.sec-chip').forEach(function(c){ c.classList.remove('on'); });
+  ACTIVE_SECS = [];
+
+  if(name==='top100debt'){
+    // Top 100 debt: NBFCs + HFCs + Infra + Manufacturing
+    ['nbfc','hfc','infra','mfg'].forEach(function(s){
+      var el = document.querySelector('[data-sec="'+s+'"]');
+      if(el){ el.classList.add('on'); ACTIVE_SECS.push(s); }
+    });
+    document.getElementById('f-charges').value='3';
+    document.getElementById('f-de').value='1';
+    document.getElementById('rev-min').value='100';
+    document.getElementById('rev-max').value='';
+    setListing('both', document.getElementById('lst-both'));
+  } else if(name==='capex'){
+    // Capex sectors: Manufacturing, Chemicals, Hospitals, Warehousing, Logistics, Renewables, EPC, Education
+    ['mfg','chem','hosp','wh','logi','renew','epc','edu'].forEach(function(s){
+      var el = document.querySelector('[data-sec="'+s+'"]');
+      if(el){ el.classList.add('on'); ACTIVE_SECS.push(s); }
+    });
+    document.getElementById('f-charges').value='1';
+    document.getElementById('f-de').value='0.5';
+    document.getElementById('rev-min').value='100';
+    document.getElementById('rev-max').value='';
+    setListing('both', document.getElementById('lst-both'));
+  } else if(name==='hidden'){
+    // Hidden goldmine: unlisted ₹100-1000Cr
+    ['mfg','chem','hosp','wh','logi','renew'].forEach(function(s){
+      var el = document.querySelector('[data-sec="'+s+'"]');
+      if(el){ el.classList.add('on'); ACTIVE_SECS.push(s); }
+    });
+    document.getElementById('f-charges').value='1';
+    document.getElementById('f-de').value='0';
+    document.getElementById('rev-min').value='100';
+    document.getElementById('rev-max').value='1000';
+    setListing('unlisted', document.getElementById('lst-unlisted'));
+  } else if(name==='stress'){
+    // Stress refinancing: all sectors, high charges, any listing
+    ['nbfc','hfc','mfi','realty'].forEach(function(s){
+      var el = document.querySelector('[data-sec="'+s+'"]');
+      if(el){ el.classList.add('on'); ACTIVE_SECS.push(s); }
+    });
+    document.getElementById('f-charges').value='5';
+    document.getElementById('f-de').value='2';
+    document.getElementById('rev-min').value='50';
+    setListing('both', document.getElementById('lst-both'));
+  }
+  // Scroll to search button
+  document.getElementById('search-btn').scrollIntoView({behavior:'smooth'});
 }
 
 // ── SEND TO DEBT INTELLIGENCE ──────────────────────────────────
