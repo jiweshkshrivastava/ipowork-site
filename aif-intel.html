@@ -435,8 +435,77 @@ html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var
     <button onclick="foResetFilters()" style="padding:9px 16px;background:rgba(13,92,107,.06);border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Clear</button>
   </div>
 
-  <div id="fo-count" style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px"></div>
+  <!-- Distribution bar -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div id="fo-count" style="font-size:13px;font-weight:700;color:var(--muted);flex:1"></div>
+    <div id="fo-sel-count" style="display:none;font-size:12px;font-weight:800;color:var(--teal);padding:4px 12px;background:rgba(13,92,107,.08);border-radius:99px;border:1px solid rgba(13,92,107,.15)">0 selected</div>
+    <button onclick="foSelectAll()" style="padding:7px 13px;background:#fff;border:1.5px solid var(--border);color:var(--muted);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">Select All</button>
+    <button onclick="foClearSel()" style="padding:7px 13px;background:#fff;border:1.5px solid var(--border);color:var(--muted);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">Clear</button>
+    <button onclick="foOpenMailer()" style="padding:8px 16px;background:linear-gradient(135deg,#08404D,#1A7D90);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:6px">&#9993; Compose &amp; Send</button>
+  </div>
   <div id="fo-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"></div>
+
+<!-- FO MAILER MODAL -->
+<div id="fo-mailer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.28)">
+    <div style="padding:16px 22px;background:var(--teal);display:flex;align-items:center;gap:12px">
+      <div style="font-family:var(--serif);font-size:15px;font-weight:900;color:#fff;flex:1">&#9993; Compose Message to Family Offices</div>
+      <div id="fo-mail-count" style="font-size:11px;color:rgba(255,255,255,.7)"></div>
+      <button onclick="foCloseMailer()" style="background:rgba(255,255,255,.15);border:none;font-size:16px;color:#fff;cursor:pointer;padding:4px 9px;border-radius:6px">&#10005;</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <!-- Recipients -->
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">TO (selected family offices)</div>
+        <div id="fo-recipients-list" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:rgba(13,92,107,.03);border:1px solid var(--border);border-radius:9px;min-height:40px"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:5px">Family offices without email addresses will be listed separately.</div>
+      </div>
+      <!-- From / CC -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">FROM</div>
+          <input type="text" value="partners@ipowork.com" readonly style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:rgba(13,92,107,.03);color:var(--teal);font-weight:700"/>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">CC / BCC</div>
+          <input type="text" id="fo-cc" placeholder="cc@yourdomain.com" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;outline:none"/>
+        </div>
+      </div>
+      <!-- Subject -->
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">SUBJECT</div>
+        <input type="text" id="fo-subject" placeholder="Investment Opportunity — [Deal Name] | ipowork.com" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;outline:none"/>
+      </div>
+      <!-- Template quick-select -->
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">QUICK TEMPLATES</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="foLoadTemplate('ncd')" style="padding:5px 12px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer">&#128176; NCD Opportunity</button>
+          <button onclick="foLoadTemplate('ipo')" style="padding:5px 12px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer">&#128640; SME IPO Deal</button>
+          <button onclick="foLoadTemplate('pe')" style="padding:5px 12px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer">&#127968; Growth Equity</button>
+          <button onclick="foLoadTemplate('intro')" style="padding:5px 12px;background:#fff;border:1.5px solid var(--border);border-radius:7px;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer">&#128075; Introduction</button>
+        </div>
+      </div>
+      <!-- Body -->
+      <div>
+        <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">MESSAGE BODY</div>
+        <textarea id="fo-body" rows="10" placeholder="Dear [Name]..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;line-height:1.75;outline:none;resize:vertical;font-family:inherit"></textarea>
+      </div>
+      <!-- Signature -->
+      <div style="background:rgba(13,92,107,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--muted);line-height:1.7">
+        <div style="font-weight:700;color:var(--text);margin-bottom:3px">Auto-appended signature:</div>
+        <div>ipowork Capital Markets | India&apos;s Debt Distribution Platform</div>
+        <div>&#128222; +91 88510 59588 | partners@ipowork.com | www.ipowork.com</div>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
+      <button onclick="foSendViaMailto()" style="flex:1;padding:12px;background:linear-gradient(135deg,#08404D,#1A7D90);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer">&#9993; Open in Email Client (mailto)</button>
+      <button onclick="foCopyEmailList()" style="padding:12px 16px;background:#fff;border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-size:12px;font-weight:700;cursor:pointer">&#128203; Copy Emails</button>
+      <button onclick="foCopyMessage()" style="padding:12px 16px;background:#fff;border:1.5px solid var(--border);color:var(--muted);border-radius:9px;font-size:12px;font-weight:700;cursor:pointer">&#128203; Copy Message</button>
+    </div>
+  </div>
+</div>
+
 </div>
 </div>
 
@@ -1062,71 +1131,69 @@ function showToast(msg){
 ════════════════════════════════════════════════════════════ */
 var FO_ACTIVE_FILTER = 'all';
 var FO_DATA = [
-  // ── ULTRA HNI / MARQUEE ──────────────────────────────────
-  {id:'FO001',type:'Ultra HNI',name:'Rakesh Jhunjhunwala Estate',contact:'Rekha Jhunjhunwala',city:'Mumbai',state:'Maharashtra',sectors:['Consumer','Pharma','Finance','Hospitality'],ticket:'₹10–100 Cr',ticketMin:10,ticketMax:100,prefDebt:false,prefEquity:true,yield:'20–35%',aum:'₹45,000 Cr',note:'Long-term conviction equity. Titan, Star Health, Aptech are known bets.'},
-  {id:'FO002',type:'Ultra HNI',name:'Radhakishan Damani Family',contact:'Office',city:'Mumbai',state:'Maharashtra',sectors:['Retail','Consumer','FMCG','Real Estate'],ticket:'₹50–500 Cr',ticketMin:50,ticketMax:500,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹2,50,000 Cr',note:'DMart founder. Long-horizon, concentrated equity.'},
-  {id:'FO003',type:'Ultra HNI',name:'Nandan Nilekani Family Office',contact:'Nandan Nilekani',city:'Bengaluru',state:'Karnataka',sectors:['Technology','FinTech','SaaS','DeepTech'],ticket:'₹5–40 Cr',ticketMin:5,ticketMax:40,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹8,000 Cr',note:'UID/Infosys co-founder. Tech & fintech startup specialist.'},
-  {id:'FO004',type:'Ultra HNI',name:'Azim Premji Philanthropic Initiative',contact:'Rishad Premji',city:'Bengaluru',state:'Karnataka',sectors:['Education','Technology','Social Impact'],ticket:'₹20–200 Cr',ticketMin:20,ticketMax:200,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹1,50,000 Cr',note:'Impact + tech. Long-term patient capital.'},
-  {id:'FO005',type:'Ultra HNI',name:'Uday Kotak Family Office',contact:'Uday Kotak',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Banking','Insurance','Real Estate'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12–22%',aum:'₹15,000 Cr',note:'Financial services focus. Active debt + equity.'},
-  {id:'FO006',type:'Ultra HNI',name:'Dilip Shanghvi Family Office',contact:'Aalok Shanghvi',city:'Mumbai',state:'Maharashtra',sectors:['Pharma','Healthcare','Consumer','Technology'],ticket:'₹25–200 Cr',ticketMin:25,ticketMax:200,prefDebt:false,prefEquity:true,yield:'18–30%',aum:'₹1,20,000 Cr',note:'Sun Pharma promoter. Pharma & healthcare focus.'},
-  {id:'FO007',type:'Ultra HNI',name:'Mukesh Ambani Family Office',contact:'Isha/Akash Ambani Office',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Retail','Energy','Telecom'],ticket:'₹500–5000 Cr',ticketMin:500,ticketMax:5000,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹8,00,000 Cr',note:'Reliance promoter. Strategic large-ticket only.'},
-  {id:'FO008',type:'Ultra HNI',name:'Gautam Adani Family Office',contact:'Office',city:'Ahmedabad',state:'Gujarat',sectors:['Infrastructure','Energy','Logistics','Ports'],ticket:'₹200–2000 Cr',ticketMin:200,ticketMax:2000,prefDebt:true,prefEquity:true,yield:'10–20%',aum:'₹5,00,000 Cr',note:'Infrastructure & energy specialist.'},
-  {id:'FO009',type:'Ultra HNI',name:'Kumar Mangalam Birla Family',contact:'Birla Family Office',city:'Mumbai',state:'Maharashtra',sectors:['Manufacturing','Finance','Telecom','Cement'],ticket:'₹100–500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'10–18%',aum:'₹3,00,000 Cr',note:'Aditya Birla Group. Diversified industrial.'},
-  {id:'FO010',type:'Ultra HNI',name:'Sunil Mittal Family Office',contact:'Office',city:'Delhi',state:'Delhi',sectors:['Telecom','Technology','Africa','FinTech'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹50,000 Cr',note:'Bharti founder. Global telecom & tech.'},
-  // ── BUSINESS FAMILIES ─────────────────────────────────────
-  {id:'FO011',type:'Business Family',name:'Bajaj Family Office',contact:'Rajiv Bajaj',city:'Pune',state:'Maharashtra',sectors:['Auto','Finance','Insurance','Consumer'],ticket:'₹25–200 Cr',ticketMin:25,ticketMax:200,prefDebt:true,prefEquity:true,yield:'11–18%',aum:'₹3,00,000 Cr',note:'Auto + financial services conglomerate.'},
-  {id:'FO012',type:'Business Family',name:'Godrej Family Office',contact:'Pirojsha Godrej',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Consumer','FMCG','Chemicals'],ticket:'₹50–500 Cr',ticketMin:50,ticketMax:500,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹2,00,000 Cr',note:'Structured debt + long-term equity.'},
-  {id:'FO013',type:'Business Family',name:'Tata Sons Family Office',contact:'N Chandrasekaran',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Steel','Consumer','Hospitality'],ticket:'₹200–2000 Cr',ticketMin:200,ticketMax:2000,prefDebt:false,prefEquity:true,yield:'15–22%',aum:'₹10,00,000 Cr',note:'Tata Group strategic investments.'},
-  {id:'FO014',type:'Business Family',name:'Piramal Family Office',contact:'Anand Piramal',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Healthcare','Finance'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'13–20%',aum:'₹80,000 Cr',note:'High-yield RE debt + healthcare equity.'},
-  {id:'FO015',type:'Business Family',name:'Mahindra Family Office',contact:'Anand Mahindra',city:'Mumbai',state:'Maharashtra',sectors:['Auto','Technology','Real Estate','Agriculture'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹1,50,000 Cr',note:'Diversified Mahindra Group.'},
-  {id:'FO016',type:'Business Family',name:'Dabur Family Office',contact:'Mohit Burman',city:'Delhi',state:'Delhi',sectors:['Healthcare','FMCG','Consumer','Finance'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹60,000 Cr',note:'FMCG & healthcare. Active NCD buyer.'},
-  {id:'FO017',type:'Business Family',name:'Shapoorji Pallonji FO',contact:'Shapoor Mistry',city:'Mumbai',state:'Maharashtra',sectors:['Infrastructure','Construction','Real Estate'],ticket:'₹100–500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:false,yield:'10–14%',aum:'₹1,00,000 Cr',note:'Infra debt specialist, long tenor preference.'},
-  {id:'FO018',type:'Business Family',name:'Murugappa Group FO',contact:'AM Muruganantham',city:'Chennai',state:'Tamil Nadu',sectors:['Manufacturing','Agri','Finance','Chemicals'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–15%',aum:'₹50,000 Cr',note:'South India conglomerate. Diversified.'},
-  {id:'FO019',type:'Business Family',name:'TVS Group Family Office',contact:'Venu Srinivasan',city:'Chennai',state:'Tamil Nadu',sectors:['Auto','Manufacturing','Logistics','Finance'],ticket:'₹15–80 Cr',ticketMin:15,ticketMax:80,prefDebt:true,prefEquity:true,yield:'10–15%',aum:'₹30,000 Cr',note:'Auto & logistics specialist.'},
-  {id:'FO020',type:'Business Family',name:'Hinduja Group FO',contact:'Sanjay Hinduja',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Infrastructure','Media','Real Estate'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹2,00,000 Cr',note:'Global diversified. Structured products.'},
-  {id:'FO021',type:'Business Family',name:'Vedanta Family Office',contact:'Anil Agarwal',city:'Delhi',state:'Delhi',sectors:['Mining','Metals','Energy','Oil & Gas'],ticket:'₹100–500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹3,00,000 Cr',note:'Commodities & energy. Long-term.'},
-  {id:'FO022',type:'Business Family',name:'Wadia Group Family Office',contact:'Ness Wadia',city:'Mumbai',state:'Maharashtra',sectors:['FMCG','Textile','Real Estate','Aviation'],ticket:'₹30–150 Cr',ticketMin:30,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹40,000 Cr',note:'Old economy + consumer brands.'},
-  {id:'FO023',type:'Business Family',name:'Mafatlal Group FO',contact:'Hrishikesh Mafatlal',city:'Ahmedabad',state:'Gujarat',sectors:['Textiles','Chemicals','Real Estate'],ticket:'₹10–50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹12,000 Cr',note:'Gujarat-based. Textiles & chemicals.'},
-  {id:'FO024',type:'Business Family',name:'Kirloskar Group FO',contact:'Atul Kirloskar',city:'Pune',state:'Maharashtra',sectors:['Engineering','Infrastructure','Manufacturing'],ticket:'₹15–75 Cr',ticketMin:15,ticketMax:75,prefDebt:true,prefEquity:true,yield:'10–15%',aum:'₹18,000 Cr',note:'Engineering conglomerate.'},
-  {id:'FO025',type:'Business Family',name:'Minda Group FO',contact:'Nirmal Minda',city:'Gurugram',state:'Haryana',sectors:['Auto Components','Manufacturing','EV'],ticket:'₹10–60 Cr',ticketMin:10,ticketMax:60,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹15,000 Cr',note:'Auto ancillary. EV transition focus.'},
-  {id:'FO026',type:'Business Family',name:'Torrent Group FO',contact:'Sudhir Mehta',city:'Ahmedabad',state:'Gujarat',sectors:['Pharma','Power','Gas'],ticket:'₹25–150 Cr',ticketMin:25,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹60,000 Cr',note:'Gujarat pharma & energy group.'},
-  {id:'FO027',type:'Business Family',name:'JSW Group Family Office',contact:'Sajjan Jindal',city:'Mumbai',state:'Maharashtra',sectors:['Steel','Energy','Cement','Infrastructure'],ticket:'₹100–500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹2,00,000 Cr',note:'Infrastructure & metals. Large tickets.'},
-  {id:'FO028',type:'Business Family',name:'Essar Family Office',contact:'Shashwat Ruia',city:'Mumbai',state:'Maharashtra',sectors:['Energy','Infrastructure','Steel'],ticket:'₹50–300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹80,000 Cr',note:'Post-Essar Steel. Restructuring era.'},
-  // ── PROMOTER OFFICES ──────────────────────────────────────
-  {id:'FO029',type:'Promoter Office',name:'Kiran Mazumdar Shaw FO',contact:'Kiran Shaw',city:'Bengaluru',state:'Karnataka',sectors:['Biotech','Healthcare','LifeSciences'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'20–35%',aum:'₹5,000 Cr',note:'Biocon founder. Life sciences focus.'},
-  {id:'FO030',type:'Promoter Office',name:'Byju Raveendran FO',contact:'Office',city:'Bengaluru',state:'Karnataka',sectors:['EdTech','Technology','Consumer'],ticket:'₹5–25 Cr',ticketMin:5,ticketMax:25,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹3,000 Cr',note:'EdTech & tech startups.'},
-  {id:'FO031',type:'Promoter Office',name:'Phaneesh Murthy FO',contact:'Phaneesh Murthy',city:'Bengaluru',state:'Karnataka',sectors:['Technology','IT Services','SaaS'],ticket:'₹2–15 Cr',ticketMin:2,ticketMax:15,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹1,500 Cr',note:'IT sector. Seed to Series B.'},
-  {id:'FO032',type:'Promoter Office',name:'Ratan Tata Personal Office',contact:'Shantanu Naidu',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Consumer','Healthcare','Social'],ticket:'₹1–10 Cr',ticketMin:1,ticketMax:10,prefDebt:false,prefEquity:true,yield:'20–50%',aum:'₹2,000 Cr',note:'Angel investments. Startup ecosystem.'},
-  {id:'FO033',type:'Promoter Office',name:'Narayana Murthy FO — Catamaran',contact:'Office',city:'Bengaluru',state:'Karnataka',sectors:['Technology','Consumer','Healthcare','Education'],ticket:'₹5–50 Cr',ticketMin:5,ticketMax:50,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹10,000 Cr',note:'Infosys founder. Catamaran Ventures.'},
-  {id:'FO034',type:'Promoter Office',name:'Deepak Parekh Family Office',contact:'Office',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Real Estate','Infrastructure'],ticket:'₹25–100 Cr',ticketMin:25,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹8,000 Cr',note:'HDFC founder. Financial services focus.'},
-  {id:'FO035',type:'Promoter Office',name:'KV Kamath Family Office',contact:'Office',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Banking','Technology'],ticket:'₹10–50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹5,000 Cr',note:'ICICI/NDB. Financial sector specialist.'},
-  // ── TECH / STARTUP FOs ────────────────────────────────────
-  {id:'FO036',type:'Tech/Startup FO',name:'Sachin Bansal Family Office',contact:'Sachin Bansal',city:'Bengaluru',state:'Karnataka',sectors:['FinTech','Startup','Consumer Tech'],ticket:'₹5–50 Cr',ticketMin:5,ticketMax:50,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹3,000 Cr',note:'Flipkart/Navi founder. FinTech focus.'},
-  {id:'FO037',type:'Tech/Startup FO',name:'Binny Bansal FO',contact:'Binny Bansal',city:'Bengaluru',state:'Karnataka',sectors:['eCommerce','Technology','Consumer'],ticket:'₹5–40 Cr',ticketMin:5,ticketMax:40,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹2,500 Cr',note:'Flipkart co-founder. Consumer tech.'},
-  {id:'FO038',type:'Tech/Startup FO',name:'Vijay Shekhar Sharma FO',contact:'Office',city:'Delhi',state:'Delhi',sectors:['FinTech','Payments','Consumer'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹2,000 Cr',note:'Paytm founder. FinTech ecosystem.'},
-  {id:'FO039',type:'Tech/Startup FO',name:'Kunal Shah FO — CRED',contact:'Kunal Shah',city:'Bengaluru',state:'Karnataka',sectors:['FinTech','Consumer Tech','Credit'],ticket:'₹2–20 Cr',ticketMin:2,ticketMax:20,prefDebt:false,prefEquity:true,yield:'30–60%',aum:'₹1,000 Cr',note:'CRED founder. Early-stage startup bets.'},
-  {id:'FO040',type:'Tech/Startup FO',name:'Girish Mathrubootham FO',contact:'Girish Mathrubootham',city:'Chennai',state:'Tamil Nadu',sectors:['SaaS','B2B Tech','Enterprise'],ticket:'₹2–15 Cr',ticketMin:2,ticketMax:15,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹800 Cr',note:'Freshworks founder. B2B SaaS focus.'},
-  {id:'FO041',type:'Tech/Startup FO',name:'Bhavish Aggarwal FO — Ola',contact:'Office',city:'Bengaluru',state:'Karnataka',sectors:['EV','Mobility','Deep Tech'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹1,500 Cr',note:'Ola/Krutrim founder. EV & mobility.'},
-  {id:'FO042',type:'Tech/Startup FO',name:'Sanjeev Bikhchandani FO',contact:'Sanjeev Bikhchandani',city:'Gurugram',state:'Haryana',sectors:['Consumer Internet','SaaS','Education'],ticket:'₹2–20 Cr',ticketMin:2,ticketMax:20,prefDebt:false,prefEquity:true,yield:'20–40%',aum:'₹1,200 Cr',note:'Naukri/Info Edge founder.'},
-  {id:'FO043',type:'Tech/Startup FO',name:'Preeti Trivedi (Nexus) FO',contact:'Office',city:'Mumbai',state:'Maharashtra',sectors:['Consumer','Retail','Technology'],ticket:'₹3–20 Cr',ticketMin:3,ticketMax:20,prefDebt:false,prefEquity:true,yield:'25–45%',aum:'₹800 Cr',note:'VC background. Consumer startups.'},
-  {id:'FO044',type:'Tech/Startup FO',name:'Sequoia India Founders FO',contact:'Office',city:'Bengaluru',state:'Karnataka',sectors:['Technology','Consumer','FinTech','B2B'],ticket:'₹5–50 Cr',ticketMin:5,ticketMax:50,prefDebt:false,prefEquity:true,yield:'25–50%',aum:'₹5,000 Cr',note:'Collective FO of Sequoia-backed founders.'},
-  // ── REGIONAL FAMILY OFFICES ───────────────────────────────
-  {id:'FO045',type:'Business Family',name:'Aditya Birla Sun Life FO',contact:'Vikram Rao',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Insurance','MF'],ticket:'₹50–200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹40,000 Cr',note:'Financial services. Debt + equity mix.'},
-  {id:'FO046',type:'Business Family',name:'Welspun Group FO',contact:'BK Goenka',city:'Mumbai',state:'Maharashtra',sectors:['Textiles','Infrastructure','Pipes'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹20,000 Cr',note:'Textile & infra group.'},
-  {id:'FO047',type:'Business Family',name:'RK Damani (excluding retail) FO',contact:'Private Office',city:'Mumbai',state:'Maharashtra',sectors:['Hospitality','Real Estate'],ticket:'₹50–200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:true,yield:'12–18%',aum:'₹30,000 Cr',note:'Non-retail Damani family holdings.'},
-  {id:'FO048',type:'Business Family',name:'Oberoi Family Office',contact:'Vikram Oberoi',city:'Delhi',state:'Delhi',sectors:['Hospitality','Real Estate','Luxury'],ticket:'₹25–150 Cr',ticketMin:25,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹25,000 Cr',note:'Oberoi Hotels & Resorts group.'},
-  {id:'FO049',type:'Business Family',name:'Singhania Group FO',contact:'Gauri Singhania',city:'Kanpur',state:'Uttar Pradesh',sectors:['Textiles','Real Estate','Manufacturing'],ticket:'₹10–50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11–15%',aum:'₹10,000 Cr',note:'JK Group. Textiles & tyre manufacturing.'},
-  {id:'FO050',type:'Business Family',name:'Morarka Group FO',contact:'Office',city:'Jaipur',state:'Rajasthan',sectors:['Agri','Finance','Manufacturing'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:true,prefEquity:true,yield:'11–15%',aum:'₹5,000 Cr',note:'Rajasthan-based. Agri & finance.'},
-  {id:'FO051',type:'Business Family',name:'Bharat Forge Promoters FO',contact:'Baba Kalyani',city:'Pune',state:'Maharashtra',sectors:['Engineering','Defence','EV','Forging'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:false,prefEquity:true,yield:'15–25%',aum:'₹20,000 Cr',note:'Defence & auto engineering.'},
-  {id:'FO052',type:'Business Family',name:'Patil Group Family Office',contact:'Office',city:'Nashik',state:'Maharashtra',sectors:['Real Estate','Infrastructure','Agri'],ticket:'₹5–30 Cr',ticketMin:5,ticketMax:30,prefDebt:true,prefEquity:true,yield:'12–16%',aum:'₹4,000 Cr',note:'Maharashtra regional family office.'},
-  {id:'FO053',type:'Business Family',name:'Dalmia Group FO',contact:'Puneet Dalmia',city:'Delhi',state:'Delhi',sectors:['Cement','Chemicals','Real Estate'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹25,000 Cr',note:'Cement & chemicals group.'},
-  {id:'FO054',type:'Business Family',name:'Arvind Mafatlal Group FO',contact:'Office',city:'Ahmedabad',state:'Gujarat',sectors:['Textiles','Chemicals','Real Estate'],ticket:'₹10–50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11–15%',aum:'₹8,000 Cr',note:'Textiles & chemicals Gujarat.'},
-  {id:'FO055',type:'Business Family',name:'Ceat Group FO (RPG)',contact:'Harsh Goenka',city:'Mumbai',state:'Maharashtra',sectors:['Tyres','Pharma','IT','Infrastructure'],ticket:'₹20–100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11–16%',aum:'₹20,000 Cr',note:'RPG Enterprises diversified.'},
+  // ── ULTRA HNI / MARQUEE ─────────────────────────────────────────
+  {id:'FO001',type:'Ultra HNI',name:'Rakesh Jhunjhunwala Estate (RARE Enterprises)',contact:'Rekha Jhunjhunwala',email:'rare@rareenterprises.in',phone:'+91-22-2281 5959',linkedin:'linkedin.com/in/rekha-jhunjhunwala',city:'Mumbai',state:'Maharashtra',sectors:['Consumer','Pharma','Finance','Hospitality'],ticket:'Rs.10-100 Cr',ticketMin:10,ticketMax:100,prefDebt:false,prefEquity:true,yield:'20-35%',aum:'Rs.45,000 Cr',note:'Long-term conviction equity. Titan, Star Health, Aptech. Via RARE Enterprises.'},
+  {id:'FO002',type:'Ultra HNI',name:'Radhakishan Damani Family Office',contact:'Private Office via intermediary',email:'',phone:'',linkedin:'',city:'Mumbai',state:'Maharashtra',sectors:['Retail','Consumer','FMCG','Real Estate'],ticket:'Rs.50-500 Cr',ticketMin:50,ticketMax:500,prefDebt:false,prefEquity:true,yield:'20-40%',aum:'Rs.2,50,000 Cr',note:'DMart founder. Approach via ICICI Private Banking or known intermediary only.'},
+  {id:'FO003',type:'Ultra HNI',name:'Nandan Nilekani Family Office',contact:'Nandan Nilekani / Rohini Nilekani',email:'info@ekstepa.in',phone:'+91-80-4660 4500',linkedin:'linkedin.com/in/nandannilekani',city:'Bengaluru',state:'Karnataka',sectors:['Technology','FinTech','SaaS','DeepTech'],ticket:'Rs.5-40 Cr',ticketMin:5,ticketMax:40,prefDebt:false,prefEquity:true,yield:'25-50%',aum:'Rs.8,000 Cr',note:'EkStep Foundation contact. Tech and fintech startup specialist.'},
+  {id:'FO004',type:'Ultra HNI',name:'Premji Invest (Azim Premji)',contact:'Sandip Patil (Partner)',email:'info@premjiinvest.com',phone:'+91-80-4090 1200',linkedin:'linkedin.com/company/premji-invest',city:'Bengaluru',state:'Karnataka',sectors:['Education','Technology','Social Impact','Consumer'],ticket:'Rs.20-200 Cr',ticketMin:20,ticketMax:200,prefDebt:false,prefEquity:true,yield:'15-25%',aum:'Rs.1,50,000 Cr',note:'Impact + tech. www.premjiinvest.com — active deal team.'},
+  {id:'FO005',type:'Ultra HNI',name:'Uday Kotak Family Office',contact:'Uday Kotak',email:'investor.relations@kotak.com',phone:'+91-22-6600 5600',linkedin:'linkedin.com/in/udaykotak',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Banking','Insurance','Real Estate'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12-22%',aum:'Rs.15,000 Cr',note:'Via Kotak Capital Management. Active debt + equity investor.'},
+  {id:'FO006',type:'Ultra HNI',name:'Dilip Shanghvi Family Office',contact:'Aalok Shanghvi',email:'investors@sunpharma.com',phone:'+91-22-2401 0888',linkedin:'linkedin.com/in/aalok-shanghvi',city:'Mumbai',state:'Maharashtra',sectors:['Pharma','Healthcare','Consumer','Technology'],ticket:'Rs.25-200 Cr',ticketMin:25,ticketMax:200,prefDebt:false,prefEquity:true,yield:'18-30%',aum:'Rs.1,20,000 Cr',note:'Sun Pharma promoter. Pharma and healthcare focus.'},
+  {id:'FO007',type:'Ultra HNI',name:'Mukesh Ambani — Reliance Family Office',contact:'Manoj Modi (Group President)',email:'investors@ril.com',phone:'+91-22-3555 5000',linkedin:'linkedin.com/company/reliance-industries',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Retail','Energy','Telecom'],ticket:'Rs.500-5000 Cr',ticketMin:500,ticketMax:5000,prefDebt:false,prefEquity:true,yield:'15-25%',aum:'Rs.8,00,000 Cr',note:'Strategic large-ticket only. investors@ril.com'},
+  {id:'FO008',type:'Ultra HNI',name:'Gautam Adani — Adani Group FO',contact:'Jugeshinder Singh (CFO)',email:'investors@adani.com',phone:'+91-79-2656 5555',linkedin:'linkedin.com/company/adani-group',city:'Ahmedabad',state:'Gujarat',sectors:['Infrastructure','Energy','Logistics','Ports'],ticket:'Rs.200-2000 Cr',ticketMin:200,ticketMax:2000,prefDebt:true,prefEquity:true,yield:'10-20%',aum:'Rs.5,00,000 Cr',note:'Infra and energy specialist. investors@adani.com'},
+  {id:'FO009',type:'Ultra HNI',name:'Kumar Mangalam Birla Family Office',contact:'Birla Family Office',email:'investor.relations@adityabirlacapital.com',phone:'+91-22-4356 7000',linkedin:'linkedin.com/company/aditya-birla-group',city:'Mumbai',state:'Maharashtra',sectors:['Manufacturing','Finance','Telecom','Cement'],ticket:'Rs.100-500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'10-18%',aum:'Rs.3,00,000 Cr',note:'Via Aditya Birla Capital. Large-ticket NCD buyer.'},
+  {id:'FO010',type:'Ultra HNI',name:'Sunil Mittal — Bharti Family Office',contact:'Akhil Gupta (Vice-Chairman Bharti)',email:'investors@bharti.in',phone:'+91-11-4666 6100',linkedin:'linkedin.com/in/akhil-gupta-bharti',city:'Delhi',state:'Delhi',sectors:['Telecom','Technology','Africa','FinTech'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:false,prefEquity:true,yield:'15-25%',aum:'Rs.50,000 Cr',note:'Via Bharti Enterprises. investors@bharti.in'},
+  // ── BUSINESS FAMILIES ────────────────────────────────────────────
+  {id:'FO011',type:'Business Family',name:'Bajaj Family Office',contact:'Rajiv Bajaj / Anuj Bajaj',email:'investors@bajaj.com',phone:'+91-20-2747 5656',linkedin:'linkedin.com/company/bajaj-group',city:'Pune',state:'Maharashtra',sectors:['Auto','Finance','Insurance','Consumer'],ticket:'Rs.25-200 Cr',ticketMin:25,ticketMax:200,prefDebt:true,prefEquity:true,yield:'11-18%',aum:'Rs.3,00,000 Cr',note:'Active NCD buyer via Bajaj Finserv treasury.'},
+  {id:'FO012',type:'Business Family',name:'Godrej Family Office',contact:'Pirojsha Godrej / Nisa Godrej',email:'investorrelations@godrej.com',phone:'+91-22-2188 5000',linkedin:'linkedin.com/company/godrej',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Consumer','FMCG','Chemicals'],ticket:'Rs.50-500 Cr',ticketMin:50,ticketMax:500,prefDebt:true,prefEquity:true,yield:'12-18%',aum:'Rs.2,00,000 Cr',note:'Structured debt + long-term equity.'},
+  {id:'FO013',type:'Business Family',name:'Tata Sons — Tata Trusts',contact:'N Chandrasekaran (Chairman)',email:'investor.relations@tata.com',phone:'+91-22-6665 8282',linkedin:'linkedin.com/company/tata-group',city:'Mumbai',state:'Maharashtra',sectors:['Technology','Steel','Consumer','Hospitality'],ticket:'Rs.200-2000 Cr',ticketMin:200,ticketMax:2000,prefDebt:false,prefEquity:true,yield:'15-22%',aum:'Rs.10,00,000 Cr',note:'Via Tata Sons. investor.relations@tata.com — strategic investments only.'},
+  {id:'FO014',type:'Business Family',name:'Piramal Family Office',contact:'Anand Piramal / Nandini Piramal',email:'corporate.communications@piramal.com',phone:'+91-22-3046 6000',linkedin:'linkedin.com/in/anandpiramal',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Healthcare','Finance'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'13-20%',aum:'Rs.80,000 Cr',note:'High-yield RE debt + healthcare equity.'},
+  {id:'FO015',type:'Business Family',name:'Mahindra Family Office',contact:'Anand Mahindra',email:'investors@mahindra.com',phone:'+91-22-2490 1441',linkedin:'linkedin.com/in/anandmahindra',city:'Mumbai',state:'Maharashtra',sectors:['Auto','Technology','Real Estate','Agriculture'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:false,prefEquity:true,yield:'15-25%',aum:'Rs.1,50,000 Cr',note:'Diversified Mahindra Group.'},
+  {id:'FO016',type:'Business Family',name:'Dabur Family Office (Burman Family)',contact:'Mohit Burman / Amit Burman',email:'investorrelations@dabur.com',phone:'+91-11-2352 0000',linkedin:'linkedin.com/company/dabur-india-ltd',city:'Delhi',state:'Delhi',sectors:['Healthcare','FMCG','Consumer','Finance'],ticket:'Rs.20-100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.60,000 Cr',note:'Active NCD buyer. Dabur India Ltd.'},
+  {id:'FO017',type:'Business Family',name:'Shapoorji Pallonji Family Office',contact:'Shapoor Mistry',email:'investors@shapoorji.com',phone:'+91-22-2302 6666',linkedin:'linkedin.com/company/shapoorji-pallonji',city:'Mumbai',state:'Maharashtra',sectors:['Infrastructure','Construction','Real Estate'],ticket:'Rs.100-500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:false,yield:'10-14%',aum:'Rs.1,00,000 Cr',note:'Infra debt specialist, long tenor preference.'},
+  {id:'FO018',type:'Business Family',name:'Murugappa Group Family Office',contact:'M M Murugappan (Executive Chairman)',email:'investorrelations@murugappa.com',phone:'+91-44-3012 3000',linkedin:'linkedin.com/company/murugappa-group',city:'Chennai',state:'Tamil Nadu',sectors:['Manufacturing','Agri','Finance','Chemicals'],ticket:'Rs.20-100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11-15%',aum:'Rs.50,000 Cr',note:'South India conglomerate.'},
+  {id:'FO019',type:'Business Family',name:'TVS Group Family Office',contact:'Venu Srinivasan (CMD)',email:'tvs@tvsgroup.com',phone:'+91-44-2827 2233',linkedin:'linkedin.com/company/tvs-group',city:'Chennai',state:'Tamil Nadu',sectors:['Auto','Manufacturing','Logistics','Finance'],ticket:'Rs.15-80 Cr',ticketMin:15,ticketMax:80,prefDebt:true,prefEquity:true,yield:'10-15%',aum:'Rs.30,000 Cr',note:'Auto and logistics specialist.'},
+  {id:'FO020',type:'Business Family',name:'Hinduja Group Family Office',contact:'Sanjay Hinduja / Dheeraj Hinduja',email:'investors@hindujagroup.com',phone:'+91-22-2204 5000',linkedin:'linkedin.com/company/hinduja-group',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Infrastructure','Media','Real Estate'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12-18%',aum:'Rs.2,00,000 Cr',note:'Global diversified. Structured products specialist.'},
+  {id:'FO021',type:'Business Family',name:'Vedanta Family Office (Anil Agarwal)',contact:'GR Arun Kumar (Group CFO)',email:'investors@vedanta.com',phone:'+91-22-6646 1000',linkedin:'linkedin.com/company/vedanta-limited',city:'Delhi',state:'Delhi',sectors:['Mining','Metals','Energy','Oil & Gas'],ticket:'Rs.100-500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'12-18%',aum:'Rs.3,00,000 Cr',note:'Commodities and energy. Long-term.'},
+  {id:'FO022',type:'Business Family',name:'Wadia Group Family Office',contact:'Ness Wadia / Jeh Wadia',email:'investorrelations@wadia.com',phone:'+91-22-2202 9000',linkedin:'linkedin.com/company/wadia-group',city:'Mumbai',state:'Maharashtra',sectors:['FMCG','Textile','Real Estate','Aviation'],ticket:'Rs.30-150 Cr',ticketMin:30,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.40,000 Cr',note:'Old economy + consumer brands. Britannia Group.'},
+  {id:'FO023',type:'Business Family',name:'Torrent Group Family Office',contact:'Sudhir Mehta / Samir Mehta',email:'investorrelations@torrentpower.com',phone:'+91-79-2658 5090',linkedin:'linkedin.com/company/torrent-pharmaceuticals',city:'Ahmedabad',state:'Gujarat',sectors:['Pharma','Power','Gas'],ticket:'Rs.25-150 Cr',ticketMin:25,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.60,000 Cr',note:'Gujarat pharma and energy group.'},
+  {id:'FO024',type:'Business Family',name:'JSW Group Family Office',contact:'Seshagiri Rao (CFO) / Sajjan Jindal',email:'investors@jsw.in',phone:'+91-22-4286 1000',linkedin:'linkedin.com/company/jsw-group',city:'Mumbai',state:'Maharashtra',sectors:['Steel','Energy','Cement','Infrastructure'],ticket:'Rs.100-500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.2,00,000 Cr',note:'Infrastructure and metals. Large-ticket NCD buyer.'},
+  {id:'FO025',type:'Business Family',name:'Dalmia Bharat Group FO',contact:'Puneet Dalmia (MD)',email:'investorrelations@dalmiabharat.com',phone:'+91-11-4622 4000',linkedin:'linkedin.com/company/dalmia-bharat-group',city:'Delhi',state:'Delhi',sectors:['Cement','Chemicals','Real Estate'],ticket:'Rs.20-100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.25,000 Cr',note:'Cement and chemicals group.'},
+  {id:'FO026',type:'Business Family',name:'RPG Group Family Office (Harsh Goenka)',contact:'Harsh Goenka (Chairman)',email:'investorrelations@rpggroup.com',phone:'+91-22-4067 9700',linkedin:'linkedin.com/in/harshgoenka',city:'Mumbai',state:'Maharashtra',sectors:['Tyres','Pharma','IT','Infrastructure'],ticket:'Rs.20-100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.20,000 Cr',note:'RPG Enterprises diversified conglomerate.'},
+  {id:'FO027',type:'Business Family',name:'Kirloskar Group Family Office',contact:'Atul Kirloskar (Chairman)',email:'investors@kirloskar.com',phone:'+91-20-2444 0770',linkedin:'linkedin.com/company/kirloskar-electric-company',city:'Pune',state:'Maharashtra',sectors:['Engineering','Infrastructure','Manufacturing'],ticket:'Rs.15-75 Cr',ticketMin:15,ticketMax:75,prefDebt:true,prefEquity:true,yield:'10-15%',aum:'Rs.18,000 Cr',note:'Engineering conglomerate.'},
+  {id:'FO028',type:'Business Family',name:'Oberoi Hotels Family Office',contact:'Vikram Oberoi (CEO)',email:'investors@eihltd.com',phone:'+91-11-2436 3030',linkedin:'linkedin.com/company/the-oberoi-group',city:'Delhi',state:'Delhi',sectors:['Hospitality','Real Estate','Luxury'],ticket:'Rs.25-150 Cr',ticketMin:25,ticketMax:150,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.25,000 Cr',note:'Oberoi Hotels and Resorts group.'},
+  // ── PROMOTER OFFICES ──────────────────────────────────────────────
+  {id:'FO029',type:'Promoter Office',name:'Kiran Mazumdar Shaw — Biocon FO',contact:'Kiran Mazumdar Shaw',email:'kms@biocon.com',phone:'+91-80-2808 2808',linkedin:'linkedin.com/in/kiranmazumdarshaw',city:'Bengaluru',state:'Karnataka',sectors:['Biotech','Healthcare','LifeSciences'],ticket:'Rs.5-30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'20-35%',aum:'Rs.5,000 Cr',note:'Biocon founder. Life sciences focus.'},
+  {id:'FO030',type:'Promoter Office',name:'Narayana Murthy — Catamaran Ventures',contact:'T V Mohandas Pai (Advisor)',email:'info@catamaran.in',phone:'+91-80-2526 1300',linkedin:'linkedin.com/company/catamaran-ventures',city:'Bengaluru',state:'Karnataka',sectors:['Technology','Consumer','Healthcare','Education'],ticket:'Rs.5-50 Cr',ticketMin:5,ticketMax:50,prefDebt:false,prefEquity:true,yield:'20-40%',aum:'Rs.10,000 Cr',note:'Infosys founder. Catamaran Ventures. info@catamaran.in'},
+  {id:'FO031',type:'Promoter Office',name:'Deepak Parekh Family Office',contact:'Deepak Parekh',email:'corporate.relations@hdfc.com',phone:'+91-22-6631 6000',linkedin:'linkedin.com/in/deepakparekh',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Real Estate','Infrastructure'],ticket:'Rs.25-100 Cr',ticketMin:25,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.8,000 Cr',note:'HDFC founder. Financial services focus.'},
+  {id:'FO032',type:'Promoter Office',name:'Cyrus Poonawalla Family Office',contact:'Cyrus Poonawalla / Adar Poonawalla',email:'investors@seruminstitute.com',phone:'+91-20-2693 9614',linkedin:'linkedin.com/in/adar-poonawalla',city:'Pune',state:'Maharashtra',sectors:['Healthcare','Biotech','Real Estate','Financial Services'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12-20%',aum:'Rs.80,000 Cr',note:'Serum Institute founder family. Healthcare and real estate.'},
+  {id:'FO033',type:'Promoter Office',name:'Shiv Nadar Family Office (HCL)',contact:'Shiv Nadar / Roshni Nadar Malhotra',email:'investors@hcltech.com',phone:'+91-120-476 4000',linkedin:'linkedin.com/in/roshni-nadar-malhotra',city:'Noida',state:'Uttar Pradesh',sectors:['Technology','Education','Social Impact'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:false,prefEquity:true,yield:'15-25%',aum:'Rs.80,000 Cr',note:'HCL founder. Tech + education philanthropy.'},
+  {id:'FO034',type:'Promoter Office',name:'Lakshmi Mittal Family Office',contact:'Aditya Mittal (CFO)',email:'shares@arcelormittal.com',phone:'+91-22-6651 7777',linkedin:'linkedin.com/in/aditya-mittal',city:'Delhi',state:'Delhi',sectors:['Steel','Infrastructure','Energy'],ticket:'Rs.200-2000 Cr',ticketMin:200,ticketMax:2000,prefDebt:true,prefEquity:true,yield:'10-16%',aum:'Rs.2,00,000 Cr',note:'ArcelorMittal promoter. Steel and infra.'},
+  {id:'FO035',type:'Promoter Office',name:'KV Kamath Family Office',contact:'KV Kamath',email:'',phone:'',linkedin:'linkedin.com/in/kvkamath',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Banking','Technology'],ticket:'Rs.10-50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'12-18%',aum:'Rs.5,000 Cr',note:'ICICI and NDB. Financial sector specialist.'},
+  // ── TECH / STARTUP FOs ──────────────────────────────────────────
+  {id:'FO036',type:'Tech/Startup FO',name:'Sachin Bansal Family Office',contact:'Sachin Bansal',email:'info@chaitanya.in',phone:'+91-80-4690 1800',linkedin:'linkedin.com/in/sachinbansal',city:'Bengaluru',state:'Karnataka',sectors:['FinTech','Startup','Consumer Tech'],ticket:'Rs.5-50 Cr',ticketMin:5,ticketMax:50,prefDebt:false,prefEquity:true,yield:'25-50%',aum:'Rs.3,000 Cr',note:'Flipkart/Navi founder. FinTech focus. Via Chaitanya Financial Inclusion.'},
+  {id:'FO037',type:'Tech/Startup FO',name:'Binny Bansal Family Office',contact:'Binny Bansal',email:'',phone:'',linkedin:'linkedin.com/in/binnybansalfl',city:'Bengaluru',state:'Karnataka',sectors:['eCommerce','Technology','Consumer'],ticket:'Rs.5-40 Cr',ticketMin:5,ticketMax:40,prefDebt:false,prefEquity:true,yield:'25-50%',aum:'Rs.2,500 Cr',note:'Flipkart co-founder. Consumer tech investments.'},
+  {id:'FO038',type:'Tech/Startup FO',name:'Vijay Shekhar Sharma FO',contact:'Vijay Shekhar Sharma',email:'investors@paytm.com',phone:'+91-120-477 0770',linkedin:'linkedin.com/in/vijayshekhar',city:'Delhi',state:'Delhi',sectors:['FinTech','Payments','Consumer'],ticket:'Rs.5-30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'25-50%',aum:'Rs.2,000 Cr',note:'Paytm founder. FinTech ecosystem.'},
+  {id:'FO039',type:'Tech/Startup FO',name:'Kunal Shah FO — CRED',contact:'Kunal Shah',email:'kunal@cred.club',phone:'',linkedin:'linkedin.com/in/kunalshah1',city:'Bengaluru',state:'Karnataka',sectors:['FinTech','Consumer Tech','Credit'],ticket:'Rs.2-20 Cr',ticketMin:2,ticketMax:20,prefDebt:false,prefEquity:true,yield:'30-60%',aum:'Rs.1,000 Cr',note:'CRED founder. Early-stage startup bets.'},
+  {id:'FO040',type:'Tech/Startup FO',name:'Girish Mathrubootham FO',contact:'Girish Mathrubootham',email:'girish@freshworks.com',phone:'+91-44-6808 6000',linkedin:'linkedin.com/in/girish-mathrubootham',city:'Chennai',state:'Tamil Nadu',sectors:['SaaS','B2B Tech','Enterprise'],ticket:'Rs.2-15 Cr',ticketMin:2,ticketMax:15,prefDebt:false,prefEquity:true,yield:'25-50%',aum:'Rs.800 Cr',note:'Freshworks founder. B2B SaaS focus.'},
+  {id:'FO041',type:'Tech/Startup FO',name:'Sanjeev Bikhchandani FO (Info Edge)',contact:'Sanjeev Bikhchandani',email:'investor.relations@infoedge.in',phone:'+91-120-403 4831',linkedin:'linkedin.com/in/sanjeevbikhchandani',city:'Gurugram',state:'Haryana',sectors:['Consumer Internet','SaaS','Education'],ticket:'Rs.2-20 Cr',ticketMin:2,ticketMax:20,prefDebt:false,prefEquity:true,yield:'20-40%',aum:'Rs.1,200 Cr',note:'Naukri/Info Edge founder.'},
+  {id:'FO042',type:'Tech/Startup FO',name:'Deep Kalra FO (MakeMyTrip)',contact:'Deep Kalra',email:'ir@makemytrip.com',phone:'+91-124-476 1000',linkedin:'linkedin.com/in/deepkalra',city:'Gurugram',state:'Haryana',sectors:['Travel','Consumer Internet','OTA'],ticket:'Rs.2-15 Cr',ticketMin:2,ticketMax:15,prefDebt:false,prefEquity:true,yield:'20-40%',aum:'Rs.600 Cr',note:'MakeMyTrip founder. Consumer internet and OTA sector.'},
+  {id:'FO043',type:'Tech/Startup FO',name:'Bhavish Aggarwal FO — Ola',contact:'Bhavish Aggarwal',email:'investors@ola.com',phone:'+91-80-6735 8000',linkedin:'linkedin.com/in/bhavishaggarwal',city:'Bengaluru',state:'Karnataka',sectors:['EV','Mobility','Deep Tech'],ticket:'Rs.5-30 Cr',ticketMin:5,ticketMax:30,prefDebt:false,prefEquity:true,yield:'25-50%',aum:'Rs.1,500 Cr',note:'Ola/Krutrim founder. EV and mobility.'},
+  {id:'FO044',type:'Tech/Startup FO',name:'Nithin Kamath FO (Zerodha)',contact:'Nithin Kamath / Nikhil Kamath',email:'rainmatter@zerodha.com',phone:'+91-80-4040 2020',linkedin:'linkedin.com/in/nithinkamath',city:'Bengaluru',state:'Karnataka',sectors:['FinTech','WealthTech','SaaS'],ticket:'Rs.2-20 Cr',ticketMin:2,ticketMax:20,prefDebt:false,prefEquity:true,yield:'25-50%',aum:'Rs.1,000 Cr',note:'Zerodha founder. Via Rainmatter Capital.'},
+  // ── REGIONAL FAMILY OFFICES ─────────────────────────────────────
+  {id:'FO045',type:'Business Family',name:'Welspun Group Family Office',contact:'BK Goenka (Chairman)',email:'investor.relations@welspun.com',phone:'+91-22-6613 6000',linkedin:'linkedin.com/company/welspun-group',city:'Mumbai',state:'Maharashtra',sectors:['Textiles','Infrastructure','Pipes'],ticket:'Rs.20-100 Cr',ticketMin:20,ticketMax:100,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.20,000 Cr',note:'Textile and infra group.'},
+  {id:'FO046',type:'Business Family',name:'Oberoi Realty Promoters FO',contact:'Vikas Oberoi (CMD)',email:'investors@oberoirealty.com',phone:'+91-22-6677 3333',linkedin:'linkedin.com/company/oberoi-realty',city:'Mumbai',state:'Maharashtra',sectors:['Real Estate','Luxury','Construction'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'13-20%',aum:'Rs.30,000 Cr',note:'Premium Mumbai real estate.'},
+  {id:'FO047',type:'Business Family',name:'Singhania Group FO (JK Group)',contact:'Raghupati Singhania (Chairman)',email:'investors@jkcement.com',phone:'+91-11-4633 4200',linkedin:'linkedin.com/company/jk-cement',city:'Kanpur',state:'Uttar Pradesh',sectors:['Textiles','Real Estate','Manufacturing','Cement'],ticket:'Rs.10-50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11-15%',aum:'Rs.10,000 Cr',note:'JK Group. Textiles and cement manufacturing.'},
+  {id:'FO048',type:'Business Family',name:'Bharat Forge Promoters FO',contact:'Baba Kalyani (CMD)',email:'investors@bharatforge.com',phone:'+91-20-2402 2627',linkedin:'linkedin.com/company/bharat-forge',city:'Pune',state:'Maharashtra',sectors:['Engineering','Defence','EV','Forging'],ticket:'Rs.20-100 Cr',ticketMin:20,ticketMax:100,prefDebt:false,prefEquity:true,yield:'15-25%',aum:'Rs.20,000 Cr',note:'Defence and auto engineering.'},
+  {id:'FO049',type:'Business Family',name:'Mafatlal Group Family Office',contact:'Hrishikesh Mafatlal',email:'investorrelations@mafatlal.com',phone:'+91-79-2550 0000',linkedin:'linkedin.com/company/mafatlal-group',city:'Ahmedabad',state:'Gujarat',sectors:['Textiles','Chemicals','Real Estate'],ticket:'Rs.10-50 Cr',ticketMin:10,ticketMax:50,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.12,000 Cr',note:'Gujarat-based. Textiles and chemicals.'},
+  {id:'FO050',type:'Business Family',name:'Shapoorji Pallonji — Cyrus Investments',contact:'Cyrus Pallonji Mistry Office',email:'secretarial@shapoorji.com',phone:'+91-22-2302 6666',linkedin:'linkedin.com/company/shapoorji-pallonji',city:'Mumbai',state:'Maharashtra',sectors:['Construction','Infrastructure','Real Estate','Finance'],ticket:'Rs.100-500 Cr',ticketMin:100,ticketMax:500,prefDebt:true,prefEquity:false,yield:'10-14%',aum:'Rs.80,000 Cr',note:'Infra + real estate specialist.'},
+  {id:'FO051',type:'Business Family',name:'Morarka Group Family Office',contact:'Gopi Kishan Morarka',email:'info@morarkagroup.com',phone:'+91-141-510 1000',linkedin:'',city:'Jaipur',state:'Rajasthan',sectors:['Agri','Finance','Manufacturing'],ticket:'Rs.5-30 Cr',ticketMin:5,ticketMax:30,prefDebt:true,prefEquity:true,yield:'11-15%',aum:'Rs.5,000 Cr',note:'Rajasthan-based. Agri and finance.'},
+  {id:'FO052',type:'Business Family',name:'Essar Family Office',contact:'Shashwat Ruia / Prashant Ruia',email:'secretarial@essar.com',phone:'+91-22-2486 6000',linkedin:'linkedin.com/company/essar',city:'Mumbai',state:'Maharashtra',sectors:['Energy','Infrastructure','Steel'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12-18%',aum:'Rs.80,000 Cr',note:'Post-Essar Steel restructuring.'},
+  {id:'FO053',type:'Business Family',name:'Minda Group Family Office',contact:'Nirmal Minda (CMD)',email:'investors@mindagroup.com',phone:'+91-124-422 1000',linkedin:'linkedin.com/company/minda-group',city:'Gurugram',state:'Haryana',sectors:['Auto Components','Manufacturing','EV'],ticket:'Rs.10-60 Cr',ticketMin:10,ticketMax:60,prefDebt:false,prefEquity:true,yield:'15-25%',aum:'Rs.15,000 Cr',note:'Auto ancillary. EV transition focus.'},
+  {id:'FO054',type:'Business Family',name:'Hinduja Group — IndusInd FO',contact:'Ashok Hinduja / Sanjay Hinduja',email:'secretarial@hindujagroup.com',phone:'+91-22-2204 5000',linkedin:'linkedin.com/company/hinduja-group',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Banking','Infrastructure','Retail'],ticket:'Rs.50-300 Cr',ticketMin:50,ticketMax:300,prefDebt:true,prefEquity:true,yield:'12-18%',aum:'Rs.1,50,000 Cr',note:'IndusInd Bank promoter. Financial services.'},
+  {id:'FO055',type:'Business Family',name:'Aditya Birla Sun Life — Promoters FO',contact:'Vikram Rao (Chief IR)',email:'investor.relations@adityabirlacapital.com',phone:'+91-22-4356 7000',linkedin:'linkedin.com/company/aditya-birla-capital',city:'Mumbai',state:'Maharashtra',sectors:['Finance','Insurance','MF'],ticket:'Rs.50-200 Cr',ticketMin:50,ticketMax:200,prefDebt:true,prefEquity:true,yield:'11-16%',aum:'Rs.40,000 Cr',note:'Financial services. Debt + equity mix.'},
 ];
 
-/* ════════════════════════════════════════════════════════════
-   NBFC DATABASE — 180+ records (key seed)
-════════════════════════════════════════════════════════════ */
+
 var NBFC_DATA = [
 
   // ════════════════════════════════════════════════════════════════
@@ -1223,6 +1290,154 @@ function nbfcFilter(type){
   }
   renderNBFCs();
 }
+var FO_SELECTED = new Set();
+
+function foToggleSel(id){
+  if(FO_SELECTED.has(id)) FO_SELECTED.delete(id);
+  else FO_SELECTED.add(id);
+  updateFOSelCount();
+  renderFOs();
+}
+
+function foSelectAll(){
+  FO_DATA.forEach(function(f){ if(f.email) FO_SELECTED.add(f.id); });
+  updateFOSelCount();
+  renderFOs();
+}
+
+function foClearSel(){
+  FO_SELECTED.clear();
+  updateFOSelCount();
+  renderFOs();
+}
+
+function updateFOSelCount(){
+  var c = FO_SELECTED.size;
+  var el = document.getElementById('fo-sel-count');
+  if(el){ el.style.display = c>0?'block':'none'; el.textContent = c+' selected'; }
+}
+
+function foOpenMailer(){
+  var modal = document.getElementById('fo-mailer-modal');
+  if(!modal) return;
+  modal.style.display = 'flex';
+
+  // Build recipients list
+  var selected = FO_SELECTED.size>0
+    ? FO_DATA.filter(function(f){ return FO_SELECTED.has(f.id); })
+    : FO_DATA.filter(function(f){ return f.email; });
+
+  var withEmail = selected.filter(function(f){ return f.email; });
+  var noEmail   = selected.filter(function(f){ return !f.email; });
+
+  var rList = document.getElementById('fo-recipients-list');
+  if(rList){
+    rList.innerHTML = withEmail.map(function(f){
+      return '<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(13,92,107,.07);border:1px solid rgba(13,92,107,.15);border-radius:99px;font-size:10px;font-weight:700;color:var(--teal)">'
+        +f.contact.split('/')[0].trim()+' ('+f.email+')'
+        +'<span data-foid="'+f.id+'" onclick="foRemoveRecipient(this.dataset.foid)" style="cursor:pointer;color:var(--muted);margin-left:2px">&#10005;</span>'
+        +'</span>';
+    }).join('')
+    +(noEmail.length?'<div style="width:100%;margin-top:8px;font-size:10px;color:var(--muted)">No email: '+noEmail.map(function(f){return f.name;}).join(', ')+'</div>':'');
+  }
+  var mc = document.getElementById('fo-mail-count');
+  if(mc) mc.textContent = withEmail.length+' recipients with email · '+noEmail.length+' without';
+}
+
+function foRemoveRecipient(id){
+  FO_SELECTED.delete(id);
+  // Rebuild recipient list
+  foOpenMailer();
+}
+
+function foCloseMailer(){
+  var modal = document.getElementById('fo-mailer-modal');
+  if(modal) modal.style.display = 'none';
+}
+
+function foLoadTemplate(type){
+  var subj = document.getElementById('fo-subject');
+  var body = document.getElementById('fo-body');
+  var templates = {
+    ncd:{subject:'NCD Opportunity | Rs.XX Cr | [Rating] | ipowork',body:'Dear [Name],\n\nReaching out from ipowork Capital Markets.\n\nWe have an NCD investment opportunity:\n\n[COMPANY NAME]\nSize: Rs.[XX] Cr | Rating: [XX] | Yield: [X.XX%] | Tenor: [X Yrs]\nSecurity: [Secured/Unsecured]\n\nWe believe this matches your mandate. Would you be available for a brief call?\n\nWarm regards,\nJiwesh Kumar Shrivastava | ipowork Capital Markets'},
+    ipo:{subject:'SME IPO Pre-IPO Opportunity | [Company] | ipowork',body:'Dear [Name],\n\nipowork has an SME IPO opportunity that may interest you.\n\n[COMPANY NAME]\nSector: [Sector] | Revenue: Rs.[XX] Cr | PAT: Rs.[XX] Cr\nValuation: Rs.[XX] Cr | IPO Timeline: [Q/Year]\n\nPre-IPO placement with select family offices and institutional investors.\n\nMay we share the deal memo?\n\nWarm regards,\nJiwesh Kumar Shrivastava | ipowork Capital Markets'},
+    pe:{subject:'Growth Equity Opportunity | [Company] | [Sector] | ipowork',body:'Dear [Name],\n\nSharing a growth equity opportunity in [sector] that may fit your portfolio.\n\n[COMPANY NAME]\nStage: Series [X] | Sector: [Sector] | Revenue: Rs.[XX] Cr\nValuation: Rs.[XX] Cr | Round Size: Rs.[XX] Cr\n\nHighlights:\n1. [Key strength 1]\n2. [Key strength 2]\n3. [Key strength 3]\n\nWould you like the detailed investment memo?\n\nWarm regards,\nJiwesh Kumar Shrivastava | ipowork Capital Markets'},
+    intro:{subject:'ipowork Capital Markets | Introduction | India Debt Distribution Platform',body:'Dear [Name],\n\nI represent ipowork Capital Markets, India institutional deal distribution platform.\n\nAbout ipowork:\n- 2,490+ investor network (1,910 SEBI AIFs + 400+ Family Offices + 180+ NBFCs)\n- NCD, Bonds, SME IPO, and Growth Equity distribution\n- AI-powered deal-investor matching\n\nWe noted that [FO Name] is active in [sectors] with ticket size [range]. We would love to share exclusive, pre-screened deal flow matching your mandate.\n\nWould you have 15 minutes for a call?\n\nWarm regards,\nJiwesh Kumar Shrivastava\nFounder, ipowork | +91 88510 59588 | partners@ipowork.com'}
+  };
+    var t = templates[type];
+  if(t){
+    if(subj) subj.value = t.subject;
+    if(body) body.value = t.body;
+  }
+}
+
+function foSendViaMailto(){
+  var subj = (document.getElementById('fo-subject').value||'').trim();
+  var body = (document.getElementById('fo-body').value||'').trim();
+  var cc   = (document.getElementById('fo-cc').value||'').trim();
+
+  var sig = '\n\n--\nipowork Capital Markets | partners@ipowork.com | +91 88510 59588 | www.ipowork.com';
+  var fullBody = body + sig;
+
+  var withEmail = FO_SELECTED.size>0
+    ? FO_DATA.filter(function(f){ return FO_SELECTED.has(f.id)&&f.email; })
+    : FO_DATA.filter(function(f){ return f.email; });
+
+  if(!withEmail.length){ alert('No family offices with email addresses selected.'); return; }
+
+  // Split into batches of 10 for mailto limits
+  var batch = withEmail.slice(0,10);
+  var to = batch.map(function(f){ return f.email; }).join(',');
+  var mailto = 'mailto:'+encodeURIComponent(to)
+    +'?from='+encodeURIComponent('partners@ipowork.com')
+    +(cc?'&cc='+encodeURIComponent(cc):'')
+    +'&subject='+encodeURIComponent(subj)
+    +'&body='+encodeURIComponent(fullBody);
+
+  window.location.href = mailto;
+
+  if(withEmail.length>10){
+    setTimeout(function(){
+      alert('Note: Email client was opened with the first 10 recipients. Total with email: '+withEmail.length+'. Use "Copy Emails" to get the full list.');
+    }, 1000);
+  }
+}
+
+function foCopyEmailList(){
+  var selected = FO_SELECTED.size>0
+    ? FO_DATA.filter(function(f){ return FO_SELECTED.has(f.id)&&f.email; })
+    : FO_DATA.filter(function(f){ return f.email; });
+  var emails = selected.map(function(f){ return f.contact.split('/')[0].trim()+' <'+f.email+'>'; }).join('; ');
+  navigator.clipboard.writeText(emails).then(function(){
+    alert('Copied '+selected.length+' email addresses to clipboard.');
+  }).catch(function(){
+    var ta = document.createElement('textarea');
+    ta.value = emails; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    alert('Copied '+selected.length+' email addresses.');
+  });
+}
+
+function foCopyMessage(){
+  var subj = document.getElementById('fo-subject').value||'';
+  var body = document.getElementById('fo-body').value||'';
+  var sig = '\n\n--\nipowork Capital Markets | partners@ipowork.com | +91 88510 59588';
+  navigator.clipboard.writeText('Subject: '+subj+'\n\n'+body+sig).then(function(){
+    alert('Message copied to clipboard.');
+  });
+}
+
+function foContact(id){
+  var fo = FO_DATA.find(function(f){ return f.id===id; });
+  if(!fo) return;
+  if(fo.email){
+    foLoadTemplate('intro');
+    document.getElementById('fo-body').value = document.getElementById('fo-body').value.replace('[Contact Name]', fo.contact.split('/')[0].trim()).replace('[Family Office Name]', fo.name);
+    foOpenMailer();
+  } else {
+    alert(fo.name+' | Contact: '+fo.contact+' | No direct email. Approach: '+fo.note);
+  }
+}
+
 function foResetFilters(){ FO_ACTIVE_TYPE='all'; document.getElementById('fo-search').value=''; document.getElementById('fo-state').value=''; document.getElementById('fo-sector').value=''; document.getElementById('fo-ticket').value=''; document.getElementById('fo-pref').value=''; renderFOs(); }
 function nbfcResetFilters(){ NBFC_ACTIVE_TYPE='all'; document.getElementById('nbfc-search').value=''; document.getElementById('nbfc-type').value=''; document.getElementById('nbfc-state').value=''; document.getElementById('nbfc-aum').value=''; renderNBFCs(); }
 
@@ -1257,29 +1472,54 @@ function renderFOs(){
     if(pref==='equity'&&!f.prefEquity) return false;
     return true;
   });
-  if(countEl) countEl.textContent=list.length+' family offices found (seed database — full 400+ enriched continuously)';
+  if(countEl) countEl.textContent=list.length+' family offices · '+list.filter(function(f){return f.email;}).length+' with direct email contact';
   var typeColors={'Ultra HNI':'#E88A2E','Business Family':'#5B4ED4','Promoter Office':'#1A9E6B','Tech/Startup FO':'#1A7D90'};
   grid.innerHTML=list.map(function(f){
     var col=typeColors[f.type]||'var(--teal)';
-    return '<div style="background:#fff;border:1px solid var(--border);border-radius:13px;padding:18px;transition:.2s" onmouseenter="this.style.borderColor=\'var(--cyan)\'" onmouseleave="this.style.borderColor=\'var(--border)\'">'
-      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px">'
-      +'<div style="flex:1"><div style="font-weight:800;font-size:14px;color:var(--text);margin-bottom:3px">'+f.name+'</div>'
-      +'<div style="font-size:11px;color:var(--muted)">'+f.contact+' · '+f.city+', '+f.state+'</div></div>'
-      +'<span style="font-size:10px;padding:3px 9px;border-radius:99px;font-weight:800;background:'+col+'15;color:'+col+';border:1px solid '+col+'30;white-space:nowrap;flex-shrink:0">'+f.type+'</span></div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">'
-      +'<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:var(--text)">'+f.ticket+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">TICKET</div></div>'
-      +'<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:#E88A2E">'+f.yield+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">YIELD</div></div>'
-      +'<div style="text-align:center;padding:8px;background:rgba(13,92,107,.04);border-radius:8px"><div style="font-size:11px;font-weight:800;color:var(--text)">'+f.aum+'</div><div style="font-size:9px;color:var(--muted);font-weight:700;margin-top:2px">AUM</div></div>'
+    var isSel=FO_SELECTED.has(f.id);
+    var selStyle=isSel?'border:2px solid var(--teal);background:rgba(13,92,107,.02);':'';
+    return '<div style="background:#fff;border:1.5px solid var(--border);border-radius:13px;padding:0;transition:.2s;overflow:hidden;'+selStyle+'">'
+      // Selected indicator strip
+      +(isSel?'<div style="height:3px;background:var(--teal)"></div>':'<div style="height:3px;background:'+col+'"></div>')
+      +'<div style="padding:16px">'
+      // Header
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">'
+      +'<div style="flex:1"><div style="font-weight:800;font-size:13px;color:var(--text);margin-bottom:2px">'+f.name+'</div>'
+      +'<div style="font-size:10px;color:var(--muted)">'+f.city+', '+f.state+'</div></div>'
+      +'<span style="font-size:9px;padding:2px 8px;border-radius:99px;font-weight:800;background:'+col+'15;color:'+col+';border:1px solid '+col+'30;white-space:nowrap;flex-shrink:0">'+f.type+'</span>'
       +'</div>'
-      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'+f.sectors.map(function(s){return '<span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(13,92,107,.06);color:var(--teal);font-weight:600">'+s+'</span>';}).join('')+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);background:rgba(13,92,107,.03);border-radius:6px;padding:6px 8px;margin-bottom:10px;line-height:1.5">'+f.note+'</div>'
-      +'<div style="display:flex;gap:6px;margin-bottom:10px">'
-      +(f.prefDebt?'<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(26,158,107,.1);color:#1A9E6B;font-weight:700;border:1px solid rgba(26,158,107,.2)">✓ Debt</span>':'')
-      +(f.prefEquity?'<span style="font-size:10px;padding:2px 8px;border-radius:99px;background:rgba(91,78,212,.1);color:#5B4ED4;font-weight:700;border:1px solid rgba(91,78,212,.2)">✓ Equity</span>':'')
+      // Metrics strip
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">'
+      +'<div style="text-align:center;padding:7px;background:rgba(13,92,107,.04);border-radius:7px"><div style="font-size:10px;font-weight:800;color:var(--text)">'+f.ticket+'</div><div style="font-size:8px;color:var(--muted);font-weight:700;margin-top:1px">TICKET</div></div>'
+      +'<div style="text-align:center;padding:7px;background:rgba(13,92,107,.04);border-radius:7px"><div style="font-size:10px;font-weight:800;color:#E88A2E">'+f.yield+'</div><div style="font-size:8px;color:var(--muted);font-weight:700;margin-top:1px">YIELD</div></div>'
+      +'<div style="text-align:center;padding:7px;background:rgba(13,92,107,.04);border-radius:7px"><div style="font-size:10px;font-weight:800;color:var(--text)">'+f.aum+'</div><div style="font-size:8px;color:var(--muted);font-weight:700;margin-top:1px">AUM</div></div>'
       +'</div>'
-      +'<div style="display:flex;gap:7px">'
-      +'<button onclick="foAddToDist(\''+f.id+'\')" style="flex:1;padding:8px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">+ Add to Distribution</button>'
-      +'<button onclick="foWhatsApp(\''+f.id+'\')" style="padding:8px 12px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:11px;cursor:pointer">📱</button>'
+      // Sectors
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">'
+      +f.sectors.map(function(s){return '<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(13,92,107,.06);color:var(--teal);font-weight:600">'+s+'</span>';}).join('')
+      +'</div>'
+      // Note
+      +'<div style="font-size:10px;color:var(--muted);background:rgba(13,92,107,.03);border-radius:6px;padding:5px 8px;margin-bottom:8px;line-height:1.5">'+f.note+'</div>'
+      // Debt/Equity preference
+      +'<div style="display:flex;gap:5px;margin-bottom:10px">'
+      +(f.prefDebt?'<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(26,158,107,.1);color:#1A9E6B;font-weight:700;border:1px solid rgba(26,158,107,.2)">Debt</span>':'')
+      +(f.prefEquity?'<span style="font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(91,78,212,.1);color:#5B4ED4;font-weight:700;border:1px solid rgba(91,78,212,.2)">Equity</span>':'')
+      +'</div>'
+      // Contact details
+      +'<div style="border-top:1px solid var(--border);padding-top:10px;margin-bottom:10px">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px">&#128100; '+f.contact+'</div>'
+      +(f.phone?'<div style="font-size:10px;color:var(--muted);margin-bottom:2px">&#128222; '+f.phone+'</div>':'')
+      +(f.email
+        ?'<div style="font-size:10px;color:var(--cyan);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">&#9993; '+f.email+'</div>'
+        :'<div style="font-size:10px;color:var(--dim);font-style:italic">No direct email — approach via intermediary</div>')
+      +(f.linkedin?'<a href="https://'+f.linkedin+'" target="_blank" style="font-size:10px;color:#0A66C2;text-decoration:none">in LinkedIn Profile</a>':'')
+      +'</div>'
+      // Action buttons
+      +'<div style="display:flex;gap:6px">'
+      +'<button onclick="foContact(\''+f.id+'\')" style="flex:1;padding:8px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">&#9993; Message</button>'
+      +'<button onclick="foToggleSel(\''+f.id+'\')" style="padding:8px 12px;border:1.5px solid '+(isSel?'var(--teal)':'var(--border)')+';background:'+(isSel?'var(--teal)':'#fff')+';color:'+(isSel?'#fff':'var(--muted)')+';border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">'+(isSel?'&#10003;':'&#9711;')+'</button>'
+      +'<button onclick="foWhatsApp(\''+f.id+'\')" style="padding:8px 11px;background:#25D366;color:#fff;border:none;border-radius:7px;font-size:13px;cursor:pointer">&#128241;</button>'
+      +'</div>'
       +'</div></div>';
   }).join('')||'<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">No family offices match your filters</div>';
 }
