@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ipowork — Deal Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #FAFAF8;
+  --surface: #FFFFFF;
+  --card:    #FFFFFF;
+  --card2:   #F7F3EE;
+  --teal:    #0D5C6B;
+  --teal2:   #1A7D90;
+  --tld:     #08404D;
+  --green:   #0D5C6B;
+  --green2:  #1A7D90;
+  --ok:      #1A9E6B;
+  --tl:      #0D5C6B;
+  --tll:     #1A7D90;
+  --saffron: #E88A2E;
+  --saffron2:#D4860C;
+  --gold:    #C9932A;
+  --gold2:   #E88A2E;
+  --amber:   #E88A2E;
+  --amber2:  #C9932A;
+  --sf:      #E88A2E;
+  --go:      #C9932A;
+  --red:     #C0392B;
+  --er:      #C0392B;
+  --orange:  #E88A2E;
+  --wn:      #D4860C;
+  --violet:  #5B6FEC;
+  --purple:  #5B6FEC;
+  --cyan:    #0D5C6B;
+  --cyan2:   #1A7D90;
+  --blue:    #1A7D90;
+  --text:    #2C3E47;
+  --txt:     #2C3E47;
+  --sl:      #2C3E47;
+  --muted:   #6B7E85;
+  --mu:      #6B7E85;
+  --dim:     #6B7E85;
+  --cr:      #F7F3EE;
+  --iv:      #FAFAF8;
+  --wh:      #FFFFFF;
+  --border:  rgba(13, 92, 107, .15);
+  --border2: rgba(13, 92, 107, .1);
+  --bd:      #E2E8EA;
+  --bdr:     rgba(13, 92, 107, .15);
+  --bdr2:    rgba(13, 92, 107, .06);
+  --sur:     #FFFFFF;
+  --dimmer:  rgba(13, 92, 107, .04);
+  --sh:      0 2px 12px rgba(13, 92, 107, .08);
+  --sh2:     0 8px 32px rgba(13, 92, 107, .16);
+  --bar:     54px;
+  --sw:      240px;
+  --ra:      10px;
+  --font:    'Sora', sans-serif;
+  --serif:   'Fraunces', Georgia, serif;
+  --mono:    'IBM Plex Mono', monospace;
+
+  /* Semantic aliases for new files */
+  --accent:   #0D5C6B;
+  --accent2:  #1A7D90;
+  --accent3:  #08404D;
+  --surface2: #F7F3EE;
+  --surface3: #EEF5F6;
+  --surface4: #E2EEF0;
+  --b1:       #E2E8EA;
+  --b2:       rgba(13, 92, 107, .15);
+  --b3:       rgba(13, 92, 107, .1);
+  --faint:    rgba(13, 92, 107, .04);
+}
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--text); letter-spacing: -0.5px; }
+.logo span { color: #0D5C6B; }
+.page-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; color: var(--muted); border-left: 1px solid var(--border2); padding-left: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; border: none; font-family: 'Sora', sans-serif; }
+.btn-primary { background: var(--teal); color: #fff; }
+.btn-primary:hover { background: #08404D; }
+.btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border2); }
+.btn-ghost:hover { color: var(--text); border-color: var(--teal); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* ── STATS BAR ── */
+.stats-bar {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.stat-item {
+  flex: 1;
+  padding: 12px 20px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-value { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); }
+.stat-sub { font-size: 11px; color: var(--muted); }
+.stat-up { color: var(--ok); }
+.stat-warn { color: var(--saffron); }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  gap: 12px;
+}
+.toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 6px 12px;
+  width: 220px;
+}
+.search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text);
+  font-family: 'Sora', sans-serif;
+  width: 100%;
+}
+.search-box input::placeholder { color: var(--muted); }
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--muted);
+  transition: all .15s;
+  font-family: 'Sora', sans-serif;
+}
+.filter-tag:hover, .filter-tag.active { background: var(--card2); color: var(--text); border-color: var(--teal); }
+.view-toggle { display: flex; border: 1px solid var(--border2); border-radius: 8px; overflow: hidden; }
+.view-btn { padding: 6px 12px; font-size: 12px; background: transparent; border: none; color: var(--muted); cursor: pointer; transition: all .15s; font-family: 'Sora', sans-serif; }
+.view-btn.active { background: var(--card2); color: var(--text); }
+
+/* ── BOARD ── */
+.board-wrap {
+  padding: 20px 24px;
+  overflow-x: auto;
+  min-height: calc(100vh - 200px);
+}
+.board {
+  display: flex;
+  gap: 16px;
+  min-width: max-content;
+  align-items: flex-start;
+}
+
+/* ── COLUMN ── */
+.col {
+  width: 280px;
+  flex-shrink: 0;
+}
+.col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px 10px 0 0;
+  margin-bottom: 1px;
+}
+.col-title-row { display: flex; align-items: center; gap: 8px; }
+.col-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.col-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
+.col-count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(13,92,107,0.06);
+  color: var(--muted);
+}
+.col-body {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 0 10px 10px;
+  padding: 8px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.col-add-btn {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px dashed var(--border2);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+  font-family: 'Sora', sans-serif;
+  margin-top: 4px;
+}
+.col-add-btn:hover { border-color: var(--teal); color: var(--teal); background: rgba(13,92,107,0.07); }
+
+/* ── DEAL CARD ── */
+.deal-card {
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  overflow: hidden;
+}
+.deal-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+}
+.deal-card:hover { border-color: var(--teal); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.deal-card.dragging { opacity: 0.5; }
+.deal-card.drag-over { border-color: var(--teal); background: rgba(13,92,107,0.08); }
+
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.card-company { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.card-type { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0; }
+.type-ipo { background: rgba(13,92,107,0.15); color: #0D5C6B; }
+.type-sme { background: rgba(26,158,107,0.12); color: #1A9E6B; }
+.type-debt { background: rgba(232,138,46,0.10); color: #E88A2E; }
+.type-rights { background: rgba(91,111,236,0.12); color: #B8A8CC; }
+
+.card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.card-size { font-size: 12px; font-weight: 600; color: var(--text); }
+.card-sector { font-size: 11px; color: var(--muted); }
+.card-sep { color: var(--border2); font-size: 11px; }
+
+.card-progress { margin-bottom: 10px; }
+.progress-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+
+.card-footer { display: flex; align-items: center; justify-content: space-between; }
+.card-assignee { display: flex; align-items: center; gap: 6px; }
+.avatar { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-shrink: 0; }
+.assignee-name { font-size: 11px; color: var(--muted); }
+.card-due { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.card-due.overdue { color: var(--red); }
+.card-due.soon { color: var(--saffron); }
+
+.card-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+.tag-alert { background: rgba(192,57,43,0.10); color: #C0392B; }
+.tag-ok { background: rgba(26,158,107,0.10); color: #1A9E6B; }
+.tag-neutral { background: rgba(13,92,107,0.12); color: #6A7A99; }
+
+/* ── DEAL MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(13,92,107,0.55); z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  width: 680px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(20px);
+  transition: transform .2s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+.modal-close { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1; }
+.modal-body { padding: 20px 24px; }
+.modal-section { margin-bottom: 20px; }
+.modal-section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.detail-item { background: var(--card2); border-radius: 8px; padding: 10px 12px; }
+.detail-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.detail-value { font-size: 14px; font-weight: 500; color: var(--text); }
+.activity-list { display: flex; flex-direction: column; gap: 8px; }
+.activity-item { display: flex; gap: 10px; align-items: flex-start; }
+.activity-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); margin-top: 5px; flex-shrink: 0; }
+.activity-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+.activity-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.checklist { display: flex; flex-direction: column; gap: 6px; }
+.check-item { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.check-item input[type=checkbox] { accent-color: var(--teal); width: 14px; height: 14px; cursor: pointer; }
+.check-item.done { color: var(--muted); text-decoration: line-through; }
+.stage-stepper { display: flex; gap: 4px; }
+.stage-step {
+  flex: 1;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+  transition: all .15s;
+  color: var(--muted);
+  background: var(--card2);
+}
+.stage-step.active { color: #fff; }
+.stage-step:hover { border-color: var(--border2); }
+textarea.note-input {
+  width: 100%; background: var(--card2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 13px;
+  resize: none; outline: none; font-family: 'Sora', sans-serif;
+  transition: border-color .15s;
+}
+textarea.note-input:focus { border-color: var(--teal); }
+.modal-footer { display: flex; justify-content: space-between; padding: 16px 24px; border-top: 1px solid var(--border); gap: 8px; }
+
+/* ── ADD DEAL MODAL ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 6px; display: block; }
+.form-input {
+  width: 100%; background: var(--card2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px;
+  outline: none; font-family: 'Sora', sans-serif; transition: border-color .15s;
+}
+.form-input:focus { border-color: var(--teal); }
+select.form-input { cursor: pointer; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: var(--card2);
+  border: 1px solid var(--ok); color: var(--text); padding: 12px 18px;
+  border-radius: 10px; font-size: 13px; z-index: 999;
+  transform: translateY(20px); opacity: 0; transition: all .25s;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* column stage colors */
+.col[data-stage="Prospect"] .col-header { background: rgba(13,92,107,0.12); }
+.col[data-stage="Mandate"] .col-header { background: rgba(13,92,107,0.12); }
+.col[data-stage="Due Diligence"] .col-header { background: rgba(26,158,107,0.10); }
+.col[data-stage="Filed"] .col-header { background: rgba(232,138,46,0.10); }
+.col[data-stage="Live"] .col-header { background: rgba(192,57,43,0.10); }
+.col[data-stage="Closed"] .col-header { background: rgba(26,125,144,0.10); }
+
+.col[data-stage="Prospect"] .col-dot { background: #6B7E85; }
+.col[data-stage="Mandate"] .col-dot { background: var(--teal); }
+.col[data-stage="Due Diligence"] .col-dot { background: var(--ok); }
+.col[data-stage="Filed"] .col-dot { background: var(--saffron); }
+.col[data-stage="Live"] .col-dot { background: var(--red); }
+.col[data-stage="Closed"] .col-dot { background: var(--purple); }
+
+.col[data-stage="Prospect"] .deal-card::before { background: #6B7E85; }
+.col[data-stage="Mandate"] .deal-card::before { background: var(--teal); }
+.col[data-stage="Due Diligence"] .deal-card::before { background: var(--ok); }
+.col[data-stage="Filed"] .deal-card::before { background: var(--saffron); }
+.col[data-stage="Live"] .deal-card::before { background: var(--red); }
+.col[data-stage="Closed"] .deal-card::before { background: var(--purple); }
+
+.progress-fill.prospect { background: #6B7E85; }
+.progress-fill.mandate { background: var(--teal); }
+.progress-fill.diligence { background: var(--ok); }
+.progress-fill.filed { background: var(--saffron); }
+.progress-fill.live { background: var(--red); }
+.progress-fill.closed { background: var(--purple); }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* empty col drop zone */
+.col-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">ipo<span>work</span></div>
+    <div class="page-title">Deal Pipeline</div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost btn-sm" onclick="location.href='https://www.ipowork.com'">← Portal</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddDeal()">＋ New Deal</button>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar" id="statsBar"></div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-left">
+    <div class="search-box">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#6B7E85"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search deals…" oninput="renderBoard()">
+    </div>
+    <button class="filter-tag active" data-filter="All" onclick="setFilter(this,'All')">All</button>
+    <button class="filter-tag" data-filter="IPO" onclick="setFilter(this,'IPO')">IPO</button>
+    <button class="filter-tag" data-filter="SME IPO" onclick="setFilter(this,'SME IPO')">SME</button>
+    <button class="filter-tag" data-filter="Debt" onclick="setFilter(this,'Debt')">Debt</button>
+    <button class="filter-tag" data-filter="Rights" onclick="setFilter(this,'Rights')">Rights</button>
+  </div>
+  <div class="view-toggle">
+    <button class="view-btn active">⊞ Board</button>
+    <button class="view-btn" onclick="toast('List view coming soon')">☰ List</button>
+  </div>
+</div>
+
+<!-- BOARD -->
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+</div>
+
+<!-- DEAL DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" id="detailModalContent"></div>
+</div>
+
+<!-- ADD DEAL MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal" style="width:500px">
+    <div class="modal-header">
+      <div class="modal-title">New Deal</div>
+      <button class="modal-close" onclick="closeAddDeal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Company Name *</label>
+          <input class="form-input" id="f-company" placeholder="e.g. Infobeans Technologies">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Deal Type *</label>
+          <select class="form-input" id="f-type">
+            <option>IPO</option>
+            <option>SME IPO</option>
+            <option>Debt</option>
+            <option>Rights</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Issue Size (₹ Cr)</label>
+          <input class="form-input" id="f-size" placeholder="e.g. 850">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sector</label>
+          <input class="form-input" id="f-sector" placeholder="e.g. Technology">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stage</label>
+          <select class="form-input" id="f-stage">
+            <option>Prospect</option>
+            <option>Mandate</option>
+            <option>Due Diligence</option>
+            <option>Filed</option>
+            <option>Live</option>
+            <option>Closed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Target Close</label>
+          <input class="form-input" type="date" id="f-due">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Lead Banker</label>
+          <input class="form-input" id="f-banker" placeholder="e.g. Jiwesh K.">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Success Fee (%)</label>
+          <input class="form-input" id="f-fee" placeholder="e.g. 1.5">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="note-input" id="f-notes" rows="2" placeholder="Key details, risks, next steps…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddDeal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewDeal()">Create Deal</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───
+const STAGES = ['Prospect','Mandate','Due Diligence','Filed','Live','Closed'];
+const STAGE_PROGRESS = {Prospect:10,Mandate:30,'Due Diligence':55,Filed:75,Live:90,Closed:100};
+const STAGE_CLASS = {Prospect:'prospect',Mandate:'mandate','Due Diligence':'diligence',Filed:'filed',Live:'live',Closed:'closed'};
+const AVATARS = ['#0D5C6B','#1A9E6B','#6B4E8C','#E88A2E','#C0392B','#0D5C6B'];
+
+let activeFilter = 'All';
+let dragCard = null;
+
+let deals = JSON.parse(localStorage.getItem('ipowork_deals') || 'null') || [
+  {id:1,company:'Nexgen Infracon Ltd',type:'SME IPO',size:'120',sector:'Infrastructure',stage:'Prospect',due:'2026-09-15',banker:'Jiwesh K.',fee:'1.5',notes:'Promoter meeting done. Awaiting audited FY25.',activity:[{t:'Deal created',d:'2 days ago'},{t:'First call with promoter — positive interest',d:'1 day ago'}],checks:{DRHP:false,Valuation:false,SEBI:false,Roadshow:false,Allotment:false}},
+  {id:2,company:'Muthoot Fincorp Ltd',type:'IPO',size:'2500',sector:'NBFC / Finance',stage:'Due Diligence',due:'2026-08-30',banker:'Amit R.',fee:'0.8',notes:'RHP v3 in progress. DuPont & cashflow sections being corrected.',activity:[{t:'RHP v3 gap analysis completed',d:'5 hours ago'},{t:'EBITDA vs NIM issue flagged',d:'1 day ago'},{t:'Mandate signed',d:'3 days ago'}],checks:{DRHP:true,Valuation:true,SEBI:false,Roadshow:false,Allotment:false}},
+  {id:3,company:'PFC Ltd NCD',type:'Debt',size:'5000',sector:'PSU / Power Finance',stage:'Live',due:'2026-06-15',banker:'Priya S.',fee:'0.25',notes:'Subscription open. Day 2 of 3. 82% subscribed.',activity:[{t:'Issue opened — 45% subscribed Day 1',d:'1 day ago'},{t:'SEBI clearance received',d:'3 days ago'},{t:'Book-building started',d:'5 days ago'}],checks:{DRHP:true,Valuation:true,SEBI:true,Roadshow:true,Allotment:false}},
+  {id:4,company:'Bajaj Finance NCD',type:'Debt',size:'3000',sector:'NBFC',stage:'Filed',due:'2026-07-10',banker:'Jiwesh K.',fee:'0.3',notes:'SEBI observation letter awaited. Expected in 2 weeks.',activity:[{t:'SEBI filing done',d:'2 days ago'},{t:'DRHP approved internally',d:'4 days ago'}],checks:{DRHP:true,Valuation:true,SEBI:false,Roadshow:false,Allotment:false}},
+  {id:5,company:'IRFC Green Bond',type:'Debt',size:'4000',sector:'PSU / Railways',stage:'Mandate',due:'2026-10-01',banker:'Neha T.',fee:'0.2',notes:'ESG framework under prep. CRISIL AAA expected.',activity:[{t:'Mandate letter signed',d:'1 day ago'},{t:'Initial call with treasury head',d:'3 days ago'}],checks:{DRHP:false,Valuation:false,SEBI:false,Roadshow:false,Allotment:false}},
+  {id:6,company:'Zaggle Prepaid',type:'IPO',size:'564',sector:'Fintech',stage:'Closed',due:'2026-04-20',banker:'Amit R.',fee:'1.2',notes:'Successfully listed. 18% listing gain.',activity:[{t:'Listed at ₹288 (+18%)',d:'6 weeks ago'},{t:'Allotment finalized',d:'7 weeks ago'},{t:'Subscription closed 42x',d:'8 weeks ago'}],checks:{DRHP:true,Valuation:true,SEBI:true,Roadshow:true,Allotment:true}},
+  {id:7,company:'Shriram Housing Finance',type:'Debt',size:'1200',sector:'HFC',stage:'Prospect',due:'2026-11-30',banker:'Priya S.',fee:'0.25',notes:'CP rollover signal detected. Treasury head contact identified.',activity:[{t:'Borrowing demand signal triggered',d:'4 hours ago'}],checks:{DRHP:false,Valuation:false,SEBI:false,Roadshow:false,Allotment:false}},
+  {id:8,company:'InfoBeans Technologies',type:'SME IPO',size:'75',sector:'IT Services',stage:'Mandate',due:'2026-09-30',banker:'Jiwesh K.',fee:'2.0',notes:'Mandate signed. Revenue ₹120Cr FY25. Strong SaaS pivot story.',activity:[{t:'Mandate signed — engagement letter executed',d:'1 day ago'},{t:'IPO Score: 74/100 from AIRA',d:'2 days ago'}],checks:{DRHP:false,Valuation:true,SEBI:false,Roadshow:false,Allotment:false}},
+];
+
+function save() { localStorage.setItem('ipowork_deals', JSON.stringify(deals)); }
+
+// ─── STATS ───
+function renderStats() {
+  const bar = document.getElementById('statsBar');
+  const total = deals.length;
+  const totalSize = deals.reduce((s,d) => s + (parseFloat(d.size)||0), 0);
+  const live = deals.filter(d=>d.stage==='Live').length;
+  const closed = deals.filter(d=>d.stage==='Closed').length;
+  const overdue = deals.filter(d => d.due && new Date(d.due) < new Date() && d.stage !== 'Closed').length;
+  const revenue = deals.reduce((s,d) => s + (parseFloat(d.size)||0)*(parseFloat(d.fee)||0)/100, 0);
+
+  bar.innerHTML = [
+    {label:'Total Deals',value:total,sub:`${closed} closed`},
+    {label:'Pipeline Size',value:'₹'+fmt(totalSize)+'Cr',sub:'across all stages'},
+    {label:'Live Issues',value:live,sub:'active subscriptions',cls:'stat-up'},
+    {label:'Overdue',value:overdue,sub:'past target date',cls:overdue?'stat-warn':''},
+    {label:'Est. Revenue',value:'₹'+fmt(revenue)+'Cr',sub:'success fees',cls:'stat-up'},
+  ].map(s=>`<div class="stat-item">
+    <div class="stat-label">${s.label}</div>
+    <div class="stat-value ${s.cls||''}">${s.value}</div>
+    <div class="stat-sub">${s.sub}</div>
+  </div>`).join('');
+}
+
+function fmt(n) {
+  if(n>=1000) return (n/1000).toFixed(1)+'K';
+  return n.toFixed(0);
+}
+
+// ─── BOARD ───
+function renderBoard() {
+  const board = document.getElementById('board');
+  const q = document.getElementById('searchInput').value.toLowerCase();
+
+  let filtered = deals.filter(d => {
+    const matchQ = !q || d.company.toLowerCase().includes(q) || d.sector.toLowerCase().includes(q);
+    const matchF = activeFilter==='All' || d.type===activeFilter;
+    return matchQ && matchF;
+  });
+
+  board.innerHTML = '';
+  STAGES.forEach(stage => {
+    const cards = filtered.filter(d => d.stage === stage);
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.dataset.stage = stage;
+    col.setAttribute('ondragover','event.preventDefault()');
+    col.setAttribute('ondrop',`dropCard(event,'${stage}')`);
+
+    const stageValue = deals.filter(d=>d.stage===stage).reduce((s,d)=>s+(parseFloat(d.size)||0),0);
+
+    col.innerHTML = `
+      <div class="col-header">
+        <div class="col-title-row">
+          <div class="col-dot"></div>
+          <div class="col-title">${stage}</div>
+          <div class="col-count">${cards.length}</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted)">₹${fmt(stageValue)}Cr</div>
+      </div>
+      <div class="col-body" id="col-${stage.replace(/ /g,'_')}">
+        ${cards.length===0 ? '<div class="col-empty">Drop deals here</div>' : cards.map(d=>cardHTML(d,stage)).join('')}
+        <button class="col-add-btn" onclick="openAddDeal('${stage}')">＋ Add deal</button>
+      </div>
+    `;
+    board.appendChild(col);
+  });
+  renderStats();
+}
+
+function cardHTML(d, stage) {
+  const progress = STAGE_PROGRESS[d.stage] || 0;
+  const cls = STAGE_CLASS[d.stage] || 'prospect';
+  const dueDate = d.due ? new Date(d.due) : null;
+  const now = new Date();
+  const daysLeft = dueDate ? Math.ceil((dueDate-now)/(1000*60*60*24)) : null;
+  const dueClass = daysLeft===null?'':daysLeft<0?'overdue':daysLeft<14?'soon':'';
+  const dueText = daysLeft===null?'No date':daysLeft<0?`${Math.abs(daysLeft)}d overdue`:daysLeft===0?'Today':daysLeft<7?`${daysLeft}d left`:(d.due?.slice(5).replace('-','/'));
+  const typeClass = {IPO:'type-ipo','SME IPO':'type-sme',Debt:'type-debt',Rights:'type-rights'}[d.type]||'type-ipo';
+  const avColor = AVATARS[d.id % AVATARS.length];
+  const initials = (d.banker||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  const checksDone = Object.values(d.checks||{}).filter(Boolean).length;
+  const checksTotal = Object.keys(d.checks||{}).length;
+
+  return `<div class="deal-card" draggable="true" id="card-${d.id}"
+    ondragstart="dragCard=${d.id}"
+    onclick="openDetail(${d.id})">
+    <div class="card-top">
+      <div class="card-company">${d.company}</div>
+      <div class="card-type ${typeClass}">${d.type}</div>
+    </div>
+    <div class="card-meta">
+      <span class="card-size">₹${d.size||'–'}Cr</span>
+      <span class="card-sep">·</span>
+      <span class="card-sector">${d.sector||'–'}</span>
+    </div>
+    ${d.notes?`<div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.4">${d.notes.slice(0,70)}${d.notes.length>70?'…':''}</div>`:''}
+    <div class="card-progress">
+      <div class="progress-row"><span>${checksTotal>0?`${checksDone}/${checksTotal} checks`:'Progress'}</span><span>${progress}%</span></div>
+      <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${progress}%"></div></div>
+    </div>
+    <div class="card-footer">
+      <div class="card-assignee">
+        <div class="avatar" style="background:${avColor}">${initials}</div>
+        <span class="assignee-name">${d.banker||'Unassigned'}</span>
+      </div>
+      <div class="card-due ${dueClass}">
+        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        ${dueText}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── DRAG & DROP ───
+function dropCard(e, targetStage) {
+  e.preventDefault();
+  if(dragCard === null) return;
+  const d = deals.find(x=>x.id===dragCard);
+  if(d && d.stage !== targetStage) {
+    d.stage = targetStage;
+    d.activity = d.activity || [];
+    d.activity.unshift({t:`Moved to ${targetStage}`, d:'just now'});
+    save();
+    renderBoard();
+    toast(`✓ Moved to ${targetStage}`);
+  }
+  dragCard = null;
+}
+
+// ─── FILTER ───
+function setFilter(el, f) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-tag').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderBoard();
+}
+
+// ─── DETAIL MODAL ───
+function openDetail(id) {
+  const d = deals.find(x=>x.id===id);
+  if(!d) return;
+  const modal = document.getElementById('detailModalContent');
+  const progress = STAGE_PROGRESS[d.stage] || 0;
+  const cls = STAGE_CLASS[d.stage] || 'prospect';
+  const typeClass = {IPO:'type-ipo','SME IPO':'type-sme',Debt:'type-debt',Rights:'type-rights'}[d.type]||'type-ipo';
+  const checks = d.checks || {};
+  const checkKeys = Object.keys(checks);
+  const activity = d.activity || [];
+
+  const feeAmt = d.size && d.fee ? (parseFloat(d.size)*parseFloat(d.fee)/100).toFixed(2) : '–';
+
+  modal.innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div class="modal-title">${d.company}</div>
+          <div class="card-type ${typeClass}" style="font-size:11px;padding:3px 9px">${d.type}</div>
+        </div>
+        <div style="font-size:13px;color:var(--muted)">${d.sector||''} · ₹${d.size||'–'}Cr · Fee ${d.fee||'–'}% (≈₹${feeAmt}Cr)</div>
+      </div>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-section">
+        <div class="modal-section-title">Stage</div>
+        <div class="stage-stepper">
+          ${STAGES.map(s=>`<div class="stage-step ${d.stage===s?'active':''}"
+            style="${d.stage===s?`background:var(--hl-${STAGE_CLASS[s]});border-color:var(--hl-${STAGE_CLASS[s]})`:''};"
+            onclick="moveStage(${id},'${s}')">${s}</div>`).join('')}
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Details</div>
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">Issue Size</div><div class="detail-value">₹${d.size||'–'} Cr</div></div>
+          <div class="detail-item"><div class="detail-label">Success Fee</div><div class="detail-value">${d.fee||'–'}% · ₹${feeAmt}Cr</div></div>
+          <div class="detail-item"><div class="detail-label">Lead Banker</div><div class="detail-value">${d.banker||'–'}</div></div>
+          <div class="detail-item"><div class="detail-label">Target Close</div><div class="detail-value">${d.due||'–'}</div></div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Checklist</div>
+        <div class="checklist" id="checklist-${id}">
+          ${checkKeys.map(k=>`
+            <label class="check-item ${checks[k]?'done':''}">
+              <input type="checkbox" ${checks[k]?'checked':''} onchange="toggleCheck(${id},'${k}',this.checked)">
+              ${k}
+            </label>`).join('')}
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Notes</div>
+        <textarea class="note-input" rows="3" id="notes-${id}">${d.notes||''}</textarea>
+        <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="saveNotes(${id})">Save Notes</button>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Activity</div>
+        <div class="activity-list">
+          ${activity.map(a=>`<div class="activity-item">
+            <div class="activity-dot"></div>
+            <div><div class="activity-text">${a.t}</div><div class="activity-time">${a.d}</div></div>
+          </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input class="form-input" id="act-input-${id}" placeholder="Add note…" style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="addActivity(${id})">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" style="color:var(--red);border-color:rgba(192,57,43,0.25)" onclick="deleteDeal(${id})">Delete Deal</button>
+      <button class="btn btn-primary" onclick="closeDetail()">Done</button>
+    </div>
+  `;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeDetail() { document.getElementById('detailModal').classList.remove('open'); renderBoard(); }
+
+function moveStage(id, stage) {
+  const d = deals.find(x=>x.id===id);
+  if(!d || d.stage===stage) return;
+  d.stage = stage;
+  d.activity = d.activity || [];
+  d.activity.unshift({t:`Moved to ${stage}`,d:'just now'});
+  save();
+  openDetail(id);
+  toast(`✓ Moved to ${stage}`);
+}
+
+function toggleCheck(id, key, val) {
+  const d = deals.find(x=>x.id===id);
+  if(!d) return;
+  d.checks[key] = val;
+  save();
+}
+
+function saveNotes(id) {
+  const d = deals.find(x=>x.id===id);
+  if(!d) return;
+  d.notes = document.getElementById(`notes-${id}`).value;
+  d.activity = d.activity||[];
+  d.activity.unshift({t:'Notes updated',d:'just now'});
+  save();
+  toast('✓ Notes saved');
+}
+
+function addActivity(id) {
+  const inp = document.getElementById(`act-input-${id}`);
+  const text = inp.value.trim();
+  if(!text) return;
+  const d = deals.find(x=>x.id===id);
+  if(!d) return;
+  d.activity = d.activity||[];
+  d.activity.unshift({t:text,d:'just now'});
+  inp.value = '';
+  save();
+  openDetail(id);
+}
+
+function deleteDeal(id) {
+  if(!confirm('Delete this deal?')) return;
+  deals = deals.filter(x=>x.id!==id);
+  save();
+  closeDetail();
+  renderBoard();
+  toast('Deal deleted');
+}
+
+// ─── ADD DEAL ───
+let prefillStage = 'Prospect';
+function openAddDeal(stage='Prospect') {
+  prefillStage = stage;
+  document.getElementById('f-stage').value = stage;
+  document.getElementById('addModal').classList.add('open');
+}
+function closeAddDeal() { document.getElementById('addModal').classList.remove('open'); }
+
+function saveNewDeal() {
+  const company = document.getElementById('f-company').value.trim();
+  if(!company) { toast('⚠ Company name required'); return; }
+  const newDeal = {
+    id: Date.now(),
+    company,
+    type: document.getElementById('f-type').value,
+    size: document.getElementById('f-size').value,
+    sector: document.getElementById('f-sector').value,
+    stage: document.getElementById('f-stage').value,
+    due: document.getElementById('f-due').value,
+    banker: document.getElementById('f-banker').value,
+    fee: document.getElementById('f-fee').value,
+    notes: document.getElementById('f-notes').value,
+    activity: [{t:'Deal created',d:'just now'}],
+    checks: {DRHP:false,Valuation:false,SEBI:false,Roadshow:false,Allotment:false}
+  };
+  deals.push(newDeal);
+  save();
+  closeAddDeal();
+  renderBoard();
+  toast(`✓ Deal "${company}" created`);
+  // clear form
+  ['f-company','f-size','f-sector','f-due','f-banker','f-fee','f-notes'].forEach(id=>document.getElementById(id).value='');
+}
+
+// ─── TOAST ───
+function toast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'var(--red)' : 'var(--ok)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── CLOSE ON OVERLAY CLICK ───
+document.getElementById('detailModal').addEventListener('click', function(e){ if(e.target===this) closeDetail(); });
+document.getElementById('addModal').addEventListener('click', function(e){ if(e.target===this) closeAddDeal(); });
+
+// ─── INIT ───
+renderBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ipowork — Deal Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #FAFAF8;
+  --surface: #FFFFFF;
+  --card:    #FFFFFF;
+  --card2:   #F7F3EE;
+  --teal:    #0D5C6B;
+  --teal2:   #1A7D90;
+  --tld:     #08404D;
+  --green:   #0D5C6B;
+  --green2:  #1A7D90;
+  --ok:      #1A9E6B;
+  --tl:      #0D5C6B;
+  --tll:     #1A7D90;
+  --saffron: #E88A2E;
+  --saffron2:#D4860C;
+  --gold:    #C9932A;
+  --gold2:   #E88A2E;
+  --amber:   #E88A2E;
+  --amber2:  #C9932A;
+  --sf:      #E88A2E;
+  --go:      #C9932A;
+  --red:     #C0392B;
+  --er:      #C0392B;
+  --orange:  #E88A2E;
+  --wn:      #D4860C;
+  --violet:  #5B6FEC;
+  --purple:  #5B6FEC;
+  --cyan:    #0D5C6B;
+  --cyan2:   #1A7D90;
+  --blue:    #1A7D90;
+  --text:    #2C3E47;
+  --txt:     #2C3E47;
+  --sl:      #2C3E47;
+  --muted:   #6B7E85;
+  --mu:      #6B7E85;
+  --dim:     #6B7E85;
+  --cr:      #F7F3EE;
+  --iv:      #FAFAF8;
+  --wh:      #FFFFFF;
+  --border:  rgba(13, 92, 107, .15);
+  --border2: rgba(13, 92, 107, .1);
+  --bd:      #E2E8EA;
+  --bdr:     rgba(13, 92, 107, .15);
+  --bdr2:    rgba(13, 92, 107, .06);
+  --sur:     #FFFFFF;
+  --dimmer:  rgba(13, 92, 107, .04);
+  --sh:      0 2px 12px rgba(13, 92, 107, .08);
+  --sh2:     0 8px 32px rgba(13, 92, 107, .16);
+  --bar:     54px;
+  --sw:      240px;
+  --ra:      10px;
+  --font:    'Sora', sans-serif;
+  --serif:   'Fraunces', Georgia, serif;
+  --mono:    'IBM Plex Mono', monospace;
+
+  /* Semantic aliases for new files */
+  --accent:   #0D5C6B;
+  --accent2:  #1A7D90;
+  --accent3:  #08404D;
+  --surface2: #F7F3EE;
+  --surface3: #EEF5F6;
+  --surface4: #E2EEF0;
+  --b1:       #E2E8EA;
+  --b2:       rgba(13, 92, 107, .15);
+  --b3:       rgba(13, 92, 107, .1);
+  --faint:    rgba(13, 92, 107, .04);
+}
+body{font-family:'Sora', sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;letter-spacing:-0.5px;}
+.logo span{color:#0D5C6B;}
+.topbar-center{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);}
+.topbar-center strong{color:var(--text);}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:'Sora', sans-serif;}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-primary:hover{background:#08404D;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border2);}
+.btn-ghost:hover{color:var(--text);border-color:var(--teal);}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(192,57,43,0.25);}
+.btn-danger:hover{background:var(--red-dim);}
+.btn-green{background:var(--ok);color:#000;}
+.btn-green:hover{background:#1A9E6B;}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px);}
+
+/* SIDEBAR */
+.sidebar{width:300px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-head{padding:14px 16px;border-bottom:1px solid var(--border);}
+.sidebar-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.search-box{display:flex;align-items:center;gap:7px;background:var(--card2);border:1px solid var(--border2);border-radius:7px;padding:6px 10px;}
+.search-box input{background:transparent;border:none;outline:none;font-size:12px;color:var(--text);font-family:'Sora', sans-serif;width:100%;}
+.search-box input::placeholder{color:var(--muted);}
+.room-list{flex:1;overflow-y:auto;padding:8px;}
+.room-item{padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all .15s;margin-bottom:2px;}
+.room-item:hover{background:var(--card2);border-color:var(--border2);}
+.room-item.active{background:var(--bd);border-color:var(--teal);}
+.room-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:6px;}
+.room-meta{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);}
+.room-type-badge{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.rt-ipo{background:rgba(13,92,107,0.10);color:#0D5C6B;}
+.rt-sme{background:rgba(26,158,107,0.10);color:#1A9E6B;}
+.rt-debt{background:rgba(232,138,46,0.12);color:#E88A2E;}
+.rt-rights{background:rgba(91,111,236,0.10);color:#B8A8CC;}
+.room-unread{background:var(--teal);color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.lock-icon{font-size:11px;color:var(--muted);}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ROOM HEADER */
+.room-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface);}
+.room-header-left{display:flex;flex-direction:column;gap:2px;}
+.room-header-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+.room-header-sub{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.room-header-right{display:flex;align-items:center;gap:8px;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);}
+.status-dot.inactive{background:var(--muted);}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 20px;}
+.tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.tab.active{color:var(--text);border-bottom-color:var(--teal);}
+.tab:hover{color:var(--text);}
+.tab-badge{background:var(--bd);color:var(--muted);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;}
+.tab.active .tab-badge{background:rgba(13,92,107,0.08);color:var(--teal);}
+
+/* CONTENT AREA */
+.content{flex:1;overflow-y:auto;padding:20px;}
+
+/* ── DOCUMENTS TAB ── */
+.doc-upload-zone{border:1.5px dashed var(--border2);border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px;}
+.doc-upload-zone:hover,.doc-upload-zone.dragover{border-color:var(--teal);background:rgba(13,92,107,0.08);}
+.doc-upload-zone .upload-icon{font-size:28px;margin-bottom:8px;}
+.doc-upload-zone p{font-size:13px;color:var(--muted);}
+.doc-upload-zone strong{color:var(--teal);}
+.doc-grid{display:flex;flex-direction:column;gap:8px;}
+.doc-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card2);border:1px solid var(--border);border-radius:10px;transition:all .15s;}
+.doc-row:hover{border-color:var(--border2);}
+.doc-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.doc-icon.pdf{background:rgba(192,57,43,0.10);color:var(--red);}
+.doc-icon.xlsx{background:rgba(26,158,107,0.10);color:var(--ok);}
+.doc-icon.pptx{background:rgba(232,138,46,0.10);color:var(--saffron);}
+.doc-icon.docx{background:rgba(13,92,107,0.10);color:var(--teal);}
+.doc-icon.img{background:rgba(91,111,236,0.10);color:var(--purple);}
+.doc-info{flex:1;min-width:0;}
+.doc-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.doc-actions{display:flex;align-items:center;gap:6px;}
+.doc-views{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-right:4px;}
+.doc-access-badge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;}
+.access-all{background:rgba(26,158,107,0.10);color:var(--ok);}
+.access-restricted{background:rgba(192,57,43,0.10);color:var(--red);}
+.access-nda{background:rgba(232,138,46,0.10);color:var(--saffron);}
+
+/* ── INVESTORS TAB ── */
+.investor-table{width:100%;border-collapse:collapse;}
+.investor-table th{text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;border-bottom:1px solid var(--border);}
+.investor-table td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+.investor-table tr:last-child td{border-bottom:none;}
+.investor-table tr:hover td{background:var(--card2);}
+.inv-name{font-weight:500;color:var(--text);}
+.inv-org{font-size:11px;color:var(--muted);}
+.access-pill{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;cursor:pointer;}
+.pill-full{background:rgba(26,158,107,0.10);color:var(--ok);}
+.pill-nda{background:rgba(232,138,46,0.10);color:var(--saffron);}
+.pill-teaser{background:rgba(13,92,107,0.10);color:var(--teal);}
+.pill-revoked{background:rgba(192,57,43,0.10);color:var(--red);}
+.last-seen{font-size:12px;color:var(--muted);}
+.activity-bar{display:flex;gap:2px;}
+.act-pip{width:6px;height:6px;border-radius:2px;background:var(--border2);}
+.act-pip.on{background:var(--teal);}
+.invite-row{display:flex;gap:8px;margin-bottom:16px;}
+.invite-row input{flex:1;background:var(--card2);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;font-family:'Sora', sans-serif;}
+.invite-row input:focus{border-color:var(--teal);}
+
+/* ── ACCESS LOG TAB ── */
+.log-list{display:flex;flex-direction:column;gap:6px;}
+.log-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card2);border:1px solid var(--border);border-radius:9px;font-size:12px;}
+.log-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.log-icon.view{background:rgba(13,92,107,0.10);color:var(--teal);}
+.log-icon.download{background:rgba(26,158,107,0.10);color:var(--ok);}
+.log-icon.share{background:rgba(91,111,236,0.10);color:var(--purple);}
+.log-icon.invite{background:rgba(232,138,46,0.10);color:var(--saffron);}
+.log-icon.revoke{background:rgba(192,57,43,0.10);color:var(--red);}
+.log-icon.join{background:rgba(26,125,144,0.10);color:var(--teal2);}
+.log-body{flex:1;}
+.log-action{color:var(--text);font-weight:500;}
+.log-detail{color:var(--muted);font-size:11px;margin-top:1px;}
+.log-time{font-size:11px;color:var(--dimmer);font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.log-filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.log-filter{font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-family:'Sora', sans-serif;}
+.log-filter.active{background:rgba(13,92,107,0.08);color:var(--teal);border-color:var(--teal);}
+
+/* ── SHARE LINK MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(13,92,107,0.55);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:480px;max-width:95vw;transform:translateY(16px);transition:transform .2s;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border);}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+.modal-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:18px;}
+.modal-body{padding:18px 20px;}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;display:block;}
+.form-input{width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;color:var(--text);font-size:13px;outline:none;font-family:'Sora', sans-serif;transition:border-color .15s;}
+.form-input:focus{border-color:var(--teal);}
+select.form-input{cursor:pointer;}
+.link-box{display:flex;gap:8px;margin-top:6px;}
+.link-display{flex:1;background:var(--bd);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--teal);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);}
+.access-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.access-opt{padding:10px 12px;border:1px solid var(--border2);border-radius:8px;cursor:pointer;transition:all .15s;text-align:center;}
+.access-opt:hover{border-color:var(--teal);}
+.access-opt.selected{border-color:var(--teal);background:rgba(13,92,107,0.08);}
+.access-opt-icon{font-size:20px;margin-bottom:4px;}
+.access-opt-label{font-size:12px;font-weight:500;color:var(--text);}
+.access-opt-desc{font-size:10px;color:var(--muted);margin-top:2px;}
+.expiry-row{display:flex;gap:8px;}
+.nda-checkbox{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:10px 12px;background:var(--card2);border-radius:8px;margin-bottom:10px;}
+.nda-checkbox input{accent-color:var(--teal);}
+
+/* EMPTY STATE */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;color:var(--muted);text-align:center;}
+.empty-icon{font-size:40px;margin-bottom:12px;opacity:.4;}
+.empty-title{font-size:15px;font-weight:500;color:var(--text);margin-bottom:6px;}
+.empty-sub{font-size:13px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--card2);border:1px solid var(--ok);color:var(--text);padding:10px 16px;border-radius:8px;font-size:13px;z-index:999;transform:translateY(10px);opacity:0;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* NEW ROOM BUTTON */
+.new-room-btn{width:100%;padding:8px;background:transparent;border:1px dashed var(--border2);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;text-align:center;transition:all .15s;font-family:'Sora', sans-serif;}
+.new-room-btn:hover{border-color:var(--teal);color:var(--teal);}
+.stat-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;}
+.stat-chip strong{color:var(--text);}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="logo">ipo<span>work</span></div>
+    <span style="color:var(--border2);font-size:16px">|</span>
+    <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--muted)">Deal Room</span>
+  </div>
+  <div class="topbar-right">
+    <div class="stat-chip"><strong id="chip-rooms">0</strong> Rooms</div>
+    <div class="stat-chip"><strong id="chip-investors">0</strong> Investors</div>
+    <button class="btn btn-ghost" onclick="location.href='https://www.ipowork.com'">← Portal</button>
+    <button class="btn btn-primary" onclick="openNewRoom()">＋ New Room</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-title">Deal Rooms</div>
+      <div class="search-box">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#6B7E85;flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="roomSearch" placeholder="Search rooms…" oninput="renderSidebar()">
+      </div>
+    </div>
+    <div class="room-list" id="roomList"></div>
+    <div class="sidebar-footer">
+      <button class="new-room-btn" onclick="openNewRoom()">＋ Create Deal Room</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="mainArea">
+    <div class="empty-state">
+      <div class="empty-icon">🏛️</div>
+      <div class="empty-title">Select a Deal Room</div>
+      <div class="empty-sub">Choose a room from the sidebar or create a new one</div>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE LINK MODAL -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Share Access Link</div>
+      <button class="modal-close" onclick="closeShareModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Recipient Name</label>
+        <input class="form-input" id="sh-name" placeholder="e.g. Ramesh Agarwal">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email / WhatsApp</label>
+        <input class="form-input" id="sh-email" placeholder="e.g. ramesh@aif.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Organization</label>
+        <input class="form-input" id="sh-org" placeholder="e.g. Abakkus Asset Manager">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Access Level</label>
+        <div class="access-options">
+          <div class="access-opt selected" data-level="Teaser" onclick="selectAccess(this,'Teaser')">
+            <div class="access-opt-icon">👁️</div>
+            <div class="access-opt-label">Teaser</div>
+            <div class="access-opt-desc">Summary + cover only</div>
+          </div>
+          <div class="access-opt" data-level="NDA Required" onclick="selectAccess(this,'NDA Required')">
+            <div class="access-opt-icon">📋</div>
+            <div class="access-opt-label">NDA Required</div>
+            <div class="access-opt-desc">Full IM after NDA sign</div>
+          </div>
+          <div class="access-opt" data-level="Full Access" onclick="selectAccess(this,'Full Access')">
+            <div class="access-opt-icon">🔓</div>
+            <div class="access-opt-label">Full Access</div>
+            <div class="access-opt-desc">All documents</div>
+          </div>
+          <div class="access-opt" data-level="View Only" onclick="selectAccess(this,'View Only')">
+            <div class="access-opt-icon">🔒</div>
+            <div class="access-opt-label">View Only</div>
+            <div class="access-opt-desc">No download allowed</div>
+          </div>
+        </div>
+      </div>
+      <div class="expiry-row">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Link Expires</label>
+          <select class="form-input" id="sh-expiry">
+            <option>7 days</option>
+            <option>14 days</option>
+            <option>30 days</option>
+            <option>Never</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Max Views</label>
+          <select class="form-input" id="sh-maxviews">
+            <option>Unlimited</option>
+            <option>1</option>
+            <option>3</option>
+            <option>5</option>
+            <option>10</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Shareable Link</label>
+        <div class="link-box">
+          <div class="link-display" id="generatedLink">—</div>
+          <button class="btn btn-ghost" style="flex-shrink:0" onclick="copyLink()">Copy</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeShareModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmShare()">Add Investor & Share</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW ROOM MODAL -->
+<div class="modal-overlay" id="newRoomModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Create Deal Room</div>
+      <button class="modal-close" onclick="closeNewRoom()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Deal Name *</label>
+        <input class="form-input" id="nr-name" placeholder="e.g. Nexgen Infracon SME IPO">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Deal Type</label>
+          <select class="form-input" id="nr-type">
+            <option>IPO</option>
+            <option>SME IPO</option>
+            <option>Debt</option>
+            <option>Rights</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Issue Size (₹ Cr)</label>
+          <input class="form-input" id="nr-size" placeholder="e.g. 250">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sector</label>
+        <input class="form-input" id="nr-sector" placeholder="e.g. Infrastructure">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lead MB / Banker</label>
+        <input class="form-input" id="nr-banker" placeholder="e.g. Jiwesh K.">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeNewRoom()">Cancel</button>
+      <button class="btn btn-primary" onclick="createRoom()">Create Room</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Upload Document</div>
+      <button class="modal-close" onclick="document.getElementById('uploadModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Document Name *</label>
+        <input class="form-input" id="up-name" placeholder="e.g. DRHP v3 Final.pdf">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">File Type</label>
+          <select class="form-input" id="up-type">
+            <option value="pdf">PDF</option>
+            <option value="xlsx">Excel</option>
+            <option value="pptx">PowerPoint</option>
+            <option value="docx">Word</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">File Size</label>
+          <input class="form-input" id="up-size" placeholder="e.g. 4.2 MB">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Access Restriction</label>
+        <select class="form-input" id="up-access">
+          <option>All Investors</option>
+          <option>NDA Signed Only</option>
+          <option>Full Access Only</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('uploadModal').classList.remove('open')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDoc()">Add Document</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+let rooms = JSON.parse(localStorage.getItem('ipowork_rooms') || 'null') || [
+  {
+    id: 1, name: 'Muthoot Fincorp IPO', type: 'IPO', size: '2500', sector: 'NBFC / Finance', banker: 'Jiwesh K.',
+    created: '2026-05-28', status: 'Active',
+    docs: [
+      {id:1,name:'DRHP v3 Final.pdf',type:'pdf',size:'8.4 MB',access:'NDA Signed Only',uploaded:'2026-06-01',views:7,downloads:2},
+      {id:2,name:'Financial Model FY22-25.xlsx',type:'xlsx',size:'2.1 MB',access:'Full Access Only',uploaded:'2026-05-30',views:4,downloads:1},
+      {id:3,name:'Investor Presentation.pptx',type:'pptx',size:'5.6 MB',access:'All Investors',uploaded:'2026-05-28',views:14,downloads:6},
+      {id:4,name:'Valuation Summary.pdf',type:'pdf',size:'1.2 MB',access:'NDA Signed Only',uploaded:'2026-05-29',views:5,downloads:0},
+    ],
+    investors: [
+      {id:1,name:'Ramesh Agarwal',org:'Abakkus Asset Manager',email:'r.agarwal@abakkus.in',access:'Full Access',lastSeen:'2 hours ago',activity:[1,1,1,0,1,1,0],invited:'2026-05-30'},
+      {id:2,name:'Sneha Kapoor',org:'Nuvama Wealth',email:'sneha.k@nuvama.com',access:'NDA Required',lastSeen:'1 day ago',activity:[0,1,1,0,0,1,1],invited:'2026-05-31'},
+      {id:3,name:'Vikram Singhania',org:'Unifi Capital',email:'v.singhania@unifi.in',access:'Teaser',lastSeen:'3 days ago',activity:[0,0,1,0,0,0,1],invited:'2026-06-01'},
+    ],
+    log: [
+      {type:'view',icon:'view',action:'Ramesh Agarwal viewed DRHP v3 Final.pdf',detail:'Spent 14 min · Page 1–24',time:'2 hrs ago'},
+      {type:'download',icon:'download',action:'Sneha Kapoor downloaded Investor Presentation.pptx',detail:'Full Access granted',time:'5 hrs ago'},
+      {type:'join',icon:'join',action:'Vikram Singhania accessed the Deal Room',detail:'Teaser access · IP: 103.xxx.xx.42',time:'3 days ago'},
+      {type:'invite',icon:'invite',action:'Invite sent to Sneha Kapoor',detail:'NDA Required access · Expires 14 days',time:'3 days ago'},
+      {type:'share',icon:'share',action:'Link generated for Ramesh Agarwal',detail:'Full Access · Expires 30 days',time:'5 days ago'},
+    ]
+  },
+  {
+    id: 2, name: 'PFC NCD Series XI', type: 'Debt', size: '5000', sector: 'PSU / Power Finance', banker: 'Priya S.',
+    created: '2026-05-20', status: 'Active',
+    docs: [
+      {id:1,name:'Information Memorandum.pdf',type:'pdf',size:'3.8 MB',access:'All Investors',uploaded:'2026-05-20',views:22,downloads:11},
+      {id:2,name:'Rating Rationale - CRISIL AAA.pdf',type:'pdf',size:'0.9 MB',access:'All Investors',uploaded:'2026-05-21',views:18,downloads:9},
+      {id:3,name:'Subscription Model.xlsx',type:'xlsx',size:'1.4 MB',access:'Full Access Only',uploaded:'2026-05-22',views:6,downloads:3},
+    ],
+    investors: [
+      {id:1,name:'Suresh Menon',org:'ICICI Prudential MF',email:'s.menon@icicipru.com',access:'Full Access',lastSeen:'1 hour ago',activity:[1,1,1,1,1,0,1],invited:'2026-05-21'},
+      {id:2,name:'Deepa Nair',org:'HDFC Life Insurance',email:'deepa.n@hdfclife.com',access:'Full Access',lastSeen:'4 hours ago',activity:[1,0,1,1,0,1,1],invited:'2026-05-21'},
+      {id:3,name:'Arjun Mehta',org:'SBI Pension Funds',email:'a.mehta@sbipf.com',access:'View Only',lastSeen:'2 days ago',activity:[0,1,0,0,1,0,0],invited:'2026-05-25'},
+    ],
+    log: [
+      {type:'view',icon:'view',action:'Suresh Menon viewed Information Memorandum.pdf',detail:'Spent 22 min · Full document',time:'1 hr ago'},
+      {type:'download',icon:'download',action:'Deepa Nair downloaded Rating Rationale.pdf',detail:'9th download overall',time:'4 hrs ago'},
+      {type:'view',icon:'view',action:'Arjun Mehta viewed IM cover page',detail:'Teaser access only',time:'2 days ago'},
+    ]
+  },
+  {
+    id: 3, name: 'InfoBeans SME IPO', type: 'SME IPO', size: '75', sector: 'IT Services', banker: 'Jiwesh K.',
+    created: '2026-06-01', status: 'Draft',
+    docs: [
+      {id:1,name:'Draft RHP - Confidential.pdf',type:'pdf',size:'6.1 MB',access:'Full Access Only',uploaded:'2026-06-01',views:1,downloads:0},
+    ],
+    investors: [],
+    log: [
+      {type:'invite',icon:'invite',action:'Room created by Jiwesh K.',detail:'Draft status — not shared yet',time:'1 day ago'},
+    ]
+  },
+];
+
+let activeRoomId = 1;
+let activeTab = 'docs';
+let shareAccessLevel = 'Teaser';
+let shareRoomId = null;
+
+function save() { localStorage.setItem('ipowork_rooms', JSON.stringify(rooms)); }
+
+// ── SIDEBAR ──
+function renderSidebar() {
+  const q = document.getElementById('roomSearch').value.toLowerCase();
+  const list = document.getElementById('roomList');
+  const filtered = rooms.filter(r => r.name.toLowerCase().includes(q) || r.type.toLowerCase().includes(q));
+  const typeMap = {IPO:'rt-ipo','SME IPO':'rt-sme',Debt:'rt-debt',Rights:'rt-rights'};
+
+  list.innerHTML = filtered.map(r => `
+    <div class="room-item ${r.id===activeRoomId?'active':''}" onclick="openRoom(${r.id})">
+      <div class="room-name">
+        <span class="lock-icon">🔐</span>
+        ${r.name}
+        ${r.log.length>0?`<div class="room-unread" style="display:${r.id!==activeRoomId?'flex':'none'}">${Math.min(r.log.length,9)}</div>`:''}
+      </div>
+      <div class="room-meta">
+        <div style="display:flex;align-items:center;gap:5px">
+          <span class="room-type-badge ${typeMap[r.type]||'rt-ipo'}">${r.type}</span>
+          <span>₹${r.size}Cr</span>
+        </div>
+        <span style="display:flex;align-items:center;gap:4px">
+          <span style="width:5px;height:5px;border-radius:50%;background:${r.status==='Active'?'var(--ok)':'var(--muted)'}"></span>
+          ${r.investors.length} investors
+        </span>
+      </div>
+    </div>
+  `).join('') || '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">No rooms found</div>';
+
+  // update chips
+  document.getElementById('chip-rooms').textContent = rooms.length;
+  document.getElementById('chip-investors').textContent = rooms.reduce((s,r)=>s+r.investors.length,0);
+}
+
+// ── OPEN ROOM ──
+function openRoom(id) {
+  activeRoomId = id;
+  activeTab = 'docs';
+  renderSidebar();
+  renderMain();
+}
+
+function renderMain() {
+  const room = rooms.find(r=>r.id===activeRoomId);
+  if(!room) return;
+  const typeMap = {IPO:'rt-ipo','SME IPO':'rt-sme',Debt:'rt-debt',Rights:'rt-rights'};
+  const main = document.getElementById('mainArea');
+
+  main.innerHTML = `
+    <div class="room-header">
+      <div class="room-header-left">
+        <div class="room-header-title">🔐 ${room.name}</div>
+        <div class="room-header-sub">
+          <div class="status-dot ${room.status==='Active'?'':'inactive'}"></div>
+          ${room.status} ·
+          <span class="room-type-badge ${typeMap[room.type]||'rt-ipo'}">${room.type}</span>
+          · ₹${room.size}Cr · ${room.sector} · ${room.banker}
+        </div>
+      </div>
+      <div class="room-header-right">
+        <button class="btn btn-ghost" onclick="openShareModal(${room.id})">＋ Invite Investor</button>
+        <button class="btn btn-primary" onclick="openUploadModal(${room.id})">↑ Upload Doc</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab ${activeTab==='docs'?'active':''}" onclick="switchTab('docs')">
+        📄 Documents <span class="tab-badge">${room.docs.length}</span>
+      </div>
+      <div class="tab ${activeTab==='investors'?'active':''}" onclick="switchTab('investors')">
+        👥 Investors <span class="tab-badge">${room.investors.length}</span>
+      </div>
+      <div class="tab ${activeTab==='log'?'active':''}" onclick="switchTab('log')">
+        📋 Access Log <span class="tab-badge">${room.log.length}</span>
+      </div>
+    </div>
+    <div class="content" id="tabContent"></div>
+  `;
+  renderTab();
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabs = document.querySelectorAll('.tab');
+  const idx = {docs:0,investors:1,log:2}[tab];
+  if(tabs[idx]) tabs[idx].classList.add('active');
+  renderTab();
+}
+
+function renderTab() {
+  const room = rooms.find(r=>r.id===activeRoomId);
+  if(!room) return;
+  const content = document.getElementById('tabContent');
+  if(!content) return;
+
+  if(activeTab === 'docs') {
+    const iconMap = {pdf:'pdf',xlsx:'xlsx',pptx:'pptx',docx:'docx'};
+    const emojiMap = {pdf:'📄',xlsx:'📊',pptx:'📑',docx:'📝'};
+    const accessMap = {'All Investors':'access-all','NDA Signed Only':'access-nda','Full Access Only':'access-restricted'};
+    content.innerHTML = `
+      <div class="doc-upload-zone" onclick="openUploadModal(${room.id})"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="event.preventDefault();this.classList.remove('dragover');openUploadModal(${room.id})">
+        <div class="upload-icon">☁️</div>
+        <p>Drop files here or <strong>click to upload</strong></p>
+        <p style="font-size:11px;margin-top:4px">DRHP · RHP · IM · Financial Models · Presentations</p>
+      </div>
+      <div class="doc-grid">
+        ${room.docs.map(d=>`
+          <div class="doc-row">
+            <div class="doc-icon ${iconMap[d.type]||'pdf'}">${emojiMap[d.type]||'📄'}</div>
+            <div class="doc-info">
+              <div class="doc-name">${d.name}</div>
+              <div class="doc-meta">${d.size} · Uploaded ${d.uploaded}</div>
+            </div>
+            <div class="doc-actions">
+              <div class="doc-views">👁 ${d.views}</div>
+              <div class="doc-views" style="margin-right:0">⬇ ${d.downloads}</div>
+              <span class="doc-access-badge ${accessMap[d.access]||'access-all'}" style="margin:0 6px">${d.access}</span>
+              <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="deleteDoc(${room.id},${d.id})">✕</button>
+            </div>
+          </div>
+        `).join('')}
+        ${room.docs.length===0?'<div class="empty-state"><div class="empty-icon">📁</div><div class="empty-title">No documents yet</div><div class="empty-sub">Upload DRHP, IM, presentations to get started</div></div>':''}
+      </div>
+    `;
+  }
+
+  if(activeTab === 'investors') {
+    const accessClass = {'Full Access':'pill-full','NDA Required':'pill-nda','Teaser':'pill-teaser','View Only':'pill-nda','Revoked':'pill-revoked'};
+    content.innerHTML = `
+      <div class="invite-row">
+        <input placeholder="Quick invite: name or email" id="quickInviteInput">
+        <button class="btn btn-primary" onclick="openShareModal(${room.id})">＋ Invite</button>
+      </div>
+      ${room.investors.length === 0 ?
+        '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No investors yet</div><div class="empty-sub">Invite investors to share deal documents securely</div></div>' :
+        `<table class="investor-table">
+          <thead><tr>
+            <th>Investor</th>
+            <th>Access Level</th>
+            <th>Last Seen</th>
+            <th>Activity (7d)</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody>
+            ${room.investors.map(inv=>`
+              <tr>
+                <td>
+                  <div class="inv-name">${inv.name}</div>
+                  <div class="inv-org">${inv.org} · ${inv.email}</div>
+                </td>
+                <td>
+                  <span class="access-pill ${accessClass[inv.access]||'pill-teaser'}" 
+                    onclick="cycleAccess(${room.id},${inv.id})" title="Click to change">${inv.access}</span>
+                </td>
+                <td><div class="last-seen">${inv.lastSeen}</div></td>
+                <td>
+                  <div class="activity-bar">
+                    ${(inv.activity||[0,0,0,0,0,0,0]).map(a=>`<div class="act-pip ${a?'on':''}"></div>`).join('')}
+                  </div>
+                </td>
+                <td style="display:flex;gap:6px;align-items:center">
+                  <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px" onclick="resendInvite(${inv.id})">Resend</button>
+                  <button class="btn btn-danger" style="padding:4px 8px;font-size:11px" onclick="revokeAccess(${room.id},${inv.id})">Revoke</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`
+      }
+    `;
+  }
+
+  if(activeTab === 'log') {
+    const iconClass = {view:'view',download:'download',share:'share',invite:'invite',revoke:'revoke',join:'join'};
+    content.innerHTML = `
+      <div class="log-filter-row">
+        <button class="log-filter active" onclick="filterLog(this,'all')">All</button>
+        <button class="log-filter" onclick="filterLog(this,'view')">👁 Views</button>
+        <button class="log-filter" onclick="filterLog(this,'download')">⬇ Downloads</button>
+        <button class="log-filter" onclick="filterLog(this,'invite')">✉ Invites</button>
+      </div>
+      <div class="log-list" id="logList">
+        ${room.log.map(l=>`
+          <div class="log-item" data-type="${l.type}">
+            <div class="log-icon ${iconClass[l.icon]||'view'}">
+              ${{view:'👁',download:'⬇',share:'🔗',invite:'✉',revoke:'🚫',join:'🔑'}[l.icon]||'📋'}
+            </div>
+            <div class="log-body">
+              <div class="log-action">${l.action}</div>
+              <div class="log-detail">${l.detail}</div>
+            </div>
+            <div class="log-time">${l.time}</div>
+          </div>
+        `).join('')}
+        ${room.log.length===0?'<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No activity yet</div></div>':''}
+      </div>
+    `;
+  }
+}
+
+function filterLog(el, type) {
+  document.querySelectorAll('.log-filter').forEach(f=>f.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#logList .log-item').forEach(item => {
+    item.style.display = (type==='all' || item.dataset.type===type) ? 'flex' : 'none';
+  });
+}
+
+// ── DOCS ──
+function openUploadModal(roomId) {
+  shareRoomId = roomId;
+  document.getElementById('uploadModal').classList.add('open');
+}
+function saveDoc() {
+  const name = document.getElementById('up-name').value.trim();
+  if(!name) { toast('⚠ Document name required'); return; }
+  const room = rooms.find(r=>r.id===shareRoomId);
+  if(!room) return;
+  room.docs.push({
+    id: Date.now(),
+    name,
+    type: document.getElementById('up-type').value,
+    size: document.getElementById('up-size').value || '—',
+    access: document.getElementById('up-access').value,
+    uploaded: new Date().toISOString().slice(0,10),
+    views: 0, downloads: 0
+  });
+  room.log.unshift({type:'invite',icon:'invite',action:`Document "${name}" uploaded`,detail:document.getElementById('up-access').value,time:'just now'});
+  save();
+  document.getElementById('uploadModal').classList.remove('open');
+  document.getElementById('up-name').value='';
+  renderMain();
+  toast('✓ Document added');
+}
+function deleteDoc(roomId, docId) {
+  if(!confirm('Remove this document?')) return;
+  const room = rooms.find(r=>r.id===roomId);
+  room.docs = room.docs.filter(d=>d.id!==docId);
+  save(); renderTab(); toast('Document removed');
+}
+
+// ── INVESTORS ──
+function cycleAccess(roomId, invId) {
+  const levels = ['Teaser','NDA Required','View Only','Full Access','Revoked'];
+  const room = rooms.find(r=>r.id===roomId);
+  const inv = room?.investors.find(i=>i.id===invId);
+  if(!inv) return;
+  const idx = levels.indexOf(inv.access);
+  inv.access = levels[(idx+1)%levels.length];
+  room.log.unshift({type:'invite',icon:'share',action:`${inv.name}'s access changed to ${inv.access}`,detail:'Manual update',time:'just now'});
+  save(); renderTab(); toast(`Access updated: ${inv.access}`);
+}
+function revokeAccess(roomId, invId) {
+  const room = rooms.find(r=>r.id===roomId);
+  const inv = room?.investors.find(i=>i.id===invId);
+  if(!inv || !confirm(`Revoke access for ${inv.name}?`)) return;
+  room.log.unshift({type:'revoke',icon:'revoke',action:`Access revoked for ${inv.name}`,detail:inv.org,time:'just now'});
+  room.investors = room.investors.filter(i=>i.id!==invId);
+  save(); renderTab(); toast(`Access revoked for ${inv.name}`);
+}
+function resendInvite(invId) { toast('✉ Invite resent via email'); }
+
+// ── SHARE MODAL ──
+function openShareModal(roomId) {
+  shareRoomId = roomId;
+  shareAccessLevel = 'Teaser';
+  document.querySelectorAll('.access-opt').forEach(o=>o.classList.remove('selected'));
+  document.querySelector('.access-opt[data-level="Teaser"]').classList.add('selected');
+  generateLink();
+  document.getElementById('shareModal').classList.add('open');
+}
+function closeShareModal() { document.getElementById('shareModal').classList.remove('open'); }
+function selectAccess(el, level) {
+  document.querySelectorAll('.access-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  shareAccessLevel = level;
+  generateLink();
+}
+function generateLink() {
+  const token = Math.random().toString(36).slice(2,10).toUpperCase();
+  const link = `https://ipowork.com/room/${shareRoomId}?t=${token}&a=${shareAccessLevel.toLowerCase().replace(/ /g,'-')}`;
+  document.getElementById('generatedLink').textContent = link;
+}
+function copyLink() {
+  const link = document.getElementById('generatedLink').textContent;
+  navigator.clipboard.writeText(link).catch(()=>{});
+  toast('✓ Link copied to clipboard');
+}
+function confirmShare() {
+  const name = document.getElementById('sh-name').value.trim();
+  const email = document.getElementById('sh-email').value.trim();
+  const org = document.getElementById('sh-org').value.trim();
+  if(!name) { toast('⚠ Recipient name required'); return; }
+  const room = rooms.find(r=>r.id===shareRoomId);
+  if(!room) return;
+  const newInv = {
+    id: Date.now(), name, org: org||'—', email: email||'—',
+    access: shareAccessLevel,
+    lastSeen: 'Never',
+    activity: [0,0,0,0,0,0,0],
+    invited: new Date().toISOString().slice(0,10)
+  };
+  room.investors.push(newInv);
+  room.log.unshift({
+    type:'invite',icon:'invite',
+    action:`Invite sent to ${name}`,
+    detail:`${shareAccessLevel} · Expires ${document.getElementById('sh-expiry').value}`,
+    time:'just now'
+  });
+  save();
+  closeShareModal();
+  renderMain();
+  toast(`✓ ${name} invited with ${shareAccessLevel}`);
+  document.getElementById('sh-name').value='';
+  document.getElementById('sh-email').value='';
+  document.getElementById('sh-org').value='';
+}
+
+// ── NEW ROOM ──
+function openNewRoom() { document.getElementById('newRoomModal').classList.add('open'); }
+function closeNewRoom() { document.getElementById('newRoomModal').classList.remove('open'); }
+function createRoom() {
+  const name = document.getElementById('nr-name').value.trim();
+  if(!name) { toast('⚠ Room name required'); return; }
+  const newRoom = {
+    id: Date.now(),
+    name, type: document.getElementById('nr-type').value,
+    size: document.getElementById('nr-size').value || '—',
+    sector: document.getElementById('nr-sector').value || '—',
+    banker: document.getElementById('nr-banker').value || '—',
+    created: new Date().toISOString().slice(0,10),
+    status: 'Draft',
+    docs: [], investors: [],
+    log: [{type:'invite',icon:'invite',action:`Room created by ${document.getElementById('nr-banker').value||'MB'}`,detail:'Draft status',time:'just now'}]
+  };
+  rooms.push(newRoom);
+  save();
+  closeNewRoom();
+  activeRoomId = newRoom.id;
+  renderSidebar();
+  renderMain();
+  toast(`✓ Deal Room "${name}" created`);
+  ['nr-name','nr-size','nr-sector','nr-banker'].forEach(id=>document.getElementById(id).value='');
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ── MODAL CLOSE ON OVERLAY ──
+['shareModal','newRoomModal','uploadModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click', function(e){
+    if(e.target===this) this.classList.remove('open');
+  });
+});
+
+// ── INIT ──
+renderSidebar();
+openRoom(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ipowork — AIF Behavioral Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #FAFAF8;
+  --surface: #FFFFFF;
+  --card:    #FFFFFF;
+  --card2:   #F7F3EE;
+  --teal:    #0D5C6B;
+  --teal2:   #1A7D90;
+  --tld:     #08404D;
+  --ok:      #1A9E6B;
+  --saffron: #E88A2E;
+  --gold:    #C9932A;
+  --red:     #C0392B;
+  --purple:  #5B6FEC;
+  --text:    #2C3E47;
+  --muted:   #6B7E85;
+  --dim:     #6B7E85;
+  --bd:      #E2E8EA;
+  --border:  rgba(13,92,107,.15);
+  --border2: rgba(13,92,107,.10);
+  --dimmer:  rgba(13,92,107,.04);
+  --sh:      0 2px 12px rgba(13,92,107,.08);
+  --sh2:     0 8px 32px rgba(13,92,107,.16);
+  --font:    'Sora', sans-serif;
+  --mono:    'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);}
+
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--surface);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;box-shadow:var(--sh);}
+.logo{font-weight:700;font-size:16px;letter-spacing:-.3px;color:var(--text);}
+.logo b{color:var(--teal);}
+.topbar-mid{display:flex;align-items:center;gap:10px;}
+.pg-tag{font-size:11px;font-weight:600;color:var(--muted);background:var(--bg);border:1px solid var(--bd);border-radius:5px;padding:3px 10px;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:var(--font);transition:all .15s;}
+.btn-teal{background:var(--teal);color:#fff;}
+.btn-teal:hover{background:var(--tld);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--bd);}
+.btn-ghost:hover{color:var(--teal);border-color:var(--teal);}
+
+/* ── LAYOUT ── */
+.shell{display:flex;height:calc(100vh - 52px);overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;}
+.sb-head{padding:14px 16px 10px;border-bottom:1px solid var(--bd);}
+.sb-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+.search{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:6px 10px;}
+.search input{background:transparent;border:none;outline:none;font-size:12px;color:var(--text);font-family:var(--font);width:100%;}
+.search input::placeholder{color:var(--muted);}
+.aif-list{flex:1;overflow-y:auto;padding:6px;}
+.aif-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all .15s;margin-bottom:1px;}
+.aif-row:hover{background:var(--bg);border-color:var(--bd);}
+.aif-row.active{background:rgba(13,92,107,.06);border-color:rgba(13,92,107,.25);}
+.aif-ava{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;color:#fff;}
+.aif-info{flex:1;min-width:0;}
+.aif-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aif-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.aif-eng{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sb-footer{padding:10px 12px;border-top:1px solid var(--bd);}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── GRAPH AREA ── */
+.graph-area{flex:1;position:relative;overflow:hidden;background:var(--bg);}
+canvas#gc{position:absolute;inset:0;}
+
+/* ── GRAPH OVERLAYS ── */
+.legend{position:absolute;top:14px;left:14px;background:var(--surface);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;box-shadow:var(--sh);}
+.leg-title{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px;}
+.leg-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;font-size:12px;font-weight:500;color:var(--text);transition:opacity .15s;user-select:none;}
+.leg-row:last-child{margin-bottom:0;}
+.leg-row.dimmed{opacity:.3;}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.leg-count{font-size:10px;color:var(--muted);margin-left:auto;font-family:var(--mono);}
+
+.graph-ctrl{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:6px;}
+.ctrl-btn{width:32px;height:32px;background:var(--surface);border:1px solid var(--bd);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--muted);transition:all .15s;box-shadow:var(--sh);}
+.ctrl-btn:hover{border-color:var(--teal);color:var(--teal);}
+
+.layout-sel{position:absolute;bottom:14px;left:14px;display:flex;gap:4px;background:var(--surface);border:1px solid var(--bd);border-radius:8px;padding:4px;box-shadow:var(--sh);}
+.ls-btn{padding:5px 12px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:var(--font);transition:all .15s;}
+.ls-btn.on{background:var(--teal);color:#fff;}
+
+.node-info{position:absolute;bottom:14px;right:14px;width:260px;background:var(--surface);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;box-shadow:var(--sh2);opacity:0;pointer-events:none;transition:opacity .2s;}
+.node-info.show{opacity:1;}
+.ni-name{font-family:'Fraunces',Georgia,serif;font-size:16px;font-weight:600;color:var(--tld);margin-bottom:3px;}
+.ni-meta{font-size:11px;color:var(--muted);margin-bottom:12px;}
+.ni-bars{display:flex;flex-direction:column;gap:6px;}
+.ni-row{display:flex;align-items:center;gap:8px;}
+.ni-lbl{font-size:10px;font-weight:600;width:44px;flex-shrink:0;color:var(--muted);}
+.ni-bar-wrap{flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;border:1px solid var(--bd);}
+.ni-bar-fill{height:6px;border-radius:3px;transition:width .4s;}
+.ni-val{font-size:10px;font-family:var(--mono);color:var(--text);width:26px;text-align:right;}
+.ni-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;}
+.ni-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;}
+
+/* ── BOTTOM PANEL ── */
+.bpanel{height:195px;border-top:1px solid var(--bd);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.bp-tabs{display:flex;border-bottom:1px solid var(--bd);padding:0 16px;}
+.bp-tab{padding:9px 14px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.bp-tab.on{color:var(--teal);border-bottom-color:var(--teal);font-weight:600;}
+.bp-body{flex:1;overflow:auto;padding:10px 14px;}
+
+/* ── TABLE ── */
+.g-table{width:100%;border-collapse:collapse;font-size:12px;}
+.g-table th{text-align:left;padding:5px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;border-bottom:1px solid var(--bd);white-space:nowrap;}
+.g-table td{padding:7px 10px;border-bottom:1px solid rgba(13,92,107,.06);vertical-align:middle;}
+.g-table tr:last-child td{border:none;}
+.g-table tr:hover td{background:var(--bg);}
+
+/* deal pills */
+.dpill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;margin-right:3px;}
+.dp-ipo{background:rgba(13,92,107,.1);color:var(--tld);}
+.dp-sme{background:rgba(26,158,107,.1);color:#146B45;}
+.dp-debt{background:rgba(232,138,46,.12);color:#8B5200;}
+.dp-infra{background:rgba(91,111,236,.1);color:#3040A0;}
+.dp-pe{background:rgba(201,147,42,.12);color:#7A4800;}
+.dp-re{background:rgba(192,57,43,.1);color:#8B2010;}
+
+/* rate bar */
+.rbar-wrap{display:flex;align-items:center;gap:6px;}
+.rbar{flex:1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;border:1px solid var(--bd);min-width:50px;}
+.rbar-fill{height:5px;border-radius:3px;}
+.rval{font-family:var(--mono);font-size:10px;color:var(--text);width:24px;text-align:right;}
+
+/* engagement */
+.eng{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:700;}
+.eng-hot{background:rgba(26,158,107,.1);color:#146B45;}
+.eng-warm{background:rgba(232,138,46,.12);color:#8B5200;}
+.eng-cold{background:rgba(13,92,107,.08);color:var(--muted);}
+
+/* insights */
+.ins-card{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;}
+.ins-icon{font-size:16px;flex-shrink:0;}
+.ins-text{font-size:12px;color:var(--text);line-height:1.55;}
+.ins-text strong{color:var(--teal);}
+
+/* scrollbar */
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px;}
+
+/* toast */
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--tld);color:#fff;padding:9px 16px;border-radius:7px;font-size:12px;z-index:999;opacity:0;transition:all .2s;white-space:nowrap;pointer-events:none;box-shadow:var(--sh2);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="logo">ipo<b>work</b></div>
+    <span style="color:var(--bd)">|</span>
+    <div class="pg-tag">AIF Behavioral Intelligence</div>
+  </div>
+  <div class="topbar-mid">
+    <span id="nodeCount" style="font-size:11px;color:var(--muted);font-family:var(--mono);">25 AIFs · 0 connections</span>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost" onclick="exportCSV()">↓ Export</button>
+    <button class="btn btn-ghost" onclick="location.href='https://www.ipowork.com'">← Portal</button>
+  </div>
+</div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-head">
+      <div class="sb-label">AIF Directory</div>
+      <div class="search">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="aifSearch" placeholder="Search AIF name…" oninput="renderSidebar()">
+      </div>
+    </div>
+    <div class="aif-list" id="aifList"></div>
+    <div class="sb-footer">
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;" onclick="selectedId=null;renderSidebar();renderBP();">Show All</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="graph-area" id="graphArea">
+      <canvas id="gc"></canvas>
+
+      <!-- LEGEND -->
+      <div class="legend">
+        <div class="leg-title">Deal Type Filter</div>
+        <div class="leg-row" data-t="IPO"      onclick="toggleF(this,'IPO')">      <div class="leg-dot" style="background:#0D5C6B"></div>IPO <span class="leg-count" id="fc-IPO">—</span></div>
+        <div class="leg-row" data-t="SME IPO"  onclick="toggleF(this,'SME IPO')">  <div class="leg-dot" style="background:#1A9E6B"></div>SME IPO <span class="leg-count" id="fc-SMEIPO">—</span></div>
+        <div class="leg-row" data-t="Debt"     onclick="toggleF(this,'Debt')">     <div class="leg-dot" style="background:#E88A2E"></div>Debt/NCD <span class="leg-count" id="fc-Debt">—</span></div>
+        <div class="leg-row" data-t="InfraDebt" onclick="toggleF(this,'InfraDebt')"><div class="leg-dot" style="background:#5B6FEC"></div>Infra/InvIT <span class="leg-count" id="fc-InfraDebt">—</span></div>
+        <div class="leg-row" data-t="PE"       onclick="toggleF(this,'PE')">       <div class="leg-dot" style="background:#C9932A"></div>PE/PreIPO <span class="leg-count" id="fc-PE">—</span></div>
+        <div class="leg-row" data-t="RE"       onclick="toggleF(this,'RE')">       <div class="leg-dot" style="background:#C0392B"></div>Real Estate <span class="leg-count" id="fc-RE">—</span></div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="graph-ctrl">
+        <div class="ctrl-btn" onclick="zoom(1.2)" title="Zoom In">+</div>
+        <div class="ctrl-btn" onclick="zoom(0.8)" title="Zoom Out">−</div>
+        <div class="ctrl-btn" onclick="resetView()" title="Reset">⌂</div>
+        <div class="ctrl-btn" onclick="toggleSim()" id="simBtn" title="Physics">⏸</div>
+      </div>
+
+      <!-- LAYOUT SWITCHER -->
+      <div class="layout-sel">
+        <button class="ls-btn on"  onclick="setLayout('force',this)">Force</button>
+        <button class="ls-btn" onclick="setLayout('cluster',this)">Cluster</button>
+        <button class="ls-btn" onclick="setLayout('ring',this)">Ring</button>
+      </div>
+
+      <!-- NODE INFO PANEL -->
+      <div class="node-info" id="nodeInfo"></div>
+    </div>
+
+    <!-- BOTTOM PANEL -->
+    <div class="bpanel">
+      <div class="bp-tabs">
+        <div class="bp-tab on"  onclick="switchTab(this,'matrix')">Response Matrix</div>
+        <div class="bp-tab"     onclick="switchTab(this,'insights')">AI Insights</div>
+        <div class="bp-tab"     onclick="switchTab(this,'history')">Deal History</div>
+      </div>
+      <div class="bp-body" id="bpBody"></div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ══════════ DATA ══════════
+const DEAL_COLORS = {
+  IPO:'#0D5C6B', 'SME IPO':'#1A9E6B', Debt:'#E88A2E',
+  InfraDebt:'#5B6FEC', PE:'#C9932A', RE:'#C0392B'
+};
+const CAT_COLORS = {'Cat I':'#0D5C6B','Cat II':'#1A7D90','Cat III':'#C9932A'};
+
+const AIFS = [
+  {id:1, name:'Abakkus Asset Manager', cat:'Cat II', aum:3200, city:'Mumbai', focus:['IPO','SME IPO','PE'], r:{IPO:82,SME:65,Debt:10,Infra:5,PE:70,RE:12}},
+  {id:2, name:'Nuvama Asset Mgmt',     cat:'Cat III',aum:8500, city:'Mumbai', focus:['IPO','Debt'],          r:{IPO:88,SME:40,Debt:75,Infra:30,PE:50,RE:20}},
+  {id:3, name:'Unifi Capital',         cat:'Cat II', aum:2100, city:'Chennai',focus:['SME IPO','PE'],        r:{IPO:45,SME:90,Debt:15,Infra:8, PE:85,RE:5}},
+  {id:4, name:'Carnelian Asset Mgmt',  cat:'Cat II', aum:1800, city:'Mumbai', focus:['IPO','PE'],            r:{IPO:78,SME:55,Debt:20,Infra:15,PE:80,RE:10}},
+  {id:5, name:'Marcellus Investment',  cat:'Cat III',aum:9200, city:'Mumbai', focus:['IPO'],                  r:{IPO:92,SME:30,Debt:45,Infra:22,PE:40,RE:8}},
+  {id:6, name:'Alchemy Capital',       cat:'Cat III',aum:5400, city:'Mumbai', focus:['IPO','Debt'],          r:{IPO:85,SME:48,Debt:70,Infra:35,PE:55,RE:18}},
+  {id:7, name:'Ambit Investment',      cat:'Cat II', aum:2800, city:'Mumbai', focus:['IPO','SME IPO'],       r:{IPO:75,SME:80,Debt:25,Infra:12,PE:60,RE:15}},
+  {id:8, name:'InCred Asset Mgmt',     cat:'Cat II', aum:3600, city:'Mumbai', focus:['Debt','SME IPO'],      r:{IPO:40,SME:72,Debt:88,Infra:60,PE:35,RE:42}},
+  {id:9, name:'Waterfield Advisors',   cat:'Cat II', aum:6200, city:'Mumbai', focus:['InfraDebt','RE'],      r:{IPO:30,SME:18,Debt:65,Infra:92,PE:28,RE:88}},
+  {id:10,name:'Edelweiss Alternatives',cat:'Cat II', aum:12000,city:'Mumbai', focus:['Debt','RE'],           r:{IPO:35,SME:22,Debt:90,Infra:88,PE:40,RE:82}},
+  {id:11,name:'360 ONE Alternates',    cat:'Cat III',aum:15000,city:'Mumbai', focus:['IPO','Debt','PE'],    r:{IPO:80,SME:45,Debt:78,Infra:50,PE:75,RE:35}},
+  {id:12,name:'Kotak Alternates',      cat:'Cat II', aum:18000,city:'Mumbai', focus:['Debt','InfraDebt'],   r:{IPO:42,SME:25,Debt:92,Infra:85,PE:38,RE:55}},
+  {id:13,name:'IIFL Wealth Alt.',      cat:'Cat II', aum:22000,city:'Mumbai', focus:['IPO','Debt','RE'],    r:{IPO:76,SME:38,Debt:85,Infra:72,PE:55,RE:78}},
+  {id:14,name:'Avendus Capital Alt.',  cat:'Cat II', aum:9800, city:'Mumbai', focus:['PE','IPO'],            r:{IPO:82,SME:42,Debt:48,Infra:28,PE:90,RE:20}},
+  {id:15,name:'True North Fund Mgrs',  cat:'Cat II', aum:7600, city:'Mumbai', focus:['PE'],                   r:{IPO:38,SME:30,Debt:32,Infra:20,PE:95,RE:18}},
+  {id:16,name:'Premji Invest',         cat:'Cat II', aum:11000,city:'Bengaluru',focus:['PE','IPO'],          r:{IPO:72,SME:35,Debt:28,Infra:18,PE:92,RE:12}},
+  {id:17,name:'Bessemer Venture',      cat:'Cat I',  aum:4200, city:'Bengaluru',focus:['PE','SME IPO'],      r:{IPO:45,SME:78,Debt:15,Infra:10,PE:88,RE:8}},
+  {id:18,name:'Lighthouse Funds',      cat:'Cat II', aum:3100, city:'Chennai', focus:['SME IPO','PE'],       r:{IPO:52,SME:85,Debt:18,Infra:12,PE:80,RE:10}},
+  {id:19,name:'Piramal Alternatives',  cat:'Cat II', aum:8400, city:'Mumbai', focus:['Debt','RE'],           r:{IPO:28,SME:20,Debt:88,Infra:68,PE:32,RE:85}},
+  {id:20,name:'Mirae Asset Alt.',      cat:'Cat III',aum:6800, city:'Mumbai', focus:['IPO','Debt'],          r:{IPO:78,SME:42,Debt:72,Infra:40,PE:58,RE:30}},
+  {id:21,name:'DSP BlackRock Alt.',    cat:'Cat III',aum:13500,city:'Mumbai', focus:['IPO','Debt'],          r:{IPO:84,SME:38,Debt:80,Infra:55,PE:48,RE:28}},
+  {id:22,name:'Motilal Oswal Alt.',    cat:'Cat II', aum:4500, city:'Mumbai', focus:['IPO','SME IPO'],       r:{IPO:88,SME:82,Debt:35,Infra:20,PE:65,RE:15}},
+  {id:23,name:'Ashmore India',         cat:'Cat III',aum:5200, city:'Mumbai', focus:['Debt','InfraDebt'],   r:{IPO:30,SME:18,Debt:85,Infra:90,PE:25,RE:48}},
+  {id:24,name:'Growthpal Advisors',    cat:'Cat I',  aum:900,  city:'Delhi',  focus:['SME IPO'],              r:{IPO:35,SME:92,Debt:8, Infra:5, PE:60,RE:5}},
+  {id:25,name:'Pantomath Alternates',  cat:'Cat II', aum:1400, city:'Mumbai', focus:['SME IPO','IPO'],       r:{IPO:70,SME:88,Debt:22,Infra:12,PE:52,RE:10}},
+];
+
+// ══════════ STATE ══════════
+const canvas = document.getElementById('gc');
+const ctx = canvas.getContext('2d');
+let nodes=[], edges=[], selectedId=null, hoveredId=null;
+let scale=1, ox=0, oy=0, simOn=true, simTick=0;
+let dragNode=null, dragging=false, lmx=0, lmy=0;
+let activeFilters = new Set(['IPO','SME IPO','Debt','InfraDebt','PE','RE']);
+let bpTab='matrix', layout='force';
+
+// ══════════ INIT ══════════
+function initNodes(){
+  const W=canvas.width, H=canvas.height;
+  nodes = AIFS.map((a,i)=>{
+    let x,y;
+    if(layout==='cluster'){
+      const dom = Object.entries(a.r).sort((x,y)=>y[1]-x[1])[0][0];
+      const centers={IPO:[W*.22,H*.28],SME:[W*.72,H*.22],Debt:[W*.78,H*.72],Infra:[W*.5,H*.82],PE:[W*.2,H*.72],RE:[W*.5,H*.45]};
+      const c=centers[dom]||[W/2,H/2];
+      x=c[0]+(Math.random()-.5)*160; y=c[1]+(Math.random()-.5)*100;
+    } else if(layout==='ring'){
+      const cats=['Cat I','Cat II','Cat III'];
+      const ring=cats.indexOf(a.cat);
+      const r=(ring+1)*Math.min(W,H)*.17;
+      const ang=(i/AIFS.length)*Math.PI*2;
+      x=W/2+Math.cos(ang)*r+(Math.random()-.5)*30;
+      y=H/2+Math.sin(ang)*r+(Math.random()-.5)*30;
+    } else {
+      x=W*.12+Math.random()*W*.76; y=H*.1+Math.random()*H*.8;
+    }
+    const sz=7+Math.sqrt(a.aum/600);
+    return {...a, x, y, vx:0, vy:0, sz:Math.min(sz,22), col:CAT_COLORS[a.cat]||'#0D5C6B'};
+  });
+
+  edges=[];
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i], b=nodes[j];
+      const shared=a.focus.filter(f=>b.focus.includes(f));
+      if(shared.length>=1){
+        const s=shared.reduce((t,f)=>{
+          const k=f==='SME IPO'?'SME':f==='InfraDebt'?'Infra':f;
+          return t+(a.r[k]||0)+(b.r[k]||0);
+        },0)/shared.length/100;
+        if(s>0.75) edges.push({a:i,b:j,types:shared,s:Math.min(s,1)});
+      }
+    }
+  }
+  updateLegendCounts();
+  document.getElementById('nodeCount').textContent=`${nodes.length} AIFs · ${edges.length} connections`;
+}
+
+// ══════════ PHYSICS ══════════
+function stepPhysics(){
+  if(!simOn||simTick>800) return;
+  simTick++;
+  const W=canvas.width, H=canvas.height;
+  nodes.forEach(n=>{n.vx=0;n.vy=0;});
+  for(let i=0;i<nodes.length;i++){
+    for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i], b=nodes[j];
+      const dx=b.x-a.x, dy=b.y-a.y;
+      const d=Math.max(Math.sqrt(dx*dx+dy*dy),1);
+      const f=4500/(d*d);
+      const fx=f*dx/d, fy=f*dy/d;
+      a.vx-=fx; a.vy-=fy; b.vx+=fx; b.vy+=fy;
+    }
+  }
+  edges.forEach(e=>{
+    const a=nodes[e.a], b=nodes[e.b];
+    const dx=b.x-a.x, dy=b.y-a.y;
+    const d=Math.max(Math.sqrt(dx*dx+dy*dy),1);
+    const f=(d-110)*.015*e.s;
+    const fx=f*dx/d, fy=f*dy/d;
+    a.vx+=fx; a.vy+=fy; b.vx-=fx; b.vy-=fy;
+  });
+  nodes.forEach(n=>{
+    n.vx+=(W/2-n.x)*.003; n.vy+=(H/2-n.y)*.003;
+    n.vx*=.84; n.vy*=.84;
+    if(n!==dragNode){n.x+=n.vx; n.y+=n.vy;}
+    n.x=Math.max(n.sz+4,Math.min(W-n.sz-4,n.x));
+    n.y=Math.max(n.sz+4,Math.min(H-n.sz-4,n.y));
+  });
+}
+
+// ══════════ DRAW ══════════
+function draw(){
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Background grid
+  ctx.save();
+  ctx.strokeStyle='rgba(13,92,107,0.04)';
+  ctx.lineWidth=1;
+  const gStep=40/scale;
+  const gx0=(-ox/scale)%gStep, gy0=(-oy/scale)%gStep;
+  for(let x=gx0;x<W/scale;x+=gStep){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H/scale);ctx.stroke();}
+  for(let y=gy0;y<H/scale;y+=gStep){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W/scale,y);ctx.stroke();}
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(ox,oy);
+  ctx.scale(scale,scale);
+
+  // Edges
+  edges.forEach(e=>{
+    const a=nodes[e.a], b=nodes[e.b];
+    const visible=e.types.some(t=>activeFilters.has(t));
+    if(!visible) return;
+    const col=DEAL_COLORS[e.types[0]]||'#0D5C6B';
+    const dimmed=selectedId&&a.id!==selectedId&&b.id!==selectedId;
+    ctx.beginPath();
+    ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle=hexA(col,dimmed?.04:e.s*.25);
+    ctx.lineWidth=e.s*2.5;
+    ctx.stroke();
+  });
+
+  // Nodes
+  nodes.forEach(n=>{
+    const isSel=selectedId===n.id;
+    const isHov=hoveredId===n.id;
+    const dimmed=selectedId&&!isSel;
+    ctx.globalAlpha=dimmed?.2:1;
+
+    // Glow ring for selected/hovered
+    if(isSel||isHov){
+      const g=ctx.createRadialGradient(n.x,n.y,n.sz,n.x,n.y,n.sz*3.5);
+      g.addColorStop(0,hexA(n.col,.25));
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.sz*3.5,0,Math.PI*2);
+      ctx.fillStyle=g; ctx.fill();
+    }
+
+    // Deal-type ring segments (outer)
+    const deals=Object.entries({IPO:n.r.IPO,SME:n.r.SME,Debt:n.r.Debt,Infra:n.r.Infra,PE:n.r.PE,RE:n.r.RE})
+      .filter(([,v])=>v>45);
+    const typeMap={IPO:'IPO',SME:'SME IPO',Debt:'Debt',Infra:'InfraDebt',PE:'PE',RE:'RE'};
+    if(deals.length>0){
+      const step=(Math.PI*2)/deals.length;
+      deals.forEach(([k,v],i)=>{
+        const col=DEAL_COLORS[typeMap[k]]||'#0D5C6B';
+        ctx.beginPath();
+        ctx.moveTo(n.x,n.y);
+        ctx.arc(n.x,n.y,n.sz+5,i*step,(i+1)*step);
+        ctx.closePath();
+        ctx.fillStyle=hexA(col,.6);
+        ctx.fill();
+      });
+    }
+
+    // Main circle with gradient
+    const g2=ctx.createRadialGradient(n.x-n.sz*.3,n.y-n.sz*.3,0,n.x,n.y,n.sz);
+    g2.addColorStop(0,lighten(n.col,.4));
+    g2.addColorStop(1,n.col);
+    ctx.beginPath(); ctx.arc(n.x,n.y,n.sz,0,Math.PI*2);
+    ctx.fillStyle=g2; ctx.fill();
+
+    // Border
+    ctx.strokeStyle=isSel?'#FFFFFF':hexA(n.col,.4);
+    ctx.lineWidth=isSel?2:1;
+    ctx.stroke();
+
+    // Label
+    ctx.globalAlpha=dimmed?.2:1;
+    const shortName=n.name.split(' ').slice(0,2).join(' ');
+    ctx.fillStyle=isSel||isHov?'#08404D':'#2C3E47';
+    ctx.font=`${isSel?'600 ':''}${Math.max(8,10/scale)}px Sora, sans-serif`;
+    ctx.textAlign='center';
+    ctx.fillText(shortName,n.x,n.y+n.sz+11);
+
+    ctx.globalAlpha=1;
+  });
+
+  ctx.restore();
+  if(simOn) stepPhysics();
+  requestAnimationFrame(draw);
+}
+
+function hexA(hex,a){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function lighten(hex,amt){
+  const r=Math.min(255,parseInt(hex.slice(1,3),16)+Math.round(255*amt));
+  const g=Math.min(255,parseInt(hex.slice(3,5),16)+Math.round(255*amt));
+  const b=Math.min(255,parseInt(hex.slice(5,7),16)+Math.round(255*amt));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+// ══════════ INTERACTIONS ══════════
+function getNodeAt(mx,my){
+  const wx=(mx-ox)/scale, wy=(my-oy)/scale;
+  for(let i=nodes.length-1;i>=0;i--){
+    const n=nodes[i];
+    if(Math.sqrt((wx-n.x)**2+(wy-n.y)**2)<n.sz+6) return n;
+  }
+  return null;
+}
+
+function resize(){
+  const area=document.getElementById('graphArea');
+  canvas.width=area.clientWidth; canvas.height=area.clientHeight;
+}
+
+canvas.addEventListener('mousedown',e=>{
+  const r=canvas.getBoundingClientRect();
+  const n=getNodeAt(e.clientX-r.left,e.clientY-r.top);
+  dragNode=n||null; dragging=false;
+  lmx=e.clientX; lmy=e.clientY;
+});
+canvas.addEventListener('mousemove',e=>{
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const n=getNodeAt(mx,my);
+  hoveredId=n?n.id:null;
+  if(n) showNodeInfo(n); else hideNodeInfo();
+  if(dragNode){dragging=true;dragNode.x+=(mx-lmx)/scale;dragNode.y+=(my-lmy)/scale;}
+  else if(e.buttons===1){ox+=e.clientX-lmx;oy+=e.clientY-lmy;}
+  lmx=e.clientX; lmy=e.clientY;
+});
+canvas.addEventListener('mouseup',e=>{
+  if(dragNode&&!dragging){
+    selectedId=selectedId===dragNode.id?null:dragNode.id;
+    if(selectedId){selectAIF(dragNode.id);}else{renderSidebar();renderBP();}
+  }
+  dragNode=null; dragging=false;
+});
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const f=e.deltaY>0?.9:1.1;
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  ox=mx-(mx-ox)*f; oy=my-(my-oy)*f; scale=Math.max(.2,Math.min(4,scale*f));
+},{passive:false});
+
+// ══════════ NODE INFO PANEL ══════════
+function showNodeInfo(n){
+  const el=document.getElementById('nodeInfo');
+  const deals=[
+    ['IPO',n.r.IPO,'#0D5C6B'],['SME',n.r.SME,'#1A9E6B'],['Debt',n.r.Debt,'#E88A2E'],
+    ['Infra',n.r.Infra,'#5B6FEC'],['PE',n.r.PE,'#C9932A'],['RE',n.r.RE,'#C0392B']
+  ];
+  el.innerHTML=`
+    <div class="ni-name">${n.name}</div>
+    <div class="ni-meta">${n.cat} · ₹${(n.aum/100).toFixed(0)}Cr AUM · ${n.city}</div>
+    <div class="ni-bars">
+      ${deals.map(([l,v,c])=>`<div class="ni-row">
+        <span class="ni-lbl">${l}</span>
+        <div class="ni-bar-wrap"><div class="ni-bar-fill" style="width:${v}%;background:${c}"></div></div>
+        <span class="ni-val">${v}%</span>
+      </div>`).join('')}
+    </div>
+    <div class="ni-tags">
+      ${n.focus.map(f=>`<span class="ni-tag" style="background:${hexA(DEAL_COLORS[f],.12)};color:${DEAL_COLORS[f]}">${f}</span>`).join('')}
+    </div>
+  `;
+  el.classList.add('show');
+}
+function hideNodeInfo(){document.getElementById('nodeInfo').classList.remove('show');}
+
+// ══════════ SIDEBAR ══════════
+function renderSidebar(){
+  const q=document.getElementById('aifSearch').value.toLowerCase();
+  const list=document.getElementById('aifList');
+  const filtered=AIFS.filter(a=>a.name.toLowerCase().includes(q)||a.cat.toLowerCase().includes(q));
+  list.innerHTML=filtered.map(a=>{
+    const topDeal=Object.entries(a.r).sort((x,y)=>y[1]-x[1])[0];
+    const typeMap={IPO:'IPO',SME:'SME IPO',Debt:'Debt',Infra:'InfraDebt',PE:'PE',RE:'RE'};
+    const col=DEAL_COLORS[typeMap[topDeal[0]]]||'#0D5C6B';
+    const eng=Object.values(a.r).reduce((s,v)=>s+v,0)/6;
+    const engCol=eng>65?'#1A9E6B':eng>45?'#E88A2E':'#6B7E85';
+    return `<div class="aif-row ${selectedId===a.id?'active':''}" id="sbr-${a.id}" onclick="selectAIF(${a.id})">
+      <div class="aif-ava" style="background:${CAT_COLORS[a.cat]}">${a.name.slice(0,2).toUpperCase()}</div>
+      <div class="aif-info">
+        <div class="aif-name">${a.name}</div>
+        <div class="aif-sub">${a.cat} · ₹${(a.aum/100).toFixed(0)}Cr · ${a.city}</div>
+      </div>
+      <div class="aif-eng" style="background:${engCol}" title="${Math.round(eng)}% avg engagement"></div>
+    </div>`;
+  }).join('');
+}
+
+function selectAIF(id){
+  selectedId=id;
+  renderSidebar();
+  renderBP();
+  const el=document.getElementById('sbr-'+id);
+  if(el) el.scrollIntoView({block:'nearest'});
+}
+
+// ══════════ LEGEND FILTER ══════════
+function toggleF(el,type){
+  activeFilters.has(type)?activeFilters.delete(type):activeFilters.add(type);
+  el.classList.toggle('dimmed',!activeFilters.has(type));
+}
+function updateLegendCounts(){
+  const ks={IPO:'IPO','SME IPO':'SMEIPO',Debt:'Debt',InfraDebt:'InfraDebt',PE:'PE',RE:'RE'};
+  Object.entries(ks).forEach(([type,id])=>{
+    const el=document.getElementById('fc-'+id);
+    if(el) el.textContent=AIFS.filter(a=>a.focus.includes(type)).length;
+  });
+}
+
+// ══════════ CONTROLS ══════════
+function zoom(f){scale=Math.max(.2,Math.min(4,scale*f));}
+function resetView(){scale=1;ox=0;oy=0;}
+function toggleSim(){
+  simOn=!simOn; simTick=0;
+  document.getElementById('simBtn').textContent=simOn?'⏸':'▶';
+}
+function setLayout(l,btn){
+  layout=l;
+  document.querySelectorAll('.ls-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  simTick=0; simOn=true;
+  document.getElementById('simBtn').textContent='⏸';
+  initNodes();
+}
+
+// ══════════ BOTTOM PANEL ══════════
+function switchTab(el,tab){
+  bpTab=tab;
+  document.querySelectorAll('.bp-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderBP();
+}
+
+function renderBP(){
+  const body=document.getElementById('bpBody');
+  const aif=selectedId?AIFS.find(a=>a.id===selectedId):null;
+  const list=aif?[aif]:AIFS;
+
+  if(bpTab==='matrix'){
+    body.innerHTML=`<table class="g-table">
+      <thead><tr><th>AIF</th><th>Category</th><th>IPO%</th><th>SME%</th><th>Debt%</th><th>Infra%</th><th>PE%</th><th>RE%</th><th>Engagement</th></tr></thead>
+      <tbody>${list.map(a=>{
+        const avg=Object.values(a.r).reduce((s,v)=>s+v,0)/6;
+        const bar=(v,c)=>`<div class="rbar-wrap"><div class="rbar"><div class="rbar-fill" style="width:${v}%;background:${c}"></div></div><span class="rval">${v}</span></div>`;
+        return `<tr>
+          <td><div style="font-size:12px;font-weight:600;color:var(--tld)">${a.name}</div><div style="font-size:10px;color:var(--muted)">${a.city}</div></td>
+          <td><span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:${hexA(CAT_COLORS[a.cat],.1)};color:${CAT_COLORS[a.cat]}">${a.cat}</span></td>
+          <td>${bar(a.r.IPO,'#0D5C6B')}</td>
+          <td>${bar(a.r.SME,'#1A9E6B')}</td>
+          <td>${bar(a.r.Debt,'#E88A2E')}</td>
+          <td>${bar(a.r.Infra,'#5B6FEC')}</td>
+          <td>${bar(a.r.PE,'#C9932A')}</td>
+          <td>${bar(a.r.RE,'#C0392B')}</td>
+          <td><span class="eng ${avg>65?'eng-hot':avg>45?'eng-warm':'eng-cold'}">${avg>65?'HOT':avg>45?'WARM':'COLD'}</span></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  }
+
+  if(bpTab==='insights'){
+    const all=AIFS;
+    const best=(k)=>all.sort((a,b)=>b.r[k]-a.r[k])[0];
+    body.innerHTML=`
+      <div class="ins-card"><div class="ins-icon">🏆</div><div class="ins-text">Best for <strong>Mainboard IPO</strong>: <strong>${best('IPO').name}</strong> at ${best('IPO').r.IPO}% response rate — prioritise for DRHP distribution blast.</div></div>
+      <div class="ins-card"><div class="ins-icon">📊</div><div class="ins-text">Top <strong>Debt/NCD anchor</strong>: <strong>${best('Debt').name}</strong> at ${best('Debt').r.Debt}% — ideal for ₹500Cr+ NCD private placement.</div></div>
+      <div class="ins-card"><div class="ins-icon">🚀</div><div class="ins-text">Best for <strong>SME IPO</strong>: <strong>${best('SME').name}</strong> at ${best('SME').r.SME}% — focused SME discovery mandate active.</div></div>
+      <div class="ins-card"><div class="ins-icon">💰</div><div class="ins-text">Top <strong>PE/PreIPO</strong>: <strong>${best('PE').name}</strong> at ${best('PE').r.PE}% — best for pre-IPO tranches before DRHP filing.</div></div>
+      <div class="ins-card"><div class="ins-icon">⚡</div><div class="ins-text"><strong>${all.filter(a=>Object.values(a.r).reduce((s,v)=>s+v,0)/6>65).length} AIFs</strong> show broad engagement (avg >65%) — these are your all-weather distribution targets for any deal type.</div></div>
+    `;
+  }
+
+  if(bpTab==='history'){
+    const evts=['Opened DRHP','Downloaded IM','Attended roadshow','Signed NDA','Indicated interest','Declined — ticket too small','No response','Submitted LOI','Joined deal room','Requested financials'];
+    const deals=['Muthoot Fincorp IPO','PFC NCD XI','InfoBeans SME IPO','IRFC Green Bond','Bajaj Finance NCD'];
+    const daysAgo=n=>n===0?'Today':n===1?'Yesterday':`${n}d ago`;
+    const pillMap={'Opened DRHP':'dp-ipo','Downloaded IM':'dp-ipo','Signed NDA':'dp-sme','Submitted LOI':'dp-sme','Indicated interest':'dp-sme','Attended roadshow':'dp-debt','Requested financials':'dp-debt','Joined deal room':'dp-infra','Declined — ticket too small':'dp-re','No response':'dp-re'};
+    body.innerHTML=`<table class="g-table">
+      <thead><tr><th>AIF</th><th>Event</th><th>Deal</th><th>When</th></tr></thead>
+      <tbody>${list.flatMap(a=>Array.from({length:Math.floor(Math.random()*3)+1},()=>{
+        const evt=evts[Math.floor(Math.random()*evts.length)];
+        const deal=deals[Math.floor(Math.random()*deals.length)];
+        const d=Math.floor(Math.random()*21);
+        return `<tr>
+          <td style="font-size:12px;font-weight:600;color:var(--tld)">${a.name}</td>
+          <td><span class="dpill ${pillMap[evt]||'dp-ipo'}">${evt}</span></td>
+          <td style="font-size:11px;color:var(--muted)">${deal}</td>
+          <td style="font-size:11px;font-family:var(--mono);color:var(--muted)">${daysAgo(d)}</td>
+        </tr>`;
+      })).join('')}</tbody>
+    </table>`;
+  }
+}
+
+function hexA(hex,a){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function exportCSV(){
+  const rows=[['AIF','Category','AUM Cr','IPO%','SME%','Debt%','Infra%','PE%','RE%','City']];
+  AIFS.forEach(a=>rows.push([a.name,a.cat,a.aum,a.r.IPO,a.r.SME,a.r.Debt,a.r.Infra,a.r.PE,a.r.RE,a.city]));
+  const a=document.createElement('a');
+  a.href='data:text/csv,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
+  a.download='ipowork_aif_behavior.csv'; a.click();
+  showToast('✓ CSV exported');
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.opacity=1; t.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>{t.style.opacity=0;t.style.transform='translateX(-50%) translateY(8px)';},2500);
+}
+
+// ══════════ START ══════════
+window.addEventListener('resize',()=>{resize();});
+resize();
+initNodes();
+renderSidebar();
+renderBP();
+draw();
+</script>
+</body>
+</html>

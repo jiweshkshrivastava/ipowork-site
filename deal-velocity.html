@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ipowork — Deal Velocity Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #FAFAF8;
+  --surface: #FFFFFF;
+  --card:    #FFFFFF;
+  --card2:   #F7F3EE;
+  --teal:    #0D5C6B;
+  --teal2:   #1A7D90;
+  --tld:     #08404D;
+  --green:   #0D5C6B;
+  --green2:  #1A7D90;
+  --ok:      #1A9E6B;
+  --tl:      #0D5C6B;
+  --tll:     #1A7D90;
+  --saffron: #E88A2E;
+  --saffron2:#D4860C;
+  --gold:    #C9932A;
+  --gold2:   #E88A2E;
+  --amber:   #E88A2E;
+  --amber2:  #C9932A;
+  --sf:      #E88A2E;
+  --go:      #C9932A;
+  --red:     #C0392B;
+  --er:      #C0392B;
+  --orange:  #E88A2E;
+  --wn:      #D4860C;
+  --violet:  #5B6FEC;
+  --purple:  #5B6FEC;
+  --cyan:    #0D5C6B;
+  --cyan2:   #1A7D90;
+  --blue:    #1A7D90;
+  --text:    #2C3E47;
+  --txt:     #2C3E47;
+  --sl:      #2C3E47;
+  --muted:   #6B7E85;
+  --mu:      #6B7E85;
+  --dim:     #6B7E85;
+  --cr:      #F7F3EE;
+  --iv:      #FAFAF8;
+  --wh:      #FFFFFF;
+  --border:  rgba(13, 92, 107, .15);
+  --border2: rgba(13, 92, 107, .1);
+  --bd:      #E2E8EA;
+  --bdr:     rgba(13, 92, 107, .15);
+  --bdr2:    rgba(13, 92, 107, .06);
+  --sur:     #FFFFFF;
+  --dimmer:  rgba(13, 92, 107, .04);
+  --sh:      0 2px 12px rgba(13, 92, 107, .08);
+  --sh2:     0 8px 32px rgba(13, 92, 107, .16);
+  --bar:     54px;
+  --sw:      240px;
+  --ra:      10px;
+  --font:    'Sora', sans-serif;
+  --serif:   'Fraunces', Georgia, serif;
+  --mono:    'IBM Plex Mono', monospace;
+
+  /* Semantic aliases for new files */
+  --accent:   #0D5C6B;
+  --accent2:  #1A7D90;
+  --accent3:  #08404D;
+  --surface2: #F7F3EE;
+  --surface3: #EEF5F6;
+  --surface4: #E2EEF0;
+  --b1:       #E2E8EA;
+  --b2:       rgba(13, 92, 107, .15);
+  --b3:       rgba(13, 92, 107, .1);
+  --faint:    rgba(13, 92, 107, .04);
+}
+html,body{height:100%;font-family:'Sora', sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--surface);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;}
+.logo{font-family:'Sora', sans-serif;font-weight:600;font-size:17px;letter-spacing:-.3px;}
+.logo b{color:#0D5C6B;}
+.topbar-mid{display:flex;align-items:center;gap:8px;}
+.pg-label{font-size:12px;font-weight:600;color:var(--muted);background:var(--card2);border:1px solid var(--bd);border-radius:5px;padding:3px 10px;}
+.period-row{display:flex;align-items:center;gap:4px;background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:3px;}
+.period-btn{padding:4px 11px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:'Sora', sans-serif;transition:all .15s;}
+.period-btn.on{background:var(--bd);color:var(--text);}
+.topbar-right{display:flex;gap:8px;}
+.tbtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s;}
+.tbtn-g{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.tbtn-g:hover{color:var(--text);border-color:var(--teal);}
+.tbtn-b{background:var(--teal);color:#fff;}
+.tbtn-b:hover{background:#08404D;}
+
+/* ── PAGE ── */
+.page{padding:20px 24px;max-width:1400px;margin:0 auto;}
+
+/* ── HERO METRICS ── */
+.hero-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.hero-card{background:var(--surface);border:1px solid var(--bd);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;}
+.hero-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.hero-card.c1::before{background:var(--teal);}
+.hero-card.c2::before{background:var(--ok);}
+.hero-card.c3::before{background:var(--red);}
+.hero-card.c4::before{background:var(--purple);}
+.hero-card.c5::before{background:var(--saffron);}
+.hc-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.hc-val{font-size:28px;font-weight:300;color:var(--text);line-height:1;margin-bottom:4px;font-family:'Fraunces', Georgia, serif;}
+.hc-val span{font-size:14px;font-weight:500;font-family:'Sora', sans-serif;}
+.hc-sub{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.hc-delta{font-size:11px;font-weight:600;padding:2px 6px;border-radius:3px;}
+.delta-g{background:rgba(26,158,107,0.10);color:var(--ok);}
+.delta-r{background:rgba(192,57,43,0.10);color:var(--red);}
+.delta-n{background:rgba(13,92,107,0.09);color:var(--teal);}
+
+/* ── SECTION ── */
+.section{margin-bottom:20px;}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
+.section-title .dot{width:7px;height:7px;border-radius:50%;}
+.section-sub{font-size:12px;color:var(--muted);}
+
+/* ── MAIN GRID ── */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.card{background:var(--surface);border:1px solid var(--bd);border-radius:12px;padding:16px 18px;}
+.card-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;}
+
+/* ── FUNNEL ── */
+.funnel-wrap{display:flex;flex-direction:column;gap:6px;}
+.funnel-row{display:flex;align-items:center;gap:10px;}
+.funnel-stage{font-size:12px;color:var(--muted);width:96px;flex-shrink:0;text-align:right;}
+.funnel-bars{flex:1;display:flex;flex-direction:column;gap:3px;}
+.fbar{height:14px;border-radius:3px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:700;transition:width .6s;}
+.fbar-you{background:rgba(13,92,107,0.08);border:1px solid rgba(13,92,107,0.22);}
+.fbar-avg{background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.25);}
+.fbar-label-row{display:flex;justify-content:flex-end;gap:14px;margin-bottom:6px;}
+.fbar-label{font-size:10px;font-weight:600;display:flex;align-items:center;gap:4px;}
+.fl-dot{width:7px;height:7px;border-radius:50%;}
+.funnel-days{width:44px;flex-shrink:0;text-align:right;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+.funnel-days .you{color:var(--teal);}
+.funnel-days .avg{color:var(--red);}
+
+/* ── TIMELINE CHART ── */
+.chart-wrap{position:relative;height:140px;}
+canvas.line-chart{width:100%;height:100%;}
+.chart-legend{display:flex;gap:16px;margin-top:8px;}
+.cl-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.cl-line{width:20px;height:2px;border-radius:1px;}
+.cl-line.dashed{background:repeating-linear-gradient(to right,var(--red) 0 4px,transparent 4px 8px);}
+
+/* ── DEAL TABLE ── */
+.deal-table{width:100%;border-collapse:collapse;font-size:12px;}
+.deal-table th{text-align:left;padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;border-bottom:1px solid var(--bd);}
+.deal-table td{padding:9px 10px;border-bottom:1px solid var(--bd);vertical-align:middle;}
+.deal-table tr:last-child td{border:none;}
+.deal-table tr:hover td{background:var(--card2);}
+.deal-name{font-weight:500;color:var(--text);}
+.deal-type-tag{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:700;}
+.tt-ipo{background:rgba(13,92,107,0.08);color:var(--teal);}
+.tt-sme{background:rgba(26,158,107,0.08);color:var(--ok);}
+.tt-debt{background:rgba(232,138,46,0.08);color:var(--saffron);}
+.days-chip{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;padding:3px 8px;border-radius:5px;}
+.dc-fast{background:rgba(26,158,107,0.08);color:var(--ok);}
+.dc-avg{background:rgba(232,138,46,0.08);color:var(--saffron);}
+.dc-slow{background:rgba(192,57,43,0.08);color:var(--red);}
+.vs-bar-wrap{width:80px;height:5px;background:var(--dimmer);border-radius:3px;overflow:hidden;}
+.vs-bar-fill{height:5px;border-radius:3px;}
+.stage-badge{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:600;}
+.sb-c{background:rgba(26,158,107,0.10);color:var(--ok);}
+.sb-l{background:rgba(232,138,46,0.10);color:var(--saffron);}
+.sb-d{background:rgba(13,92,107,0.09);color:var(--teal);}
+.sb-m{background:rgba(91,111,236,0.10);color:var(--purple);}
+
+/* ── BOTTLENECK ── */
+.bottleneck-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.bn-card{background:var(--card2);border:1px solid var(--bd);border-radius:9px;padding:12px 14px;}
+.bn-stage{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.bn-days{font-size:22px;font-weight:300;font-family:'Fraunces', Georgia, serif;color:var(--text);margin-bottom:2px;}
+.bn-days span{font-size:12px;font-family:'Sora', sans-serif;color:var(--muted);}
+.bn-bar-wrap{height:3px;background:var(--dimmer);border-radius:2px;margin:6px 0;}
+.bn-bar{height:3px;border-radius:2px;}
+.bn-note{font-size:10px;color:var(--muted);line-height:1.4;}
+
+/* ── MB RANK TABLE ── */
+.rank-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rank-table th{text-align:left;padding:6px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;border-bottom:1px solid var(--bd);}
+.rank-table td{padding:8px 10px;border-bottom:1px solid var(--bd);vertical-align:middle;}
+.rank-table tr:last-child td{border:none;}
+.rank-table tr:hover td{background:var(--card2);}
+.rank-table tr.you-row td{background:rgba(13,92,107,0.05);}
+.rank-num{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;}
+.rank-1{color:var(--saffron);}
+.rank-2{color:var(--muted);}
+.rank-3{color:#E88A2E;}
+.mb-name{font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;}
+.you-tag{font-size:9px;background:rgba(13,92,107,0.08);color:var(--teal);border:1px solid rgba(13,92,107,0.22);border-radius:3px;padding:1px 5px;font-weight:700;}
+.vel-score{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;}
+.mini-sparkline{display:inline-flex;align-items:flex-end;gap:2px;height:20px;}
+.spark-bar{width:5px;border-radius:2px 2px 0 0;}
+
+/* ── INSIGHT CARDS ── */
+.insights-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.insight-card{background:var(--surface);border:1px solid var(--bd);border-radius:10px;padding:13px 15px;display:flex;gap:10px;align-items:flex-start;}
+.ic-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.ic-body{}
+.ic-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.ic-sub{font-size:11px;color:var(--muted);line-height:1.5;}
+.ic-sub strong{color:var(--teal);}
+
+/* scrollbar */
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* toast */
+#toastEl{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--bd);border:1px solid var(--ok);color:var(--text);padding:9px 16px;border-radius:7px;font-size:12px;z-index:999;opacity:0;transition:all .2s;white-space:nowrap;pointer-events:none;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="logo">ipo<b>work</b></div>
+    <span style="color:var(--border)">|</span>
+    <div class="pg-label">Deal Velocity Dashboard</div>
+  </div>
+  <div class="topbar-mid">
+    <div class="period-row">
+      <button class="period-btn" onclick="setPeriod(this,3)">3M</button>
+      <button class="period-btn on" onclick="setPeriod(this,6)">6M</button>
+      <button class="period-btn" onclick="setPeriod(this,12)">12M</button>
+      <button class="period-btn" onclick="setPeriod(this,24)">All</button>
+    </div>
+    <select id="mbSel" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:12px;font-family:inherit;outline:none;cursor:pointer;" onchange="render()">
+      <option value="you">My Firm (Jiwesh K.)</option>
+      <option value="all">All MBs (Platform Avg)</option>
+    </select>
+  </div>
+  <div class="topbar-right">
+    <button class="tbtn tbtn-g" onclick="exportReport()">↓ Report</button>
+    <button class="tbtn tbtn-g" onclick="location.href='deal-pipeline.html'">📋 Pipeline</button>
+    <button class="tbtn tbtn-g" onclick="location.href='https://www.ipowork.com'">← Portal</button>
+  </div>
+</div>
+
+<div class="page" id="page"></div>
+<div id="toastEl"></div>
+
+<script>
+// ══════════════════════
+// DATA
+// ══════════════════════
+let period = 6;
+
+const PLATFORM_AVG = {
+  prospect_to_mandate: 18, mandate_to_dd: 22, dd_to_filed: 45, filed_to_live: 38, live_to_closed: 8,
+  total_days: 131, win_rate: 41, deals_per_mb: 3.2, avg_size: 680,
+};
+
+const MY_DATA = {
+  prospect_to_mandate: 12, mandate_to_dd: 16, dd_to_filed: 38, filed_to_live: 32, live_to_closed: 6,
+  total_days: 104, win_rate: 58, deals_per_mb: 5, avg_size: 920,
+};
+
+const DEALS = [
+  {name:'Muthoot Fincorp IPO',type:'IPO',size:2500,start:'2026-02-10',close:null,stage:'Due Diligence',days_so_far:111,avg_days:131,banker:'Jiwesh K.'},
+  {name:'PFC NCD Series XI',type:'Debt',size:5000,start:'2026-03-01',close:'2026-05-28',stage:'Closed',days_so_far:88,avg_days:95,banker:'Priya S.'},
+  {name:'InfoBeans SME IPO',type:'SME IPO',size:75,start:'2026-05-15',close:null,stage:'Mandate',days_so_far:18,avg_days:104,banker:'Jiwesh K.'},
+  {name:'Bajaj Finance NCD',type:'Debt',size:3000,start:'2026-03-20',close:null,stage:'Filed',days_so_far:74,avg_days:95,banker:'Jiwesh K.'},
+  {name:'IRFC Green Bond',type:'Debt',size:4000,start:'2026-04-05',close:null,stage:'Mandate',days_so_far:58,avg_days:95,banker:'Neha T.'},
+  {name:'Zaggle Prepaid IPO',type:'IPO',size:564,start:'2026-01-10',close:'2026-04-20',stage:'Closed',days_so_far:100,avg_days:131,banker:'Amit R.'},
+  {name:'Shriram HFC NCD',type:'Debt',size:1200,start:'2026-05-20',close:null,stage:'Prospect',days_so_far:13,avg_days:95,banker:'Priya S.'},
+  {name:'Nexgen Infracon SME',type:'SME IPO',size:120,start:'2026-04-01',close:null,stage:'Prospect',days_so_far:62,avg_days:104,banker:'Jiwesh K.'},
+];
+
+const MB_RANKINGS = [
+  {rank:1,name:'Anand Rathi IB',firm:'Anand Rathi',velocity:94,avgDays:88,deals:9,winRate:67,spark:[60,72,78,85,88,94]},
+  {rank:2,name:'Equirus Capital',firm:'Equirus',velocity:89,avgDays:96,deals:7,winRate:63,spark:[70,74,80,83,87,89]},
+  {rank:3,name:'Nuvama IB',firm:'Nuvama',velocity:86,avgDays:102,deals:8,winRate:60,spark:[55,65,72,78,83,86]},
+  {rank:4,name:'Jiwesh K. (You)',firm:'ipowork MB',velocity:82,avgDays:104,deals:5,winRate:58,spark:[48,58,67,72,78,82],isYou:true},
+  {rank:5,name:'IIFL Capital',firm:'IIFL',velocity:76,avgDays:114,deals:6,winRate:52,spark:[60,63,68,71,74,76]},
+  {rank:6,name:'Hem Securities',firm:'Hem',velocity:71,avgDays:120,deals:4,winRate:48,spark:[55,58,63,66,69,71]},
+  {rank:7,name:'Pantomath Capital',firm:'Pantomath',velocity:65,avgDays:128,deals:5,winRate:44,spark:[42,48,54,59,62,65]},
+  {rank:8,name:'Platform Average',firm:'All MBs',velocity:58,avgDays:131,deals:3.2,winRate:41,spark:[40,44,48,52,55,58]},
+];
+
+const MONTHLY_VELOCITY = [
+  {m:'Jan',you:55,avg:45},{m:'Feb',you:62,avg:47},{m:'Mar',you:68,avg:49},
+  {m:'Apr',you:74,avg:51},{m:'May',you:79,avg:53},{m:'Jun',you:82,avg:55},
+];
+
+const BOTTLENECKS = [
+  {stage:'Prospect→Mandate',you:12,avg:18,note:'Strong issuer outreach converts 27% faster than average'},
+  {stage:'Mandate→Due Diligence',you:16,avg:22,note:'Faster financial model prep saves ~6 days'},
+  {stage:'DD→Filing',you:38,avg:45,note:'DRHP drafting still 15% slower than top quartile (28d)'},
+  {stage:'Filing→Live',you:32,avg:38,note:'SEBI response time variable — not fully controllable'},
+  {stage:'Live→Closed',you:6,avg:8,note:'Allotment process running efficiently'},
+  {stage:'Total Cycle',you:104,avg:131,note:'20% faster than platform average overall'},
+];
+
+// ══════════════════════
+// RENDER
+// ══════════════════════
+function render() {
+  document.getElementById('page').innerHTML = buildPage();
+  drawLineChart();
+}
+
+function buildPage() {
+  const my = MY_DATA, avg = PLATFORM_AVG;
+  const daysAdv = avg.total_days - my.total_days;
+  const wrAdv = my.win_rate - avg.win_rate;
+
+  return `
+  <!-- HERO METRICS -->
+  <div class="hero-grid">
+    ${heroCard('c1','Avg Cycle Time','<span>days</span>',my.total_days,'vs '+avg.total_days+'d platform avg','delta-g','↑ '+daysAdv+'d faster')}
+    ${heroCard('c2','Win Rate',my.win_rate+'<span>%</span>','','vs '+avg.win_rate+'% platform avg','delta-g','↑ '+wrAdv+'pp edge')}
+    ${heroCard('c3','Active Deals',DEALS.filter(d=>d.stage!=='Closed').length+'<span></span>','','across all stages','delta-n',DEALS.filter(d=>d.stage!=='Closed').length+' open')}
+    ${heroCard('c4','Deals Closed',DEALS.filter(d=>d.stage==='Closed').length+'<span></span>','','in selected period','delta-g','₹'+closedSize()+'Cr raised')}
+    ${heroCard('c5','Velocity Score','82<span>/100</span>','','rank #4 on platform','delta-g','Top quartile')}
+  </div>
+
+  <!-- INSIGHTS ROW -->
+  <div class="insights-row">
+    <div class="insight-card"><div class="ic-icon">⚡</div><div class="ic-body"><div class="ic-title">20% faster than platform</div><div class="ic-sub">Your average cycle of <strong>${my.total_days} days</strong> beats the ${avg.total_days}d platform average. At this rate, you can run ~1.3x more deals per year.</div></div></div>
+    <div class="insight-card"><div class="ic-icon">🎯</div><div class="ic-body"><div class="ic-title">DD→Filing is your bottleneck</div><div class="ic-sub">You take <strong>38 days</strong> for due diligence to filing — 15% slower than top quartile (28d). Streamlining DRHP drafts could save 10d per deal.</div></div></div>
+    <div class="insight-card"><div class="ic-icon">📈</div><div class="ic-body"><div class="ic-title">Win rate trending up</div><div class="ic-sub">Your <strong>58% mandate win rate</strong> vs 41% platform average. Month-on-month velocity score has risen from 55 → 82 in 6 months.</div></div></div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <!-- FUNNEL -->
+    <div class="card">
+      <div class="card-title">Stage-by-Stage Velocity (days)</div>
+      <div class="fbar-label-row">
+        <div class="fbar-label"><div class="fl-dot" style="background:var(--teal)"></div>You</div>
+        <div class="fbar-label"><div class="fl-dot" style="background:var(--red)"></div>Platform avg</div>
+      </div>
+      <div class="funnel-wrap">
+        ${buildFunnelRow('Prospect→MB',my.prospect_to_mandate,avg.prospect_to_mandate,avg.prospect_to_mandate)}
+        ${buildFunnelRow('Mandate→DD',my.mandate_to_dd,avg.mandate_to_dd,avg.mandate_to_dd)}
+        ${buildFunnelRow('DD→Filed',my.dd_to_filed,avg.dd_to_filed,avg.dd_to_filed)}
+        ${buildFunnelRow('Filed→Live',my.filed_to_live,avg.filed_to_live,avg.filed_to_live)}
+        ${buildFunnelRow('Live→Closed',my.live_to_closed,avg.live_to_closed,avg.live_to_closed)}
+      </div>
+    </div>
+
+    <!-- LINE CHART -->
+    <div class="card">
+      <div class="card-title">Velocity Score — 6 Month Trend</div>
+      <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+      <div class="chart-legend">
+        <div class="cl-item"><div class="cl-line" style="background:var(--teal)"></div>Your score</div>
+        <div class="cl-item"><div class="cl-line dashed"></div>Platform avg</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTLENECK GRID -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title"><div class="dot" style="background:var(--red)"></div>Stage Bottleneck Analysis</div>
+      <div class="section-sub">Where time is lost vs platform top quartile</div>
+    </div>
+    <div class="bottleneck-grid">
+      ${BOTTLENECKS.map(b=>{
+        const maxDays=Math.max(b.you,b.avg);
+        const pctYou=Math.round((b.you/maxDays)*100);
+        const pctAvg=Math.round((b.avg/maxDays)*100);
+        const faster=b.you<=b.avg;
+        return `<div class="bn-card">
+          <div class="bn-stage">${b.stage}</div>
+          <div class="bn-days">${b.you}<span> days (you)</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">vs ${b.avg}d avg ${faster?'<span style="color:var(--ok)">↓ '+Math.abs(b.avg-b.you)+'d faster</span>':'<span style="color:var(--red)">↑ '+(b.you-b.avg)+'d slower</span>'}</div>
+          <div class="bn-bar-wrap"><div class="bn-bar" style="width:${pctYou}%;background:${faster?'var(--teal)':'var(--red)'}"></div></div>
+          <div class="bn-note">${b.note}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- DEAL TABLE + MB RANKINGS -->
+  <div class="main-grid">
+    <!-- DEAL TABLE -->
+    <div class="card" style="grid-column:1">
+      <div class="card-title">Deal Velocity by Deal</div>
+      <table class="deal-table">
+        <thead><tr>
+          <th>Deal</th><th>Type</th><th>Days</th><th>vs Avg</th><th>Stage</th>
+        </tr></thead>
+        <tbody>
+          ${DEALS.map(d=>{
+            const diff=d.days_so_far-d.avg_days;
+            const chipClass=d.stage==='Closed'?(diff<0?'dc-fast':'dc-slow'):(diff<-20?'dc-fast':diff>20?'dc-slow':'dc-avg');
+            const chipLabel=d.stage==='Closed'?d.days_so_far+'d':(d.days_so_far+'d');
+            const pct=Math.min(Math.round((d.days_so_far/d.avg_days)*100),130);
+            const stageClass={Closed:'sb-c',Live:'sb-l','Due Diligence':'sb-d',Filed:'sb-l',Mandate:'sb-m',Prospect:'sb-m'}[d.stage]||'sb-m';
+            return `<tr>
+              <td><div class="deal-name">${d.name}</div><div style="font-size:10px;color:var(--muted)">₹${d.size}Cr · ${d.banker}</div></td>
+              <td><span class="deal-type-tag ${d.type==='IPO'?'tt-ipo':d.type==='SME IPO'?'tt-sme':'tt-debt'}">${d.type}</span></td>
+              <td><span class="days-chip ${chipClass}">${chipLabel}</span></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div class="vs-bar-wrap"><div class="vs-bar-fill" style="width:${Math.min(pct,100)}%;background:${pct>100?'var(--red)':pct<80?'var(--ok)':'var(--saffron)'}"></div></div>
+                  <span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:${diff>0?'var(--red)':'var(--ok)'}">${diff>0?'+':''}${diff}d</span>
+                </div>
+              </td>
+              <td><span class="stage-badge ${stageClass}">${d.stage}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- MB RANKINGS -->
+    <div class="card" style="grid-column:2">
+      <div class="card-title">MB Velocity Rankings — Platform</div>
+      <table class="rank-table">
+        <thead><tr><th>#</th><th>Merchant Banker</th><th>Score</th><th>Avg Days</th><th>Trend</th><th>Win%</th></tr></thead>
+        <tbody>
+          ${MB_RANKINGS.map(mb=>{
+            const rankClass=mb.rank===1?'rank-1':mb.rank===2?'rank-2':mb.rank===3?'rank-3':'';
+            const sparkHTML=`<div class="mini-sparkline">${mb.spark.map((v,i)=>`<div class="spark-bar" style="height:${Math.round(v/5)}px;background:${mb.isYou?'var(--teal)':'var(--muted)'}"></div>`).join('')}</div>`;
+            return `<tr class="${mb.isYou?'you-row':''}">
+              <td><span class="rank-num ${rankClass}">${mb.rank===1?'🥇':mb.rank===2?'🥈':mb.rank===3?'🥉':mb.rank}</span></td>
+              <td><div class="mb-name">${mb.name}${mb.isYou?'<span class="you-tag">YOU</span>':''}</div><div style="font-size:10px;color:var(--muted)">${mb.firm}</div></td>
+              <td><span class="vel-score" style="color:${mb.isYou?'var(--teal)':mb.rank<=3?'var(--saffron)':'var(--muted)'}">${mb.velocity}</span></td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${mb.avgDays}d</td>
+              <td>${sparkHTML}</td>
+              <td style="font-size:12px;font-weight:600;color:${mb.winRate>=60?'var(--ok)':mb.winRate>=50?'var(--saffron)':'var(--muted)'}">${mb.winRate}%</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  `;
+}
+
+function heroCard(cls,label,val,sub,vsText,deltaClass,deltaText){
+  return `<div class="hero-card ${cls}">
+    <div class="hc-label">${label}</div>
+    <div class="hc-val">${val}${sub?'<span>'+sub+'</span>':''}</div>
+    <div class="hc-sub"><span class="hc-delta ${deltaClass}">${deltaText}</span>${vsText}</div>
+  </div>`;
+}
+
+function buildFunnelRow(stage,you,avg,maxVal){
+  const maxW=100;
+  const youW=Math.round((you/maxVal)*maxW);
+  const avgW=Math.round((avg/maxVal)*maxW);
+  const faster=you<=avg;
+  return `<div class="funnel-row">
+    <div class="funnel-stage">${stage}</div>
+    <div class="funnel-bars">
+      <div class="fbar fbar-you" style="width:${youW}%"><span style="color:var(--teal);font-size:10px">${you}d</span></div>
+      <div class="fbar fbar-avg" style="width:${avgW}%"><span style="color:var(--red);font-size:10px">${avg}d</span></div>
+    </div>
+    <div class="funnel-days">
+      <div class="you">${you}d</div>
+      <div class="avg">${avg}d</div>
+    </div>
+    <div style="width:36px;flex-shrink:0;font-size:11px;font-weight:700;color:${faster?'var(--ok)':'var(--red)'};text-align:right">${faster?'↓':'↑'}${Math.abs(avg-you)}</div>
+  </div>`;
+}
+
+function closedSize(){
+  return DEALS.filter(d=>d.stage==='Closed').reduce((s,d)=>s+d.size,0).toLocaleString('en-IN');
+}
+
+// ── LINE CHART ──
+function drawLineChart(){
+  const canvas=document.getElementById('lineChart');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth, H=canvas.offsetHeight;
+  canvas.width=W; canvas.height=H;
+  const pad={t:10,r:10,b:24,l:28};
+  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+  const data=MONTHLY_VELOCITY;
+  const maxV=100, minV=30;
+
+  function yp(v){return pad.t+cH-(((v-minV)/(maxV-minV))*cH);}
+  function xp(i){return pad.l+(i/(data.length-1))*cW;}
+
+  ctx.clearRect(0,0,W,H);
+
+  // grid
+  [40,55,70,85,100].forEach(v=>{
+    const y=yp(v);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cW,y);
+    ctx.strokeStyle='rgba(13,92,107,0.08)';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#6B7E85';ctx.font='9px DM Mono';ctx.textAlign='right';
+    ctx.fillText(v,pad.l-4,y+3);
+  });
+
+  // avg line (dashed)
+  ctx.beginPath();
+  data.forEach((d,i)=>{i===0?ctx.moveTo(xp(i),yp(d.avg)):ctx.lineTo(xp(i),yp(d.avg));});
+  ctx.strokeStyle='rgba(192,57,43,0.55)';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+
+  // you line
+  ctx.beginPath();
+  data.forEach((d,i)=>{i===0?ctx.moveTo(xp(i),yp(d.you)):ctx.lineTo(xp(i),yp(d.you));});
+  ctx.strokeStyle='var(--teal)';
+
+  // gradient fill
+  const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grad.addColorStop(0,'rgba(13,92,107,0.15)');
+  grad.addColorStop(1,'rgba(0,194,255,0)');
+  ctx.lineWidth=2;ctx.stroke();
+  ctx.lineTo(xp(data.length-1),H-pad.b);ctx.lineTo(xp(0),H-pad.b);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  // dots & labels
+  data.forEach((d,i)=>{
+    // dot
+    ctx.beginPath();ctx.arc(xp(i),yp(d.you),4,0,Math.PI*2);
+    ctx.fillStyle='var(--teal)';ctx.fill();
+    ctx.strokeStyle='var(--bg)';ctx.lineWidth=1.5;ctx.stroke();
+    // x label
+    ctx.fillStyle='#6B7E85';ctx.font='10px DM Sans';ctx.textAlign='center';
+    ctx.fillText(d.m,xp(i),H-6);
+    // value label
+    if(i===data.length-1){
+      ctx.fillStyle='var(--teal)';ctx.font='bold 11px DM Sans';
+      ctx.fillText(d.you,xp(i),yp(d.you)-8);
+    }
+  });
+}
+
+// ── PERIOD ──
+function setPeriod(el,p){
+  period=p;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  render();
+}
+
+// ── EXPORT ──
+function exportReport(){
+  toast('✓ Velocity report exported as PDF');
+}
+
+function toast(msg){
+  const t=document.getElementById('toastEl');
+  t.textContent=msg;t.style.opacity=1;t.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>{t.style.opacity=0;t.style.transform='translateX(-50%) translateY(8px)';},2500);
+}
+
+// ── INIT ──
+render();
+window.addEventListener('resize',drawLineChart);
+</script>
+</body>
+</html>

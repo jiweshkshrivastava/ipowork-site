@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ipowork — Investor Activity Feed</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #FAFAF8;
+  --surface: #FFFFFF;
+  --card:    #FFFFFF;
+  --card2:   #F7F3EE;
+  --teal:    #0D5C6B;
+  --teal2:   #1A7D90;
+  --tld:     #08404D;
+  --green:   #0D5C6B;
+  --green2:  #1A7D90;
+  --ok:      #1A9E6B;
+  --tl:      #0D5C6B;
+  --tll:     #1A7D90;
+  --saffron: #E88A2E;
+  --saffron2:#D4860C;
+  --gold:    #C9932A;
+  --gold2:   #E88A2E;
+  --amber:   #E88A2E;
+  --amber2:  #C9932A;
+  --sf:      #E88A2E;
+  --go:      #C9932A;
+  --red:     #C0392B;
+  --er:      #C0392B;
+  --orange:  #E88A2E;
+  --wn:      #D4860C;
+  --violet:  #5B6FEC;
+  --purple:  #5B6FEC;
+  --cyan:    #0D5C6B;
+  --cyan2:   #1A7D90;
+  --blue:    #1A7D90;
+  --text:    #2C3E47;
+  --txt:     #2C3E47;
+  --sl:      #2C3E47;
+  --muted:   #6B7E85;
+  --mu:      #6B7E85;
+  --dim:     #6B7E85;
+  --cr:      #F7F3EE;
+  --iv:      #FAFAF8;
+  --wh:      #FFFFFF;
+  --border:  rgba(13, 92, 107, .15);
+  --border2: rgba(13, 92, 107, .1);
+  --bd:      #E2E8EA;
+  --bdr:     rgba(13, 92, 107, .15);
+  --bdr2:    rgba(13, 92, 107, .06);
+  --sur:     #FFFFFF;
+  --dimmer:  rgba(13, 92, 107, .04);
+  --sh:      0 2px 12px rgba(13, 92, 107, .08);
+  --sh2:     0 8px 32px rgba(13, 92, 107, .16);
+  --bar:     54px;
+  --sw:      240px;
+  --ra:      10px;
+  --font:    'Sora', sans-serif;
+  --serif:   'Fraunces', Georgia, serif;
+  --mono:    'IBM Plex Mono', monospace;
+
+  /* Semantic aliases for new files */
+  --accent:   #0D5C6B;
+  --accent2:  #1A7D90;
+  --accent3:  #08404D;
+  --surface2: #F7F3EE;
+  --surface3: #EEF5F6;
+  --surface4: #E2EEF0;
+  --b1:       #E2E8EA;
+  --b2:       rgba(13, 92, 107, .15);
+  --b3:       rgba(13, 92, 107, .1);
+  --faint:    rgba(13, 92, 107, .04);
+}
+html,body{height:100%;font-family:'Sora', sans-serif;background:var(--bg);color:var(--text);}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;letter-spacing:-.5px;}
+.logo span{color:#0D5C6B;}
+.topbar-center{display:flex;align-items:center;gap:8px;}
+.live-badge{display:flex;align-items:center;gap:6px;background:rgba(26,158,107,0.08);border:1px solid rgba(26,158,107,0.22);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--ok);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:'Sora', sans-serif;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border2);}
+.btn-ghost:hover{color:var(--text);border-color:var(--teal);}
+.btn-accent{background:var(--teal);color:#fff;}
+.btn-accent:hover{background:#08404D;}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:1fr 320px;height:calc(100vh - 52px);overflow:hidden;}
+
+/* ── MAIN FEED ── */
+.feed-col{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden;}
+
+.feed-header{padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.feed-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;}
+.feed-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pill-filter{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all .15s;font-family:'Sora', sans-serif;}
+.pill-filter:hover,.pill-filter.on{background:var(--bd);color:var(--text);border-color:var(--teal);}
+.pill-filter .pip{width:6px;height:6px;border-radius:50%;}
+
+.feed-body{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:0;}
+
+/* ── FEED ITEM ── */
+.feed-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);position:relative;animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+.feed-item.new-flash{animation:flash .6s ease;}
+@keyframes flash{0%{background:rgba(13,92,107,0.07);}100%{background:transparent;}}
+
+.feed-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;border:2px solid transparent;}
+.feed-timeline{display:flex;flex-direction:column;align-items:center;gap:0;padding-top:4px;}
+.feed-ava-wrap{position:relative;flex-shrink:0;}
+.feed-event-icon{position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;border:1.5px solid var(--bg);}
+
+.feed-body-text{flex:1;min-width:0;}
+.feed-row1{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px;}
+.feed-name{font-size:13px;font-weight:600;color:var(--text);}
+.feed-time{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap;flex-shrink:0;}
+.feed-action{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:5px;}
+.feed-action strong{color:var(--text);}
+.feed-action .deal-tag{color:var(--teal);font-weight:500;}
+
+.feed-detail-card{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:10px;margin-top:4px;}
+.fdc-icon{font-size:16px;flex-shrink:0;}
+.fdc-info{flex:1;min-width:0;}
+.fdc-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fdc-meta{font-size:11px;color:var(--muted);margin-top:1px;}
+.fdc-right{flex-shrink:0;text-align:right;}
+.fdc-duration{font-size:11px;font-weight:600;color:var(--ok);}
+.fdc-pages{font-size:10px;color:var(--muted);}
+
+.heat-bar{display:flex;gap:2px;margin-top:6px;}
+.heat-seg{flex:1;height:4px;border-radius:2px;background:var(--dimmer);}
+.heat-seg.h1{background:rgba(13,92,107,0.22);}
+.heat-seg.h2{background:rgba(13,92,107,0.45);}
+.heat-seg.h3{background:rgba(13,92,107,0.75);}
+.heat-seg.h4{background:var(--teal);}
+
+.feed-actions-row{display:flex;gap:6px;margin-top:8px;}
+.mini-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all .15s;font-family:'Sora', sans-serif;}
+.mini-btn:hover{color:var(--text);border-color:var(--teal);background:rgba(13,92,107,0.08);}
+.mini-btn.primary{background:rgba(13,92,107,0.08);color:var(--teal);border-color:rgba(13,92,107,0.22);}
+
+/* event type colors */
+.evt-view .feed-avatar{background:rgba(13,92,107,0.08);color:var(--teal);border-color:rgba(13,92,107,0.20);}
+.evt-view .feed-event-icon{background:var(--teal);color:#fff;}
+.evt-download .feed-avatar{background:rgba(26,158,107,0.08);color:var(--ok);border-color:rgba(26,158,107,0.22);}
+.evt-download .feed-event-icon{background:var(--ok);color:#fff;}
+.evt-join .feed-avatar{background:var(--cyan-glow);color:var(--teal2);border-color:rgba(26,125,144,0.20);}
+.evt-join .feed-event-icon{background:var(--teal2);color:#000;}
+.evt-share .feed-avatar{background:var(--purple-glow);color:var(--purple);border-color:rgba(91,111,236,0.22);}
+.evt-share .feed-event-icon{background:var(--purple);color:#fff;}
+.evt-nda .feed-avatar{background:rgba(232,138,46,0.08);color:var(--saffron);border-color:rgba(232,138,46,0.22);}
+.evt-nda .feed-event-icon{background:var(--saffron);color:#000;}
+.evt-revisit .feed-avatar{background:var(--red-glow);color:var(--red);border-color:rgba(192,57,43,0.22);}
+.evt-revisit .feed-event-icon{background:var(--red);color:#fff;}
+
+/* ── RIGHT PANEL ── */
+.right-col{display:flex;flex-direction:column;overflow:hidden;background:var(--surface);}
+
+/* STATS */
+.stats-section{padding:14px 16px;border-bottom:1px solid var(--border);}
+.section-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.stat-card{background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;}
+.stat-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;line-height:1;}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:3px;}
+.stat-delta{font-size:10px;margin-top:4px;font-weight:600;}
+.delta-up{color:var(--ok);}
+.delta-dn{color:var(--red);}
+
+/* HOT INVESTORS */
+.hot-section{padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.hot-list{display:flex;flex-direction:column;gap:6px;}
+.hot-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;}
+.hot-item:hover{border-color:var(--teal);}
+.hot-rank{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--muted);width:16px;flex-shrink:0;}
+.hot-ava{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.hot-info{flex:1;min-width:0;}
+.hot-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hot-org{font-size:10px;color:var(--muted);}
+.hot-score{text-align:right;}
+.score-num{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+.score-lbl{font-size:9px;color:var(--muted);}
+.score-fire{font-size:14px;}
+
+/* DEAL HEAT */
+.heat-section{padding:14px 16px;flex:1;overflow-y:auto;}
+.deal-heat-list{display:flex;flex-direction:column;gap:6px;}
+.deal-heat-item{padding:10px 12px;background:var(--card2);border:1px solid var(--border);border-radius:9px;}
+.dh-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.dh-name{font-size:12px;font-weight:600;color:var(--text);}
+.dh-count{font-size:11px;color:var(--muted);}
+.dh-bar-wrap{height:4px;background:var(--dimmer);border-radius:2px;overflow:hidden;}
+.dh-bar{height:4px;border-radius:2px;transition:width .6s;}
+
+/* NOTIFICATION BANNER */
+.notif-banner{position:fixed;top:60px;right:20px;background:var(--card2);border:1px solid var(--teal);border-radius:10px;padding:12px 16px;z-index:200;max-width:320px;transform:translateX(360px);transition:transform .3s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 32px rgba(13,92,107,0.55);}
+.notif-banner.show{transform:translateX(0);}
+.notif-inner{display:flex;gap:10px;align-items:flex-start;}
+.notif-icon{font-size:20px;flex-shrink:0;}
+.notif-text{flex:1;}
+.notif-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.notif-sub{font-size:12px;color:var(--muted);}
+.notif-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;line-height:1;flex-shrink:0;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* EMPTY */
+.feed-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--muted);text-align:center;gap:8px;}
+.feed-empty-icon{font-size:36px;opacity:.3;}
+
+/* PAUSE OVERLAY */
+.pause-bar{display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(232,138,46,0.08);border-bottom:1px solid rgba(232,138,46,0.18);font-size:12px;color:var(--saffron);cursor:pointer;}
+.pause-bar:hover{background:rgba(232,138,46,0.10);}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="logo">ipo<span>work</span></div>
+    <span style="color:var(--border2);font-size:16px">|</span>
+    <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--muted);">Investor Activity Feed</span>
+  </div>
+  <div class="topbar-center">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <span style="font-size:12px;color:var(--muted)" id="lastUpdateLabel">Updating…</span>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-ghost" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+    <button class="btn btn-ghost" onclick="clearFeed()">🗑 Clear</button>
+    <button class="btn btn-ghost" onclick="location.href='https://www.ipowork.com'">← Portal</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- FEED COLUMN -->
+  <div class="feed-col">
+    <div class="feed-header">
+      <div class="feed-title">Activity Stream</div>
+      <div class="feed-controls">
+        <button class="pill-filter on" data-f="all" onclick="setFilter(this,'all')"><span class="pip" style="background:var(--text)"></span>All</button>
+        <button class="pill-filter" data-f="view" onclick="setFilter(this,'view')"><span class="pip" style="background:var(--teal)"></span>Views</button>
+        <button class="pill-filter" data-f="download" onclick="setFilter(this,'download')"><span class="pip" style="background:var(--ok)"></span>Downloads</button>
+        <button class="pill-filter" data-f="join" onclick="setFilter(this,'join')"><span class="pip" style="background:var(--teal2)"></span>Joins</button>
+        <button class="pill-filter" data-f="nda" onclick="setFilter(this,'nda')"><span class="pip" style="background:var(--saffron)"></span>NDA</button>
+      </div>
+    </div>
+    <div id="pauseBar" style="display:none" class="pause-bar" onclick="togglePause()">
+      ▶ Feed paused — click to resume
+    </div>
+    <div class="feed-body" id="feedBody"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-col">
+    <!-- STATS -->
+    <div class="stats-section">
+      <div class="section-label">Today's Stats</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="s-views">—</div>
+          <div class="stat-lbl">Document Views</div>
+          <div class="stat-delta delta-up" id="s-views-d"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="s-downloads">—</div>
+          <div class="stat-lbl">Downloads</div>
+          <div class="stat-delta delta-up" id="s-downloads-d"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="s-investors">—</div>
+          <div class="stat-lbl">Active Investors</div>
+          <div class="stat-delta" id="s-investors-d"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="s-avgtime">—</div>
+          <div class="stat-lbl">Avg. Time on Doc</div>
+          <div class="stat-delta delta-up" id="s-avgtime-d"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOT INVESTORS -->
+    <div class="hot-section">
+      <div class="section-label">🔥 Hottest Investors</div>
+      <div class="hot-list" id="hotList"></div>
+    </div>
+
+    <!-- DEAL HEAT -->
+    <div class="heat-section">
+      <div class="section-label">Deal Interest Heat</div>
+      <div class="deal-heat-list" id="dealHeat"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION BANNER -->
+<div class="notif-banner" id="notifBanner">
+  <div class="notif-inner">
+    <div class="notif-icon" id="notifIcon">👁</div>
+    <div class="notif-text">
+      <div class="notif-title" id="notifTitle"></div>
+      <div class="notif-sub" id="notifSub"></div>
+    </div>
+    <button class="notif-close" onclick="hideNotif()">✕</button>
+  </div>
+</div>
+
+<script>
+// ── SEED DATA ──
+const INVESTORS = [
+  {id:1,name:'Ramesh Agarwal',org:'Abakkus AM',initials:'RA',color:'#0D5C6B'},
+  {id:2,name:'Sneha Kapoor',org:'Nuvama Wealth',initials:'SK',color:'#1A9E6B'},
+  {id:3,name:'Vikram Singhania',org:'Unifi Capital',initials:'VS',color:'#6B4E8C'},
+  {id:4,name:'Suresh Menon',org:'ICICI Pru MF',initials:'SM',color:'#E88A2E'},
+  {id:5,name:'Deepa Nair',org:'HDFC Life',initials:'DN',color:'#1A7D90'},
+  {id:6,name:'Arjun Mehta',org:'SBI Pension',initials:'AM',color:'#C0392B'},
+  {id:7,name:'Priya Sharma',org:'DSP BlackRock',initials:'PS',color:'#6B4E8C'},
+  {id:8,name:'Rajesh Nair',org:'Motilal Oswal MF',initials:'RN',color:'#1A9E6B'},
+];
+
+const DEALS = [
+  {id:1,name:'Muthoot Fincorp IPO',type:'IPO',size:2500},
+  {id:2,name:'PFC NCD Series XI',type:'Debt',size:5000},
+  {id:3,name:'InfoBeans SME IPO',type:'SME IPO',size:75},
+  {id:4,name:'IRFC Green Bond',type:'Debt',size:4000},
+  {id:5,name:'Bajaj Finance NCD',type:'Debt',size:3000},
+];
+
+const DOCS = [
+  'DRHP v3 Final.pdf','Information Memorandum.pdf','Financial Model FY22-25.xlsx',
+  'Investor Presentation.pptx','Valuation Summary.pdf','Rating Rationale CRISIL AAA.pdf',
+  'Draft RHP - Confidential.pdf','Subscription Model.xlsx','Promoter Shareholding.pdf',
+];
+
+const EVT_TYPES = ['view','view','view','download','join','nda','revisit','share'];
+const EVT_ICONS = {view:'👁',download:'⬇️',join:'🔑',nda:'📋',revisit:'🔁',share:'🔗'};
+const EVT_LABELS = {
+  view:'viewed', download:'downloaded', join:'joined Deal Room',
+  nda:'signed NDA for', revisit:'re-opened', share:'shared link to'
+};
+
+const PAGES_OPTS = ['p.1–8','p.1–24','p.12–18','p.4–40','p.1–5 (cover only)','entire doc','p.22–36'];
+const DURATIONS = ['2 min','5 min','8 min','12 min','18 min','23 min','31 min','44 min','1h 2min'];
+const TIMES_AGO = ['just now','1 min ago','2 min ago','3 min ago','5 min ago','8 min ago'];
+
+// ── STATE ──
+let feedItems = [];
+let paused = false;
+let activeFilter = 'all';
+let stats = {views:0, downloads:0, investors: new Set(), totalTime:0, timeCount:0};
+let investorScores = {};
+let dealViews = {};
+let notifTimer = null;
+let simTimer = null;
+
+// seed initial scores
+INVESTORS.forEach(i => { investorScores[i.id] = Math.floor(Math.random()*40)+10; });
+DEALS.forEach(d => { dealViews[d.id] = Math.floor(Math.random()*8)+2; });
+
+// ── GENERATE EVENT ──
+function genEvent() {
+  const inv = INVESTORS[Math.floor(Math.random()*INVESTORS.length)];
+  const deal = DEALS[Math.floor(Math.random()*DEALS.length)];
+  const doc = DOCS[Math.floor(Math.random()*DOCS.length)];
+  const type = EVT_TYPES[Math.floor(Math.random()*EVT_TYPES.length)];
+  const duration = DURATIONS[Math.floor(Math.random()*DURATIONS.length)];
+  const pages = PAGES_OPTS[Math.floor(Math.random()*PAGES_OPTS.length)];
+  const timeAgo = TIMES_AGO[0]; // always "just now" for new
+
+  // heat map: random page segments
+  const heat = Array.from({length:8},()=>Math.floor(Math.random()*5));
+
+  return {id: Date.now() + Math.random(), inv, deal, doc, type, duration, pages, heat, timeAgo, ts: Date.now()};
+}
+
+// ── PUSH EVENT ──
+function pushEvent(evt) {
+  feedItems.unshift(evt);
+  if(feedItems.length > 100) feedItems.pop();
+
+  // update stats
+  if(evt.type==='view') { stats.views++; const m=parseInt(evt.duration); if(!isNaN(m)){stats.totalTime+=m;stats.timeCount++;} }
+  if(evt.type==='download') stats.downloads++;
+  stats.investors.add(evt.inv.id);
+  investorScores[evt.inv.id] = (investorScores[evt.inv.id]||0) + (evt.type==='download'?3:evt.type==='nda'?5:1);
+  dealViews[evt.deal.id] = (dealViews[evt.deal.id]||0) + 1;
+
+  renderFeed();
+  renderStats();
+  renderHotInvestors();
+  renderDealHeat();
+  showNotif(evt);
+  updateTimestamp();
+}
+
+// ── RENDER FEED ──
+function renderFeed() {
+  const body = document.getElementById('feedBody');
+  const filtered = feedItems.filter(e => activeFilter==='all' || e.type===activeFilter);
+
+  if(filtered.length===0){
+    body.innerHTML = `<div class="feed-empty"><div class="feed-empty-icon">📡</div><div style="font-size:14px;font-weight:500;color:var(--text)">Waiting for activity…</div><div style="font-size:12px">Investor events will appear here in real time</div></div>`;
+    return;
+  }
+
+  body.innerHTML = filtered.slice(0,50).map((e,i) => {
+    const isNew = i===0 && (Date.now()-e.ts)<3000;
+    const heatHTML = e.heat.map(h=>`<div class="heat-seg ${h>=4?'h4':h>=3?'h3':h>=2?'h2':h>=1?'h1':''}"></div>`).join('');
+    const actionSuffix = (e.type==='view'||e.type==='revisit') ? ` in <span class="deal-tag">${e.deal.name}</span>` :
+                         e.type==='download' ? ` from <span class="deal-tag">${e.deal.name}</span>` :
+                         e.type==='join' ? ` — <span class="deal-tag">${e.deal.name}</span>` :
+                         e.type==='nda' ? ` <span class="deal-tag">${e.deal.name}</span>` :
+                         ` — <span class="deal-tag">${e.deal.name}</span>`;
+
+    const showDoc = ['view','download','revisit','nda'].includes(e.type);
+    const docEmoji = e.doc.endsWith('.xlsx')?'📊':e.doc.endsWith('.pptx')?'📑':e.doc.endsWith('.pdf')?'📄':'📁';
+
+    return `<div class="feed-item evt-${e.type} ${isNew?'new-flash':''}">
+      <div class="feed-ava-wrap">
+        <div class="feed-avatar" style="background:${e.inv.color}22;color:${e.inv.color};border-color:${e.inv.color}44">${e.inv.initials}</div>
+        <div class="feed-event-icon">${EVT_ICONS[e.type]||'📋'}</div>
+      </div>
+      <div class="feed-body-text">
+        <div class="feed-row1">
+          <span class="feed-name">${e.inv.name} <span style="font-weight:400;color:var(--muted);font-size:11px">· ${e.inv.org}</span></span>
+          <span class="feed-time">${e.timeAgo}</span>
+        </div>
+        <div class="feed-action">${EVT_LABELS[e.type]||'accessed'} <strong>${e.type==='view'||e.type==='download'||e.type==='revisit'?e.doc:''}</strong>${actionSuffix}</div>
+        ${showDoc ? `
+        <div class="feed-detail-card">
+          <div class="fdc-icon">${docEmoji}</div>
+          <div class="fdc-info">
+            <div class="fdc-name">${e.doc}</div>
+            <div class="fdc-meta">${e.pages}${e.type!=='download'?' · '+e.duration:' · Downloaded'}</div>
+          </div>
+          ${e.type!=='download'?`<div class="fdc-right"><div class="fdc-duration">⏱ ${e.duration}</div><div class="fdc-pages">${e.pages}</div></div>`:''}
+        </div>
+        ${e.type!=='download'?`<div class="heat-bar" title="Page attention heatmap">${heatHTML}</div>`:''}
+        ` : ''}
+        <div class="feed-actions-row">
+          <button class="mini-btn primary" onclick="notifyMB('${e.inv.name}','${e.deal.name}')">✉ Follow up</button>
+          <button class="mini-btn" onclick="viewInvestor('${e.inv.name}')">👤 Profile</button>
+          <button class="mini-btn" onclick="openDealRoom('${e.deal.name}')">🏛️ Deal Room</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER STATS ──
+function renderStats() {
+  document.getElementById('s-views').textContent = stats.views;
+  document.getElementById('s-views-d').textContent = `↑ ${Math.round(stats.views*0.3)} vs yesterday`;
+  document.getElementById('s-downloads').textContent = stats.downloads;
+  document.getElementById('s-downloads-d').textContent = `↑ ${Math.max(0,stats.downloads-2)} vs yesterday`;
+  document.getElementById('s-investors').textContent = stats.investors.size;
+  document.getElementById('s-investors-d').textContent = `${stats.investors.size} unique today`;
+  const avg = stats.timeCount>0 ? Math.round(stats.totalTime/stats.timeCount) : 0;
+  document.getElementById('s-avgtime').textContent = avg>0 ? avg+'m' : '—';
+  document.getElementById('s-avgtime-d').textContent = avg>0 ? `↑ High engagement` : 'Tracking…';
+}
+
+// ── HOT INVESTORS ──
+function renderHotInvestors() {
+  const sorted = INVESTORS
+    .map(i => ({...i, score: investorScores[i.id]||0}))
+    .sort((a,b) => b.score-a.score)
+    .slice(0,5);
+
+  const maxScore = sorted[0]?.score || 1;
+  const fires = ['🔥','🔥','⚡','⚡','👀'];
+
+  document.getElementById('hotList').innerHTML = sorted.map((inv,i) => {
+    const pct = Math.round((inv.score/maxScore)*100);
+    return `<div class="hot-item" onclick="toast('${inv.name} · ${inv.org}')">
+      <div class="hot-rank">#${i+1}</div>
+      <div class="hot-ava" style="background:${inv.color}22;color:${inv.color}">${inv.initials}</div>
+      <div class="hot-info">
+        <div class="hot-name">${inv.name}</div>
+        <div class="hot-org">${inv.org}</div>
+      </div>
+      <div class="hot-score">
+        <div class="score-fire">${fires[i]}</div>
+        <div class="score-num" style="color:${inv.color}">${inv.score}</div>
+        <div class="score-lbl">pts</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── DEAL HEAT ──
+function renderDealHeat() {
+  const maxV = Math.max(...Object.values(dealViews), 1);
+  const colors = ['#0D5C6B','#1A9E6B','#6B4E8C','#E88A2E','#1A7D90'];
+
+  document.getElementById('dealHeat').innerHTML = DEALS.map((d,i) => {
+    const v = dealViews[d.id]||0;
+    const pct = Math.round((v/maxV)*100);
+    return `<div class="deal-heat-item">
+      <div class="dh-top">
+        <div class="dh-name">${d.name}</div>
+        <div class="dh-count">${v} views</div>
+      </div>
+      <div class="dh-bar-wrap"><div class="dh-bar" style="width:${pct}%;background:${colors[i%colors.length]}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── NOTIFICATION BANNER ──
+function showNotif(evt) {
+  const banner = document.getElementById('notifBanner');
+  document.getElementById('notifIcon').textContent = EVT_ICONS[evt.type]||'📋';
+  document.getElementById('notifTitle').textContent = `${evt.inv.name} ${EVT_LABELS[evt.type]||'accessed'} ${evt.type==='join'?evt.deal.name:evt.doc}`;
+  document.getElementById('notifSub').textContent = `${evt.inv.org} · ${evt.deal.name}${evt.type==='view'?' · '+evt.duration:''}`;
+  banner.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(hideNotif, 4000);
+}
+function hideNotif() { document.getElementById('notifBanner').classList.remove('show'); }
+
+// ── TIMESTAMP ──
+function updateTimestamp() {
+  document.getElementById('lastUpdateLabel').textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+// ── FILTER ──
+function setFilter(el, f) {
+  activeFilter = f;
+  document.querySelectorAll('.pill-filter').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  renderFeed();
+}
+
+// ── PAUSE ──
+function togglePause() {
+  paused = !paused;
+  document.getElementById('pauseBtn').textContent = paused ? '▶ Resume' : '⏸ Pause';
+  document.getElementById('pauseBar').style.display = paused ? 'flex' : 'none';
+  document.querySelector('.live-badge').style.opacity = paused ? '0.4' : '1';
+  if(!paused) startSim();
+  else { clearTimeout(simTimer); }
+}
+
+// ── CLEAR ──
+function clearFeed() {
+  if(!confirm('Clear activity feed?')) return;
+  feedItems = [];
+  stats = {views:0,downloads:0,investors:new Set(),totalTime:0,timeCount:0};
+  INVESTORS.forEach(i=>{ investorScores[i.id]=0; });
+  DEALS.forEach(d=>{ dealViews[d.id]=0; });
+  renderFeed(); renderStats(); renderHotInvestors(); renderDealHeat();
+  toast('Feed cleared');
+}
+
+// ── ACTION BUTTONS ──
+function notifyMB(name, deal) {
+  toast(`✉ Follow-up reminder set for ${name} re: ${deal}`);
+}
+function viewInvestor(name) { toast(`👤 Opening ${name}'s profile`); }
+function openDealRoom(deal) { toast(`🏛️ Opening Deal Room: ${deal}`); }
+
+// ── TOAST ──
+function toast(msg) {
+  let t = document.getElementById('toastEl');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toastEl';
+    t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:#EEF4F5;border:1px solid #1A9E6B;color:#0D2B30;padding:10px 18px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:all .2s;white-space:nowrap;font-family:DM Sans,sans-serif;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(10px)'; }, 2500);
+}
+
+// ── AGING: update "X min ago" labels ──
+function ageItems() {
+  const now = Date.now();
+  feedItems.forEach(e => {
+    const secs = Math.floor((now - e.ts)/1000);
+    if(secs < 60) e.timeAgo = secs < 5 ? 'just now' : `${secs}s ago`;
+    else if(secs < 3600) e.timeAgo = `${Math.floor(secs/60)} min ago`;
+    else e.timeAgo = `${Math.floor(secs/3600)}h ago`;
+  });
+}
+
+// ── SIMULATE LIVE EVENTS ──
+function getDelay() {
+  // random between 4s and 18s
+  return 4000 + Math.random() * 14000;
+}
+
+function startSim() {
+  if(paused) return;
+  simTimer = setTimeout(() => {
+    if(!paused) {
+      pushEvent(genEvent());
+      startSim();
+    }
+  }, getDelay());
+}
+
+// Age labels every 30s
+setInterval(() => { ageItems(); renderFeed(); }, 30000);
+
+// ── SEED INITIAL EVENTS (history) ──
+function seedHistory() {
+  const historicalAgo = [
+    'just now','1 min ago','2 min ago','3 min ago','4 min ago','6 min ago',
+    '9 min ago','12 min ago','18 min ago','24 min ago','31 min ago','45 min ago',
+    '1h ago','1h 12m ago','1h 38m ago','2h ago','2h 30m ago','3h ago'
+  ];
+  for(let i=0;i<18;i++){
+    const e = genEvent();
+    e.timeAgo = historicalAgo[i];
+    e.ts = Date.now() - i*120000;
+    feedItems.push(e);
+    if(e.type==='view'){ stats.views++; const m=parseInt(e.duration); if(!isNaN(m)){stats.totalTime+=m;stats.timeCount++;} }
+    if(e.type==='download') stats.downloads++;
+    stats.investors.add(e.inv.id);
+    investorScores[e.inv.id] = (investorScores[e.inv.id]||0) + (e.type==='download'?3:e.type==='nda'?5:1);
+    dealViews[e.deal.id] = (dealViews[e.deal.id]||0) + 1;
+  }
+}
+
+// ── INIT ──
+seedHistory();
+renderFeed();
+renderStats();
+renderHotInvestors();
+renderDealHeat();
+updateTimestamp();
+startSim();
+</script>
+</body>
+</html>
