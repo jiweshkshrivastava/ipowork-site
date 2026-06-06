@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Legal Intelligence — ipowork</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900&family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#08404D;--teal2:#0D5C6B;--teal3:#1A7D90;--teal4:#2490A8;
+  --amber:#E88A2E;--gold:#C9932A;--green:#1A9E6B;--red:#C0392B;
+  --navy:#0A1628;--blue:#1A4A8A;--purple:#5B4ED4;
+  --white:#FFFFFF;--bg:#F5F8FA;--card:#FFFFFF;
+  --border:rgba(13,92,107,.12);--border2:rgba(13,92,107,.2);
+  --text:#2C3E47;--muted:#6B7E85;--dim:#9AAFB5;
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 4px 20px rgba(13,92,107,.1);--shadow2:0 8px 40px rgba(13,92,107,.15);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:13px;min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--teal);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.brand{font-family:var(--serif);font-weight:900;font-size:16px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:4px}
+.brand sup{color:var(--amber);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.nav-links{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.nav-link{padding:5px 10px;color:rgba(255,255,255,.75);font-size:11px;font-weight:600;text-decoration:none;border-radius:6px;transition:.15s;white-space:nowrap}
+.nav-link:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-link.active{background:rgba(255,255,255,.15);color:#fff;font-weight:800}
+.nav-link.highlight{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff;font-weight:800}
+
+/* HERO STRIP */
+.hero-strip{background:linear-gradient(135deg,var(--teal2),var(--teal3));padding:24px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.hero-title{font-family:var(--serif);font-size:24px;font-weight:900;color:#fff;line-height:1.2}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;max-width:600px;line-height:1.7}
+.hero-stats{display:flex;gap:24px;flex-wrap:wrap}
+.hstat{text-align:center}
+.hstat-val{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--amber);line-height:1}
+.hstat-lbl{font-size:10px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;font-weight:600}
+
+/* CARDS */
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.card-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:var(--serif);font-size:15px;font-weight:900;color:var(--teal)}
+.card-body{padding:20px 22px}
+
+/* SCORE RING */
+.score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.score-val{font-family:var(--serif);font-weight:900;color:var(--teal);line-height:1}
+.score-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* BADGES */
+.badge{display:inline-flex;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:rgba(26,158,107,.1);color:#1A9E6B;border:1px solid rgba(26,158,107,.25)}
+.badge-amber{background:rgba(232,138,46,.1);color:var(--amber);border:1px solid rgba(232,138,46,.25)}
+.badge-red{background:rgba(192,57,43,.1);color:var(--red);border:1px solid rgba(192,57,43,.25)}
+.badge-teal{background:rgba(13,92,107,.1);color:var(--teal2);border:1px solid rgba(13,92,107,.2)}
+.badge-purple{background:rgba(91,78,212,.1);color:var(--purple);border:1px solid rgba(91,78,212,.2)}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:9px;font-family:var(--font);font-weight:700;font-size:12px;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-amber{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff}
+.btn-amber:hover{opacity:.9}
+.btn-outline{background:#fff;color:var(--teal);border:1.5px solid var(--border2)}
+.btn-outline:hover{border-color:var(--teal2);background:rgba(13,92,107,.04)}
+.btn-green{background:#25D366;color:#fff}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:7px}
+
+/* FORM ELEMENTS */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;transition:.2s;background:var(--bg)}
+.form-input:focus{border-color:var(--teal2);background:#fff}
+.form-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;background:var(--bg);cursor:pointer}
+.form-select:focus{border-color:var(--teal2)}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{padding:10px 14px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:2px solid var(--border);background:#fff;position:sticky;top:0}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.data-table tr:hover td{background:rgba(13,92,107,.03)}
+
+/* RISK METER */
+.risk-bar{height:8px;border-radius:4px;background:rgba(13,92,107,.08);overflow:hidden}
+.risk-fill{height:100%;border-radius:4px;transition:.4s}
+
+/* CREDIT CHIP */
+.credit-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(232,138,46,.1);border:1px solid rgba(232,138,46,.3);border-radius:99px;font-size:10px;font-weight:800;color:var(--amber)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--border);background:#fff;overflow-x:auto}
+.tab{padding:12px 20px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;font-family:var(--font);transition:.15s}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* SECTION */
+.section{padding:24px 28px}
+.section-title{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:4px}
+.section-sub{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ACCESS LEVEL */
+.blur-field{filter:blur(4px);user-select:none;pointer-events:none}
+.locked-overlay{position:relative}
+
+/* PIN MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:18px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden}
+.modal-header{background:linear-gradient(135deg,var(--teal),var(--teal2));padding:22px 26px}
+.modal-body{padding:24px 26px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;background:var(--teal);color:#fff;border-radius:10px;font-size:12px;font-weight:700;z-index:9999;transform:translateY(80px);opacity:0;transition:.3s;pointer-events:none;max-width:320px;box-shadow:var(--shadow2)}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:99px}
+
+@media(max-width:700px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .hero-strip{padding:16px 18px}
+  .section{padding:16px 18px}
+  .nav-links{gap:2px}
+  .nav-link{padding:4px 7px;font-size:10px}
+}
+</style>
+
+<script src="probe42.js">
+// ── PROBE42 LIVE SEARCH ──
+var _p42_results = [];
+var _p42_selected = {cin:'', name:''};
+
+async function p42Search(inputId, dropId) {
+  var q = document.getElementById(inputId).value.trim();
+  var drop = document.getElementById(dropId);
+  if (!drop) return;
+  if (q.length < 3) { drop.style.display='none'; return; }
+  drop.style.display='block';
+  drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">⏳ Searching...</div>';
+  try {
+    var data = await P42.search(q);
+    _p42_results = data || [];
+    if (!_p42_results.length) {
+      drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">No companies found</div>';
+      return;
+    }
+    drop.innerHTML = _p42_results.map(function(co,i) {
+      var cin = P42.getCIN(co);
+      var name = P42.getName(co);
+      return '<div onclick="selectCompany(\''+cin+'\',\''+name.replace(/'/g,"\\'")+'\',\''+inputId+'\',\''+dropId+'\')" '
+        +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(13,92,107,.08);font-size:12px;font-weight:600;color:#2C3E47;transition:.15s" '
+        +'onmouseover="this.style.background=\'rgba(13,92,107,.05)\'" onmouseout="this.style.background=\'\'">'
+        +'<div>'+name+'</div>'
+        +'<div style="font-size:10px;color:#6B7E85;font-family:monospace;margin-top:2px">'+cin+'</div>'
+        +'</div>';
+    }).join('');
+  } catch(e) {
+    drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#C0392B">Error: '+e.message+'</div>';
+  }
+}
+
+function selectCompany(cin, name, inputId, dropId) {
+  _p42_selected = {cin:cin, name:name};
+  var inp = document.getElementById(inputId);
+  if(inp) inp.value = name + ' (' + cin + ')';
+  var drop = document.getElementById(dropId);
+  if(drop) drop.style.display='none';
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.p42-dropdown').forEach(function(d) {
+    if (!d.contains(e.target)) d.style.display='none';
+  });
+});
+
+
+// ── PROBE42 LIVE DATA LOADER ──
+async function loadProbe42Data(cin, displayName) {
+  showToast('⏳ Fetching live data from Probe42...');
+  try {
+    var scan = await P42.fullScan(cin);
+    var co = scan.company || {};
+    var dirs = scan.directors || [];
+    var charges = scan.charges || [];
+    var fins = scan.financials || {};
+
+    // Update company name displays
+    document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"]').forEach(function(el){
+      el.textContent = P42.getName(co) || displayName;
+    });
+
+    // Update charges badge
+    var activeCharges = P42.getActiveCharges(charges);
+    var chargeBadge = document.getElementById('charge-count');
+    if(chargeBadge) chargeBadge.textContent = activeCharges + ' Active Charge' + (activeCharges!==1?'s':'');
+
+    // Show results panel
+    var panels = ['results-panel','forensic-results','director-result','credit-results','risk-results'];
+    panels.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.style.display='block';
+    });
+
+    // Populate directors table if present
+    var dtbody = document.getElementById('directors-tbody');
+    if(dtbody && dirs.length) {
+      dtbody.innerHTML = dirs.slice(0,6).map(function(d){
+        var name = d.director_name || d.name || 'Unknown';
+        var din  = d.din || '—';
+        var role = d.designation || d.role || 'Director';
+        return '<tr>'
+          +'<td style="font-weight:700">'+name+'</td>'
+          +'<td style="font-family:var(--mono);font-size:10px">'+din+'</td>'
+          +'<td>'+role+'</td>'
+          +'<td><span class="badge badge-green">Checking ✓</span></td>'
+          +'<td><span class="badge badge-green">None ✓</span></td>'
+          +'<td>—</td>'
+          +'</tr>';
+      }).join('');
+    }
+
+    // Populate MCA incorporation info
+    var incDate = P42.getIncDate(co);
+    if(incDate) {
+      var els = document.querySelectorAll('[data-p42="inc-date"]');
+      els.forEach(function(el){el.textContent=incDate;});
+    }
+
+    showToast('✅ Live data loaded — ' + (P42.getName(co)||displayName));
+
+  } catch(e) {
+    console.error('Probe42 error:', e);
+    showToast('⚠️ Live data unavailable — showing sample data');
+    // Still show results panel with sample data
+    var panels = ['results-panel','forensic-results','director-result','credit-results','risk-results'];
+    panels.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.style.display='block';
+    });
+    var empls = ['legal-empty','forensic-empty','dir-empty','credit-empty','risk-empty'];
+    empls.forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.style.display='none';
+    });
+  }
+}
+
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html" class="brand">ipowork<sup>AI</sup></a>
+  <nav class="nav-links">
+  <a href="index.html" class="nav-link">🏠 Home</a>
+  <a href="aira.html" class="nav-link">📊 AIRA</a>
+  <a href="mb.html" class="nav-link">🏦 MB Portal</a>
+  <a href="aif-intel.html" class="nav-link">🏛️ AIF Intel</a>
+  <a href="risk-desk.html" class="nav-link">⚡ Risk Desk</a>
+  <a href="legal-intel.html" class="nav-link active">⚖️ Legal</a>
+  <a href="forensic-intel.html" class="nav-link">🔍 Forensic</a>
+  <a href="director-intel.html" class="nav-link">👤 Directors</a>
+  <a href="credit-intel.html" class="nav-link">💰 Credit</a>
+  <a href="credits.html" class="nav-link">🪙 Credits</a>
+</nav>
+</div>
+
+<!-- HERO -->
+<div class="hero-strip">
+  <div>
+    <div class="hero-title">⚖️ Legal Intelligence</div>
+    <div class="hero-sub">Litigation scan · MCA charges · Director background · Regulatory actions · SC/HC/NCLT/NCLAT coverage · Legal Readiness Score 0–100</div>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val">6</div><div class="hstat-lbl">Courts Covered</div></div>
+    <div class="hstat"><div class="hstat-val">SC/HC</div><div class="hstat-lbl">Lawyer Panel</div></div>
+    <div class="hstat"><div class="hstat-val">3–10</div><div class="hstat-lbl">Credits/Scan</div></div>
+  </div>
+</div>
+
+<!-- ACCESS BANNER -->
+<div id="access-banner" style="padding:10px 28px;background:linear-gradient(135deg,#fff3e0,#fff8f0);border-bottom:1px solid #ffe0b2;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div style="font-size:12px;color:#8B5E00;font-weight:600" id="banner-text">🔒 <strong>Public View</strong> — Company names and scores visible. Legal details require authorisation.</div>
+  <div style="display:flex;gap:8px">
+    <button onclick="openPin('auth')" class="btn btn-sm" style="background:linear-gradient(135deg,var(--teal3),var(--teal2));color:#fff">🔓 Auth Access</button>
+    <button onclick="openPin('admin')" class="btn btn-sm btn-amber">🔐 Admin</button>
+  </div>
+</div>
+
+<div class="section">
+
+  <!-- SEARCH BAR -->
+  <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px 24px;margin-bottom:20px;box-shadow:var(--shadow)">
+    <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:14px">🔍 Company Legal Search</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:200px">
+        <label class="form-label">Company Name / CIN</label>
+        <input id="company-search" class="form-input" placeholder="e.g. Acme Industries Limited or U29100MH2008PLC180421"/>
+      </div>
+      <div style="min-width:140px">
+        <label class="form-label">Scan Type</label>
+        <select id="scan-type" class="form-select">
+          <option value="quick">Quick Scan (3 credits)</option>
+          <option value="standard">Standard Scan (5 credits)</option>
+          <option value="full">Full Legal Report (10 credits)</option>
+        </select>
+      </div>
+      <button onclick="runLegalScan()" class="btn btn-primary" style="height:38px">⚖️ Run Legal Scan</button>
+    </div>
+  </div>
+
+  <!-- RESULTS PANEL (shown after scan) -->
+  <div id="results-panel" style="display:none">
+
+    <!-- Score + Overview -->
+    <div class="grid-2" style="margin-bottom:20px">
+
+      <!-- Legal Score -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Legal Readiness Score</div>
+          <span class="badge badge-amber" id="scan-type-badge">Standard Scan</span>
+        </div>
+        <div class="card-body" style="display:flex;align-items:center;gap:24px">
+          <div style="text-align:center">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#EAF2F4" stroke-width="12"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="var(--teal)" stroke-width="12"
+                stroke-dasharray="314" stroke-dashoffset="88" stroke-linecap="round"
+                transform="rotate(-90 60 60)" id="score-circle"/>
+            </svg>
+            <div style="margin-top:-70px;font-family:var(--serif);font-size:32px;font-weight:900;color:var(--teal)" id="score-num">72</div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:32px">Legal Score</div>
+          </div>
+          <div style="flex:1">
+            <div id="company-name-display" style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:12px">Acme Industries Limited</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+                  <span style="color:var(--muted);font-weight:600">Litigation Risk</span>
+                  <span style="color:var(--text);font-weight:700" id="lit-score">Low (82)</span>
+                </div>
+                <div class="risk-bar"><div class="risk-fill" style="width:82%;background:var(--green)" id="lit-bar"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+                  <span style="color:var(--muted);font-weight:600">Regulatory Compliance</span>
+                  <span style="color:var(--text);font-weight:700" id="reg-score">Moderate (65)</span>
+                </div>
+                <div class="risk-bar"><div class="risk-fill" style="width:65%;background:var(--amber)" id="reg-bar"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+                  <span style="color:var(--muted);font-weight:600">MCA / Corporate</span>
+                  <span style="color:var(--text);font-weight:700" id="mca-score">Good (74)</span>
+                </div>
+                <div class="risk-bar"><div class="risk-fill" style="width:74%;background:var(--teal3)" id="mca-bar"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+                  <span style="color:var(--muted);font-weight:600">Director Background</span>
+                  <span style="color:var(--text);font-weight:700" id="dir-score">Clean (88)</span>
+                </div>
+                <div class="risk-bar"><div class="risk-fill" style="width:88%;background:var(--green)" id="dir-bar"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Red Flags -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🚨 Red Flags & Alerts</div>
+          <span class="badge badge-amber" id="flag-count-badge">2 Flags</span>
+        </div>
+        <div class="card-body" id="red-flags-list">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="padding:12px;background:rgba(232,138,46,.06);border-left:3px solid var(--amber);border-radius:8px">
+              <div style="font-size:12px;font-weight:800;color:var(--amber);margin-bottom:3px">⚠️ GST Dispute — Pending</div>
+              <div style="font-size:11px;color:var(--muted)">GSTIN dispute ₹42L filed in 2022. Status: Under adjudication. No stay order.</div>
+            </div>
+            <div style="padding:12px;background:rgba(232,138,46,.06);border-left:3px solid var(--amber);border-radius:8px">
+              <div style="font-size:12px;font-weight:800;color:var(--amber);margin-bottom:3px">⚠️ Labour Dispute — HC</div>
+              <div style="font-size:11px;color:var(--muted)">Bombay HC — Workers' compensation matter. Next hearing: Feb 2025.</div>
+            </div>
+            <div style="padding:12px;background:rgba(26,158,107,.06);border-left:3px solid var(--green);border-radius:8px">
+              <div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:3px">✅ No SEBI Orders</div>
+              <div style="font-size:11px;color:var(--muted)">No pending SEBI orders, show-cause notices or debarment orders found.</div>
+            </div>
+            <div style="padding:12px;background:rgba(26,158,107,.06);border-left:3px solid var(--green);border-radius:8px">
+              <div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:3px">✅ No NCLT / Insolvency</div>
+              <div style="font-size:11px;color:var(--muted)">No IBC proceedings, CIRP or winding-up petitions found against the company.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="tabs">
+        <button class="tab active" onclick="legalTab('litigation',this)">⚖️ Litigation</button>
+        <button class="tab" onclick="legalTab('mca',this)">🏛️ MCA / Corporate</button>
+        <button class="tab" onclick="legalTab('regulatory',this)">📋 Regulatory</button>
+        <button class="tab" onclick="legalTab('directors',this)">👤 Directors</button>
+        <button class="tab" onclick="legalTab('charges',this)">🔗 Charges</button>
+        <button class="tab" onclick="legalTab('lawyers',this)">⚖️ Our Lawyers</button>
+      </div>
+
+      <!-- LITIGATION -->
+      <div id="tab-litigation" style="padding:20px">
+        <div style="margin-bottom:14px;font-size:12px;color:var(--muted)">Courts scanned: Supreme Court · High Courts · NCLT/NCLAT · Consumer Forums · GST Appellate · Income Tax</div>
+        <table class="data-table">
+          <thead><tr>
+            <th>Court / Forum</th><th>Case Type</th><th>Status</th><th>Amount</th><th>Risk</th>
+          </tr></thead>
+          <tbody id="litigation-tbody">
+            <tr><td>Bombay High Court</td><td>Labour / Industrial</td><td><span class="badge badge-amber">Pending</span></td><td>₹18L</td><td><span class="badge badge-amber">Medium</span></td></tr>
+            <tr><td>GST Appellate Tribunal</td><td>Tax Dispute</td><td><span class="badge badge-amber">Under Adjudication</span></td><td>₹42L</td><td><span class="badge badge-amber">Medium</span></td></tr>
+            <tr><td>Consumer Forum — Pune</td><td>Consumer Complaint</td><td><span class="badge badge-green">Disposed</span></td><td>₹2L</td><td><span class="badge badge-green">Low</span></td></tr>
+            <tr><td>Income Tax Tribunal</td><td>Tax Assessment</td><td><span class="badge badge-green">Resolved</span></td><td>₹8L</td><td><span class="badge badge-green">Low</span></td></tr>
+            <tr><td>NCLT Mumbai</td><td>IBC / Insolvency</td><td><span class="badge badge-green">No Filing</span></td><td>—</td><td><span class="badge badge-green">Nil</span></td></tr>
+            <tr><td>Supreme Court</td><td>All Matters</td><td><span class="badge badge-green">No Filing</span></td><td>—</td><td><span class="badge badge-green">Nil</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- MCA -->
+      <div id="tab-mca" style="display:none;padding:20px">
+        <div class="grid-3">
+          <div class="card" style="box-shadow:none;border-color:var(--border)">
+            <div class="card-body">
+              <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Incorporation</div>
+              <div style="font-size:13px;font-weight:800;color:var(--teal)">Nov 12, 2008</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">16 years in operation</div>
+            </div>
+          </div>
+          <div class="card" style="box-shadow:none;border-color:var(--border)">
+            <div class="card-body">
+              <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ROC Compliance</div>
+              <div style="font-size:13px;font-weight:800;color:var(--green)">Regular ✓</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">All filings current</div>
+            </div>
+          </div>
+          <div class="card" style="box-shadow:none;border-color:var(--border)">
+            <div class="card-body">
+              <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Paid-Up Capital</div>
+              <div style="font-size:13px;font-weight:800;color:var(--teal)">₹4.8 Cr</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">12,000 equity shares</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px">
+          <table class="data-table">
+            <thead><tr><th>MCA Filing</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Annual Return</td><td>MGT-7</td><td>Sep 2024</td><td><span class="badge badge-green">Filed ✓</span></td></tr>
+              <tr><td>Financial Statements</td><td>AOC-4</td><td>Sep 2024</td><td><span class="badge badge-green">Filed ✓</span></td></tr>
+              <tr><td>Board Changes</td><td>DIR-12</td><td>Mar 2024</td><td><span class="badge badge-green">Filed ✓</span></td></tr>
+              <tr><td>Charge Creation</td><td>CHG-1</td><td>Jan 2023</td><td><span class="badge badge-amber">Active Charge</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- REGULATORY -->
+      <div id="tab-regulatory" style="display:none;padding:20px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="padding:14px;background:#f8fafa;border-radius:10px;border:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-weight:800;font-size:13px;color:var(--teal)">SEBI</span>
+              <span class="badge badge-green">Clean ✓</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted)">No pending orders, show-cause notices, consent orders or debarment. SEBI SCORES: 0 complaints.</div>
+          </div>
+          <div style="padding:14px;background:#f8fafa;border-radius:10px;border:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-weight:800;font-size:13px;color:var(--teal)">RBI</span>
+              <span class="badge badge-green">Not Regulated</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted)">Not an NBFC/Bank. No RBI registration or regulatory actions applicable.</div>
+          </div>
+          <div style="padding:14px;background:#fff8f0;border-radius:10px;border:1px solid #ffe0b2">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-weight:800;font-size:13px;color:var(--amber)">GST / Income Tax</span>
+              <span class="badge badge-amber">1 Dispute</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted)">GST dispute ₹42L under adjudication. Income tax assessment FY21 resolved. No prosecution proceedings.</div>
+          </div>
+          <div style="padding:14px;background:#f8fafa;border-radius:10px;border:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-weight:800;font-size:13px;color:var(--teal)">Environment / Factory</span>
+              <span class="badge badge-green">Compliant ✓</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted)">Factory license current. Pollution Control Board NOC valid till Dec 2025. No environmental notices.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIRECTORS -->
+      <div id="tab-directors" style="display:none;padding:20px">
+        <div style="margin-bottom:12px;padding:10px 14px;background:rgba(13,92,107,.05);border-radius:8px;font-size:11px;color:var(--teal2);font-weight:600">
+          🔒 Contact details hidden. Director background signals shown. Admin access required for full profile.
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Director</th><th>DIN</th><th>Role</th><th>CIBIL Signal</th><th>Disqualification</th><th>Other DINs</th></tr></thead>
+          <tbody id="directors-tbody">
+            <tr>
+              <td style="font-weight:700"id="d1-name">Rajesh K. Sharma</td>
+              <td style="font-family:var(--mono);font-size:10px">0012XXXX</td>
+              <td>Managing Director</td>
+              <td><span class="badge badge-green">Clean ✓</span></td>
+              <td><span class="badge badge-green">None ✓</span></td>
+              <td>3 companies</td>
+            </tr>
+            <tr>
+              <td style="font-weight:700">Priya R. Sharma</td>
+              <td style="font-family:var(--mono);font-size:10px">0018XXXX</td>
+              <td>Director</td>
+              <td><span class="badge badge-green">Clean ✓</span></td>
+              <td><span class="badge badge-green">None ✓</span></td>
+              <td>2 companies</td>
+            </tr>
+            <tr>
+              <td style="font-weight:700">Anil V. Mehta</td>
+              <td style="font-family:var(--mono);font-size:10px">0045XXXX</td>
+              <td>Independent Director</td>
+              <td><span class="badge badge-green">Clean ✓</span></td>
+              <td><span class="badge badge-green">None ✓</span></td>
+              <td>8 companies</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CHARGES -->
+      <div id="tab-charges" style="display:none;padding:20px">
+        <div style="margin-bottom:14px;padding:10px 14px;background:rgba(232,138,46,.06);border-radius:8px;font-size:11px;color:#8B5E00;font-weight:600">
+          ⚠️ 1 active charge found. Verify charge holder and security details before proceeding.
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Charge ID</th><th>Charge Holder</th><th>Amount</th><th>Created</th><th>Status</th><th>Security</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:var(--mono);font-size:10px">10045892</td>
+              <td style="font-weight:700">HDFC Bank Ltd</td>
+              <td>₹12 Cr</td>
+              <td>Jan 15, 2023</td>
+              <td><span class="badge badge-amber">Active</span></td>
+              <td>Plant & Machinery</td>
+            </tr>
+            <tr>
+              <td style="font-family:var(--mono);font-size:10px">9823401</td>
+              <td style="font-weight:700">Axis Bank Ltd</td>
+              <td>₹5 Cr</td>
+              <td>Mar 2019</td>
+              <td><span class="badge badge-green">Satisfied ✓</span></td>
+              <td>Stock & Receivables</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- LAWYERS PANEL -->
+      <div id="tab-lawyers" style="display:none;padding:20px">
+        <div style="margin-bottom:16px;padding:12px 16px;background:linear-gradient(135deg,rgba(13,92,107,.06),rgba(13,92,107,.02));border-radius:10px;font-size:12px;color:var(--teal);line-height:1.7">
+          <strong>ipowork Lawyer Panel</strong> — Our empanelled Supreme Court and High Court advocates are available for legal escalation, opinions and representation. Submit an EOI to connect via ipowork.
+        </div>
+        <div class="grid-2" id="lawyers-grid">
+          <!-- Lawyer cards -->
+          <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:18px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+              <div>
+                <div style="font-weight:900;font-size:14px;color:var(--teal);font-family:var(--serif)">
+                  <span id="l1-name">Sr. Advocate</span></div>
+                <div style="font-size:11px;color:var(--amber);font-weight:700;margin-top:2px">Supreme Court of India · AOR</div>
+              </div>
+              <span class="badge badge-teal">SC</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">Specialisation: Corporate disputes · SEBI matters · Insolvency (IBC) · Securities law</div>
+            <div style="font-size:10px;color:var(--dim);margin-bottom:12px">Experience: 25+ years · 500+ corporate matters</div>
+            <button onclick="openLawyerEOI('SC Corporate')" class="btn btn-primary btn-sm" style="width:100%;justify-content:center">📨 Request via ipowork</button>
+          </div>
+          <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:18px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+              <div>
+                <div style="font-weight:900;font-size:14px;color:var(--teal);font-family:var(--serif)">Sr. Advocate</div>
+                <div style="font-size:11px;color:var(--amber);font-weight:700;margin-top:2px">Bombay High Court</div>
+              </div>
+              <span class="badge badge-purple">HC</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">Specialisation: Company law · Labour disputes · Tax litigation · Commercial contracts</div>
+            <div style="font-size:10px;color:var(--dim);margin-bottom:12px">Experience: 20+ years · Retainer for 30+ listed companies</div>
+            <button onclick="openLawyerEOI('HC Commercial')" class="btn btn-primary btn-sm" style="width:100%;justify-content:center">📨 Request via ipowork</button>
+          </div>
+          <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:18px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+              <div>
+                <div style="font-weight:900;font-size:14px;color:var(--teal);font-family:var(--serif)">Sr. Advocate</div>
+                <div style="font-size:11px;color:var(--amber);font-weight:700;margin-top:2px">NCLT / NCLAT Specialist</div>
+              </div>
+              <span class="badge badge-amber">NCLT</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">Specialisation: IBC · Insolvency · Resolution plans · Liquidation · Pre-pack insolvency</div>
+            <div style="font-size:10px;color:var(--dim);margin-bottom:12px">Experience: 18+ years · 200+ IBC matters across NCLT benches</div>
+            <button onclick="openLawyerEOI('NCLT IBC')" class="btn btn-primary btn-sm" style="width:100%;justify-content:center">📨 Request via ipowork</button>
+          </div>
+          <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:18px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+              <div>
+                <div style="font-weight:900;font-size:14px;color:var(--teal);font-family:var(--serif)">Sr. Advocate</div>
+                <div style="font-size:11px;color:var(--amber);font-weight:700;margin-top:2px">Tax & Regulatory Specialist</div>
+              </div>
+              <span class="badge badge-green">TAX</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.7">Specialisation: GST · Income Tax · Transfer pricing · FEMA · RBI/SEBI regulatory</div>
+            <div style="font-size:10px;color:var(--dim);margin-bottom:12px">Experience: 22+ years · Represented before SC, HC and Tribunals</div>
+            <button onclick="openLawyerEOI('Tax Regulatory')" class="btn btn-primary btn-sm" style="width:100%;justify-content:center">📨 Request via ipowork</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+      <button onclick="downloadReport()" class="btn btn-primary">📥 Download Legal Report</button>
+      <button onclick="requestLegalOpinion()" class="btn btn-amber">⚖️ Request Legal Opinion</button>
+      <button onclick="shareReport()" class="btn btn-outline">📤 Share with MB</button>
+      <div class="credit-chip" style="margin-left:auto;align-self:center">🪙 5 credits used</div>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div id="empty-state" style="text-align:center;padding:60px 20px;color:var(--muted)">
+    <div style="font-size:48px;margin-bottom:16px">⚖️</div>
+    <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:8px">Legal Intelligence Ready</div>
+    <div style="font-size:13px;color:var(--muted);max-width:400px;margin:0 auto;line-height:1.7">Enter a company name or CIN above to run a comprehensive legal scan across Supreme Court, High Courts, NCLT, NCLAT, GST, Income Tax and regulatory databases.</div>
+    <div style="margin-top:20px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap">
+      <span class="badge badge-teal" style="font-size:11px;padding:5px 12px">SC · HC · NCLT · NCLAT</span>
+      <span class="badge badge-amber" style="font-size:11px;padding:5px 12px">GST · Income Tax</span>
+      <span class="badge badge-purple" style="font-size:11px;padding:5px 12px">SEBI · RBI · MCA</span>
+      <span class="badge badge-green" style="font-size:11px;padding:5px 12px">Consumer · Labour</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- EOI MODAL for lawyer requests -->
+<div id="lawyer-eoi-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)">
+  <div style="background:#fff;border-radius:18px;width:100%;max-width:460px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="background:linear-gradient(135deg,var(--teal),var(--teal2));padding:20px 24px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:var(--serif);font-size:17px;font-weight:900;color:#fff">Request Legal Assistance</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:3px" id="lawyer-eoi-sub">via ipowork Lawyer Panel</div>
+      </div>
+      <button onclick="closeLawyerEOI()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer">✕</button>
+    </div>
+    <div style="padding:22px 24px;display:flex;flex-direction:column;gap:12px">
+      <div style="padding:10px 14px;background:rgba(13,92,107,.06);border-radius:8px;font-size:11px;color:var(--teal);line-height:1.6;border-left:3px solid var(--teal2)">
+        Your request goes to <strong>partners@ipowork.com</strong>. ipowork will match you with the right advocate and facilitate the engagement. Lawyer contact details are never shared directly.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Your Name *</label>
+        <input id="leoi-name" class="form-input" placeholder="Full name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Organisation *</label>
+        <input id="leoi-org" class="form-input" placeholder="Company / Fund name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mobile *</label>
+        <input id="leoi-phone" class="form-input" placeholder="+91 XXXXX XXXXX"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Brief Description of Matter *</label>
+        <textarea id="leoi-desc" class="form-input" rows="3" placeholder="Describe the legal matter, urgency and any relevant background..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="submitLawyerEOI('wa')" class="btn btn-green" style="flex:1;justify-content:center">📱 WhatsApp</button>
+        <button onclick="submitLawyerEOI('email')" class="btn btn-primary" style="flex:1;justify-content:center">✉ Email</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="pin-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:#fff;margin-bottom:4px">🔐 Access Required</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75)">Enter your ipowork access PIN</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Access PIN</label>
+        <input id="pin-input" type="password" maxlength="6" class="form-input" placeholder="••••••" style="font-size:20px;letter-spacing:8px;text-align:center"/>
+      </div>
+      <div id="pin-err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:10px"></div>
+      <button onclick="submitPin()" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">Unlock Access</button>
+      <button onclick="closePin()" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px">Cancel</button>
+      <div style="margin-top:14px;padding:10px;background:rgba(13,92,107,.05);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.6">
+        <strong>Auth PIN 2007</strong> — View intelligence (no contacts)<br>
+        <strong>Admin PIN 1234</strong> — Full access + outbound
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+
+var ACCESS_LEVEL = 0;
+var AUTH_PIN = '2007';
+var ADMIN_PIN = '1234';
+var _pinTarget = '';
+
+function openPin(type){
+  _pinTarget = type;
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('pin-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('pin-input').focus();},100);
+}
+function closePin(){document.getElementById('pin-modal').classList.remove('open');}
+function submitPin(){
+  var pin = document.getElementById('pin-input').value.trim();
+  if(pin===ADMIN_PIN){ACCESS_LEVEL=3;closePin();onAccessChange();showToast('✅ Admin access granted');}
+  else if(pin===AUTH_PIN){ACCESS_LEVEL=2;closePin();onAccessChange();showToast('✅ Authorised access granted');}
+  else{document.getElementById('pin-err').textContent='Incorrect PIN. Try again.';document.getElementById('pin-input').value='';}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var pm=document.getElementById('pin-modal');
+  if(pm) pm.addEventListener('click',function(e){if(e.target===pm)closePin();});
+  var pi=document.getElementById('pin-input');
+  if(pi) pi.addEventListener('keydown',function(e){if(e.key==='Enter')submitPin();});
+});
+
+function showToast(msg,dur){
+  var t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){t.classList.remove('show');},dur||2800);
+}
+
+
+var _lawyerSpec = '';
+
+function onAccessChange(){
+  var lvl = ACCESS_LEVEL;
+  var banner = document.getElementById('access-banner');
+  var bannerText = document.getElementById('banner-text');
+  if(lvl>=3){
+    banner.style.background='linear-gradient(135deg,#e3f2fd,#f0f8ff)';
+    banner.style.borderBottomColor='#bbdefb';
+    bannerText.innerHTML='🔐 <strong>Admin Access</strong> — Full legal intelligence. All director details and contact escalation enabled.';
+  } else if(lvl>=2){
+    banner.style.background='linear-gradient(135deg,#e8f5e9,#f0faf0)';
+    banner.style.borderBottomColor='#c8e6c9';
+    bannerText.innerHTML='✅ <strong>Authorised Access</strong> — Legal scores and case details visible. Director contacts locked to Admin.';
+  }
+}
+
+function runLegalScan(){
+  var q = _p42_selected.cin || document.getElementById('company-search').value.trim();
+  var displayName = _p42_selected.name || q;
+  if(!q){showToast('Select a company from the search list');return;}
+  if(ACCESS_LEVEL<2){openPin('auth');return;}
+  document.getElementById('company-name-display').textContent = displayName;
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('results-panel').style.display='block';
+  loadProbe42Data(q, displayName);
+  showToast('⏳ Running legal scan...');
+}
+
+function legalTab(id, el){
+  ['litigation','mca','regulatory','directors','charges','lawyers'].forEach(function(t){
+    document.getElementById('tab-'+t).style.display = t===id?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+}
+
+function openLawyerEOI(spec){
+  _lawyerSpec = spec;
+  document.getElementById('lawyer-eoi-sub').textContent = spec + ' Specialist — via ipowork Lawyer Panel';
+  document.getElementById('lawyer-eoi-modal').style.display='flex';
+}
+function closeLawyerEOI(){document.getElementById('lawyer-eoi-modal').style.display='none';}
+
+function submitLawyerEOI(method){
+  var name = document.getElementById('leoi-name').value.trim();
+  var org  = document.getElementById('leoi-org').value.trim();
+  var ph   = document.getElementById('leoi-phone').value.trim();
+  var desc = document.getElementById('leoi-desc').value.trim();
+  if(!name||!org||!ph||!desc){showToast('Please fill all required fields');return;}
+  var msg = '⚖️ *Legal Assistance Request — ipowork*\n\n*Specialist Needed:* '+_lawyerSpec+'\n*From:* '+name+'\n*Organisation:* '+org+'\n*Mobile:* '+ph+'\n\n*Matter:*\n'+desc+'\n\n_via ipowork Legal Intelligence_';
+  if(method==='wa') window.open('https://wa.me/918851059588?text='+encodeURIComponent(msg),'_blank');
+  else window.open('mailto:partners@ipowork.com?subject=Legal+Assistance+Request+-+'+encodeURIComponent(_lawyerSpec)+'&body='+encodeURIComponent(msg.replace(/\*/g,'')),'_blank');
+  closeLawyerEOI();
+  showToast('Request sent to partners@ipowork.com ✅');
+}
+
+function downloadReport(){showToast('📥 Legal report download — feature coming soon');}
+function requestLegalOpinion(){openLawyerEOI('Legal Opinion');}
+function shareReport(){showToast('📤 Share feature — coming soon');}
+
+document.addEventListener('DOMContentLoaded',function(){
+  var lm = document.getElementById('lawyer-eoi-modal');
+  if(lm) lm.addEventListener('click',function(e){if(e.target===lm)closeLawyerEOI();});
+});
+
+</script>
+</body>
+</html>

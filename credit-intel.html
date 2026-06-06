@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Credit Intelligence — ipowork</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900&family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#08404D;--teal2:#0D5C6B;--teal3:#1A7D90;--teal4:#2490A8;
+  --amber:#E88A2E;--gold:#C9932A;--green:#1A9E6B;--red:#C0392B;
+  --navy:#0A1628;--blue:#1A4A8A;--purple:#5B4ED4;
+  --white:#FFFFFF;--bg:#F5F8FA;--card:#FFFFFF;
+  --border:rgba(13,92,107,.12);--border2:rgba(13,92,107,.2);
+  --text:#2C3E47;--muted:#6B7E85;--dim:#9AAFB5;
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 4px 20px rgba(13,92,107,.1);--shadow2:0 8px 40px rgba(13,92,107,.15);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:13px;min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--teal);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.brand{font-family:var(--serif);font-weight:900;font-size:16px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:4px}
+.brand sup{color:var(--amber);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.nav-links{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.nav-link{padding:5px 10px;color:rgba(255,255,255,.75);font-size:11px;font-weight:600;text-decoration:none;border-radius:6px;transition:.15s;white-space:nowrap}
+.nav-link:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-link.active{background:rgba(255,255,255,.15);color:#fff;font-weight:800}
+.nav-link.highlight{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff;font-weight:800}
+
+/* HERO STRIP */
+.hero-strip{background:linear-gradient(135deg,var(--teal2),var(--teal3));padding:24px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.hero-title{font-family:var(--serif);font-size:24px;font-weight:900;color:#fff;line-height:1.2}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;max-width:600px;line-height:1.7}
+.hero-stats{display:flex;gap:24px;flex-wrap:wrap}
+.hstat{text-align:center}
+.hstat-val{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--amber);line-height:1}
+.hstat-lbl{font-size:10px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;font-weight:600}
+
+/* CARDS */
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.card-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:var(--serif);font-size:15px;font-weight:900;color:var(--teal)}
+.card-body{padding:20px 22px}
+
+/* SCORE RING */
+.score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.score-val{font-family:var(--serif);font-weight:900;color:var(--teal);line-height:1}
+.score-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* BADGES */
+.badge{display:inline-flex;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:rgba(26,158,107,.1);color:#1A9E6B;border:1px solid rgba(26,158,107,.25)}
+.badge-amber{background:rgba(232,138,46,.1);color:var(--amber);border:1px solid rgba(232,138,46,.25)}
+.badge-red{background:rgba(192,57,43,.1);color:var(--red);border:1px solid rgba(192,57,43,.25)}
+.badge-teal{background:rgba(13,92,107,.1);color:var(--teal2);border:1px solid rgba(13,92,107,.2)}
+.badge-purple{background:rgba(91,78,212,.1);color:var(--purple);border:1px solid rgba(91,78,212,.2)}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:9px;font-family:var(--font);font-weight:700;font-size:12px;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-amber{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff}
+.btn-amber:hover{opacity:.9}
+.btn-outline{background:#fff;color:var(--teal);border:1.5px solid var(--border2)}
+.btn-outline:hover{border-color:var(--teal2);background:rgba(13,92,107,.04)}
+.btn-green{background:#25D366;color:#fff}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:7px}
+
+/* FORM ELEMENTS */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;transition:.2s;background:var(--bg)}
+.form-input:focus{border-color:var(--teal2);background:#fff}
+.form-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;background:var(--bg);cursor:pointer}
+.form-select:focus{border-color:var(--teal2)}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{padding:10px 14px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:2px solid var(--border);background:#fff;position:sticky;top:0}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.data-table tr:hover td{background:rgba(13,92,107,.03)}
+
+/* RISK METER */
+.risk-bar{height:8px;border-radius:4px;background:rgba(13,92,107,.08);overflow:hidden}
+.risk-fill{height:100%;border-radius:4px;transition:.4s}
+
+/* CREDIT CHIP */
+.credit-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(232,138,46,.1);border:1px solid rgba(232,138,46,.3);border-radius:99px;font-size:10px;font-weight:800;color:var(--amber)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--border);background:#fff;overflow-x:auto}
+.tab{padding:12px 20px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;font-family:var(--font);transition:.15s}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* SECTION */
+.section{padding:24px 28px}
+.section-title{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:4px}
+.section-sub{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ACCESS LEVEL */
+.blur-field{filter:blur(4px);user-select:none;pointer-events:none}
+.locked-overlay{position:relative}
+
+/* PIN MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:18px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden}
+.modal-header{background:linear-gradient(135deg,var(--teal),var(--teal2));padding:22px 26px}
+.modal-body{padding:24px 26px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;background:var(--teal);color:#fff;border-radius:10px;font-size:12px;font-weight:700;z-index:9999;transform:translateY(80px);opacity:0;transition:.3s;pointer-events:none;max-width:320px;box-shadow:var(--shadow2)}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:99px}
+
+@media(max-width:700px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .hero-strip{padding:16px 18px}
+  .section{padding:16px 18px}
+  .nav-links{gap:2px}
+  .nav-link{padding:4px 7px;font-size:10px}
+}
+</style>
+
+<script src="probe42.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html" class="brand">ipowork<sup>AI</sup></a>
+  <nav class="nav-links">
+  <a href="index.html" class="nav-link">🏠 Home</a>
+  <a href="aira.html" class="nav-link">📊 AIRA</a>
+  <a href="mb.html" class="nav-link">🏦 MB Portal</a>
+  <a href="aif-intel.html" class="nav-link">🏛️ AIF Intel</a>
+  <a href="risk-desk.html" class="nav-link">⚡ Risk Desk</a>
+  <a href="legal-intel.html" class="nav-link">⚖️ Legal</a>
+  <a href="forensic-intel.html" class="nav-link">🔍 Forensic</a>
+  <a href="director-intel.html" class="nav-link">👤 Directors</a>
+  <a href="credit-intel.html" class="nav-link active">💰 Credit</a>
+  <a href="credits.html" class="nav-link">🪙 Credits</a>
+</nav>
+</div>
+
+<div class="hero-strip">
+  <div>
+    <div class="hero-title">💰 Credit Intelligence</div>
+    <div class="hero-sub">Debt profile · Banking relationships · DSCR / ICR analysis · Group exposure mapping · Covenant history · Lending recommendation for NBFCs & credit funds</div>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val">10</div><div class="hstat-lbl">Credit Parameters</div></div>
+    <div class="hstat"><div class="hstat-val">NBFC</div><div class="hstat-lbl">Focus</div></div>
+    <div class="hstat"><div class="hstat-val">3–10</div><div class="hstat-lbl">Credits/Report</div></div>
+  </div>
+</div>
+
+<div id="access-banner" style="padding:10px 28px;background:linear-gradient(135deg,#fff3e0,#fff8f0);border-bottom:1px solid #ffe0b2;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div style="font-size:12px;color:#8B5E00;font-weight:600" id="banner-text">🔒 <strong>Public View</strong> — Credit intelligence requires authorisation.</div>
+  <div style="display:flex;gap:8px">
+    <button onclick="openPin('auth')" class="btn btn-sm" style="background:linear-gradient(135deg,var(--teal3),var(--teal2));color:#fff">🔓 Auth Access</button>
+    <button onclick="openPin('admin')" class="btn btn-sm btn-amber">🔐 Admin</button>
+  </div>
+</div>
+
+<div class="section">
+  <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px 24px;margin-bottom:20px;box-shadow:var(--shadow)">
+    <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:14px">💰 Credit Assessment</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:200px">
+        <label class="form-label">Borrower Company</label>
+        <input id="credit-search" class="form-input" autocomplete="off" oninput="p42Search('credit-search','p42-drop-credit')" placeholder="Type company name to search..." style="position:relative" placeholder="Company name or CIN"/>
+      </div>
+      <div style="min-width:140px">
+        <label class="form-label">Purpose</label>
+        <select id="credit-purpose" class="form-select">
+          <option>NCD Issuance</option>
+          <option>Working Capital</option>
+          <option>Term Loan</option>
+          <option>CP Program</option>
+          <option>ECB</option>
+        </select>
+      </div>
+      <div style="min-width:120px">
+        <label class="form-label">Loan Amount (₹ Cr)</label>
+        <input id="credit-amount" class="form-input" placeholder="e.g. 50"/>
+      </div>
+      <button onclick="runCreditAssessment()" class="btn btn-primary">💰 Assess Credit</button>
+    </div>
+  </div>
+
+  <div id="credit-results" style="display:none">
+    <div class="grid-2" style="margin-bottom:20px">
+
+      <!-- Credit Score -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Credit Assessment Score</div>
+          <span class="badge badge-teal">NCD Issuance</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:18px">
+            <div style="text-align:center;flex-shrink:0">
+              <svg width="110" height="110" viewBox="0 0 110 110">
+                <circle cx="55" cy="55" r="45" fill="none" stroke="#EAF2F4" stroke-width="10"/>
+                <circle cx="55" cy="55" r="45" fill="none" stroke="var(--teal)" stroke-width="10"
+                  stroke-dasharray="283" stroke-dashoffset="70" stroke-linecap="round"
+                  transform="rotate(-90 55 55)"/>
+              </svg>
+              <div style="margin-top:-64px;font-family:var(--serif);font-size:28px;font-weight:900;color:var(--teal)">75</div>
+              <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-top:26px">Credit Score</div>
+              <div class="badge badge-teal" style="margin-top:6px">A Grade</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:800;color:var(--teal);font-family:var(--serif);margin-bottom:10px">Acme Industries Limited</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--muted);font-weight:600">DSCR</span><span style="font-weight:700;color:var(--green)">1.6x ✓</span></div><div class="risk-bar"><div class="risk-fill" style="width:80%;background:var(--green)"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--muted);font-weight:600">ICR</span><span style="font-weight:700;color:var(--green)">3.2x ✓</span></div><div class="risk-bar"><div class="risk-fill" style="width:85%;background:var(--green)"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--muted);font-weight:600">Net D/E</span><span style="font-weight:700;color:var(--amber)">2.1x</span></div><div class="risk-bar"><div class="risk-fill" style="width:60%;background:var(--amber)"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--muted);font-weight:600">Working Capital</span><span style="font-weight:700;color:var(--green)">Healthy</span></div><div class="risk-bar"><div class="risk-fill" style="width:75%;background:var(--teal3)"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:var(--muted);font-weight:600">Repayment Track</span><span style="font-weight:700;color:var(--green)">No Default ✓</span></div><div class="risk-bar"><div class="risk-fill" style="width:90%;background:var(--green)"></div></div></div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:12px;background:rgba(13,92,107,.06);border-radius:10px;border-left:4px solid var(--teal2)">
+            <div style="font-size:12px;font-weight:800;color:var(--teal);margin-bottom:4px">Lending Recommendation</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.7">Eligible for NCD issuance up to <strong>₹40–50 Cr</strong> at estimated yield of <strong>10.5–12%</strong>. Recommend first charge on plant & machinery. CRISIL/ICRA rating likely BBB to A range.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Debt Profile -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📊 Existing Debt Profile</div>
+          <span class="badge badge-amber">₹17 Cr Outstanding</span>
+        </div>
+        <div class="card-body">
+          <table class="data-table">
+            <thead><tr><th>Lender</th><th>Type</th><th>Outstanding</th><th>Rate</th><th>Secured</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:700">HDFC Bank</td><td>Term Loan</td><td>₹12 Cr</td><td>9.5%</td><td><span class="badge badge-amber">Plant</span></td></tr>
+              <tr><td style="font-weight:700">SBI</td><td>CC Limit</td><td>₹5 Cr</td><td>10.2%</td><td><span class="badge badge-amber">Stock</span></td></tr>
+              <tr><td style="font-weight:700">HDFC Bank</td><td>LC Facility</td><td>₹3 Cr limit</td><td>—</td><td><span class="badge badge-green">Clean</span></td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:14px">
+            <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Banking Relationships</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="badge badge-teal" style="font-size:11px;padding:4px 10px">HDFC Bank — Primary</span>
+              <span class="badge badge-teal" style="font-size:11px;padding:4px 10px">SBI — Secondary</span>
+              <span class="badge badge-teal" style="font-size:11px;padding:4px 10px">Axis Bank — Trade</span>
+            </div>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:#f0faf0;border-radius:8px;border:1px solid rgba(26,158,107,.2)">
+            <div style="font-size:11px;font-weight:800;color:var(--green);margin-bottom:3px">✅ No Default History</div>
+            <div style="font-size:11px;color:var(--muted)">No NPA, SMA or bounce history in last 3 years. All EMIs current.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Covenants & Monitoring -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div class="card-title">📋 Suggested Covenants & Monitoring</div>
+        <span class="badge badge-purple">ipowork Recommendation</span>
+      </div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div style="padding:14px;background:#f8fafa;border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:800;color:var(--teal);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Financial Covenants</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">• DSCR ≥ 1.25x (quarterly)<br>• ICR ≥ 2.5x (quarterly)<br>• Net D/E ≤ 3.0x (annual)<br>• Minimum Net Worth ₹20 Cr</div>
+          </div>
+          <div style="padding:14px;background:#f8fafa;border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:800;color:var(--teal);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Operational Covenants</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">• No additional borrowing > ₹5 Cr without consent<br>• RPT cap at 25% revenue<br>• Auditor change — prior notice<br>• No major asset disposal</div>
+          </div>
+          <div style="padding:14px;background:#f8fafa;border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:800;color:var(--teal);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Monitoring Triggers</div>
+            <div style="font-size:11px;color:var(--text);line-height:1.8">• Director resignation<br>• Charge creation on assets<br>• Auditor qualification<br>• Litigation above ₹1 Cr<br>• MCA default filing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="showToast('📥 Credit report download coming soon')" class="btn btn-primary">📥 Download Credit Report</button>
+      <button onclick="showToast('📊 Monitoring setup coming soon')" class="btn btn-amber">📡 Setup Monitoring</button>
+      <button onclick="showToast('📤 Share feature coming soon')" class="btn btn-outline">📤 Share with NBFC</button>
+      <div class="credit-chip" style="margin-left:auto;align-self:center">🪙 10 credits used</div>
+    </div>
+  </div>
+
+  <div id="credit-empty" style="text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:16px">💰</div>
+    <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:8px">Credit Intelligence Ready</div>
+    <div style="font-size:13px;color:var(--muted);max-width:420px;margin:0 auto;line-height:1.7">Comprehensive credit assessment for NBFCs and credit funds. Covers DSCR, ICR, debt profile, banking relationships, group exposure and covenant recommendations.</div>
+  </div>
+</div>
+
+
+<div id="pin-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:#fff;margin-bottom:4px">🔐 Access Required</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75)">Enter your ipowork access PIN</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Access PIN</label>
+        <input id="pin-input" type="password" maxlength="6" class="form-input" placeholder="••••••" style="font-size:20px;letter-spacing:8px;text-align:center"/>
+      </div>
+      <div id="pin-err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:10px"></div>
+      <button onclick="submitPin()" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">Unlock Access</button>
+      <button onclick="closePin()" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px">Cancel</button>
+      <div style="margin-top:14px;padding:10px;background:rgba(13,92,107,.05);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.6">
+        <strong>Auth PIN 2007</strong> — View intelligence (no contacts)<br>
+        <strong>Admin PIN 1234</strong> — Full access + outbound
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+var ACCESS_LEVEL = 0;
+var AUTH_PIN = '2007';
+var ADMIN_PIN = '1234';
+var _pinTarget = '';
+
+function openPin(type){
+  _pinTarget = type;
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('pin-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('pin-input').focus();},100);
+}
+function closePin(){document.getElementById('pin-modal').classList.remove('open');}
+function submitPin(){
+  var pin = document.getElementById('pin-input').value.trim();
+  if(pin===ADMIN_PIN){ACCESS_LEVEL=3;closePin();onAccessChange();showToast('✅ Admin access granted');}
+  else if(pin===AUTH_PIN){ACCESS_LEVEL=2;closePin();onAccessChange();showToast('✅ Authorised access granted');}
+  else{document.getElementById('pin-err').textContent='Incorrect PIN. Try again.';document.getElementById('pin-input').value='';}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var pm=document.getElementById('pin-modal');
+  if(pm) pm.addEventListener('click',function(e){if(e.target===pm)closePin();});
+  var pi=document.getElementById('pin-input');
+  if(pi) pi.addEventListener('keydown',function(e){if(e.key==='Enter')submitPin();});
+});
+
+function showToast(msg,dur){
+  var t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){t.classList.remove('show');},dur||2800);
+}
+
+
+function onAccessChange(){
+  var b=document.getElementById('banner-text');
+  if(ACCESS_LEVEL>=3) b.innerHTML='🔐 <strong>Admin Access</strong> — Full credit intelligence enabled.';
+  else if(ACCESS_LEVEL>=2) b.innerHTML='✅ <strong>Authorised Access</strong> — Credit scores, ratios and lending recommendations visible.';
+}
+function runCreditAssessment(){
+  var q = _p42_selected.cin || document.getElementById('credit-search').value.trim();
+  var displayName = _p42_selected.name || q;
+  if(!q){showToast('Select a company from the search results');return;}
+  if(ACCESS_LEVEL<2){openPin('auth');return;}
+  // Show loading
+  var emp = document.getElementById('credit-empty') || document.getElementById('risk-empty') || document.getElementById('forensic-empty') || document.getElementById('dir-empty') || document.getElementById('credit-empty');
+  if(emp) emp.style.display='none';
+  // Fetch real Probe42 data
+  loadProbe42Data(q, displayName);
+  return; // original code below as fallback
+  var _q=document.getElementById('credit-search').value.trim();
+  if(!q){showToast('Enter company name or CIN');return;}
+  if(ACCESS_LEVEL<2){openPin('auth');return;}
+  document.getElementById('credit-empty').style.display='none';
+  document.getElementById('credit-results').style.display='block';
+  showToast('Credit assessment complete — 10 credits used');
+}
+</script>
+</body>
+</html>

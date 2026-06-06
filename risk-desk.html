@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Risk Desk — ipowork</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900&family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#08404D;--teal2:#0D5C6B;--teal3:#1A7D90;--teal4:#2490A8;
+  --amber:#E88A2E;--gold:#C9932A;--green:#1A9E6B;--red:#C0392B;
+  --navy:#0A1628;--blue:#1A4A8A;--purple:#5B4ED4;
+  --white:#FFFFFF;--bg:#F5F8FA;--card:#FFFFFF;
+  --border:rgba(13,92,107,.12);--border2:rgba(13,92,107,.2);
+  --text:#2C3E47;--muted:#6B7E85;--dim:#9AAFB5;
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 4px 20px rgba(13,92,107,.1);--shadow2:0 8px 40px rgba(13,92,107,.15);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:13px;min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--teal);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.brand{font-family:var(--serif);font-weight:900;font-size:16px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:4px}
+.brand sup{color:var(--amber);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.nav-links{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.nav-link{padding:5px 10px;color:rgba(255,255,255,.75);font-size:11px;font-weight:600;text-decoration:none;border-radius:6px;transition:.15s;white-space:nowrap}
+.nav-link:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-link.active{background:rgba(255,255,255,.15);color:#fff;font-weight:800}
+.nav-link.highlight{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff;font-weight:800}
+
+/* HERO STRIP */
+.hero-strip{background:linear-gradient(135deg,var(--teal2),var(--teal3));padding:24px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.hero-title{font-family:var(--serif);font-size:24px;font-weight:900;color:#fff;line-height:1.2}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;max-width:600px;line-height:1.7}
+.hero-stats{display:flex;gap:24px;flex-wrap:wrap}
+.hstat{text-align:center}
+.hstat-val{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--amber);line-height:1}
+.hstat-lbl{font-size:10px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;font-weight:600}
+
+/* CARDS */
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.card-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:var(--serif);font-size:15px;font-weight:900;color:var(--teal)}
+.card-body{padding:20px 22px}
+
+/* SCORE RING */
+.score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.score-val{font-family:var(--serif);font-weight:900;color:var(--teal);line-height:1}
+.score-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* BADGES */
+.badge{display:inline-flex;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:rgba(26,158,107,.1);color:#1A9E6B;border:1px solid rgba(26,158,107,.25)}
+.badge-amber{background:rgba(232,138,46,.1);color:var(--amber);border:1px solid rgba(232,138,46,.25)}
+.badge-red{background:rgba(192,57,43,.1);color:var(--red);border:1px solid rgba(192,57,43,.25)}
+.badge-teal{background:rgba(13,92,107,.1);color:var(--teal2);border:1px solid rgba(13,92,107,.2)}
+.badge-purple{background:rgba(91,78,212,.1);color:var(--purple);border:1px solid rgba(91,78,212,.2)}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:9px;font-family:var(--font);font-weight:700;font-size:12px;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-amber{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff}
+.btn-amber:hover{opacity:.9}
+.btn-outline{background:#fff;color:var(--teal);border:1.5px solid var(--border2)}
+.btn-outline:hover{border-color:var(--teal2);background:rgba(13,92,107,.04)}
+.btn-green{background:#25D366;color:#fff}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:7px}
+
+/* FORM ELEMENTS */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;transition:.2s;background:var(--bg)}
+.form-input:focus{border-color:var(--teal2);background:#fff}
+.form-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;background:var(--bg);cursor:pointer}
+.form-select:focus{border-color:var(--teal2)}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{padding:10px 14px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:2px solid var(--border);background:#fff;position:sticky;top:0}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.data-table tr:hover td{background:rgba(13,92,107,.03)}
+
+/* RISK METER */
+.risk-bar{height:8px;border-radius:4px;background:rgba(13,92,107,.08);overflow:hidden}
+.risk-fill{height:100%;border-radius:4px;transition:.4s}
+
+/* CREDIT CHIP */
+.credit-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(232,138,46,.1);border:1px solid rgba(232,138,46,.3);border-radius:99px;font-size:10px;font-weight:800;color:var(--amber)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--border);background:#fff;overflow-x:auto}
+.tab{padding:12px 20px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;font-family:var(--font);transition:.15s}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* SECTION */
+.section{padding:24px 28px}
+.section-title{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:4px}
+.section-sub{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ACCESS LEVEL */
+.blur-field{filter:blur(4px);user-select:none;pointer-events:none}
+.locked-overlay{position:relative}
+
+/* PIN MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:18px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden}
+.modal-header{background:linear-gradient(135deg,var(--teal),var(--teal2));padding:22px 26px}
+.modal-body{padding:24px 26px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;background:var(--teal);color:#fff;border-radius:10px;font-size:12px;font-weight:700;z-index:9999;transform:translateY(80px);opacity:0;transition:.3s;pointer-events:none;max-width:320px;box-shadow:var(--shadow2)}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:99px}
+
+@media(max-width:700px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .hero-strip{padding:16px 18px}
+  .section{padding:16px 18px}
+  .nav-links{gap:2px}
+  .nav-link{padding:4px 7px;font-size:10px}
+}
+</style>
+
+<script src="probe42.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html" class="brand">ipowork<sup>AI</sup></a>
+  <nav class="nav-links">
+  <a href="index.html" class="nav-link">🏠 Home</a>
+  <a href="aira.html" class="nav-link">📊 AIRA</a>
+  <a href="mb.html" class="nav-link">🏦 MB Portal</a>
+  <a href="aif-intel.html" class="nav-link">🏛️ AIF Intel</a>
+  <a href="risk-desk.html" class="nav-link active highlight">⚡ Risk Desk</a>
+  <a href="legal-intel.html" class="nav-link">⚖️ Legal</a>
+  <a href="forensic-intel.html" class="nav-link">🔍 Forensic</a>
+  <a href="director-intel.html" class="nav-link">👤 Directors</a>
+  <a href="credit-intel.html" class="nav-link">💰 Credit</a>
+  <a href="credits.html" class="nav-link">🪙 Credits</a>
+</nav>
+</div>
+
+<div class="hero-strip">
+  <div>
+    <div class="hero-title">⚡ ipowork Risk Desk</div>
+    <div class="hero-sub">Master intelligence dashboard · Run all 5 modules in one scan · Company risk profile · Escalation routing · SC/HC lawyers · Forensic firms · Complete Pre-IPO risk assessment</div>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val">6</div><div class="hstat-lbl">Intelligence Pillars</div></div>
+    <div class="hstat"><div class="hstat-val">100</div><div class="hstat-lbl">Point Risk Score</div></div>
+    <div class="hstat"><div class="hstat-val">25</div><div class="hstat-lbl">Credits / Full Scan</div></div>
+  </div>
+</div>
+
+<div id="access-banner" style="padding:10px 28px;background:linear-gradient(135deg,#fff3e0,#fff8f0);border-bottom:1px solid #ffe0b2;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div style="font-size:12px;color:#8B5E00;font-weight:600" id="banner-text">🔒 <strong>Public View</strong> — Risk Desk requires authorisation.</div>
+  <div style="display:flex;gap:8px">
+    <button onclick="openPin('auth')" class="btn btn-sm" style="background:linear-gradient(135deg,var(--teal3),var(--teal2));color:#fff">🔓 Auth Access</button>
+    <button onclick="openPin('admin')" class="btn btn-sm btn-amber">🔐 Admin</button>
+  </div>
+</div>
+
+<div class="section">
+
+  <!-- MASTER SEARCH -->
+  <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:22px 26px;margin-bottom:24px;box-shadow:var(--shadow)">
+    <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:4px">⚡ Company Risk Intelligence</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.7">Run all 6 intelligence modules simultaneously. Get a complete risk profile in minutes.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+      <div style="flex:1;min-width:240px">
+        <label class="form-label">Company Name / CIN</label>
+        <input id="risk-search" class="form-input" autocomplete="off" oninput="p42Search('risk-search','p42-drop-riskdesk')" placeholder="Type company name to search..." style="position:relative" style="font-size:14px;padding:11px 14px" placeholder="e.g. Acme Industries Limited"/>
+      </div>
+      <button onclick="runFullScan()" class="btn btn-primary" style="height:42px;font-size:13px;padding:0 24px">⚡ Full Risk Scan (25 credits)</button>
+      <button onclick="runQuickScan()" class="btn btn-outline" style="height:42px">Quick Scan (5 credits)</button>
+    </div>
+    <!-- Module toggles -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--muted);font-weight:700;align-self:center">Include:</span>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer"><input type="checkbox" checked id="m-legal"> ⚖️ Legal</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer"><input type="checkbox" checked id="m-forensic"> 🔍 Forensic</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer"><input type="checkbox" checked id="m-directors"> 👤 Directors</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer"><input type="checkbox" checked id="m-financial"> 💰 Financial</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer"><input type="checkbox" checked id="m-governance"> 🏛️ Governance</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer"><input type="checkbox" id="m-credit"> 📊 Credit</label>
+    </div>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div id="risk-results" style="display:none">
+
+    <!-- Master Score Bar -->
+    <div style="background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:14px;padding:24px 28px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px">
+      <div>
+        <div style="font-size:12px;color:rgba(255,255,255,.7);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Overall Risk Intelligence Score</div>
+        <div id="risk-company-name" style="font-family:var(--serif);font-size:22px;font-weight:900;color:#fff;margin-bottom:2px">Acme Industries Limited</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.7)">CIN: U29100MH2008PLC180421 · Scanned: Just now</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div style="text-align:center">
+          <div style="font-family:var(--serif);font-size:52px;font-weight:900;color:var(--amber);line-height:1">72</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">/ 100</div>
+          <div class="badge badge-amber" style="margin-top:6px;font-size:10px">MODERATE RISK</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:200px">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+            <span style="color:rgba(255,255,255,.7);font-weight:600">⚖️ Legal</span>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:80px;height:5px;background:rgba(255,255,255,.2);border-radius:3px"><div style="width:72%;height:100%;background:#1A9E6B;border-radius:3px"></div></div><span style="color:#fff;font-weight:700">72</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+            <span style="color:rgba(255,255,255,.7);font-weight:600">🔍 Forensic</span>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:80px;height:5px;background:rgba(255,255,255,.2);border-radius:3px"><div style="width:64%;height:100%;background:var(--amber);border-radius:3px"></div></div><span style="color:#fff;font-weight:700">64</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+            <span style="color:rgba(255,255,255,.7);font-weight:600">👤 Directors</span>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:80px;height:5px;background:rgba(255,255,255,.2);border-radius:3px"><div style="width:88%;height:100%;background:#1A9E6B;border-radius:3px"></div></div><span style="color:#fff;font-weight:700">88</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+            <span style="color:rgba(255,255,255,.7);font-weight:600">💰 Financial</span>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:80px;height:5px;background:rgba(255,255,255,.2);border-radius:3px"><div style="width:75%;height:100%;background:#1A9E6B;border-radius:3px"></div></div><span style="color:#fff;font-weight:700">75</span></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+            <span style="color:rgba(255,255,255,.7);font-weight:600">🏛️ Governance</span>
+            <div style="display:flex;align-items:center;gap:6px"><div style="width:80px;height:5px;background:rgba(255,255,255,.2);border-radius:3px"><div style="width:70%;height:100%;background:var(--amber);border-radius:3px"></div></div><span style="color:#fff;font-weight:700">70</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Module Cards Grid -->
+    <div class="grid-3" style="margin-bottom:20px">
+
+      <div class="card" onclick="window.location='legal-intel.html'" style="cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div class="card-header">
+          <div class="card-title">⚖️ Legal Intelligence</div>
+          <span class="badge badge-amber">2 Issues</span>
+        </div>
+        <div class="card-body">
+          <div style="font-size:28px;font-weight:900;color:var(--teal);font-family:var(--serif);margin-bottom:6px">72 <span style="font-size:14px;color:var(--muted);font-weight:400">/ 100</span></div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">GST dispute ₹42L pending · Labour matter Bombay HC · No SEBI orders · No IBC</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="badge badge-amber">GST Dispute</span>
+            <span class="badge badge-amber">Labour HC</span>
+            <span class="badge badge-green">SEBI Clean</span>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:var(--teal2);font-weight:700">→ View Full Legal Report</div>
+        </div>
+      </div>
+
+      <div class="card" onclick="window.location='forensic-intel.html'" style="cursor:pointer;transition:.2s;border-color:rgba(192,57,43,.3)" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='rgba(192,57,43,.3)'">
+        <div class="card-header" style="background:rgba(192,57,43,.03)">
+          <div class="card-title">🔍 Forensic Intelligence</div>
+          <span class="badge badge-red">1 High Risk</span>
+        </div>
+        <div class="card-body">
+          <div style="font-size:28px;font-weight:900;color:var(--amber);font-family:var(--serif);margin-bottom:6px">64 <span style="font-size:14px;color:var(--muted);font-weight:400">/ 100</span></div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">RPT concentration 38% — HIGH · Receivables growth faster than revenue · Vendor concentration</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="badge badge-red">RPT 38%</span>
+            <span class="badge badge-amber">Receivables</span>
+            <span class="badge badge-amber">Vendors</span>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:var(--teal2);font-weight:700">→ View Full Forensic Report</div>
+        </div>
+      </div>
+
+      <div class="card" onclick="window.location='director-intel.html'" style="cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div class="card-header">
+          <div class="card-title">👤 Director Intelligence</div>
+          <span class="badge badge-green">All Clean</span>
+        </div>
+        <div class="card-body">
+          <div style="font-size:28px;font-weight:900;color:var(--green);font-family:var(--serif);margin-bottom:6px">88 <span style="font-size:14px;color:var(--muted);font-weight:400">/ 100</span></div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">3 directors scanned · All DINs valid · No disqualification · No CIBIL flags · No SEBI orders</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="badge badge-green">DINs Valid</span>
+            <span class="badge badge-green">No Disqualification</span>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:var(--teal2);font-weight:700">→ View Director Profiles</div>
+        </div>
+      </div>
+
+      <div class="card" style="cursor:default">
+        <div class="card-header">
+          <div class="card-title">💰 Financial Intelligence</div>
+          <span class="badge badge-teal">Healthy</span>
+        </div>
+        <div class="card-body">
+          <div style="font-size:28px;font-weight:900;color:var(--teal);font-family:var(--serif);margin-bottom:6px">75 <span style="font-size:14px;color:var(--muted);font-weight:400">/ 100</span></div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">Revenue ₹48 Cr · PAT ₹4.2 Cr · CAGR 18% · D/E 2.1x · CFO/PAT 0.92 · Working capital healthy</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="badge badge-green">PAT Positive</span>
+            <span class="badge badge-amber">D/E 2.1x</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="cursor:default">
+        <div class="card-header">
+          <div class="card-title">🏛️ Governance Intelligence</div>
+          <span class="badge badge-amber">1 Gap</span>
+        </div>
+        <div class="card-body">
+          <div style="font-size:28px;font-weight:900;color:var(--amber);font-family:var(--serif);margin-bottom:6px">70 <span style="font-size:14px;color:var(--muted);font-weight:400">/ 100</span></div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">Board composition adequate · Audit committee present · RPT approval process needs strengthening · Secretarial current</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="badge badge-green">Audit Committee</span>
+            <span class="badge badge-amber">RPT Process</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Escalation Card -->
+      <div class="card" style="background:linear-gradient(135deg,rgba(13,92,107,.04),rgba(13,92,107,.01));border-color:var(--teal2)">
+        <div class="card-header">
+          <div class="card-title">🚀 Escalation Routing</div>
+          <span class="badge badge-teal">ipowork Desk</span>
+        </div>
+        <div class="card-body">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.7">Based on this risk profile, the following escalations are recommended:</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button onclick="escalate('RPT Legal Opinion')" class="btn btn-outline btn-sm" style="justify-content:flex-start;text-align:left">⚖️ RPT Legal Opinion — SC Advocate</button>
+            <button onclick="escalate('Forensic RPT Review')" class="btn btn-outline btn-sm" style="justify-content:flex-start;text-align:left">🔍 Forensic RPT Review — Big 4</button>
+            <button onclick="escalate('GST Matter')" class="btn btn-outline btn-sm" style="justify-content:flex-start;text-align:left">💼 GST Matter — Tax Specialist HC</button>
+            <button onclick="escalate('Governance Advisory')" class="btn btn-outline btn-sm" style="justify-content:flex-start;text-align:left">🏛️ Board Governance Advisory — CS</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary & Download -->
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px 24px;margin-bottom:16px">
+      <div style="font-family:var(--serif);font-size:15px;font-weight:900;color:var(--teal);margin-bottom:10px">📋 Risk Desk Summary</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px;color:var(--text);line-height:1.8">
+        <div>
+          <strong style="color:var(--teal)">Strengths:</strong><br>
+          ✅ Director background clean — no disqualifications<br>
+          ✅ No SEBI orders or regulatory actions<br>
+          ✅ No NCLT/insolvency proceedings<br>
+          ✅ Financial ratios largely healthy<br>
+          ✅ 16 years operating history
+        </div>
+        <div>
+          <strong style="color:var(--red)">Areas Requiring Attention:</strong><br>
+          ⚠️ RPT concentration at 38% — needs restructuring<br>
+          ⚠️ GST dispute ₹42L — obtain resolution or provision<br>
+          ⚠️ Receivables growing faster than revenue — monitor<br>
+          ⚠️ Board governance — strengthen RPT approval process
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="showToast('📥 Full risk report download coming soon')" class="btn btn-primary">📥 Download Full Risk Report</button>
+      <button onclick="showToast('📤 Share feature coming soon')" class="btn btn-outline">📤 Share with MB / Investor</button>
+      <button onclick="showToast('📡 Monitoring setup coming soon')" class="btn btn-amber">📡 Setup Monitoring Alerts</button>
+      <div class="credit-chip" style="margin-left:auto;align-self:center">🪙 25 credits used</div>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE — Module Grid -->
+  <div id="risk-empty">
+    <div style="text-align:center;padding:40px 20px 24px;border-bottom:1px solid var(--border);margin-bottom:24px">
+      <div style="font-size:48px;margin-bottom:12px">⚡</div>
+      <div style="font-family:var(--serif);font-size:20px;font-weight:900;color:var(--teal);margin-bottom:8px">ipowork Risk Desk</div>
+      <div style="font-size:13px;color:var(--muted);max-width:480px;margin:0 auto;line-height:1.7">India's first integrated Pre-IPO Risk Intelligence platform. Enter any company above for a comprehensive risk profile across Legal, Forensic, Director, Financial and Governance pillars.</div>
+    </div>
+
+    <!-- Module Links -->
+    <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:16px">Intelligence Modules</div>
+    <div class="grid-3">
+      <a href="legal-intel.html" style="text-decoration:none">
+        <div class="card" style="cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--teal)';this.style.boxShadow='0 8px 24px rgba(13,92,107,.15)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='var(--shadow)'">
+          <div class="card-body" style="text-align:center;padding:24px 20px">
+            <div style="font-size:36px;margin-bottom:10px">⚖️</div>
+            <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:6px">Legal Intelligence</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">SC · HC · NCLT · NCLAT · GST · Income Tax · Regulatory</div>
+            <span class="credit-chip">3–10 🪙</span>
+          </div>
+        </div>
+      </a>
+      <a href="forensic-intel.html" style="text-decoration:none">
+        <div class="card" style="cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--amber)';this.style.boxShadow='0 8px 24px rgba(232,138,46,.15)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='var(--shadow)'">
+          <div class="card-body" style="text-align:center;padding:24px 20px">
+            <div style="font-size:36px;margin-bottom:10px">🔍</div>
+            <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:6px">Forensic Intelligence</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">Earnings quality · RPT · Auditor signals · Cash flow · 12 indicators</div>
+            <span class="credit-chip">5–15 🪙</span>
+          </div>
+        </div>
+      </a>
+      <a href="director-intel.html" style="text-decoration:none">
+        <div class="card" style="cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--teal)';this.style.boxShadow='0 8px 24px rgba(13,92,107,.15)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='var(--shadow)'">
+          <div class="card-body" style="text-align:center;padding:24px 20px">
+            <div style="font-size:36px;margin-bottom:10px">👤</div>
+            <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:6px">Director Intelligence</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">DIN · CIBIL · Disqualification · Watchout · Company network</div>
+            <span class="credit-chip">2 🪙 / DIN</span>
+          </div>
+        </div>
+      </a>
+      <a href="credit-intel.html" style="text-decoration:none">
+        <div class="card" style="cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--teal)';this.style.boxShadow='0 8px 24px rgba(13,92,107,.15)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='var(--shadow)'">
+          <div class="card-body" style="text-align:center;padding:24px 20px">
+            <div style="font-size:36px;margin-bottom:10px">💰</div>
+            <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:6px">Credit Intelligence</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">DSCR · ICR · Debt profile · Banking · Covenants · NBFC focus</div>
+            <span class="credit-chip">3–10 🪙</span>
+          </div>
+        </div>
+      </a>
+      <a href="aif-intel.html" style="text-decoration:none">
+        <div class="card" style="cursor:pointer;transition:.2s" onmouseover="this.style.borderColor='var(--purple)';this.style.boxShadow='0 8px 24px rgba(91,78,212,.15)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='var(--shadow)'">
+          <div class="card-body" style="text-align:center;padding:24px 20px">
+            <div style="font-size:36px;margin-bottom:10px">🏛️</div>
+            <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:6px">AIF Intelligence</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">1,910 AIFs · Family offices · NBFCs · Deal distribution · EOI routing</div>
+            <span class="credit-chip">Free</span>
+          </div>
+        </div>
+      </a>
+      <a href="credits.html" style="text-decoration:none">
+        <div class="card" style="cursor:pointer;transition:.2s;border-color:var(--amber)" onmouseover="this.style.borderColor='var(--gold)';this.style.boxShadow='0 8px 24px rgba(232,138,46,.15)'" onmouseout="this.style.borderColor='var(--amber)';this.style.boxShadow='var(--shadow)'">
+          <div class="card-body" style="text-align:center;padding:24px 20px">
+            <div style="font-size:36px;margin-bottom:10px">🪙</div>
+            <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--amber);margin-bottom:6px">Buy Credits</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px">Essential ₹12L · Professional ₹30L · Enterprise ₹75L+</div>
+            <span class="badge badge-amber" style="font-size:11px;padding:4px 12px">View Plans →</span>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+
+<div id="pin-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:#fff;margin-bottom:4px">🔐 Access Required</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75)">Enter your ipowork access PIN</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Access PIN</label>
+        <input id="pin-input" type="password" maxlength="6" class="form-input" placeholder="••••••" style="font-size:20px;letter-spacing:8px;text-align:center"/>
+      </div>
+      <div id="pin-err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:10px"></div>
+      <button onclick="submitPin()" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">Unlock Access</button>
+      <button onclick="closePin()" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px">Cancel</button>
+      <div style="margin-top:14px;padding:10px;background:rgba(13,92,107,.05);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.6">
+        <strong>Auth PIN 2007</strong> — View intelligence (no contacts)<br>
+        <strong>Admin PIN 1234</strong> — Full access + outbound
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+var ACCESS_LEVEL = 0;
+var AUTH_PIN = '2007';
+var ADMIN_PIN = '1234';
+var _pinTarget = '';
+
+function openPin(type){
+  _pinTarget = type;
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('pin-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('pin-input').focus();},100);
+}
+function closePin(){document.getElementById('pin-modal').classList.remove('open');}
+function submitPin(){
+  var pin = document.getElementById('pin-input').value.trim();
+  if(pin===ADMIN_PIN){ACCESS_LEVEL=3;closePin();onAccessChange();showToast('✅ Admin access granted');}
+  else if(pin===AUTH_PIN){ACCESS_LEVEL=2;closePin();onAccessChange();showToast('✅ Authorised access granted');}
+  else{document.getElementById('pin-err').textContent='Incorrect PIN. Try again.';document.getElementById('pin-input').value='';}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var pm=document.getElementById('pin-modal');
+  if(pm) pm.addEventListener('click',function(e){if(e.target===pm)closePin();});
+  var pi=document.getElementById('pin-input');
+  if(pi) pi.addEventListener('keydown',function(e){if(e.key==='Enter')submitPin();});
+});
+
+function showToast(msg,dur){
+  var t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){t.classList.remove('show');},dur||2800);
+}
+
+
+function onAccessChange(){
+  var b=document.getElementById('banner-text');
+  if(ACCESS_LEVEL>=3) b.innerHTML='🔐 <strong>Admin Access</strong> — Full Risk Desk enabled. All modules active.';
+  else if(ACCESS_LEVEL>=2) b.innerHTML='✅ <strong>Authorised Access</strong> — Risk intelligence and module scores visible.';
+}
+function runFullScan(){
+  var q = _p42_selected.cin || document.getElementById('risk-search').value.trim();
+  var displayName = _p42_selected.name || q;
+  if(!q){showToast('Select a company from the search results');return;}
+  if(ACCESS_LEVEL<2){openPin('auth');return;}
+  // Show loading
+  var emp = document.getElementById('riskdesk-empty') || document.getElementById('risk-empty') || document.getElementById('forensic-empty') || document.getElementById('dir-empty') || document.getElementById('credit-empty');
+  if(emp) emp.style.display='none';
+  // Fetch real Probe42 data
+  loadProbe42Data(q, displayName);
+  return; // original code below as fallback
+  var _q=document.getElementById('risk-search').value.trim();
+  if(!q){showToast('Enter company name or CIN');return;}
+  if(ACCESS_LEVEL<2){openPin('auth');return;}
+  document.getElementById('risk-company-name').textContent=q;
+  document.getElementById('risk-empty').style.display='none';
+  document.getElementById('risk-results').style.display='block';
+  showToast('Full risk scan complete — 25 credits used');
+}
+function runQuickScan(){
+  var q=document.getElementById('risk-search').value.trim();
+  if(!q){showToast('Enter company name or CIN');return;}
+  if(ACCESS_LEVEL<2){openPin('auth');return;}
+  document.getElementById('risk-company-name').textContent=q;
+  document.getElementById('risk-empty').style.display='none';
+  document.getElementById('risk-results').style.display='block';
+  showToast('Quick scan complete — 5 credits used');
+}
+function escalate(type){
+  var msg='⚡ *Escalation Request — ipowork Risk Desk*\n\nMatter: '+type+'\nCompany: '+document.getElementById('risk-company-name').textContent+'\n\nPlease connect us with the appropriate specialist.\n\n_via ipowork Risk Desk_';
+  window.open('https://wa.me/918851059588?text='+encodeURIComponent(msg),'_blank');
+  showToast('Escalation request sent to ipowork ✅');
+}
+</script>
+</body>
+</html>
