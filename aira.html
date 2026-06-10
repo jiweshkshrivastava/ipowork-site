@@ -52,6 +52,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(13,92,107,.08)}
 .field input::placeholder{color:var(--mu);opacity:.7}
 .btn-run{padding:11px 22px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.dl-btn-filled{padding:9px 20px;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;color:#fff;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.dl-btn-filled:hover{opacity:.88;transform:translateY(-1px)}
+.dl-btn-outline{padding:9px 20px;background:#fff;border:1.5px solid var(--bd);border-radius:9px;font-size:12px;font-weight:600;color:var(--sl);cursor:pointer;transition:all .15s}
+.dl-btn-outline:hover{border-color:var(--tl);color:var(--tl)}
+.dl-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .btn-primary{background:linear-gradient(135deg,var(--tl),var(--tld));color:#fff;box-shadow:0 3px 12px rgba(13,92,107,.25)}
 .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
 .btn-ghost{padding:10px 18px;background:#fff;border:1.5px solid var(--bd);border-radius:10px;font-size:12px;font-weight:600;color:var(--sl);cursor:pointer;transition:all .15s}
@@ -380,7 +385,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   <div class="form-grid" style="margin-bottom:12px">
     <div class="field">
       <label>CIN *</label>
-      <input id="d-cin" type="text" placeholder="e.g. U17110MH1985PTC035308" oninput="this.value=this.value.toUpperCase()"/>
+      <input id="d-cin" type="text" placeholder="e.g. U17110MH1985PTC035308" oninput="this.value=this.value.toUpperCase();autoFetchCinFree(this.value)"/>
     </div>
     <div class="field">
       <label>Company Name</label>
@@ -1619,6 +1624,39 @@ function addUserFromForm(){
 /* ════ DOCUMENT UPLOAD — AIRA SCORE TAB ════ */
 var DOC_FILES = {}; // stores {slotId: {name, text, base64}}
 
+// Auto-fetch company name when CIN is fully entered (21 chars, valid pattern)
+var _cinFetchTimer = null;
+function autoFetchCinFree(val){
+  val = (val||'').trim().toUpperCase();
+  var cinRx = /^[UL][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/;
+  if(!cinRx.test(val)) return;
+  // Valid CIN — fetch after 300ms debounce
+  clearTimeout(_cinFetchTimer);
+  _cinFetchTimer = setTimeout(function(){
+    var statusEl = document.getElementById('probe42-status');
+    var statusTxt = document.getElementById('probe42-status-text');
+    var cnameEl = document.getElementById('d-cname');
+    if(statusEl) statusEl.style.display = 'block';
+    if(statusTxt) statusTxt.textContent = 'Fetching company name from MCA…';
+    workerPost({type:'probe42_raw', cin:val})
+      .then(function(p42){
+        if(p42 && p42.company_name && p42.company_name !== 'NOT FOUND'){
+          if(cnameEl) cnameEl.value = p42.company_name;
+          if(statusTxt) statusTxt.textContent = '✓ '+p42.company_name+' — MCA data ready';
+          if(statusEl) statusEl.style.background = 'rgba(26,158,107,.06)';
+          if(statusEl) statusEl.style.borderColor = 'rgba(26,158,107,.2)';
+          if(statusTxt) statusTxt.style.color = '#1A6B3A';
+        } else {
+          if(statusTxt) statusTxt.textContent = 'CIN not found in MCA — enter company name manually';
+          if(statusEl) setTimeout(function(){statusEl.style.display='none';},3000);
+        }
+      })
+      .catch(function(){
+        if(statusEl) statusEl.style.display = 'none';
+      });
+  }, 400);
+}
+
 function fileSelected(slot, input){
   if(!input.files||!input.files[0]) return;
   var file = input.files[0];
@@ -1642,19 +1680,32 @@ function fileSelected(slot, input){
   };
   reader.readAsArrayBuffer(file); // trigger onload
   
-  // For text extraction, read as text too
-  var reader2 = new FileReader();
-  reader2.onload = function(e2){
-    if(DOC_FILES[slot]){
-      // Store first 3000 chars of text content
-      var txt = e2.target.result||'';
-      if(typeof txt === 'string' && txt.length > 10){
-        DOC_FILES[slot].text = '['+file.name+']: '+txt.substring(0,3000);
+  // For PDFs: use base64 for AI; for xlsx/txt: read as text
+  if(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')){
+    var reader2b = new FileReader();
+    reader2b.onload = function(e2){
+      if(DOC_FILES[slot]){
+        // Store as base64 reference with filename context for AI prompt
+        DOC_FILES[slot].text = '[PDF: '+file.name+' ('+Math.round(file.size/1024)+'KB) — '+
+          'Document uploaded. AI should note: '+slot.toUpperCase()+' document provided by user. '+
+          'Use financials/data from this document to supplement Probe42 data.]';
+        DOC_FILES[slot].base64 = e2.target.result; // full base64 data URL
       }
-    }
-  };
-  reader2.onerror = function(){};
-  try { reader2.readAsText(file); } catch(e){}
+    };
+    try { reader2b.readAsDataURL(file); } catch(e){}
+  } else {
+    var reader2 = new FileReader();
+    reader2.onload = function(e2){
+      if(DOC_FILES[slot]){
+        var txt = e2.target.result||'';
+        if(typeof txt === 'string' && txt.length > 10){
+          DOC_FILES[slot].text = '['+file.name+']: '+txt.substring(0,3000);
+        }
+      }
+    };
+    reader2.onerror = function(){};
+    try { reader2.readAsText(file); } catch(e){}
+  }
 }
 
 function updateUploadCount(){
@@ -1674,7 +1725,8 @@ async function runDocCore(){
   var exchange = (document.getElementById('d-exchange')||{}).value||'NSE Emerge (SME)';
   
   cname = cname.trim(); cin = cin.trim().toUpperCase();
-  if(!cname){ alert('Please enter company name.'); return; }
+  if(!cin && !cname){ alert('Please enter CIN or company name.'); return; }
+  if(!cin){ alert('Please enter CIN to fetch live MCA data.'); return; }
   
   var btn = document.getElementById('btn-free-run');
   var prog = document.getElementById('prog-free');
@@ -1686,11 +1738,15 @@ async function runDocCore(){
   // Build document context from uploaded files
   var docCount = Object.keys(DOC_FILES).length;
   var docContext = '';
+  var pdfDocs = []; // collect base64 PDFs for multi-modal API call
   if(docCount > 0){
-    docContext = 'UPLOADED DOCUMENTS ('+docCount+' files):\n';
+    docContext = 'UPLOADED DOCUMENTS ('+docCount+' files — use these to supplement Probe42 data):\n';
     Object.values(DOC_FILES).forEach(function(d){
-      docContext += d.text.substring(0, 2000) + '\n---\n';
+      docContext += d.text.substring(0, 1500) + '\n---\n';
+      if(d.base64 && d.base64.startsWith('data:application/pdf')) pdfDocs.push(d);
     });
+    docContext += 'INSTRUCTION: Extract revenue, PAT, margins, directors from above documents. '+
+      'Reconcile with Probe42 data. Documents represent gap period (more recent than MCA filings).\n';
   }
   
   // Try Probe42 if CIN provided
@@ -1699,7 +1755,8 @@ async function runDocCore(){
     try{
       var p42 = await workerPost({type:'probe42_raw', cin:cin});
       if(p42 && p42.company_name && p42.company_name !== 'NOT FOUND'){
-        if(!cname) cname = p42.company_name;
+        cname = p42.company_name; // always use Probe42 name
+        var _cnEl=document.getElementById('d-cname'); if(_cnEl) _cnEl.value=cname;
         var f = p42.financials||{};
         var fC=function(v){if(!v||isNaN(v))return'N/A';var n=Number(v);return n>=10000000?'₹'+(n/10000000).toFixed(1)+' Cr':n>=100000?'₹'+(n/100000).toFixed(1)+' L':'₹'+n.toFixed(0);};
         var fP=function(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';};
@@ -1743,8 +1800,8 @@ async function runDocCore(){
     var resp = await workerPost({
       type:'claudeProxy',
       model:'claude-haiku-4-5-20251001',
-      max_tokens:3000,
-      system:'You are AIRA, India top SEBI IPO Readiness expert. Write COMPLETE detailed reports from uploaded documents. Minimum 1000 words. Never truncate any section.',
+      max_tokens:6000,
+      system:'You are AIRA, India top SEBI IPO Readiness expert. Write COMPLETE detailed reports. All 9 sections mandatory. Minimum 150 words each. ALWAYS end with ---DIMS--- JSON block. Never truncate.',
       messages:[{role:'user', content:prompt}]
     });
     
@@ -1755,8 +1812,10 @@ async function runDocCore(){
     // Parse dims
     var dims = {score:65,financial:60,governance:60,compliance:60,promoter:60,legal:60,readiness:60,
                 company_name:cname,cin:cin,sector:sector,exchange:exchange};
-    var dm = txt.match(/---DIMS---\s*([\s\S]*?)\s*---DIMS---/);
-    if(dm){try{dims=Object.assign(dims,JSON.parse(dm[1].trim()));}catch(e){}}
+    var dm = txt.match(/---DIMS---[\s\S]*?({[\s\S]*?})[\s\S]*?---DIMS---/);
+    if(dm){try{var _dp=JSON.parse(dm[1].trim());Object.keys(_dp).forEach(function(k){if(_dp[k]&&_dp[k]>0)dims[k]=_dp[k];});}catch(e){}}
+    // Fallback: extract score from text if DIMS block missing
+    if(!dims.score||dims.score===65){var _sm=txt.match(/AIRA[\s\S]{0,30}[Ss]core[\s\S]{0,10}(\d{2,3})/);if(_sm)dims.score=Math.min(99,parseInt(_sm[1]));}
     var clean = txt.replace(/---DIMS---[\s\S]*?---DIMS---/g,'')
                    .replace(/```json[\s\S]*?```/g,'').replace(/```[\s\S]*?```/g,'').trim();
     
@@ -1764,8 +1823,13 @@ async function runDocCore(){
     if(prog)prog.style.display='none';
     
     var result = Object.assign({},dims,{_report:clean,_type:'doc'});
-    AIRA_RESULTS['doc'] = {result:result,cname:cname,sector:sector,exchange:exchange,tier:'doc'};
-    renderAIRAReport(result, cname, sector, exchange, out, 'doc');
+    // Save under 'free' so generateFullReport finds element 'result-free'
+    // Also save under 'doc' for backward compat
+    AIRA_RESULTS['free'] = {result:result,cname:cname,sector:sector,exchange:exchange,tier:'free'};
+    AIRA_RESULTS['doc']  = {result:result,cname:cname,sector:sector,exchange:exchange,tier:'free'};
+    renderAIRAReport(result, cname, sector, exchange, out, 'free');
+    saveReportToStore('free', cname, sector, result);
+    updateFullReportBtn();
     if(out) out.scrollIntoView({behavior:'smooth',block:'start'});
     
   }catch(e){
@@ -4353,6 +4417,7 @@ document.addEventListener('DOMContentLoaded',function(){
   window.renderSimpleReport=renderSimpleReport;
   window.renderAIRAReport=renderAIRAReport;
   window.fileSelected=fileSelected;
+  window.autoFetchCinFree=autoFetchCinFree;
   window.updateUploadCount=updateUploadCount;
   window.initSimulator=initSimulator;
   window.updateSim=updateSim;
