@@ -1791,11 +1791,11 @@ async function runDocCore(){
     +'## 7. Key Gaps & Action Plan (8 items, numbered, with timeline)\n'
     +'## 8. IPO Roadmap (Phase 1/2/3)\n'
     +'## 9. Conclusion & Verdict\n\n'
-    +'CRITICAL: End report with REAL scores block:\\n'
-    +'---JSON---\\n'
-    +'{"score":72,"financial":68,"governance":55,"compliance":60,"promoter":65,"legal":58,"readiness":62}\\n'
-    +'---END---\\n'
-    +'Replace each number with real score 1-100. score=overall,financial=profits,governance=board,compliance=MCA+GST,promoter=background,legal=charges,readiness=listing. NEVER output zeros.'
+    +'CRITICAL: After the full 9 sections, append this exact block with REAL scores:\n'
+    +'---JSON---\n'
+    +'{"score":72,"financial":68,"governance":55,"compliance":60,"promoter":65,"legal":58,"readiness":62}\n'
+    +'---END---\n'
+    +'Replace each number with your actual score (1-100): score=overall IPO readiness, financial=revenue+profits, governance=board+directors, compliance=MCA+GST+ROC, promoter=background, legal=charges+litigation, readiness=listing readiness. NEVER output zeros or unchanged example values.'
 
   try{
     var resp = await workerPost({
@@ -1811,8 +1811,43 @@ async function runDocCore(){
     if(!txt) throw new Error('Empty response. Check ANTHROPIC_API_KEY in Worker Secrets.');
     
     // Parse dims
-    var dims = {score:65,financial:60,governance:60,compliance:60,promoter:60,legal:60,readiness:60,
-                company_name:cname,cin:cin,sector:sector,exchange:exchange};
+    // ── JS-computed scores from Probe42 data (always populated, Claude overrides if present) ──
+    var _f=p42&&p42.financials||{};
+    var _roe=parseFloat(_f.roe||0),_roce=parseFloat(_f.roce||0);
+    var _rev=parseFloat(_f.revenue_fy24||0),_pat=parseFloat(_f.pat_fy24||0);
+    var _nw=parseFloat(_f.net_worth||0),_debt=parseFloat(_f.total_debt||0);
+    var _de=parseFloat(_f.debt_equity_ratio||(_nw>0?_debt/_nw:0));
+    var _em=parseFloat(_f.ebitda_margin||0),_ic=parseFloat(_f.interest_coverage||0);
+    var _dirs=(p42&&p42.directors||[]).filter(function(x){return !x.cessation;}).length;
+    var _ochgs=(p42&&p42.charges||[]).filter(function(c){return c.status==='Open';}).length;
+    // Financial score
+    var _fs=40;
+    if(_roe>=20)_fs+=20;else if(_roe>=12)_fs+=12;else if(_roe>=8)_fs+=6;
+    if(_em>=20)_fs+=15;else if(_em>=15)_fs+=10;else if(_em>=10)_fs+=5;
+    if(_rev>=50)_fs+=10;else if(_rev>=20)_fs+=6;else if(_rev>=5)_fs+=3;
+    if(_de<=0.5)_fs+=15;else if(_de<=1)_fs+=10;else if(_de<=2)_fs+=5;
+    _fs=Math.min(95,_fs);
+    // Governance score
+    var _gs=30+(_dirs>=5?25:_dirs>=3?15:_dirs>=2?8:0)+(_ochgs===0?20:_ochgs<=2?10:0);
+    _gs=Math.min(85,_gs);
+    // Compliance score
+    var _cs=50+(_ochgs===0?20:_ochgs<=3?10:0)+(_roe>0?15:0)+(_rev>0?15:0);
+    _cs=Math.min(90,_cs);
+    // Overall score (matches runTab logic)
+    var _sc=0;
+    if(_roe>=20)_sc+=15;else if(_roe>=12)_sc+=8;
+    if(_roce>=15)_sc+=15;else if(_roce>=10)_sc+=8;
+    if(_rev>=50)_sc+=10;else if(_rev>=20)_sc+=5;
+    if(_pat>=5)_sc+=10;if(_nw>=10)_sc+=10;if(_em>=15||_em===0)_sc+=10;
+    if(_de<=1)_sc+=10;if(_ochgs===0)_sc+=10;if(_dirs>=3)_sc+=5;if(_dirs>=5)_sc+=5;
+    _sc=Math.min(100,_sc)||65;
+    var dims = {
+      score:_sc, financial:_fs, governance:_gs,
+      compliance:_cs, promoter:Math.round((_gs+_cs)/2),
+      legal:_ochgs===0?75:_ochgs<=2?55:35,
+      readiness:Math.round((_sc+_fs+_gs+_cs)/4),
+      company_name:cname,cin:cin,sector:sector,exchange:exchange
+    };
     var dm = txt.match(/---JSON---[\s\S]*?({[\s\S]*?})[\s\S]*?---END---/);
     if(!dm) dm = txt.match(/---DIMS---[\s\S]*?({[\s\S]*?})[\s\S]*?---DIMS---/);
     if(dm){try{var _dp=JSON.parse(dm[1].trim());Object.keys(_dp).forEach(function(k){if(_dp[k]&&_dp[k]>0)dims[k]=_dp[k];});}catch(e){}}
@@ -2577,9 +2612,18 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   if(!score){ var sM=report.match(/AIRA Score:\s*(\d+)/i); score=sM?Math.min(99,Math.max(1,parseInt(sM[1]))):65; }
   var v=vd(score), col=sc(score);
 
-  var dims={financial:0,governance:0,compliance:0,promoter:0,legal:0,readiness:0};
-  var jm=report.match(/---JSON---\s*([\s\S]*?)---END---/);
-  if(jm){try{var d2=JSON.parse(jm[1].trim());Object.keys(dims).forEach(function(k){if(d2[k])dims[k]=d2[k];});if(d2.company_name&&!company)company=d2.company_name;}catch(e){}}
+  // Seed dims from result object (JS-computed Probe42 scores) — never starts at 0
+  var dims={
+    financial:  result.financial  ||0,
+    governance: result.governance ||0,
+    compliance: result.compliance ||0,
+    promoter:   result.promoter   ||0,
+    legal:      result.legal      ||0,
+    readiness:  result.readiness  ||0
+  };
+  // Override with Claude's JSON block if present and non-zero
+  var jm=report.match(/---JSON---[\s\S]*?({[\s\S]*?})[\s\S]*?---END---/);
+  if(jm){try{var d2=JSON.parse(jm[1].trim());Object.keys(dims).forEach(function(k){if(d2[k]&&d2[k]>0)dims[k]=d2[k];});if(d2.score&&d2.score>0)score=d2.score;if(d2.company_name&&!company)company=d2.company_name;}catch(e){}}
 
   var clean=report.replace(/AIRA Score:\s*\d+\n?/gi,'')
     .replace(/---JSON---[\s\S]*?---END---/g,'')
