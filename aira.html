@@ -1864,6 +1864,7 @@ async function runDocCore(){
     // Also save under 'doc' for backward compat
     AIRA_RESULTS['free'] = {result:result,cname:cname,sector:sector,exchange:exchange,tier:'free'};
     AIRA_RESULTS['doc']  = {result:result,cname:cname,sector:sector,exchange:exchange,tier:'free'};
+    console.log('DIMS before render:', result.financial, result.governance, result.compliance, result.promoter, result.legal, result.readiness, result.score);
     renderAIRAReport(result, cname, sector, exchange, out, 'free');
     saveReportToStore('free', cname, sector, result);
     updateFullReportBtn();
@@ -2613,6 +2614,9 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   var v=vd(score), col=sc(score);
 
   // Seed dims from result object (JS-computed Probe42 scores) — never starts at 0
+  console.log('renderAIRAReport dims seed from result:',
+    result.financial, result.governance, result.compliance,
+    result.promoter, result.legal, result.readiness, result.score);
   var dims={
     financial:  result.financial  ||0,
     governance: result.governance ||0,
@@ -2621,6 +2625,7 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
     legal:      result.legal      ||0,
     readiness:  result.readiness  ||0
   };
+  console.log('dims after seeding:', JSON.stringify(dims));
   // Override with Claude's JSON block if present and non-zero
   var jm=report.match(/---JSON---[\s\S]*?({[\s\S]*?})[\s\S]*?---END---/);
   if(jm){try{var d2=JSON.parse(jm[1].trim());Object.keys(dims).forEach(function(k){if(d2[k]&&d2[k]>0)dims[k]=d2[k];});if(d2.score&&d2.score>0)score=d2.score;if(d2.company_name&&!company)company=d2.company_name;}catch(e){}}
@@ -2675,7 +2680,16 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   var html='<div class="result-wrap">';
 
   // ── 1. Dual-score header ───────────────────────────────────────────────
-  html += dualScoreBanner(score, v, col, company, sector, exchange, dims, null);
+  // Ensure dims always shows real values — JS-computed Probe42 scores as fallback
+  var bannerDims={
+    financial:  (dims.financial>0)  ? dims.financial  : (result.financial  ||0),
+    governance: (dims.governance>0) ? dims.governance : (result.governance ||0),
+    compliance: (dims.compliance>0) ? dims.compliance : (result.compliance ||0),
+    promoter:   (dims.promoter>0)   ? dims.promoter   : (result.promoter   ||0),
+    legal:      (dims.legal>0)      ? dims.legal      : (result.legal      ||0),
+    readiness:  (dims.readiness>0)  ? dims.readiness  : (result.readiness  ||0),
+  };
+  dualScoreBanner(score, v, col, company, sector, exchange, bannerDims, null);
 
   // ── 2. Source + action row ─────────────────────────────────────────────
   if(result._source==='probe42_sandbox'){
@@ -2786,10 +2800,11 @@ function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   }
 
   // ── 6. Dimension scores ────────────────────────────────────────────────
-  if(Object.values(dims).some(function(v){return v>0;})){
+  var _renderDims=bannerDims||dims;
+  if(Object.values(_renderDims).some(function(v){return v>0;})){
     html+='<div class="sec-hd">Dimension Scores<' + '/div><div class="dim-grid">';
-    Object.keys(dims).forEach(function(k){
-      var dv=dims[k]; if(!dv) return;
+    Object.keys(_renderDims).forEach(function(k){
+      var dv=_renderDims[k]; if(!dv) return;
       var dc=sc(dv);
       html+='<div class="dim-card" style="border-top-color:'+dc+'">'
         +'<div class="dim-lbl">'+dimIcon(k)+' '+dimLabel(k)+'<' + '/div>'
