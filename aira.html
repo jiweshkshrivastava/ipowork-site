@@ -1791,17 +1791,18 @@ async function runDocCore(){
     +'## 7. Key Gaps & Action Plan (8 items, numbered, with timeline)\n'
     +'## 8. IPO Roadmap (Phase 1/2/3)\n'
     +'## 9. Conclusion & Verdict\n\n'
-    +'After the full report, append:\n'
-    +'---DIMS---\n'
-    +'{"score":0,"financial":0,"governance":0,"compliance":0,"promoter":0,"legal":0,"readiness":0}\n'
-    +'---DIMS---';
+    +'CRITICAL: End report with REAL scores block:\\n'
+    +'---JSON---\\n'
+    +'{"score":72,"financial":68,"governance":55,"compliance":60,"promoter":65,"legal":58,"readiness":62}\\n'
+    +'---END---\\n'
+    +'Replace each number with real score 1-100. score=overall,financial=profits,governance=board,compliance=MCA+GST,promoter=background,legal=charges,readiness=listing. NEVER output zeros.'
 
   try{
     var resp = await workerPost({
       type:'claudeProxy',
       model:'claude-haiku-4-5-20251001',
       max_tokens:6000,
-      system:'You are AIRA, India top SEBI IPO Readiness expert. Write COMPLETE detailed reports. All 9 sections mandatory. Minimum 150 words each. ALWAYS end with ---DIMS--- JSON block. Never truncate.',
+      system:'You are AIRA, India top SEBI IPO Readiness expert. Write COMPLETE detailed reports. All 9 sections mandatory. Minimum 150 words each. ALWAYS end with ---JSON---...---END--- block containing REAL scores never zeros. Never truncate.',
       messages:[{role:'user', content:prompt}]
     });
     
@@ -1812,7 +1813,8 @@ async function runDocCore(){
     // Parse dims
     var dims = {score:65,financial:60,governance:60,compliance:60,promoter:60,legal:60,readiness:60,
                 company_name:cname,cin:cin,sector:sector,exchange:exchange};
-    var dm = txt.match(/---DIMS---[\s\S]*?({[\s\S]*?})[\s\S]*?---DIMS---/);
+    var dm = txt.match(/---JSON---[\s\S]*?({[\s\S]*?})[\s\S]*?---END---/);
+    if(!dm) dm = txt.match(/---DIMS---[\s\S]*?({[\s\S]*?})[\s\S]*?---DIMS---/);
     if(dm){try{var _dp=JSON.parse(dm[1].trim());Object.keys(_dp).forEach(function(k){if(_dp[k]&&_dp[k]>0)dims[k]=_dp[k];});}catch(e){}}
     // Fallback: extract score from text if DIMS block missing
     if(!dims.score||dims.score===65){var _sm=txt.match(/AIRA[\s\S]{0,30}[Ss]core[\s\S]{0,10}(\d{2,3})/);if(_sm)dims.score=Math.min(99,parseInt(_sm[1]));}
