@@ -837,7 +837,8 @@ function showP42Preview(d){
   if(!grid)return;
   var kv=[{l:'Revenue',v:cr(f.revenue_fy24)},{l:'PAT',v:cr(f.pat_fy24)},{l:'EBITDA%',v:pc(f.ebitda_margin)},
     {l:'Net Worth',v:cr(f.net_worth)},{l:'D/E',v:f.debt_equity_ratio!=null?parseFloat(f.debt_equity_ratio).toFixed(2)+'x':'N/A'},
-    {l:'ROE',v:pc(f.roe)},{l:'Directors',v:(d.directors||[]).length||'N/A'},{l:'Charges',v:(d.charges||[]).length+' open'}];
+    {l:'ROE',v:pc(f.roe)},{l:'Directors',v:(d.directors||[]).length||'N/A'},
+    {l:'Charges',v:(function(){var ch=d.charges||[];if(!ch.length)return'0';var t=ch.reduce(function(s,c2){return s+parseFloat(c2.amount||c2.charge_amount||0)/100;},0);return ch.length+' (₹'+t.toFixed(1)+' Cr)';})()}];
   grid.innerHTML=kv.map(function(k){
     var c=k.v==='N/A'?'var(--dim)':'var(--tld)';
     return '<div style="background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:8px;padding:10px;text-align:center">'
@@ -851,7 +852,35 @@ function buildP42Ctx(d){
   function n(v){return v!=null&&v!==''?String(v):'N/A';}
   function cr(v){if(!v||isNaN(v))return'N/A';var x=Number(v);return x>=10000000?'\u20b9'+(x/10000000).toFixed(1)+' Cr':x>=100000?'\u20b9'+(x/100000).toFixed(1)+' L':'\u20b9'+x.toFixed(0);}
   function pc(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';}
-  var dirs=(d.directors||[]).filter(function(x){return !x.cessation;}).slice(0,8);
+  var dirs=(d.directors||[]).filter(function(x){return !x.cessation;});
+  function fmtCharge(lakhs){var l=parseFloat(lakhs);if(isNaN(l)||l===0)return'N/A';if(l>=100)return'₹'+(l/100).toFixed(2)+' Cr';return'₹'+l.toFixed(2)+' L';}
+  function buildLockedFinancials(fin){
+    var r25=parseFloat(fin.revenue_fy25||fin.revenue_fy24||0),p25=parseFloat(fin.pat_fy25||fin.pat_fy24||0),p23=parseFloat(fin.pat_fy23||0),r23=parseFloat(fin.revenue_fy23||0);
+    var ebitda=parseFloat(fin.ebitda||fin.ebitda_fy25||0),ebit=parseFloat(fin.ebit||0),nw=parseFloat(fin.net_worth||0),debt=parseFloat(fin.total_debt||0);
+    var ta=parseFloat(fin.total_assets||0),int_exp=parseFloat(fin.interest_expense||0),cash=parseFloat(fin.cash||fin.cash_equivalents||0),ce=nw+debt;
+    var lk={};
+    if(r25&&r23)lk.revenue_cagr=((Math.pow(r25/r23,0.5)-1)*100).toFixed(2)+'%';
+    if(p25&&p23)lk.pat_cagr=((Math.pow(p25/p23,0.5)-1)*100).toFixed(2)+'%';
+    if(ebit&&ce)lk.roce=(ebit/ce*100).toFixed(2)+'%';
+    if(p25&&nw)lk.roe=(p25/nw*100).toFixed(2)+'%';
+    if(r25&&ta)lk.asset_turnover=(r25/ta).toFixed(3)+'x';
+    if(ta&&nw)lk.equity_multiplier=(ta/nw).toFixed(3)+'x';
+    if(ebit&&int_exp)lk.interest_coverage=(ebit/int_exp).toFixed(2)+'x';
+    if(debt&&nw)lk.de_ratio=(debt/nw).toFixed(2)+'x';
+    if(ebit&&p25){
+      var nopat=ebit*0.756,dcf_v=nopat/0.08,pe_v=p25*22.4,nd=debt-cash,eveq=ebitda?(ebitda*16-nd):0,pb_v=nw*1.5;
+      var wtd=pe_v*0.35+(eveq>0?eveq:0)*0.35+dcf_v*0.20+pb_v*0.10;
+      lk.val_pb='₹'+pb_v.toFixed(1)+' Cr (P/B 1.5x — asset floor/lower bound)';
+      lk.val_dcf='₹'+dcf_v.toFixed(1)+' Cr (DCF NOPAT-based, WACC 13%, g 5%)';
+      lk.val_pe='₹'+pe_v.toFixed(1)+' Cr (P/E 28x with 20% unlisted discount)';
+      lk.val_eveq=eveq>0?('₹'+eveq.toFixed(1)+' Cr (EV/EBITDA 16x minus net debt)'):'N/A';
+      lk.val_weighted='₹'+wtd.toFixed(1)+' Cr (weighted 35/35/20/10)';
+      lk.val_range='₹'+(wtd*0.9).toFixed(0)+' Cr – ₹'+(wtd*1.1).toFixed(0)+' Cr';
+      lk.val_label='USE LABEL: Indicative Enterprise Value Range. NEVER use Price Band (price band = per-share, set by BRLM).';
+      lk.val_order='CORRECT ORDER (low→high): P/B < DCF < P/E < EV/EBITDA-equity';
+    }
+    return lk;
+  }
   var nl='\n';
   var ctx=nl+nl+'=== PROBE42 MCA VERIFIED DATA (Use as primary source) ==='+nl;
   ctx+='Company: '+n(d.company_name)+' | CIN: '+n(d.cin||P42.cin)+nl;
@@ -870,12 +899,28 @@ function buildP42Ctx(d){
   ctx+='Debtor Days: '+n(f.debtor_days)+' | Inventory Days: '+n(f.inventory_days)+nl;
   ctx+='Auditor: '+n(f.auditor)+nl;
   if(dirs.length){
-    ctx+=nl+'DIRECTORS ('+dirs.length+' active):'+nl;
-    dirs.forEach(function(d2){ctx+=d2.name+' | DIN:'+d2.din+' | '+d2.designation+' | '+d2.gender+nl;});
+    ctx+=nl+'BOARD OF DIRECTORS ('+dirs.length+' — REAL DATA from Probe42 — use EXACTLY):'+nl;
+    dirs.forEach(function(d2,di){ctx+='  '+(di+1)+'. '+d2.name+' | DIN: '+d2.din+' | '+(d2.designation||'Director')+(d2.gender?' | '+d2.gender:'')+nl;});
+    ctx+='  RULE: Copy above names/DINs exactly into M07. NEVER write [Placeholder] or [DIN Pending]. Promoter family surname = Non-Exec/Promoter. Others = Likely Independent (SEBI LODR verification required).'+nl;
   }
   var chgs=d.charges||[];
-  if(chgs.length)ctx+=nl+'OPEN CHARGES: '+chgs.length+' (Sum: '+cr(d.sum_of_charges)+')'+nl;
+  if(chgs.length){
+    var totalChgCr=0;
+    ctx+=nl+'CHARGE REGISTER ('+chgs.length+' — SEBI ICDR Reg 26 — USE EXACTLY these amounts, DO NOT restate):'+nl;
+    chgs.forEach(function(c2,ci){var rawL=parseFloat(c2.amount||c2.charge_amount||c2.amount_secured||0);var dispAmt=fmtCharge(rawL);totalChgCr+=rawL/100;ctx+='  #'+(ci+1)+': '+dispAmt+' | Status: '+(c2.status||'Open')+' | Date: '+(c2.date_of_creation||c2.date||'N/A')+' | Holder: '+(c2.charge_holder_name||'N/A — refer MCA21')+nl;});
+    ctx+='  TOTAL CHARGE EXPOSURE: ₹'+totalChgCr.toFixed(2)+' Cr | NOTE: converted from MCA Lakhs to Crores'+nl;
+  }
   ctx+='COMPLIANCE: GST:'+n(c.gst_status)+' | EPFO:'+(c.epfo_registered?'Yes':'No')+' | Defaulter:'+(c.defaulter?'YES-CRITICAL':'No')+nl;
+  var lkd=buildLockedFinancials(f);
+  if(Object.keys(lkd).length>0){
+    ctx+=nl+'=== LOCKED METRICS — USE EXACTLY, DO NOT RECOMPUTE ==='+nl;
+    ['revenue_cagr','pat_cagr','roce','roe','asset_turnover','equity_multiplier','interest_coverage','de_ratio'].forEach(function(k){if(lkd[k])ctx+=k.replace(/_/g,' ').toUpperCase()+': '+lkd[k]+nl;});
+    if(lkd.val_weighted){ctx+=nl+'VALUATION (pre-computed):'+nl;['val_pb','val_dcf','val_pe','val_eveq','val_weighted','val_range','val_label','val_order'].forEach(function(k){if(lkd[k])ctx+='  '+lkd[k]+nl;});}
+    ctx+='BALANCE SHEET SUB-LINES: Only show items explicitly in Probe42 data. If absent: write "Not in MCA extract".'+nl;
+    ctx+='EBITDA FY23/FY24 if N/A: write "Not itemised in MCA annual filings for unlisted cos. Will appear in DRHP restated financials (SEBI ICDR Reg 32)."'+nl;
+    ctx+='REVENUE SEGMENT MIX if estimated: add header "ipowork AI estimate — not from MCA filings. Verify from company or DRHP."'+nl;
+    ctx+='=== END LOCKED METRICS ==='+nl;
+  }
   var rpt=d.related_party_transactions||[];
   if(rpt.length)ctx+='RELATED PARTY TRANSACTIONS: '+rpt.length+' on record'+nl;
   ctx+='=== END PROBE42 DATA ==='+nl;
@@ -1388,7 +1433,7 @@ function buildCtx(){
   if(S.yr) c+='Year: '+S.yr+nl;
   if(S.inv) c+='Investors/Debt: '+S.inv+nl;
   if(VS&&VS.bFin&&VS.bFin.length>10) c+=nl+'=== VOICE BRIEFING ==='+nl+VS.bFin+nl;
-  if(P42&&P42.ok&&P42.ctx)c+=P42.ctx.substring(0,3000); // Trim to avoid slow responses
+  if(P42&&P42.ok&&P42.ctx)c+=P42.ctx.substring(0,6000); // FIX: 3000→6000 to fit charge+director+locked data
   return c;
 }
 
@@ -1487,7 +1532,8 @@ function runModule(m, toks){
     var hasDocs = ATTS.filter(function(a){ return a.status==='ready'; }).length;
     var p42ctx = (P42&&P42.ok&&P42.ctx) ? P42.ctx : '';
 
-    var prompt = 'Analyse for ['+m.name+'] dimension:\n\n'+S.ctx
+    var GR='DATA RULES:\n1. CHARGES: use amounts from CHARGE REGISTER exactly — never restate.\n2. BOARD: use names+DINs from BOARD OF DIRECTORS exactly — never placeholder.\n3. LOCKED METRICS: use values from LOCKED METRICS exactly — never recompute.\n4. BS SUB-LINES: only show if in Probe42 data, else: Not in MCA extract.\n5. VALUATION: use pre-computed figures, label as Indicative Enterprise Value Range NOT Price Band.\n6. TOTAL DEBT: must be same in all modules — use locked de_ratio/capital_employed to verify.\n7. PEERS (wire/cable): use KEI, Finolex, Polycab, Paramount — NOT Tata Steel or Hindustan Zinc.\n\n';
+    var prompt = 'Analyse for ['+m.name+'] dimension:\n\n'+GR+S.ctx
       +'\n\nThis is a private/unlisted company. '
       +(hasDocs?'ALL attached documents are PRIMARY source — extract specific figures, names, dates from documents. ':'No documents attached — use sector knowledge. ')
       +'Be direct, specific, quantitative. Reference India context. State clearly when data is unavailable.';
