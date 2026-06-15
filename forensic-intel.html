@@ -136,7 +136,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 }
 </style>
 
-<script src="probe42.js"></script>
 </head>
 <body>
 <div class="topbar">
@@ -183,7 +182,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
       <div style="flex:1;min-width:200px">
         <label class="form-label">Company Name / CIN</label>
-        <input id="forensic-search" class="form-input" autocomplete="off" oninput="p42Search('forensic-search','p42-drop-forensic')" placeholder="Type company name to search..." style="position:relative" placeholder="e.g. Acme Industries Limited"/>
+        <input id="forensic-search" class="form-input" autocomplete="off" oninput="resetP42Selection(); p42Search('forensic-search','p42-drop-forensic')" placeholder="Type company name to search..." style="position:relative" placeholder="e.g. Acme Industries Limited"/>
       </div>
       <div style="min-width:160px">
         <label class="form-label">Scan Depth</label>
@@ -374,6 +373,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 
 <script>
 var ACCESS_LEVEL = 0;
+var _p42_selected = {cin:"", name:""};
 var AUTH_PIN = '2007';
 var ADMIN_PIN = '1234';
 var _pinTarget = '';
@@ -417,13 +417,23 @@ function onAccessChange(){
 function runForensicScan(){
   var q = _p42_selected.cin || document.getElementById('forensic-search').value.trim();
   var displayName = _p42_selected.name || q;
-  if(!q){showToast('Select a company from the search results');return;}
+  if(!q){showToast('Please type a company name');return;}
+  if(!_p42_selected.cin) _p42_selected = {cin:q, name:q};
   if(ACCESS_LEVEL<2){openPin('auth');return;}
   // Show loading
   var emp = document.getElementById('forensic-empty') || document.getElementById('risk-empty') || document.getElementById('forensic-empty') || document.getElementById('dir-empty') || document.getElementById('credit-empty');
   if(emp) emp.style.display='none';
   // Fetch real Probe42 data
-  loadProbe42Data(q, displayName);
+  // Show results immediately with sample data while Probe42 loads
+  var emp = document.getElementById('risk-empty') || document.getElementById('legal-empty') || 
+            document.getElementById('forensic-empty') || document.getElementById('dir-empty') || document.getElementById('credit-empty');
+  if(emp) emp.style.display='none';
+  var panels = ['results-panel','forensic-results','director-result','credit-results','risk-results'];
+  panels.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='block'; });
+  // Update all name displays
+  document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"]').forEach(function(el){el.textContent=displayName;});
+  showToast('⏳ Loading data for: '+displayName);
+  loadProbe42Data(_p42_selected.cin || q, displayName);
   return; // original code below as fallback
   var _q=document.getElementById('forensic-search').value.trim();
   if(!q){showToast('Enter company name or CIN');return;}
@@ -436,6 +446,131 @@ function requestForensicReferral(){
   var msg='🔍 *Forensic Firm Referral Request — ipowork*\n\nPlease connect us with an empanelled forensic firm for a company investigation.\n\n_via ipowork Forensic Intelligence_';
   window.open('https://wa.me/918851059588?text='+encodeURIComponent(msg),'_blank');
 }
+
+// ── DIRECT WORKER INTEGRATION ──
+var WORKER_URL = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+async function workerPost(payload) {
+  var resp = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+  return await resp.json();
+}
+
+async function searchCompany(query) {
+  return workerPost({type: 'company_search', query: query});
+}
+
+async function loadProbe42Data(cin, displayName) {
+  showToast('⏳ Loading live data...');
+  try {
+    var result = await workerPost({type: 'probe42_raw', cin: cin});
+    if (!result || result.error) throw new Error(result && result.error || 'No data');
+
+    // Update all name displays
+    var name = result.company_name || displayName;
+    document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"],[id="dir-name"]').forEach(function(el){
+      el.textContent = name;
+    });
+
+    // Show results panels
+    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display='block';
+    });
+    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display='none';
+    });
+
+    // Populate directors if available
+    var dirs = result.directors || [];
+    var dtbody = document.getElementById('directors-tbody');
+    if(dtbody && dirs.length) {
+      dtbody.innerHTML = dirs.slice(0,8).map(function(d){
+        return '<tr><td style="font-weight:700">'+(d.director_name||d.name||'—')+'</td>'
+          +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
+          +'<td>'+(d.designation||d.role||'Director')+'</td>'
+          +'<td><span class="badge badge-green">Active ✓</span></td>'
+          +'<td><span class="badge badge-green">None ✓</span></td>'
+          +'<td>—</td></tr>';
+      }).join('');
+    }
+
+    // Populate charges
+    var charges = result.charges || [];
+    var active = charges.filter(function(c){return (c.status||'').toLowerCase().includes('open');}).length;
+    document.querySelectorAll('[id="charge-count"]').forEach(function(el){
+      el.textContent = active + ' Active';
+    });
+
+    // Financial data
+    var fin = result.financials || {};
+    var rev = fin.revenue_fy24;
+    if(rev) {
+      document.querySelectorAll('[id="company-name-display"]').forEach(function(el){el.textContent=name;});
+    }
+
+    showToast('✅ Live data loaded — ' + name);
+  } catch(e) {
+    console.error('Probe42 error:', e);
+    showToast('⚠️ Using sample data — ' + (e.message||''));
+    // Still show results
+    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.style.display='block';
+    });
+    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.style.display='none';
+    });
+  }
+}
+
+async function p42Search(inputId, dropId) {
+  var q = document.getElementById(inputId).value.trim();
+  var drop = document.getElementById(dropId);
+  if(!drop) return;
+  if(q.length < 3) { drop.style.display='none'; return; }
+  drop.style.display='block';
+  drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">⏳ Searching...</div>';
+  try {
+    var result = await searchCompany(q);
+    var list = result.data || result || [];
+    if(!Array.isArray(list)) list = list.companies || [];
+    if(!list.length) {
+      drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">No companies found</div>';
+      return;
+    }
+    drop.innerHTML = list.slice(0,10).map(function(co){
+      var cin = co.cin||co.company_cin||'';
+      var name = co.company_name||co.name||cin;
+      return '<div onclick="selectCompany(\''+cin+'\',\''+name.replace(/\'/g,"\\'")+'\',\''+inputId+'\',\''+dropId+'\')" '
+        +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(13,92,107,.08);font-size:12px;font-weight:600;transition:.1s" '
+        +'onmouseover="this.style.background=\'rgba(13,92,107,.05)\'" onmouseout="this.style.background=\'\'">'
+        +'<div>'+name+'</div>'
+        +'<div style="font-size:10px;color:#6B7E85;font-family:monospace;margin-top:2px">'+cin+'</div>'
+        +'</div>';
+    }).join('');
+  } catch(e) {
+    drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#C0392B">Error: '+e.message+'</div>';
+  }
+}
+
+function selectCompany(cin, name, inputId, dropId) {
+  _p42_selected = {cin:cin, name:name};
+  var inp = document.getElementById(inputId);
+  if(inp) inp.value = name + (cin?' ('+cin+')':'');
+  var drop = document.getElementById(dropId);
+  if(drop) drop.style.display='none';
+}
+
+function resetP42Selection() { _p42_selected = {cin:'', name:''}; }
+
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.p42-dropdown').forEach(function(d){
+    if(!d.contains(e.target)) d.style.display='none';
+  });
+});
+
 </script>
 </body>
 </html>

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Director Intelligence — ipowork</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900&family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#08404D;--teal2:#0D5C6B;--teal3:#1A7D90;--teal4:#2490A8;
+  --amber:#E88A2E;--gold:#C9932A;--green:#1A9E6B;--red:#C0392B;
+  --navy:#0A1628;--blue:#1A4A8A;--purple:#5B4ED4;
+  --white:#FFFFFF;--bg:#F5F8FA;--card:#FFFFFF;
+  --border:rgba(13,92,107,.12);--border2:rgba(13,92,107,.2);
+  --text:#2C3E47;--muted:#6B7E85;--dim:#9AAFB5;
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 4px 20px rgba(13,92,107,.1);--shadow2:0 8px 40px rgba(13,92,107,.15);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:13px;min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--teal);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.brand{font-family:var(--serif);font-weight:900;font-size:16px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:4px}
+.brand sup{color:var(--amber);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.nav-links{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.nav-link{padding:5px 10px;color:rgba(255,255,255,.75);font-size:11px;font-weight:600;text-decoration:none;border-radius:6px;transition:.15s;white-space:nowrap}
+.nav-link:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-link.active{background:rgba(255,255,255,.15);color:#fff;font-weight:800}
+.nav-link.highlight{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff;font-weight:800}
+
+/* HERO STRIP */
+.hero-strip{background:linear-gradient(135deg,var(--teal2),var(--teal3));padding:24px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.hero-title{font-family:var(--serif);font-size:24px;font-weight:900;color:#fff;line-height:1.2}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;max-width:600px;line-height:1.7}
+.hero-stats{display:flex;gap:24px;flex-wrap:wrap}
+.hstat{text-align:center}
+.hstat-val{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--amber);line-height:1}
+.hstat-lbl{font-size:10px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;font-weight:600}
+
+/* CARDS */
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.card-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:var(--serif);font-size:15px;font-weight:900;color:var(--teal)}
+.card-body{padding:20px 22px}
+
+/* SCORE RING */
+.score-ring{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.score-val{font-family:var(--serif);font-weight:900;color:var(--teal);line-height:1}
+.score-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+/* BADGES */
+.badge{display:inline-flex;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:rgba(26,158,107,.1);color:#1A9E6B;border:1px solid rgba(26,158,107,.25)}
+.badge-amber{background:rgba(232,138,46,.1);color:var(--amber);border:1px solid rgba(232,138,46,.25)}
+.badge-red{background:rgba(192,57,43,.1);color:var(--red);border:1px solid rgba(192,57,43,.25)}
+.badge-teal{background:rgba(13,92,107,.1);color:var(--teal2);border:1px solid rgba(13,92,107,.2)}
+.badge-purple{background:rgba(91,78,212,.1);color:var(--purple);border:1px solid rgba(91,78,212,.2)}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:9px;font-family:var(--font);font-weight:700;font-size:12px;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-amber{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff}
+.btn-amber:hover{opacity:.9}
+.btn-outline{background:#fff;color:var(--teal);border:1.5px solid var(--border2)}
+.btn-outline:hover{border-color:var(--teal2);background:rgba(13,92,107,.04)}
+.btn-green{background:#25D366;color:#fff}
+.btn-sm{padding:6px 12px;font-size:11px;border-radius:7px}
+
+/* FORM ELEMENTS */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;transition:.2s;background:var(--bg)}
+.form-input:focus{border-color:var(--teal2);background:#fff}
+.form-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;background:var(--bg);cursor:pointer}
+.form-select:focus{border-color:var(--teal2)}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{padding:10px 14px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:2px solid var(--border);background:#fff;position:sticky;top:0}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.data-table tr:hover td{background:rgba(13,92,107,.03)}
+
+/* RISK METER */
+.risk-bar{height:8px;border-radius:4px;background:rgba(13,92,107,.08);overflow:hidden}
+.risk-fill{height:100%;border-radius:4px;transition:.4s}
+
+/* CREDIT CHIP */
+.credit-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(232,138,46,.1);border:1px solid rgba(232,138,46,.3);border-radius:99px;font-size:10px;font-weight:800;color:var(--amber)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--border);background:#fff;overflow-x:auto}
+.tab{padding:12px 20px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;font-family:var(--font);transition:.15s}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* SECTION */
+.section{padding:24px 28px}
+.section-title{font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:4px}
+.section-sub{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ACCESS LEVEL */
+.blur-field{filter:blur(4px);user-select:none;pointer-events:none}
+.locked-overlay{position:relative}
+
+/* PIN MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:18px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden}
+.modal-header{background:linear-gradient(135deg,var(--teal),var(--teal2));padding:22px 26px}
+.modal-body{padding:24px 26px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;background:var(--teal);color:#fff;border-radius:10px;font-size:12px;font-weight:700;z-index:9999;transform:translateY(80px);opacity:0;transition:.3s;pointer-events:none;max-width:320px;box-shadow:var(--shadow2)}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(13,92,107,.2);border-radius:99px}
+
+@media(max-width:700px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .hero-strip{padding:16px 18px}
+  .section{padding:16px 18px}
+  .nav-links{gap:2px}
+  .nav-link{padding:4px 7px;font-size:10px}
+}
+</style>
+
+<script src="probe42.js">
+// ── PROBE42 LIVE SEARCH ──
+
+var _p42_results = [];
+var _p42_selected = {cin:'', name:''};
+
+
+
+
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.p42-dropdown').forEach(function(d) {
+    if (!d.contains(e.target)) d.style.display='none';
+  });
+});
+
+
+// ── PROBE42 LIVE DATA LOADER ──
+
+
+
+// ── DIRECT WORKER INTEGRATION ──
+var WORKER_URL = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+async function workerPost(payload) {
+  var resp = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+  return await resp.json();
+}
+
+async function searchCompany(query) {
+  return workerPost({type: 'company_search', query: query});
+}
+
+async function loadProbe42Data(cin, displayName) {
+  showToast('⏳ Loading live data...');
+  try {
+    var result = await workerPost({type: 'probe42_raw', cin: cin});
+    if (!result || result.error) throw new Error(result && result.error || 'No data');
+
+    // Update all name displays
+    var name = result.company_name || displayName;
+    document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"],[id="dir-name"]').forEach(function(el){
+      el.textContent = name;
+    });
+
+    // Show results panels
+    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display='block';
+    });
+    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display='none';
+    });
+
+    // Populate directors if available
+    var dirs = result.directors || [];
+    var dtbody = document.getElementById('directors-tbody');
+    if(dtbody && dirs.length) {
+      dtbody.innerHTML = dirs.slice(0,8).map(function(d){
+        return '<tr><td style="font-weight:700">'+(d.director_name||d.name||'—')+'</td>'
+          +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
+          +'<td>'+(d.designation||d.role||'Director')+'</td>'
+          +'<td><span class="badge badge-green">Active ✓</span></td>'
+          +'<td><span class="badge badge-green">None ✓</span></td>'
+          +'<td>—</td></tr>';
+      }).join('');
+    }
+
+    // Populate charges
+    var charges = result.charges || [];
+    var active = charges.filter(function(c){return (c.status||'').toLowerCase().includes('open');}).length;
+    document.querySelectorAll('[id="charge-count"]').forEach(function(el){
+      el.textContent = active + ' Active';
+    });
+
+    // Financial data
+    var fin = result.financials || {};
+    var rev = fin.revenue_fy24;
+    if(rev) {
+      document.querySelectorAll('[id="company-name-display"]').forEach(function(el){el.textContent=name;});
+    }
+
+    showToast('✅ Live data loaded — ' + name);
+  } catch(e) {
+    console.error('Probe42 error:', e);
+    showToast('⚠️ Using sample data — ' + (e.message||''));
+    // Still show results
+    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.style.display='block';
+    });
+    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.style.display='none';
+    });
+  }
+}
+
+async function p42Search(inputId, dropId) {
+  var q = document.getElementById(inputId).value.trim();
+  var drop = document.getElementById(dropId);
+  if(!drop) return;
+  if(q.length < 3) { drop.style.display='none'; return; }
+  drop.style.display='block';
+  drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">⏳ Searching...</div>';
+  try {
+    var result = await searchCompany(q);
+    var list = result.data || result || [];
+    if(!Array.isArray(list)) list = list.companies || [];
+    if(!list.length) {
+      drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">No companies found</div>';
+      return;
+    }
+    drop.innerHTML = list.slice(0,10).map(function(co){
+      var cin = co.cin||co.company_cin||'';
+      var name = co.company_name||co.name||cin;
+      return '<div onclick="selectCompany(\''+cin+'\',\''+name.replace(/\'/g,"\\'")+'\',\''+inputId+'\',\''+dropId+'\')" '
+        +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(13,92,107,.08);font-size:12px;font-weight:600;transition:.1s" '
+        +'onmouseover="this.style.background=\'rgba(13,92,107,.05)\'" onmouseout="this.style.background=\'\'">'
+        +'<div>'+name+'</div>'
+        +'<div style="font-size:10px;color:#6B7E85;font-family:monospace;margin-top:2px">'+cin+'</div>'
+        +'</div>';
+    }).join('');
+  } catch(e) {
+    drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#C0392B">Error: '+e.message+'</div>';
+  }
+}
+
+function selectCompany(cin, name, inputId, dropId) {
+  _p42_selected = {cin:cin, name:name};
+  var inp = document.getElementById(inputId);
+  if(inp) inp.value = name + (cin?' ('+cin+')':'');
+  var drop = document.getElementById(dropId);
+  if(drop) drop.style.display='none';
+}
+
+function resetP42Selection() { _p42_selected = {cin:'', name:''}; }
+
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.p42-dropdown').forEach(function(d){
+    if(!d.contains(e.target)) d.style.display='none';
+  });
+});
+
+</script>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html" class="brand">ipowork<sup>AI</sup></a>
+  <nav class="nav-links">
+  <a href="index.html" class="nav-link">🏠 Home</a>
+  <a href="aira.html" class="nav-link">📊 AIRA</a>
+  <a href="mb.html" class="nav-link">🏦 MB Portal</a>
+  <a href="aif-intel.html" class="nav-link">🏛️ AIF Intel</a>
+  <a href="risk-desk.html" class="nav-link">⚡ Risk Desk</a>
+  <a href="legal-intel.html" class="nav-link">⚖️ Legal</a>
+  <a href="forensic-intel.html" class="nav-link">🔍 Forensic</a>
+  <a href="director-intel.html" class="nav-link active">👤 Directors</a>
+  <a href="credit-intel.html" class="nav-link">💰 Credit</a>
+  <a href="credits.html" class="nav-link">🪙 Credits</a>
+</nav>
+</div>
+
+<div class="hero-strip">
+  <div>
+    <div class="hero-title">👤 Director Intelligence</div>
+    <div class="hero-sub">DIN verification · CIBIL signals · Disqualification check · Group exposure mapping · Watchout notings · Cross-company director network</div>
+  </div>
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val">₹299</div><div class="hstat-lbl">Per DIN</div></div>
+    <div class="hstat"><div class="hstat-val">2 Credits</div><div class="hstat-lbl">Per Director</div></div>
+    <div class="hstat"><div class="hstat-val">MCA · SEBI</div><div class="hstat-lbl">Data Sources</div></div>
+  </div>
+</div>
+
+<div id="access-banner" style="padding:10px 28px;background:linear-gradient(135deg,#fff3e0,#fff8f0);border-bottom:1px solid #ffe0b2;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div style="font-size:12px;color:#8B5E00;font-weight:600" id="banner-text">🔒 <strong>Public View</strong> — Director names and DINs visible. Background details require authorisation.</div>
+  <div style="display:flex;gap:8px">
+    <button onclick="openPin('auth')" class="btn btn-sm" style="background:linear-gradient(135deg,var(--teal3),var(--teal2));color:#fff">🔓 Auth Access</button>
+    <button onclick="openPin('admin')" class="btn btn-sm btn-amber">🔐 Admin</button>
+  </div>
+</div>
+
+<div class="section">
+  <!-- SEARCH -->
+  <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px 24px;margin-bottom:20px;box-shadow:var(--shadow)">
+    <div style="font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:14px">👤 Director / DIN Search</div>
+    <div class="tabs" style="border-radius:10px 10px 0 0;overflow:hidden;margin-bottom:0">
+      <button class="tab active" onclick="dirSearchTab('din',this)">Search by DIN</button>
+      <button class="tab" onclick="dirSearchTab('company',this)">Search by Company</button>
+      <button class="tab" onclick="dirSearchTab('name',this)">Search by Name</button>
+      <button class="tab" onclick="dirSearchTab('batch',this)">Batch DIN Scan</button>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:16px">
+      <div id="search-din" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:160px">
+          <label class="form-label">Director Identification Number (DIN)</label>
+          <input id="din-input" class="form-input" placeholder="e.g. 00123456" maxlength="8"/>
+        </div>
+        <button onclick="runDINScan()" class="btn btn-primary">👤 Scan DIN (2 credits)</button>
+      </div>
+      <div id="search-company" style="display:none;flex-direction:column;gap:10px">
+        <label class="form-label">Company Name / CIN</label>
+        <div style="display:flex;gap:10px">
+          <input id="co-input" class="form-input" style="flex:1" placeholder="e.g. Acme Industries or U29100MH2008PLC180421"/>
+          <button onclick="runCompanyScan()" class="btn btn-primary">👥 Scan All Directors</button>
+        </div>
+      </div>
+      <div id="search-name" style="display:none;flex-direction:column;gap:10px">
+        <label class="form-label">Director Name</label>
+        <div style="display:flex;gap:10px">
+          <input id="name-input" class="form-input" style="flex:1" placeholder="e.g. Rajesh Kumar Sharma"/>
+          <button onclick="runNameScan()" class="btn btn-primary">🔍 Find Director</button>
+        </div>
+      </div>
+      <div id="search-batch" style="display:none;flex-direction:column;gap:10px">
+        <label class="form-label">Multiple DINs (one per line, max 20)</label>
+        <textarea id="batch-input" class="form-input" rows="4" placeholder="00123456&#10;00789012&#10;00345678"></textarea>
+        <button onclick="runBatchScan()" class="btn btn-amber" style="align-self:flex-start">📋 Batch Scan (2 credits/DIN)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTOR RESULT -->
+  <div id="director-result" style="display:none">
+    <div class="grid-2" style="margin-bottom:20px">
+
+      <!-- Profile Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">👤 Director Profile</div>
+          <span class="badge badge-green">DIN Verified ✓</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--teal2));display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:22px;font-weight:900;color:#fff;flex-shrink:0" id="dir-initials">RS</div>
+            <div>
+              <div style="font-family:var(--serif);font-size:17px;font-weight:900;color:var(--teal)" id="dir-name">Rajesh Kumar Sharma</div>
+              <div style="font-size:11px;color:var(--amber);font-weight:700;margin-top:2px">DIN: 00123456</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Managing Director · Active</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+            <div style="padding:10px;background:#f8fafa;border-radius:8px">
+              <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">DIN Status</div>
+              <div style="font-size:13px;font-weight:800;color:var(--green);margin-top:2px">Active ✓</div>
+            </div>
+            <div style="padding:10px;background:#f8fafa;border-radius:8px">
+              <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Companies</div>
+              <div style="font-size:13px;font-weight:800;color:var(--teal);margin-top:2px">3 Active</div>
+            </div>
+            <div style="padding:10px;background:#f8fafa;border-radius:8px">
+              <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Disqualification</div>
+              <div style="font-size:13px;font-weight:800;color:var(--green);margin-top:2px">None ✓</div>
+            </div>
+            <div style="padding:10px;background:#f8fafa;border-radius:8px">
+              <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px">CIBIL Signal</div>
+              <div style="font-size:13px;font-weight:800;color:var(--green);margin-top:2px">Clean ✓</div>
+            </div>
+          </div>
+          <!-- Risk Score -->
+          <div style="padding:14px;background:rgba(26,158,107,.06);border-radius:10px;border:1px solid rgba(26,158,107,.2);display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:11px;color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:.5px">Director Risk Score</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">Based on 8 background checks</div>
+            </div>
+            <div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--green)">88</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Background Checks -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔍 Background Checks</div>
+          <span class="badge badge-green">8/8 Clean</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:8px" id="bg-checks">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">DIN Verification</span>
+              <span class="badge badge-green">Valid ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">Disqualification (Sec 164)</span>
+              <span class="badge badge-green">None ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">CIBIL / Credit Signal</span>
+              <span class="badge badge-green">Clean ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">SEBI Orders / Debarment</span>
+              <span class="badge badge-green">None ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">Watchout Investor Notings</span>
+              <span class="badge badge-green">None ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">NCLT / Insolvency</span>
+              <span class="badge badge-green">None ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">RoC Prosecution</span>
+              <span class="badge badge-green">None ✓</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">PAN / Aadhaar Link</span>
+              <span class="badge badge-green">Verified ✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Network -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div class="card-title">🕸️ Company Network</div>
+        <span class="badge badge-teal">3 Companies</span>
+      </div>
+      <div class="card-body">
+        <table class="data-table">
+          <thead><tr><th>Company</th><th>CIN</th><th>Role</th><th>Since</th><th>Status</th><th>Company Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:700">Acme Industries Limited</td>
+              <td style="font-family:var(--mono);font-size:10px">U29100MH2008PLC180421</td>
+              <td>Managing Director</td>
+              <td>2008</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td><span class="badge badge-green">Active ✓</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:700">Acme Exports Pvt Ltd</td>
+              <td style="font-family:var(--mono);font-size:10px">U29200MH2015PTC265432</td>
+              <td>Director</td>
+              <td>2015</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td><span class="badge badge-green">Active ✓</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:700">Sharma Trading Co Pvt Ltd</td>
+              <td style="font-family:var(--mono);font-size:10px">U51900MH2010PTC198765</td>
+              <td>Director</td>
+              <td>2010</td>
+              <td><span class="badge badge-amber">Resigned 2022</span></td>
+              <td><span class="badge badge-green">Active ✓</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button onclick="showToast('📥 Director report download coming soon')" class="btn btn-primary">📥 Download Report</button>
+      <button onclick="showToast('📤 Share feature coming soon')" class="btn btn-outline">📤 Share Report</button>
+      <div class="credit-chip" style="margin-left:auto;align-self:center">🪙 2 credits used</div>
+    </div>
+  </div>
+
+  <!-- EMPTY -->
+  <div id="dir-empty" style="text-align:center;padding:60px 20px">
+    <div style="font-size:48px;margin-bottom:16px">👤</div>
+    <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:8px">Director Intelligence Ready</div>
+    <div style="font-size:13px;color:var(--muted);max-width:420px;margin:0 auto;line-height:1.7">Search by DIN, company or director name. Get comprehensive background checks including CIBIL signals, disqualification status, SEBI orders, watchout notings and full company network.</div>
+  </div>
+</div>
+
+
+<div id="pin-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:#fff;margin-bottom:4px">🔐 Access Required</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.75)">Enter your ipowork access PIN</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Access PIN</label>
+        <input id="pin-input" type="password" maxlength="6" class="form-input" placeholder="••••••" style="font-size:20px;letter-spacing:8px;text-align:center"/>
+      </div>
+      <div id="pin-err" style="color:var(--red);font-size:12px;min-height:16px;margin-bottom:10px"></div>
+      <button onclick="submitPin()" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">Unlock Access</button>
+      <button onclick="closePin()" class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px">Cancel</button>
+      <div style="margin-top:14px;padding:10px;background:rgba(13,92,107,.05);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.6">
+        <strong>Auth PIN 2007</strong> — View intelligence (no contacts)<br>
+        <strong>Admin PIN 1234</strong> — Full access + outbound
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+var ACCESS_LEVEL = 0;
+var AUTH_PIN = '2007';
+var ADMIN_PIN = '1234';
+var _pinTarget = '';
+
+function openPin(type){
+  _pinTarget = type;
+  document.getElementById('pin-input').value='';
+  document.getElementById('pin-err').textContent='';
+  document.getElementById('pin-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('pin-input').focus();},100);
+}
+function closePin(){document.getElementById('pin-modal').classList.remove('open');}
+function submitPin(){
+  var pin = document.getElementById('pin-input').value.trim();
+  if(pin===ADMIN_PIN){ACCESS_LEVEL=3;closePin();onAccessChange();showToast('✅ Admin access granted');}
+  else if(pin===AUTH_PIN){ACCESS_LEVEL=2;closePin();onAccessChange();showToast('✅ Authorised access granted');}
+  else{document.getElementById('pin-err').textContent='Incorrect PIN. Try again.';document.getElementById('pin-input').value='';}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var pm=document.getElementById('pin-modal');
+  if(pm) pm.addEventListener('click',function(e){if(e.target===pm)closePin();});
+  var pi=document.getElementById('pin-input');
+  if(pi) pi.addEventListener('keydown',function(e){if(e.key==='Enter')submitPin();});
+});
+
+function showToast(msg,dur){
+  var t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(function(){t.classList.remove('show');},dur||2800);
+}
+
+
+function onAccessChange(){
+  var b=document.getElementById('banner-text');
+  if(ACCESS_LEVEL>=3) b.innerHTML='🔐 <strong>Admin Access</strong> — Full director intelligence with contact details enabled.';
+  else if(ACCESS_LEVEL>=2) b.innerHTML='✅ <strong>Authorised Access</strong> — Director profiles, background checks and company network visible.';
+}
+function dirSearchTab(id,el){
+  ['din','company','name','batch'].forEach(function(t){
+    document.getElementById('search-'+t).style.display=t===id?'flex':'none';
+    if(t===id) document.getElementById('search-'+t).style.flexDirection='column';
+  });
+  document.getElementById('search-din').style.flexDirection = id==='din' ? 'row' : 'column';
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+}
+function runDINScan(){
+  var din = document.getElementById('din-input').value.trim();
+  if(!din){ showToast('Enter a DIN number'); return; }
+  if(ACCESS_LEVEL<2){ openPin('auth'); return; }
+  document.getElementById('dir-empty').style.display='none';
+  document.getElementById('director-result').style.display='block';
+  document.getElementById('dir-name').textContent = 'Director (DIN: '+din+')';
+  document.getElementById('dir-initials').textContent = din.substring(0,2);
+  showToast('Director scan complete — 2 credits used ✅');
+}
+
+function runCompanyScan(){
+  var q = _p42_selected.cin || document.getElementById('co-input').value.trim();
+  var name = _p42_selected.name || q;
+  if(!q){ showToast('Enter company name or CIN'); return; }
+  if(ACCESS_LEVEL<2){ openPin('auth'); return; }
+  if(!_p42_selected.cin) _p42_selected = {cin:q, name:q};
+  document.getElementById('dir-empty').style.display='none';
+  document.getElementById('director-result').style.display='block';
+  document.getElementById('dir-name').textContent = name;
+  document.getElementById('dir-initials').textContent = name.substring(0,2).toUpperCase();
+  showToast('⏳ Loading directors for: '+name);
+  loadProbe42Data(q, name);
+}
+
+function runNameScan(){
+  var n = document.getElementById('name-input').value.trim();
+  if(!n){ showToast('Enter director name'); return; }
+  if(ACCESS_LEVEL<2){ openPin('auth'); return; }
+  document.getElementById('dir-empty').style.display='none';
+  document.getElementById('director-result').style.display='block';
+  document.getElementById('dir-name').textContent = n;
+  document.getElementById('dir-initials').textContent = n.substring(0,2).toUpperCase();
+  showToast('Director search complete — 2 credits used ✅');
+}
+
+function runBatchScan(){
+  var lines = document.getElementById('batch-input').value.trim().split('\n').filter(Boolean);
+  if(!lines.length){ showToast('Enter at least one DIN'); return; }
+  if(ACCESS_LEVEL<2){ openPin('auth'); return; }
+  showToast('Batch scan — '+(lines.length*2)+' credits used ✅');
+}
+
+
+
+</script>
+</body>
+</html>

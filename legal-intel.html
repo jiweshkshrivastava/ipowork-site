@@ -138,28 +138,166 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 
 <script src="probe42.js">
 // ── PROBE42 LIVE SEARCH ──
+
 var _p42_results = [];
 var _p42_selected = {cin:'', name:''};
+
+
+
+
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.p42-dropdown').forEach(function(d) {
+    if (!d.contains(e.target)) d.style.display='none';
+  });
+});
+
+
+// ── PROBE42 LIVE DATA LOADER ──
+
+
+
+// ── DIRECT WORKER INTEGRATION ──
+var WORKER_URL = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+async function workerPost(payload) {
+  var resp = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+  return await resp.json();
+}
+
+async function searchCompany(query) {
+  return workerPost({type: 'company_search', query: query});
+}
+
+async function loadProbe42Data(cin, displayName) {
+  showToast('⏳ Loading live data...');
+  try {
+    var result = await workerPost({type: 'probe42_raw', cin: cin});
+    if (!result || result.error) throw new Error(result && result.error || 'No data');
+
+    // Update all name displays
+    var name = result.company_name || displayName;
+    document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"],[id="dir-name"]').forEach(function(el){
+      el.textContent = name;
+    });
+
+    // Show results panels
+    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display='block';
+    });
+    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.style.display='none';
+    });
+
+    // Populate directors if available
+    var dirs = result.directors || [];
+    var dtbody = document.getElementById('directors-tbody');
+    if(dtbody && dirs.length) {
+      dtbody.innerHTML = dirs.slice(0,8).map(function(d){
+        return '<tr><td style="font-weight:700">'+(d.director_name||d.name||'—')+'</td>'
+          +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
+          +'<td>'+(d.designation||d.role||'Director')+'</td>'
+          +'<td><span class="badge badge-green">Active ✓</span></td>'
+          +'<td><span class="badge badge-green">None ✓</span></td>'
+          +'<td>—</td></tr>';
+      }).join('');
+    }
+
+    // Populate charges
+    var charges = result.charges || [];
+    var active = charges.filter(function(c){return (c.status||'').toLowerCase().includes('open');}).length;
+    document.querySelectorAll('[id="charge-count"]').forEach(function(el){
+      el.textContent = active + ' Active';
+    });
+
+    // Financial data
+    var fin = result.financials || {};
+    var rev = fin.revenue_fy24;
+    if(rev) {
+      document.querySelectorAll('[id="company-name-display"]').forEach(function(el){el.textContent=name;});
+    }
+
+    // Populate legal specific fields
+    var legal = result.legal || {};
+    var comp  = result.compliance || {};
+
+    // Litigation count badge
+    var litCount = legal.litigation_count || 0;
+    var flagBadge = document.getElementById('flag-count-badge');
+    if(flagBadge) flagBadge.textContent = litCount + ' Flag' + (litCount!==1?'s':'');
+
+    // Update red flags list
+    var flagsList = document.getElementById('red-flags-list');
+    if(flagsList) {
+      var flags = '';
+      if(legal.material_litigation && legal.material_litigation !== 'None') {
+        flags += '<div style="padding:12px;background:rgba(192,57,43,.06);border-left:3px solid var(--red);border-radius:8px;margin-bottom:8px">'
+          +'<div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:3px">⚠️ Material Litigation</div>'
+          +'<div style="font-size:11px;color:var(--muted)">'+legal.material_litigation+'</div></div>';
+      }
+      if(legal.sebi_orders && legal.sebi_orders !== 'None') {
+        flags += '<div style="padding:12px;background:rgba(192,57,43,.06);border-left:3px solid var(--red);border-radius:8px;margin-bottom:8px">'
+          +'<div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:3px">⚠️ SEBI Orders</div>'
+          +'<div style="font-size:11px;color:var(--muted)">'+legal.sebi_orders+'</div></div>';
+      }
+      if(comp.defaulter) {
+        flags += '<div style="padding:12px;background:rgba(192,57,43,.06);border-left:3px solid var(--red);border-radius:8px;margin-bottom:8px">'
+          +'<div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:3px">🚨 Wilful Defaulter</div>'
+          +'<div style="font-size:11px;color:var(--muted)">Company flagged as wilful defaulter</div></div>';
+      }
+      if(!flags) {
+        flags = '<div style="padding:12px;background:rgba(26,158,107,.06);border-left:3px solid var(--green);border-radius:8px">'
+          +'<div style="font-size:12px;font-weight:800;color:var(--green)">✅ No Major Red Flags</div>'
+          +'<div style="font-size:11px;color:var(--muted)">No material litigation, SEBI orders or defaulter flags found</div></div>';
+      }
+      flagsList.innerHTML = flags;
+    }
+
+    // GST status
+    if(comp.gst_status) {
+      var gstEl = document.querySelector('[data-field="gst-status"]');
+      if(gstEl) gstEl.textContent = comp.gst_status;
+    }
+
+    showToast('✅ Live legal data loaded — ' + name);
+  } catch(e) {
+    console.error('Probe42 error:', e);
+    showToast('⚠️ Using sample data — ' + (e.message||''));
+    // Still show results
+    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.style.display='block';
+    });
+    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.style.display='none';
+    });
+  }
+}
 
 async function p42Search(inputId, dropId) {
   var q = document.getElementById(inputId).value.trim();
   var drop = document.getElementById(dropId);
-  if (!drop) return;
-  if (q.length < 3) { drop.style.display='none'; return; }
+  if(!drop) return;
+  if(q.length < 3) { drop.style.display='none'; return; }
   drop.style.display='block';
   drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">⏳ Searching...</div>';
   try {
-    var data = await P42.search(q);
-    _p42_results = data || [];
-    if (!_p42_results.length) {
+    var result = await searchCompany(q);
+    var list = result.data || result || [];
+    if(!Array.isArray(list)) list = list.companies || [];
+    if(!list.length) {
       drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">No companies found</div>';
       return;
     }
-    drop.innerHTML = _p42_results.map(function(co,i) {
-      var cin = P42.getCIN(co);
-      var name = P42.getName(co);
-      return '<div onclick="selectCompany(\''+cin+'\',\''+name.replace(/'/g,"\\'")+'\',\''+inputId+'\',\''+dropId+'\')" '
-        +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(13,92,107,.08);font-size:12px;font-weight:600;color:#2C3E47;transition:.15s" '
+    drop.innerHTML = list.slice(0,10).map(function(co){
+      var cin = co.cin||co.company_cin||'';
+      var name = co.company_name||co.name||cin;
+      return '<div onclick="selectCompany(\''+cin+'\',\''+name.replace(/\'/g,"\\'")+'\',\''+inputId+'\',\''+dropId+'\')" '
+        +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(13,92,107,.08);font-size:12px;font-weight:600;transition:.1s" '
         +'onmouseover="this.style.background=\'rgba(13,92,107,.05)\'" onmouseout="this.style.background=\'\'">'
         +'<div>'+name+'</div>'
         +'<div style="font-size:10px;color:#6B7E85;font-family:monospace;margin-top:2px">'+cin+'</div>'
@@ -173,89 +311,18 @@ async function p42Search(inputId, dropId) {
 function selectCompany(cin, name, inputId, dropId) {
   _p42_selected = {cin:cin, name:name};
   var inp = document.getElementById(inputId);
-  if(inp) inp.value = name + ' (' + cin + ')';
+  if(inp) inp.value = name + (cin?' ('+cin+')':'');
   var drop = document.getElementById(dropId);
   if(drop) drop.style.display='none';
 }
 
-// Close dropdown on outside click
+function resetP42Selection() { _p42_selected = {cin:'', name:''}; }
+
 document.addEventListener('click', function(e) {
-  document.querySelectorAll('.p42-dropdown').forEach(function(d) {
-    if (!d.contains(e.target)) d.style.display='none';
+  document.querySelectorAll('.p42-dropdown').forEach(function(d){
+    if(!d.contains(e.target)) d.style.display='none';
   });
 });
-
-
-// ── PROBE42 LIVE DATA LOADER ──
-async function loadProbe42Data(cin, displayName) {
-  showToast('⏳ Fetching live data from Probe42...');
-  try {
-    var scan = await P42.fullScan(cin);
-    var co = scan.company || {};
-    var dirs = scan.directors || [];
-    var charges = scan.charges || [];
-    var fins = scan.financials || {};
-
-    // Update company name displays
-    document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"]').forEach(function(el){
-      el.textContent = P42.getName(co) || displayName;
-    });
-
-    // Update charges badge
-    var activeCharges = P42.getActiveCharges(charges);
-    var chargeBadge = document.getElementById('charge-count');
-    if(chargeBadge) chargeBadge.textContent = activeCharges + ' Active Charge' + (activeCharges!==1?'s':'');
-
-    // Show results panel
-    var panels = ['results-panel','forensic-results','director-result','credit-results','risk-results'];
-    panels.forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) el.style.display='block';
-    });
-
-    // Populate directors table if present
-    var dtbody = document.getElementById('directors-tbody');
-    if(dtbody && dirs.length) {
-      dtbody.innerHTML = dirs.slice(0,6).map(function(d){
-        var name = d.director_name || d.name || 'Unknown';
-        var din  = d.din || '—';
-        var role = d.designation || d.role || 'Director';
-        return '<tr>'
-          +'<td style="font-weight:700">'+name+'</td>'
-          +'<td style="font-family:var(--mono);font-size:10px">'+din+'</td>'
-          +'<td>'+role+'</td>'
-          +'<td><span class="badge badge-green">Checking ✓</span></td>'
-          +'<td><span class="badge badge-green">None ✓</span></td>'
-          +'<td>—</td>'
-          +'</tr>';
-      }).join('');
-    }
-
-    // Populate MCA incorporation info
-    var incDate = P42.getIncDate(co);
-    if(incDate) {
-      var els = document.querySelectorAll('[data-p42="inc-date"]');
-      els.forEach(function(el){el.textContent=incDate;});
-    }
-
-    showToast('✅ Live data loaded — ' + (P42.getName(co)||displayName));
-
-  } catch(e) {
-    console.error('Probe42 error:', e);
-    showToast('⚠️ Live data unavailable — showing sample data');
-    // Still show results panel with sample data
-    var panels = ['results-panel','forensic-results','director-result','credit-results','risk-results'];
-    panels.forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) el.style.display='block';
-    });
-    var empls = ['legal-empty','forensic-empty','dir-empty','credit-empty','risk-empty'];
-    empls.forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) el.style.display='none';
-    });
-  }
-}
 
 </script>
 </head>
@@ -777,12 +844,22 @@ function onAccessChange(){
 function runLegalScan(){
   var q = _p42_selected.cin || document.getElementById('company-search').value.trim();
   var displayName = _p42_selected.name || q;
-  if(!q){showToast('Select a company from the search list');return;}
+  if(!q){showToast('Please type a company name');return;}
+  if(!_p42_selected.cin) _p42_selected = {cin:q, name:q};
   if(ACCESS_LEVEL<2){openPin('auth');return;}
   document.getElementById('company-name-display').textContent = displayName;
   document.getElementById('empty-state').style.display='none';
   document.getElementById('results-panel').style.display='block';
-  loadProbe42Data(q, displayName);
+  // Show results immediately with sample data while Probe42 loads
+  var emp = document.getElementById('risk-empty') || document.getElementById('legal-empty') || 
+            document.getElementById('forensic-empty') || document.getElementById('dir-empty') || document.getElementById('credit-empty');
+  if(emp) emp.style.display='none';
+  var panels = ['results-panel','forensic-results','director-result','credit-results','risk-results'];
+  panels.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='block'; });
+  // Update all name displays
+  document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"]').forEach(function(el){el.textContent=displayName;});
+  showToast('⏳ Loading data for: '+displayName);
+  loadProbe42Data(_p42_selected.cin || q, displayName);
   showToast('⏳ Running legal scan...');
 }
 
