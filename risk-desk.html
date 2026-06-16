@@ -365,9 +365,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
     </div>
 
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button onclick="showToast('📥 Full risk report download coming soon')" class="btn btn-primary">📥 Download Full Risk Report</button>
-      <button onclick="showToast('📤 Share feature coming soon')" class="btn btn-outline">📤 Share with MB / Investor</button>
-      <button onclick="showToast('📡 Monitoring setup coming soon')" class="btn btn-amber">📡 Setup Monitoring Alerts</button>
+      <button onclick="downloadRiskReport()" class="btn btn-primary">📥 Download Full Risk Report</button>
+      <button onclick="shareRiskReport()" class="btn btn-outline">📤 Share with MB / Investor</button>
+      <button onclick="setupMonitoring()" class="btn btn-amber">📡 Setup Monitoring Alerts</button>
       <div class="credit-chip" style="margin-left:auto;align-self:center">🪙 25 credits used</div>
     </div>
   </div>
@@ -515,43 +515,192 @@ function onAccessChange(){
   else if(ACCESS_LEVEL>=2) b.innerHTML='✅ <strong>Authorised Access</strong> — Risk intelligence and module scores visible.';
 }
 function runFullScan(){
-  var q = _p42_selected.cin || document.getElementById('risk-search').value.trim();
-  var displayName = _p42_selected.name || q;
-  if(!q){showToast('Please type a company name');return;}
-  if(!_p42_selected.cin) _p42_selected = {cin:q, name:q};
-  if(ACCESS_LEVEL<2){openPin('auth');return;}
-  // Show loading
-  var emp = document.getElementById('riskdesk-empty') || document.getElementById('risk-empty') || document.getElementById('forensic-empty') || document.getElementById('dir-empty') || document.getElementById('credit-empty');
-  if(emp) emp.style.display='none';
-  // Fetch real Probe42 data
-  // Show results immediately with sample data while Probe42 loads
-  var emp = document.getElementById('risk-empty') || document.getElementById('legal-empty') || 
-            document.getElementById('forensic-empty') || document.getElementById('dir-empty') || document.getElementById('credit-empty');
-  if(emp) emp.style.display='none';
-  var panels = ['results-panel','forensic-results','director-result','credit-results','risk-results'];
-  panels.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='block'; });
-  // Update all name displays
-  document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"]').forEach(function(el){el.textContent=displayName;});
-  showToast('⏳ Loading data for: '+displayName);
-  loadProbe42Data(_p42_selected.cin || q, displayName);
-  return; // original code below as fallback
-  var _q=document.getElementById('risk-search').value.trim();
-  if(!q){showToast('Enter company name or CIN');return;}
-  if(ACCESS_LEVEL<2){openPin('auth');return;}
-  document.getElementById('risk-company-name').textContent=q;
-  document.getElementById('risk-empty').style.display='none';
-  document.getElementById('risk-results').style.display='block';
-  showToast('Full risk scan complete — 25 credits used');
+  runRiskScan(25);
 }
 function runQuickScan(){
-  var q=document.getElementById('risk-search').value.trim();
-  if(!q){showToast('Enter company name or CIN');return;}
-  if(ACCESS_LEVEL<2){openPin('auth');return;}
-  document.getElementById('risk-company-name').textContent=q;
-  document.getElementById('risk-empty').style.display='none';
-  document.getElementById('risk-results').style.display='block';
-  showToast('Quick scan complete — 5 credits used');
+  runRiskScan(5);
 }
+
+async function runRiskScan(credits){
+  var q = _p42_selected.cin || document.getElementById('risk-search').value.trim();
+  var displayName = _p42_selected.name || q;
+  if(!q){ showToast('Please type a company name'); return; }
+  if(!_p42_selected.cin) _p42_selected = {cin:q, name:q};
+  if(ACCESS_LEVEL<2){ openPin('auth'); return; }
+
+  document.getElementById('risk-empty').style.display='none';
+  document.getElementById('risk-results').style.display='none';
+
+  var loadDiv = document.getElementById('risk-loading');
+  if(!loadDiv){
+    loadDiv = document.createElement('div');
+    loadDiv.id = 'risk-loading';
+    loadDiv.style.cssText='text-align:center;padding:60px 20px';
+    document.getElementById('risk-results').parentNode.insertBefore(loadDiv, document.getElementById('risk-results'));
+  }
+  loadDiv.style.display='block';
+  loadDiv.innerHTML = '<div style="font-size:36px;margin-bottom:12px">⏳</div>'
+    +'<div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--teal);margin-bottom:8px">Running Risk Scan...</div>'
+    +'<div style="font-size:12px;color:var(--muted)">Fetching live MCA + Probe42 data for '+displayName+'</div>';
+
+  try {
+    var result = await workerPost({type:'probe42_raw', cin:_p42_selected.cin});
+    loadDiv.style.display='none';
+
+    if(!result || result.error){
+      showToast('⚠️ Could not fetch live data — '+(result&&result.error||'showing sample'));
+      document.getElementById('risk-results').style.display='block';
+      document.getElementById('risk-company-name').textContent = displayName;
+      return;
+    }
+
+    window._lastRiskResult = result;
+    window._lastRiskCompany = result.company_name || displayName;
+    window._lastRiskCredits = credits;
+
+    populateRiskResults(result, credits);
+    document.getElementById('risk-results').style.display='block';
+    showToast('✅ Risk scan complete — '+credits+' credits used');
+
+  } catch(e) {
+    loadDiv.style.display='none';
+    document.getElementById('risk-results').style.display='block';
+    document.getElementById('risk-company-name').textContent = displayName;
+    showToast('⚠️ Error: '+e.message);
+  }
+}
+
+function populateRiskResults(data, credits){
+  var fin = data.financials||{};
+  var leg = data.legal||{};
+  var comp = data.compliance||{};
+  var dirs = (data.directors||[]).filter(function(d){return !d.cessation;});
+  var charges = (data.charges||[]).filter(function(c){return (c.status||'').toLowerCase().includes('open');});
+
+  document.getElementById('risk-company-name').textContent = data.company_name || 'Company';
+  var cinLine = document.querySelector('#risk-results [style*="rgba(255,255,255,.7)"]');
+
+  // Scores
+  var legalScore = 80;
+  if(comp.defaulter) legalScore -= 40;
+  if(leg.sebi_orders && leg.sebi_orders!=='None') legalScore -= 20;
+  var litCount = parseInt(leg.litigation_count||0);
+  if(litCount>10) legalScore -= 15; else if(litCount>5) legalScore -= 10; else if(litCount>2) legalScore -= 5;
+  legalScore = Math.max(20, Math.min(95, legalScore));
+
+  var openChCount = charges.length;
+  var forensicScore = Math.max(30, 90 - openChCount*5);
+
+  var govScore = 40 + (dirs.length>=5?25:dirs.length>=3?15:8) + (openChCount===0?20:openChCount<=2?10:0);
+  govScore = Math.min(90, govScore);
+
+  var roe = parseFloat(fin.roe||0), de = parseFloat(fin.debt_equity_ratio||0);
+  var financialScore = 50;
+  if(roe>=20) financialScore+=25; else if(roe>=12) financialScore+=15; else if(roe>=8) financialScore+=8;
+  if(de<=0.5) financialScore+=15; else if(de<=1) financialScore+=10; else if(de<=2) financialScore+=5;
+  financialScore = Math.min(95, financialScore);
+
+  var dirScore = dirs.length ? 88 : 60;
+
+  var overall = Math.round((legalScore+forensicScore+govScore+financialScore+dirScore)/5);
+
+  // Update master score
+  var scoreEls = document.querySelectorAll('#risk-results [style*="font-size:52px"]');
+  if(scoreEls[0]) scoreEls[0].textContent = overall;
+
+  // Module score bars (Legal, Forensic, Directors, Financial, Governance) — in that DOM order
+  var barRows = document.querySelectorAll('#risk-results [style*="min-width:200px"] > div');
+  var scores = [legalScore, forensicScore, dirScore, financialScore, govScore];
+  barRows.forEach(function(row, i){
+    if(scores[i]==null) return;
+    var bar = row.querySelector('div[style*="height:5px"] > div');
+    var label = row.querySelector('span[style*="font-weight:700"]');
+    if(bar) bar.style.width = scores[i]+'%';
+    if(label) label.textContent = scores[i];
+  });
+
+  // Module cards (Legal, Forensic, Directors in that order have scores rendered)
+  var cardScoreEls = document.querySelectorAll('#risk-results .card .card-body div[style*="font-size:28px"]');
+  var cardScores = [legalScore, forensicScore, dirScore, financialScore, govScore];
+  cardScoreEls.forEach(function(el, i){
+    if(cardScores[i]==null) return;
+    el.innerHTML = cardScores[i] + ' <span style="font-size:14px;color:var(--muted);font-weight:400">/ 100</span>';
+  });
+
+  // Legal card detail text
+  var legalDetail = document.querySelectorAll('#risk-results .card .card-body div[style*="line-height:1.7"]')[0];
+  if(legalDetail){
+    legalDetail.textContent = 'Litigation: '+litCount+' cases · Material: '+(leg.material_litigation||'None')+' · SEBI: '+(leg.sebi_orders||'None')+' · GST: '+(comp.gst_status||'Unknown');
+  }
+
+  // Credit chip + footer
+  var creditChip = document.querySelector('#risk-results .credit-chip');
+  if(creditChip) creditChip.textContent = '🪙 '+credits+' credits used';
+}
+
+function downloadRiskReport(){
+  var data = window._lastRiskResult;
+  var name = window._lastRiskCompany || 'Company';
+  if(!data){ showToast('Run a scan first to download report'); return; }
+
+  var fin = data.financials||{}, leg = data.legal||{}, comp = data.compliance||{};
+  var dirs = (data.directors||[]).filter(function(d){return !d.cessation;});
+  var charges = data.charges||[];
+
+  function cr(v){ if(v==null||v===''||isNaN(v)) return 'N/A'; return '₹'+parseFloat(v).toFixed(2)+' Cr'; }
+  function pct(v){ return v!=null&&!isNaN(v) ? parseFloat(v).toFixed(1)+'%' : 'N/A'; }
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>ipowork Risk Report — '+name+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;font-size:12px;color:#1A2E35;padding:32px}'
+    +'h1{font-size:22px;font-weight:900;color:#08404D}h2{font-size:15px;font-weight:800;color:#08404D;margin:18px 0 8px;border-bottom:2px solid #08404D;padding-bottom:4px}'
+    +'table{width:100%;border-collapse:collapse;margin-bottom:14px}th{background:#08404D;color:#fff;padding:7px 9px;text-align:left;font-size:10px}'
+    +'td{padding:7px 9px;border-bottom:1px solid #EAF2F4;font-size:11px}</style></head><body>'
+    +'<h1>⚡ ipowork Risk Intelligence Report</h1>'
+    +'<div style="font-size:12px;color:#6B7E85;margin:6px 0 16px">'+name+' · CIN: '+(data.cin||'—')+' · Generated '+new Date().toLocaleString('en-IN')+'</div>'
+    +'<h2>💰 Financial Snapshot</h2>'
+    +'<table><tr><th>Metric</th><th>FY25</th></tr>'
+    +'<tr><td>Revenue</td><td>'+cr(fin.revenue_fy24)+'</td></tr>'
+    +'<tr><td>PAT</td><td>'+cr(fin.pat_fy24)+'</td></tr>'
+    +'<tr><td>ROE</td><td>'+pct(fin.roe)+'</td></tr>'
+    +'<tr><td>D/E Ratio</td><td>'+(fin.debt_equity_ratio||'N/A')+'x</td></tr></table>'
+    +'<h2>⚖️ Legal & Compliance</h2>'
+    +'<table><tr><th>Parameter</th><th>Status</th></tr>'
+    +'<tr><td>Litigation Count</td><td>'+(leg.litigation_count||0)+'</td></tr>'
+    +'<tr><td>Material Litigation</td><td>'+(leg.material_litigation||'None')+'</td></tr>'
+    +'<tr><td>SEBI Orders</td><td>'+(leg.sebi_orders||'None')+'</td></tr>'
+    +'<tr><td>Wilful Defaulter</td><td>'+(comp.defaulter?'YES':'No')+'</td></tr>'
+    +'<tr><td>GST Status</td><td>'+(comp.gst_status||'Unknown')+'</td></tr></table>'
+    +'<h2>👤 Directors ('+dirs.length+')</h2>'
+    +'<table><tr><th>Name</th><th>DIN</th><th>Designation</th></tr>'
+    +dirs.map(function(d){return '<tr><td>'+(d.director_name||d.name||'—')+'</td><td style="font-family:monospace">'+(d.din||'—')+'</td><td>'+(d.designation||'Director')+'</td></tr>';}).join('')
+    +'</table>'
+    +'<h2>🔗 Charge Register ('+charges.length+')</h2>'
+    +(charges.length ? '<table><tr><th>Holder</th><th>Amount</th><th>Status</th><th>Date</th></tr>'
+      +charges.map(function(c){return '<tr><td>'+(c.charge_holder||'N/A')+'</td><td>'+(c.amount?'₹'+c.amount+' Cr':'N/A')+'</td><td>'+(c.status||'—')+'</td><td>'+(c.date_of_creation||'—')+'</td></tr>';}).join('')+'</table>'
+      : '<p style="color:#6B7E85">No charges on record</p>')
+    +'<div style="margin-top:24px;font-size:10px;color:#6B7E85;line-height:1.6">ipowork is not SEBI-registered. Not investment advice. Data: Probe42/MCA. © 2025 ipowork.com</div>'
+    +'</body></html>';
+
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 400);
+}
+
+function shareRiskReport(){
+  var name = window._lastRiskCompany || document.getElementById('risk-company-name').textContent || 'this company';
+  var msg = '⚡ *Risk Intelligence Report*\n\nCompany: '+name+'\n\nShared via ipowork Risk Desk\n\n_via ipowork_';
+  window.open('https://wa.me/918851059588?text='+encodeURIComponent(msg),'_blank');
+  showToast('Share request sent ✅');
+}
+
+function setupMonitoring(){
+  var name = window._lastRiskCompany || document.getElementById('risk-company-name').textContent || 'this company';
+  var msg = '📡 *Monitoring Alert Request*\n\nCompany: '+name+'\nRequesting ongoing risk monitoring alerts.\n\n_via ipowork Risk Desk_';
+  window.open('https://wa.me/918851059588?text='+encodeURIComponent(msg),'_blank');
+  showToast('Monitoring request sent ✅');
+}
+
 function escalate(type){
   var msg='⚡ *Escalation Request — ipowork Risk Desk*\n\nMatter: '+type+'\nCompany: '+document.getElementById('risk-company-name').textContent+'\n\nPlease connect us with the appropriate specialist.\n\n_via ipowork Risk Desk_';
   window.open('https://wa.me/918851059588?text='+encodeURIComponent(msg),'_blank');

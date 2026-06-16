@@ -175,64 +175,50 @@ async function searchCompany(query) {
 }
 
 async function loadProbe42Data(cin, displayName) {
-  showToast('⏳ Loading live data...');
+  showToast('⏳ Loading live board data...');
   try {
     var result = await workerPost({type: 'probe42_raw', cin: cin});
     if (!result || result.error) throw new Error(result && result.error || 'No data');
 
-    // Update all name displays
     var name = result.company_name || displayName;
-    document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"],[id="dir-name"]').forEach(function(el){
-      el.textContent = name;
-    });
+    window._lastDirResult = result;
+    window._lastDirCompany = name;
 
-    // Show results panels
-    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
-      var el = document.getElementById(id); if(el) el.style.display='block';
-    });
-    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
-      var el = document.getElementById(id); if(el) el.style.display='none';
-    });
+    document.getElementById('dir-name').textContent = name;
+    document.getElementById('dir-initials').textContent = name.substring(0,2).toUpperCase();
 
-    // Populate directors if available
-    var dirs = result.directors || [];
-    var dtbody = document.getElementById('directors-tbody');
-    if(dtbody && dirs.length) {
-      dtbody.innerHTML = dirs.slice(0,8).map(function(d){
+    var dirs = (result.directors || []).filter(function(d){ return !d.cessation; });
+
+    // Show board roster, hide single-profile checks (not applicable for company-wide scan)
+    document.getElementById('board-roster-card').style.display = 'block';
+    document.getElementById('board-count-badge').textContent = dirs.length + ' Director' + (dirs.length!==1?'s':'');
+
+    var tbody = document.getElementById('board-roster-tbody');
+    if (dirs.length) {
+      tbody.innerHTML = dirs.map(function(d){
         return '<tr><td style="font-weight:700">'+(d.director_name||d.name||'—')+'</td>'
           +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
           +'<td>'+(d.designation||d.role||'Director')+'</td>'
           +'<td><span class="badge badge-green">Active ✓</span></td>'
           +'<td><span class="badge badge-green">None ✓</span></td>'
-          +'<td>—</td></tr>';
+          +'<td>'+(d.appointment_date||d.date_of_appointment||'—')+'</td></tr>';
       }).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No director data available from Probe42 for this CIN</td></tr>';
     }
 
-    // Populate charges
+    // Update charge-based risk note in network card (repurposed to show charges summary)
     var charges = result.charges || [];
-    var active = charges.filter(function(c){return (c.status||'').toLowerCase().includes('open');}).length;
-    document.querySelectorAll('[id="charge-count"]').forEach(function(el){
-      el.textContent = active + ' Active';
-    });
+    var openCh = charges.filter(function(c){ return (c.status||'').toLowerCase().includes('open'); }).length;
+    document.getElementById('network-count-badge').textContent = openCh + ' Open Charge' + (openCh!==1?'s':'');
 
-    // Financial data
-    var fin = result.financials || {};
-    var rev = fin.revenue_fy24;
-    if(rev) {
-      document.querySelectorAll('[id="company-name-display"]').forEach(function(el){el.textContent=name;});
-    }
+    document.getElementById('dir-credit-chip').textContent = '🪙 2 credits used — ' + dirs.length + ' director(s) scanned';
 
-    showToast('✅ Live data loaded — ' + name);
+    showToast('✅ Live board data loaded — ' + dirs.length + ' director(s)');
   } catch(e) {
     console.error('Probe42 error:', e);
-    showToast('⚠️ Using sample data — ' + (e.message||''));
-    // Still show results
-    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
-      var el=document.getElementById(id); if(el) el.style.display='block';
-    });
-    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
-      var el=document.getElementById(id); if(el) el.style.display='none';
-    });
+    showToast('⚠️ Could not fetch live data — ' + (e.message||''));
+    document.getElementById('board-roster-card').style.display = 'none';
   }
 }
 
@@ -455,15 +441,15 @@ document.addEventListener('click', function(e) {
     </div>
 
     <!-- Company Network -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card" style="margin-bottom:20px" id="company-network-card">
       <div class="card-header">
         <div class="card-title">🕸️ Company Network</div>
-        <span class="badge badge-teal">3 Companies</span>
+        <span class="badge badge-teal" id="network-count-badge">3 Companies</span>
       </div>
       <div class="card-body">
         <table class="data-table">
           <thead><tr><th>Company</th><th>CIN</th><th>Role</th><th>Since</th><th>Status</th><th>Company Status</th></tr></thead>
-          <tbody>
+          <tbody id="network-tbody">
             <tr>
               <td style="font-weight:700">Acme Industries Limited</td>
               <td style="font-family:var(--mono);font-size:10px">U29100MH2008PLC180421</td>
@@ -472,31 +458,29 @@ document.addEventListener('click', function(e) {
               <td><span class="badge badge-green">Active</span></td>
               <td><span class="badge badge-green">Active ✓</span></td>
             </tr>
-            <tr>
-              <td style="font-weight:700">Acme Exports Pvt Ltd</td>
-              <td style="font-family:var(--mono);font-size:10px">U29200MH2015PTC265432</td>
-              <td>Director</td>
-              <td>2015</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td><span class="badge badge-green">Active ✓</span></td>
-            </tr>
-            <tr>
-              <td style="font-weight:700">Sharma Trading Co Pvt Ltd</td>
-              <td style="font-family:var(--mono);font-size:10px">U51900MH2010PTC198765</td>
-              <td>Director</td>
-              <td>2010</td>
-              <td><span class="badge badge-amber">Resigned 2022</span></td>
-              <td><span class="badge badge-green">Active ✓</span></td>
-            </tr>
           </tbody>
         </table>
       </div>
     </div>
 
+    <!-- Board Roster (shown when scanning a whole company) -->
+    <div class="card" style="margin-bottom:20px;display:none" id="board-roster-card">
+      <div class="card-header">
+        <div class="card-title">👥 Board of Directors</div>
+        <span class="badge badge-teal" id="board-count-badge">0 Directors</span>
+      </div>
+      <div class="card-body">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>DIN Status</th><th>Disqualification</th><th>Since</th></tr></thead>
+          <tbody id="board-roster-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button onclick="showToast('📥 Director report download coming soon')" class="btn btn-primary">📥 Download Report</button>
-      <button onclick="showToast('📤 Share feature coming soon')" class="btn btn-outline">📤 Share Report</button>
-      <div class="credit-chip" style="margin-left:auto;align-self:center">🪙 2 credits used</div>
+      <button onclick="downloadDirectorReport()" class="btn btn-primary">📥 Download Report</button>
+      <button onclick="shareDirectorReport()" class="btn btn-outline">📤 Share Report</button>
+      <div class="credit-chip" style="margin-left:auto;align-self:center" id="dir-credit-chip">🪙 2 credits used</div>
     </div>
   </div>
 
@@ -587,11 +571,12 @@ function runDINScan(){
   var din = document.getElementById('din-input').value.trim();
   if(!din){ showToast('Enter a DIN number'); return; }
   if(ACCESS_LEVEL<2){ openPin('auth'); return; }
+  showToast('⚠️ Direct DIN lookup needs MCA portal — search by Company instead for live data');
   document.getElementById('dir-empty').style.display='none';
   document.getElementById('director-result').style.display='block';
+  document.getElementById('board-roster-card').style.display='none';
   document.getElementById('dir-name').textContent = 'Director (DIN: '+din+')';
   document.getElementById('dir-initials').textContent = din.substring(0,2);
-  showToast('Director scan complete — 2 credits used ✅');
 }
 
 function runCompanyScan(){
@@ -604,26 +589,59 @@ function runCompanyScan(){
   document.getElementById('director-result').style.display='block';
   document.getElementById('dir-name').textContent = name;
   document.getElementById('dir-initials').textContent = name.substring(0,2).toUpperCase();
-  showToast('⏳ Loading directors for: '+name);
-  loadProbe42Data(q, name);
+  loadProbe42Data(_p42_selected.cin || q, name);
 }
 
 function runNameScan(){
   var n = document.getElementById('name-input').value.trim();
   if(!n){ showToast('Enter director name'); return; }
   if(ACCESS_LEVEL<2){ openPin('auth'); return; }
+  showToast('⚠️ Name-only lookup needs MCA portal — search by Company instead for live data');
   document.getElementById('dir-empty').style.display='none';
   document.getElementById('director-result').style.display='block';
+  document.getElementById('board-roster-card').style.display='none';
   document.getElementById('dir-name').textContent = n;
   document.getElementById('dir-initials').textContent = n.substring(0,2).toUpperCase();
-  showToast('Director search complete — 2 credits used ✅');
 }
 
 function runBatchScan(){
   var lines = document.getElementById('batch-input').value.trim().split('\n').filter(Boolean);
   if(!lines.length){ showToast('Enter at least one DIN'); return; }
   if(ACCESS_LEVEL<2){ openPin('auth'); return; }
-  showToast('Batch scan — '+(lines.length*2)+' credits used ✅');
+  showToast('⚠️ Batch DIN scan requires MCA portal access — use Company search for live director data');
+}
+
+function downloadDirectorReport(){
+  var name = window._lastDirCompany || document.getElementById('dir-name').textContent || 'Director Report';
+  var result = window._lastDirResult;
+  var dirs = (result && result.directors || []).filter(function(d){ return !d.cessation; });
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Director Intelligence — '+name+'</title>'
+    +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;font-size:12px;color:#1A2E35;background:#fff;padding:32px}'
+    +'h1{font-size:22px;font-weight:900;color:#08404D;margin-bottom:10px}'
+    +'table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#08404D;color:#fff;padding:8px 10px;text-align:left;font-size:11px}'
+    +'td{padding:8px 10px;border-bottom:1px solid #EAF2F4;font-size:11px}</style></head><body>'
+    +'<h1>👥 Director Intelligence — '+name+'</h1>'
+    +'<div style="font-size:11px;color:#6B7E85;margin-bottom:10px">Generated '+new Date().toLocaleString('en-IN')+' · ipowork AI · Data: Probe42/MCA</div>'
+    +'<table><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Status</th></tr></thead><tbody>'
+    +(dirs.length ? dirs.map(function(d){
+        return '<tr><td><strong>'+(d.director_name||d.name||'—')+'</strong></td><td style="font-family:monospace">'+(d.din||'—')+'</td><td>'+(d.designation||'Director')+'</td><td>Active</td></tr>';
+      }).join('') : '<tr><td colspan="4">No director data available</td></tr>')
+    +'</tbody></table>'
+    +'<div style="margin-top:24px;font-size:10px;color:#6B7E85">ipowork is not SEBI-registered. Not investment advice. Data: Probe42/MCA. © 2025 ipowork.com</div>'
+    +'</body></html>';
+
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 400);
+}
+
+function shareDirectorReport(){
+  var name = window._lastDirCompany || document.getElementById('dir-name').textContent || 'this company';
+  var msg = '👥 *Director Intelligence Report*\n\nCompany: '+name+'\n\nRequested via ipowork Director Intel\n\n_via ipowork Risk Desk_';
+  window.open('https://wa.me/918851059588?text='+encodeURIComponent(msg),'_blank');
+  showToast('Share request sent ✅');
 }
 
 
