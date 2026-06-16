@@ -567,16 +567,40 @@ function dirSearchTab(id,el){
   document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('active');});
   el.classList.add('active');
 }
-function runDINScan(){
+async function runDINScan(){
   var din = document.getElementById('din-input').value.trim();
   if(!din){ showToast('Enter a DIN number'); return; }
   if(ACCESS_LEVEL<2){ openPin('auth'); return; }
-  showToast('⚠️ Direct DIN lookup needs MCA portal — search by Company instead for live data');
+
   document.getElementById('dir-empty').style.display='none';
   document.getElementById('director-result').style.display='block';
   document.getElementById('board-roster-card').style.display='none';
-  document.getElementById('dir-name').textContent = 'Director (DIN: '+din+')';
+  document.getElementById('dir-name').textContent = 'DIN '+din+' — checking...';
   document.getElementById('dir-initials').textContent = din.substring(0,2);
+
+  var bg = document.getElementById('bg-checks');
+  var priorCin = _p42_selected.cin || '';
+
+  try {
+    var result = await workerPost({type:'din_search', din:din, company_cin:priorCin});
+    if(result && result.found){
+      document.getElementById('dir-name').textContent = result.name+' (DIN: '+din+')';
+      document.getElementById('dir-initials').textContent = (result.name||'??').substring(0,2).toUpperCase();
+      if(bg) bg.innerHTML = '<div style="padding:14px;background:#f0faf0;border-radius:8px;border-left:3px solid var(--green);font-size:12px;color:var(--text);line-height:1.7">'
+        +'<strong>Resolved via '+result.company_context.name+'</strong><br>Designation: '+(result.designation||'Director')+'<br>Appointed: '+(result.appointed||'—')
+        +(result.cessation?'<br>Ceased: '+result.cessation:'')
+        +'<br><br><em style="color:var(--muted)">'+result.note+'</em></div>';
+      showToast('✅ DIN resolved via '+result.company_context.name);
+      return;
+    }
+  } catch(e){ /* fall through to honest limitation message */ }
+
+  document.getElementById('dir-name').textContent = 'DIN '+din+' — search by company to resolve';
+  if(bg) bg.innerHTML = '<div style="padding:14px;background:#fff8f0;border-radius:8px;border-left:3px solid var(--amber);font-size:12px;color:var(--text);line-height:1.7">'
+    +'<strong>Direct DIN-only lookup isn\'t available.</strong> MCA21 and Probe42 index directors by the companies they are appointed to — not by DIN in isolation.<br><br>'
+    +'To get this director\'s real profile: switch to the <strong>Search by Company</strong> tab and search for any company where DIN '+din+' is listed as a director. Their full board profile, including this DIN, will load from live MCA/Probe42 data.'
+    +'</div>';
+  showToast('⚠️ Search by company to resolve DIN '+din+' — see note below');
 }
 
 function runCompanyScan(){

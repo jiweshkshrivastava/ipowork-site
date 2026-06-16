@@ -891,9 +891,30 @@ function submitLawyerEOI(method){
   showToast('Request sent to partners@ipowork.com ✅');
 }
 
-function downloadReport(){showToast('📥 Legal report download — feature coming soon');}
+function downloadReport(){
+  var panel = document.getElementById('results-panel');
+  if(!panel || panel.style.display==='none'){ showToast('⚠️ Run a scan first'); return; }
+  var companyName = (document.querySelector('[id="risk-company-name"],[id$="-name-display"]')||{}).textContent || 'Company';
+  var w = window.open('', '_blank');
+  if(!w){ showToast('⚠️ Pop-up blocked — allow pop-ups to download'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Legal Report — '+companyName+'</title>'
+    +'<style>body{font-family:Arial,sans-serif;padding:24px;color:#222;max-width:900px;margin:0 auto;background:#fff}'
+    +'.btn,.tab,button{display:none !important}.card{border:1px solid #ddd;border-radius:10px;margin-bottom:14px;padding:0}'
+    +'@media print{.no-print{display:none}}</style></head><body>'
+    +'<h2 style="font-family:Arial;color:#08404D">⚖️ ipowork Legal Intelligence Report — '+companyName+'</h2>'
+    +'<p style="font-size:11px;color:#888">Generated '+new Date().toLocaleString('en-IN')+' · Data: Probe42/MCA</p>'
+    +panel.innerHTML
+    +'<p style="margin-top:30px;font-size:10px;color:#999">ipowork is not SEBI-registered. Not investment advice. © 2026 ipowork.com</p>'
+    +'<script>window.onload=function(){setTimeout(function(){window.print();},500);}<'+'/script>'
+    +'</body></html>');
+  w.document.close();
+}
 function requestLegalOpinion(){openLawyerEOI('Legal Opinion');}
-function shareReport(){showToast('📤 Share feature — coming soon');}
+function shareReport(){
+  var companyName = (document.querySelector('[id="risk-company-name"],[id$="-name-display"]')||{}).textContent || 'this company';
+  var msg = '⚖️ *ipowork Legal Intelligence Report* — '+companyName+'\n\nFull legal & compliance scan available via ipowork.\n\n_via ipowork Legal Intelligence_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
 
 document.addEventListener('DOMContentLoaded',function(){
   var lm = document.getElementById('lawyer-eoi-modal');
