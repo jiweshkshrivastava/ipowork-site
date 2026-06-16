@@ -1771,7 +1771,7 @@ async function runDocCore(){
           +'\nRevenue CAGR: '+_rc+' | Int Coverage: '+(f.interest_coverage||'N/A')+'x'
           +'\nAuditor: '+(f.auditor||'N/A')+' | Defaulter: No'
           +'\nDirectors: '+_d2.length+' active | Charges: '+_c2.filter(function(c){return c.status==='Open';}).length+' open (₹'+_ct.toFixed(2)+' Cr total)'
-          +'\nCHARGE/BOARD RULES: Use amounts exactly (in Crores). Use real director names. No [Placeholder] rows.\n';
+          +'\nLEGAL DATA:\n'          +(function(){            var leg=p42.legal||{};            var comp=p42.compliance||{};            return 'Litigation: '+(leg.litigation_count||0)+' cases | Material: '+(leg.material_litigation||'None')              +'\nSEBI Orders: '+(leg.sebi_orders||'None')              +'\nGST Status: '+(comp.gst_status||'Unknown')+' | Filings: '+(comp.roc_filing_status||'Unknown')              +'\nCIRP: '+(p42.cirp_status||'None')+' | Defaulter: '+(comp.defaulter?'YES':'No')              +'\nIT Disputes: '+(leg.income_tax_disputes||0)+' | NCLT: '+(leg.nclt_matters||0);          })()          +'\nCHARGE/BOARD RULES: Use amounts exactly (in Crores). Use real director names. No [Placeholder] rows.\nLEGAL RULES: Use actual litigation count above. Never say litigation data unavailable.\n';
       }
     }catch(e){}
   }
@@ -1844,7 +1844,21 @@ async function runDocCore(){
     var dims = {
       score:_sc, financial:_fs, governance:_gs,
       compliance:_cs, promoter:Math.round((_gs+_cs)/2),
-      legal:_ochgs===0?75:_ochgs<=2?55:35,
+      legal:(function(){
+        var leg=p42&&p42.legal||{};
+        var litCount=parseInt(leg.litigation_count||0);
+        var hasSEBI=leg.sebi_orders&&leg.sebi_orders!=='None';
+        var hasDefault=p42&&p42.compliance&&p42.compliance.defaulter;
+        var score=80;
+        if(hasDefault) score-=40;
+        if(hasSEBI) score-=20;
+        if(litCount>10) score-=15;
+        else if(litCount>5) score-=10;
+        else if(litCount>2) score-=5;
+        if(_ochgs>5) score-=10;
+        else if(_ochgs>2) score-=5;
+        return Math.max(20,Math.min(95,score));
+      })(),
       readiness:Math.round((_sc+_fs+_gs+_cs)/4),
       company_name:cname,cin:cin,sector:sector,exchange:exchange
     };

@@ -923,6 +923,23 @@ function buildP42Ctx(d){
   }
   var rpt=d.related_party_transactions||[];
   if(rpt.length)ctx+='RELATED PARTY TRANSACTIONS: '+rpt.length+' on record'+nl;
+  // Legal Intelligence from Probe42
+  var leg=d.legal||{};
+  var comp2=d.compliance||{};
+  ctx+='=== LEGAL & COMPLIANCE INTELLIGENCE ==='+nl;
+  ctx+='LITIGATION COUNT: '+(leg.litigation_count||0)+nl;
+  ctx+='MATERIAL LITIGATION: '+(leg.material_litigation||'None')+nl;
+  ctx+='SEBI ORDERS: '+(leg.sebi_orders||'None')+nl;
+  ctx+='GST STATUS: '+(comp2.gst_status||'Unknown')+' | GST REGISTRATIONS: '+(comp2.gst_count||'N/A')+nl;
+  ctx+='ROC FILING STATUS: '+(comp2.roc_filing_status||'Unknown')+nl;
+  ctx+='CIRP/INSOLVENCY: '+(d.cirp_status||'None')+nl;
+  ctx+='WILFUL DEFAULTER: '+(comp2.defaulter?'YES - FLAGGED':'No')+nl;
+  ctx+='INCOME TAX DISPUTES: '+(leg.income_tax_disputes||0)+nl;
+  ctx+='NCLT MATTERS: '+(leg.nclt_matters||0)+nl;
+  ctx+='ANY NOTICES: '+(comp2.any_notices||'None')+nl;
+  ctx+='EPFO REGISTERED: '+(comp2.epfo_registered?'Yes':'Unknown')+nl;
+  ctx+='=== END LEGAL DATA ==='+nl;
+  ctx+='LEGAL RULES: Use litigation_count, sebi_orders, gst_status above. Never say legal data unavailable.'+nl;
   ctx+='=== END PROBE42 DATA ==='+nl;
   return ctx;
 }
@@ -1184,8 +1201,16 @@ End with: **Human Capital Score: X/10** and tags: [STRONG LEADERSHIP] [DEEP BENC
    msg:'Scanning litigation exposure, regulatory compliance & legal risk for IPO readiness...',
    sys:`You are a regulatory affairs expert and company law specialist. Analyse LEGAL, COMPLIANCE & RISK covering PE/VC Parameter 8 (Regulatory & Legal Risk).
 
+CRITICAL: The Probe42 context contains REAL legal data under "=== LEGAL & COMPLIANCE INTELLIGENCE ===". Use these EXACT figures:
+- LITIGATION COUNT: use the exact number provided
+- SEBI ORDERS: use exact status (None/details)
+- GST STATUS: use exact status
+- CIRP/INSOLVENCY: use exact status
+- WILFUL DEFAULTER: flag prominently if YES
+Never say legal data is unavailable — it is provided in the Probe42 context above.
+
 ### Regulatory Compliance Status
-Key licences from documents \u2014 factory licence, pollution NOC (PCB), drug licence, FSSAI, CDSCO/FDA, BIS, FEMA compliance. Any licence renewals overdue? Compliance certifications.
+Key licences from documents — factory licence, pollution NOC (PCB), drug licence, FSSAI, CDSCO/FDA, BIS, FEMA compliance. Any licence renewals overdue? Compliance certifications.
 
 ### Litigation Exposure
 Any litigation mentioned in documents \u2014 tax disputes, labour disputes, supplier/customer disputes, environmental cases, criminal cases against directors. Quantum of contingent liability. Is litigation material to business?
