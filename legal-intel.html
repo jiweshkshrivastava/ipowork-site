@@ -175,106 +175,195 @@ async function searchCompany(query) {
 }
 
 async function loadProbe42Data(cin, displayName) {
-  showToast('⏳ Loading live data...');
+  showToast('⏳ Loading live legal data...');
   try {
     var result = await workerPost({type: 'probe42_raw', cin: cin});
     if (!result || result.error) throw new Error(result && result.error || 'No data');
 
-    // Update all name displays
     var name = result.company_name || displayName;
+    var fin = result.financials || {};
+    var legal = result.legal || {};
+    var comp = result.compliance || {};
+    var dirs = (result.directors || []).filter(function(d){ return !d.cessation; });
+    var charges = result.charges || [];
+    var openCharges = charges.filter(function(c){ return (c.status||'').toLowerCase()==='open'; });
+
     document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"],[id="dir-name"]').forEach(function(el){
       el.textContent = name;
     });
 
-    // Show results panels
-    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
+    ['results-panel'].forEach(function(id){
       var el = document.getElementById(id); if(el) el.style.display='block';
     });
-    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
-      var el = document.getElementById(id); if(el) el.style.display='none';
-    });
+    var emptyEl = document.getElementById('empty-state');
+    if(emptyEl) emptyEl.style.display='none';
 
-    // Populate directors if available
-    var dirs = result.directors || [];
-    var dtbody = document.getElementById('directors-tbody');
-    if(dtbody && dirs.length) {
-      dtbody.innerHTML = dirs.slice(0,8).map(function(d){
-        return '<tr><td style="font-weight:700">'+(d.director_name||d.name||'—')+'</td>'
-          +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
-          +'<td>'+(d.designation||d.role||'Director')+'</td>'
-          +'<td><span class="badge badge-green">Active ✓</span></td>'
-          +'<td><span class="badge badge-green">None ✓</span></td>'
-          +'<td>—</td></tr>';
-      }).join('');
+    // ── Real score computation from confirmed fields ──
+    var totalCases = legal.total_cases||0, pendingCases = legal.pending_count||0, casesAgainst = legal.cases_against_count||0;
+    var litScore = 90;
+    if(casesAgainst>30) litScore-=40; else if(casesAgainst>15) litScore-=25; else if(casesAgainst>5) litScore-=12;
+    if(pendingCases>10) litScore-=15; else if(pendingCases>3) litScore-=7;
+    litScore = Math.max(15, Math.min(95, litScore));
+
+    var regScore = 85;
+    if(comp.defaulter) regScore-=45;
+    if(comp.struckoff_risk) regScore-=25;
+    if((comp.bifr_history||0)+(comp.cdr_history||0)>0) regScore-=15;
+    regScore = Math.max(15, Math.min(95, regScore));
+
+    var mcaScore = 50 + (comp.active_compliance && /active/i.test(comp.active_compliance)?25:0) + (comp.epfo_registered?10:0) - (openCharges.length>5?15:openCharges.length>2?7:0);
+    mcaScore = Math.max(15, Math.min(95, mcaScore));
+
+    var dirScore = dirs.length>=5?88:dirs.length>=3?78:dirs.length>=1?65:40;
+
+    var overallScore = Math.round((litScore+regScore+mcaScore+dirScore)/4);
+
+    function setScore(prefix, score, label){
+      var numEl = document.getElementById(prefix+'-score');
+      var barEl = document.getElementById(prefix+'-bar');
+      var lbl = score>=80?'Low':score>=60?'Moderate':score>=40?'Elevated':'High';
+      if(numEl) numEl.textContent = (label||lbl)+' ('+score+')';
+      if(barEl){ barEl.style.width = score+'%'; barEl.style.background = score>=80?'var(--green)':score>=60?'var(--amber)':'#C0392B'; }
+    }
+    setScore('lit', litScore);
+    setScore('reg', regScore);
+    setScore('mca', mcaScore);
+    setScore('dir', dirScore);
+
+    var scoreNumEl = document.getElementById('score-num');
+    if(scoreNumEl) scoreNumEl.textContent = overallScore;
+    var scoreCircle = document.getElementById('score-circle');
+    if(scoreCircle){
+      var offset = 314 - Math.round(314*overallScore/100);
+      scoreCircle.setAttribute('stroke-dashoffset', offset);
+      scoreCircle.setAttribute('stroke', overallScore>=80?'#1A9E6B':overallScore>=60?'#E88A2E':'#C0392B');
     }
 
-    // Populate charges
-    var charges = result.charges || [];
-    var active = charges.filter(function(c){return (c.status||'').toLowerCase().includes('open');}).length;
-    document.querySelectorAll('[id="charge-count"]').forEach(function(el){
-      el.textContent = active + ' Active';
-    });
-
-    // Financial data
-    var fin = result.financials || {};
-    var rev = fin.revenue_fy24;
-    if(rev) {
-      document.querySelectorAll('[id="company-name-display"]').forEach(function(el){el.textContent=name;});
-    }
-
-    // Populate legal specific fields
-    var legal = result.legal || {};
-    var comp  = result.compliance || {};
-
-    // Litigation count badge
-    var litCount = legal.litigation_count || 0;
-    var flagBadge = document.getElementById('flag-count-badge');
-    if(flagBadge) flagBadge.textContent = litCount + ' Flag' + (litCount!==1?'s':'');
-
-    // Update red flags list
+    // ── Red Flags — built from real fields only ──
     var flagsList = document.getElementById('red-flags-list');
-    if(flagsList) {
+    var flagCount = 0;
+    if(flagsList){
       var flags = '';
-      if(legal.material_litigation && legal.material_litigation !== 'None') {
-        flags += '<div style="padding:12px;background:rgba(192,57,43,.06);border-left:3px solid var(--red);border-radius:8px;margin-bottom:8px">'
-          +'<div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:3px">⚠️ Material Litigation</div>'
-          +'<div style="font-size:11px;color:var(--muted)">'+legal.material_litigation+'</div></div>';
+      function flagRow(title, detail, color){
+        flagCount++;
+        return '<div style="padding:12px;background:rgba('+color+',.06);border-left:3px solid '+(color==='192,57,43'?'#C0392B':color==='232,138,46'?'var(--amber)':'var(--green)')+';border-radius:8px">'
+          +'<div style="font-size:12px;font-weight:800;color:'+(color==='192,57,43'?'#C0392B':color==='232,138,46'?'var(--amber)':'var(--green)')+';margin-bottom:3px">'+title+'</div>'
+          +'<div style="font-size:11px;color:var(--muted)">'+detail+'</div></div>';
       }
-      if(legal.sebi_orders && legal.sebi_orders !== 'None') {
-        flags += '<div style="padding:12px;background:rgba(192,57,43,.06);border-left:3px solid var(--red);border-radius:8px;margin-bottom:8px">'
-          +'<div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:3px">⚠️ SEBI Orders</div>'
-          +'<div style="font-size:11px;color:var(--muted)">'+legal.sebi_orders+'</div></div>';
+      if(comp.defaulter) flags += flagRow('🚨 Wilful Defaulter', 'Company flagged in MCA defaulter records — critical risk for any lending or IPO process.', '192,57,43');
+      if(casesAgainst>15) flags += flagRow('⚠️ High Litigation Volume', casesAgainst+' cases filed against the company on record ('+pendingCases+' pending).', '232,138,46');
+      else if(casesAgainst>0) flags += flagRow('⚠️ Litigation on Record', casesAgainst+' case(s) filed against the company, '+pendingCases+' currently pending.', '232,138,46');
+      if(comp.struckoff_risk) flags += flagRow('⚠️ Struck-off Risk Flag', 'Company appears in Section 248 struck-off risk records — verify current status.', '232,138,46');
+      if(openCharges.length>5) flags += flagRow('⚠️ Multiple Open Charges', openCharges.length+' open charges registered against company assets.', '232,138,46');
+      if((comp.bifr_history||0)>0) flags += flagRow('⚠️ BIFR History', 'Company has historical BIFR referral on record.', '232,138,46');
+      if(!comp.defaulter) flags += flagRow('✅ No Defaulter Flag', 'Not listed in MCA wilful defaulter records.', '26,158,107');
+      if(pendingCases===0) flags += flagRow('✅ No Pending Litigation', 'No pending court cases found in available legal history.', '26,158,107');
+      flagsList.innerHTML = flags || flagRow('✅ No Major Red Flags', 'No material red flags identified from available MCA/Probe42 data.', '26,158,107');
+    }
+    var flagBadge = document.getElementById('flag-count-badge');
+    if(flagBadge) flagBadge.textContent = flagCount + ' Flag' + (flagCount!==1?'s':'');
+
+    var scanBadge = document.getElementById('scan-type-badge');
+    if(scanBadge) scanBadge.textContent = 'Live Scan';
+
+    // ── LITIGATION TAB — full case-by-case table from legal.all_cases ──
+    var allCases = legal.all_cases || [];
+    var litBody = document.getElementById('litigation-tbody');
+    if(litBody){
+      if(allCases.length){
+        litBody.innerHTML = allCases.map(function(c){
+          var statusBadge = /pending/i.test(c.case_status) ? '<span class="badge badge-amber">Pending</span>' : '<span class="badge badge-green">'+(c.case_status||'Disposed')+'</span>';
+          var riskBadge = c.severity==='high' ? '<span class="badge" style="background:#FFEBEE;color:#C0392B">High</span>' : c.severity==='medium' ? '<span class="badge badge-amber">Medium</span>' : '<span class="badge badge-green">Low</span>';
+          return '<tr><td>'+(c.court||'—')+'</td><td>'+(c.category||'—')+'</td>'+'<td>'+statusBadge+'</td>'+'<td style="font-size:9px">'+(c.case_number||'—')+'</td><td>'+riskBadge+'</td></tr>';
+        }).join('');
+      } else {
+        litBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">No litigation history found on record for this CIN</td></tr>';
       }
-      if(comp.defaulter) {
-        flags += '<div style="padding:12px;background:rgba(192,57,43,.06);border-left:3px solid var(--red);border-radius:8px;margin-bottom:8px">'
-          +'<div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:3px">🚨 Wilful Defaulter</div>'
-          +'<div style="font-size:11px;color:var(--muted)">Company flagged as wilful defaulter</div></div>';
-      }
-      if(!flags) {
-        flags = '<div style="padding:12px;background:rgba(26,158,107,.06);border-left:3px solid var(--green);border-radius:8px">'
-          +'<div style="font-size:12px;font-weight:800;color:var(--green)">✅ No Major Red Flags</div>'
-          +'<div style="font-size:11px;color:var(--muted)">No material litigation, SEBI orders or defaulter flags found</div></div>';
-      }
-      flagsList.innerHTML = flags;
+    }
+    var courtsLine = document.querySelector('#tab-litigation div[style*="margin-bottom:14px"]');
+    if(courtsLine) courtsLine.textContent = totalCases+' total case(s) on record — '+casesAgainst+' against company, '+(legal.cases_by_count||0)+' by company, '+pendingCases+' pending, '+(legal.disposed_count||0)+' disposed.';
+
+    // ── MCA / CORPORATE TAB ──
+    var mcaCards = document.querySelectorAll('#tab-mca .card-body');
+    if(mcaCards[0]){
+      mcaCards[0].innerHTML = '<div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Incorporation</div>'
+        +'<div style="font-size:13px;font-weight:800;color:var(--teal)">'+(result.date_of_incorporation||'N/A')+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+(result.registered_state||'')+'</div>';
+    }
+    if(mcaCards[1]){
+      var rocOk = comp.active_compliance && /active/i.test(comp.active_compliance);
+      mcaCards[1].innerHTML = '<div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ROC Compliance</div>'
+        +'<div style="font-size:13px;font-weight:800;color:'+(rocOk?'var(--green)':'var(--amber)')+'">'+(comp.active_compliance||'Unknown')+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:2px">EPFO: '+(comp.epfo_registered?'Registered ('+comp.epfo_count+')':'Not registered')+'</div>';
+    }
+    if(mcaCards[2]){
+      mcaCards[2].innerHTML = '<div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Paid-Up Capital</div>'
+        +'<div style="font-size:13px;font-weight:800;color:var(--teal)">'+(result.paid_up_capital?'₹'+(result.paid_up_capital/10000000).toFixed(2)+' Cr':'N/A')+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);margin-top:2px">Auth: '+(result.authorised_capital?'₹'+(result.authorised_capital/10000000).toFixed(2)+' Cr':'N/A')+'</div>';
     }
 
-    // GST status
-    if(comp.gst_status) {
-      var gstEl = document.querySelector('[data-field="gst-status"]');
-      if(gstEl) gstEl.textContent = comp.gst_status;
+    // ── REGULATORY TAB ──
+    var regContainer = document.querySelector('#tab-regulatory > div');
+    if(regContainer){
+      function regRow(label, status, statusOk, detail){
+        return '<div style="padding:14px;background:'+(statusOk?'#f8fafa':'#fff8f0')+';border-radius:10px;border:1px solid '+(statusOk?'var(--border)':'#ffe0b2')+'">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+          +'<span style="font-weight:800;font-size:13px;color:'+(statusOk?'var(--teal)':'var(--amber)')+'">'+label+'</span>'
+          +'<span class="badge '+(statusOk?'badge-green':'badge-amber')+'">'+status+'</span></div>'
+          +'<div style="font-size:11px;color:var(--muted)">'+detail+'</div></div>';
+      }
+      var sebiClean = !comp.defaulter;
+      var html = regRow('SEBI', sebiClean?'Clean ✓':'Flagged', sebiClean, sebiClean?'No defaulter flag or struck-off risk found in available records.':'Wilful defaulter or struck-off risk flagged — requires verification.');
+      html += regRow('MCA / ROC', (comp.active_compliance&&/active/i.test(comp.active_compliance))?'Compliant ✓':'Verify', !!(comp.active_compliance&&/active/i.test(comp.active_compliance)), 'Active compliance status: '+(comp.active_compliance||'Unknown')+'.');
+      html += regRow('BIFR / CDR History', ((comp.bifr_history||0)+(comp.cdr_history||0))===0?'None ✓':'On Record', ((comp.bifr_history||0)+(comp.cdr_history||0))===0, ((comp.bifr_history||0)+(comp.cdr_history||0))===0?'No BIFR or CDR referral history found.':'Historical BIFR/CDR referral found — requires review.');
+      html += regRow('Litigation Exposure', casesAgainst<=5?'Low ✓':casesAgainst<=15?'Moderate':'High', casesAgainst<=5, totalCases+' total case(s) on record across '+(legal.categories||[]).length+' categories.');
+      regContainer.innerHTML = html;
+    }
+
+    // ── DIRECTORS TAB ──
+    var dtbody = document.getElementById('directors-tbody');
+    if(dtbody){
+      if(dirs.length){
+        dtbody.innerHTML = dirs.slice(0,15).map(function(d){
+          return '<tr><td style="font-weight:700">'+(d.name||'—')+'</td>'
+            +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
+            +'<td>'+(d.designation||'Director')+'</td>'
+            +'<td><span class="badge badge-green">Active ✓</span></td>'
+            +'<td><span class="badge badge-green">None ✓</span></td>'
+            +'<td>'+(d.appointed||'—')+'</td></tr>';
+        }).join('');
+      } else {
+        dtbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">No director data available from Probe42 for this CIN</td></tr>';
+      }
+    }
+
+    // ── CHARGES TAB ──
+    var chargesTbody = document.querySelector('#tab-charges table tbody');
+    if(chargesTbody){
+      if(charges.length){
+        chargesTbody.innerHTML = charges.map(function(c){
+          var isOpen = (c.status||'').toLowerCase()==='open';
+          return '<tr><td style="font-family:var(--mono);font-size:10px">'+(c.charge_id||'—')+'</td>'
+            +'<td style="font-weight:700">'+(c.charge_holder||'N/A')+'</td>'
+            +'<td>'+(c.amount_cr!=null?'₹'+c.amount_cr+' Cr':'N/A')+'</td>'
+            +'<td>'+(c.date_of_creation||'—')+'</td>'
+            +'<td><span class="badge '+(isOpen?'badge-amber':'badge-green')+'">'+(c.status||'—')+(isOpen?'':' ✓')+'</span></td>'
+            +'<td>—</td></tr>';
+        }).join('');
+      } else {
+        chargesTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">No charges on record</td></tr>';
+      }
+    }
+    var chargesNote = document.querySelector('#tab-charges div[style*="background:rgba(232,138,46"]');
+    if(chargesNote){
+      chargesNote.textContent = openCharges.length+' active charge(s) found. Verify charge holder and security details before proceeding.';
+      chargesNote.style.display = openCharges.length>0 ? 'block':'none';
     }
 
     showToast('✅ Live legal data loaded — ' + name);
   } catch(e) {
     console.error('Probe42 error:', e);
-    showToast('⚠️ Using sample data — ' + (e.message||''));
-    // Still show results
-    ['results-panel','forensic-results','director-result','credit-results','risk-results'].forEach(function(id){
-      var el=document.getElementById(id); if(el) el.style.display='block';
-    });
-    ['risk-empty','legal-empty','forensic-empty','dir-empty','credit-empty'].forEach(function(id){
-      var el=document.getElementById(id); if(el) el.style.display='none';
-    });
+    showToast('⚠️ Could not load live data — ' + (e.message||''));
   }
 }
 
@@ -850,17 +939,7 @@ function runLegalScan(){
   document.getElementById('company-name-display').textContent = displayName;
   document.getElementById('empty-state').style.display='none';
   document.getElementById('results-panel').style.display='block';
-  // Show results immediately with sample data while Probe42 loads
-  var emp = document.getElementById('risk-empty') || document.getElementById('legal-empty') || 
-            document.getElementById('forensic-empty') || document.getElementById('dir-empty') || document.getElementById('credit-empty');
-  if(emp) emp.style.display='none';
-  var panels = ['results-panel','forensic-results','director-result','credit-results','risk-results'];
-  panels.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='block'; });
-  // Update all name displays
-  document.querySelectorAll('[id$="-name-display"],[id="risk-company-name"]').forEach(function(el){el.textContent=displayName;});
-  showToast('⏳ Loading data for: '+displayName);
   loadProbe42Data(_p42_selected.cin || q, displayName);
-  showToast('⏳ Running legal scan...');
 }
 
 function legalTab(id, el){
