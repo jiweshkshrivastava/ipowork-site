@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Document Intelligence — ipowork</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,700;0,9..144,900&family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#08404D;--teal2:#0D5C6B;--teal3:#1A7D90;--teal4:#2490A8;
+  --amber:#E88A2E;--gold:#C9932A;--green:#1A9E6B;--red:#C0392B;
+  --white:#FFFFFF;--bg:#F5F8FA;--card:#FFFFFF;
+  --text:#2C3E47;--muted:#6B7E85;--dim:#9AAFB5;
+  --border:#D8EDF0;--border2:#B0CDD4;
+  --font:'Sora',sans-serif;--serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:13px;min-height:100vh}
+.topbar{background:var(--teal);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.brand{font-family:var(--serif);font-weight:900;font-size:16px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:4px}
+.brand sup{color:var(--amber);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.nav-links{display:flex;align-items:center;gap:2px}
+.nav-link{padding:6px 10px;border-radius:7px;font-size:11px;font-weight:600;color:rgba(255,255,255,.8);text-decoration:none;transition:.15s;white-space:nowrap}
+.nav-link:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-link.active{background:rgba(255,255,255,.18);color:#fff;font-weight:800}
+@media(max-width:900px){.nav-link{padding:4px 7px;font-size:10px}}
+.hero-strip{background:linear-gradient(135deg,#06303B,var(--teal2));padding:28px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.hero-title{font-family:var(--serif);font-size:26px;font-weight:900;color:#fff;line-height:1.2}
+.hero-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:4px;line-height:1.6}
+.hstat{text-align:center}
+.hstat-val{font-family:var(--serif);font-size:22px;font-weight:900;color:var(--amber);line-height:1}
+.hstat-label{font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.page-wrap{max-width:1100px;margin:0 auto;padding:24px 20px}
+.card{background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-bottom:20px}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:var(--serif);font-size:15px;font-weight:900;color:var(--teal)}
+.card-body{padding:20px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row.triple{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;transition:.2s;background:var(--bg)}
+.form-input:focus{border-color:var(--teal2);background:#fff}
+.form-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;background:var(--bg);cursor:pointer}
+.form-select:focus{border-color:var(--teal2)}
+.btn{padding:9px 18px;border-radius:9px;font-family:var(--font);font-weight:700;font-size:12px;cursor:pointer;border:none;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#fff}
+.btn-primary:hover{opacity:.9}
+.btn-amber{background:linear-gradient(135deg,var(--amber),var(--gold));color:#fff}
+.btn-amber:hover{opacity:.9}
+.btn-outline{background:#fff;color:var(--teal);border:1.5px solid var(--border2)}
+.btn-outline:hover{border-color:var(--teal2)}
+.btn-sm{padding:6px 12px;font-size:11px}
+.btn-danger{background:rgba(192,57,43,.08);color:var(--red);border:1.5px solid rgba(192,57,43,.2)}
+.btn-danger:hover{background:rgba(192,57,43,.15)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+.badge-green{background:rgba(26,158,107,.1);color:var(--green);border:1px solid rgba(26,158,107,.2)}
+.badge-amber{background:rgba(232,138,46,.1);color:var(--amber);border:1px solid rgba(232,138,46,.25)}
+.badge-red{background:rgba(192,57,43,.08);color:var(--red);border:1px solid rgba(192,57,43,.2)}
+.badge-teal{background:rgba(13,92,107,.1);color:var(--teal2);border:1px solid rgba(13,92,107,.2)}
+
+/* ── Drop Zone ── */
+.drop-zone{border:2px dashed var(--teal3);border-radius:14px;padding:40px 24px;text-align:center;cursor:pointer;transition:.2s;background:rgba(26,125,144,.03)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--teal);background:rgba(26,125,144,.07)}
+.drop-icon{font-size:36px;margin-bottom:10px}
+.drop-title{font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin-bottom:4px}
+.drop-sub{font-size:11px;color:var(--muted);line-height:1.6}
+#file-input{display:none}
+
+/* ── Document Queue ── */
+.doc-queue{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.doc-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(8,64,77,.03);border:1px solid var(--border);border-radius:10px}
+.doc-icon{width:32px;height:32px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;flex-shrink:0}
+.doc-name{font-weight:700;font-size:12px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-size{font-size:10px;color:var(--muted);flex-shrink:0}
+.doc-type-select{flex-shrink:0;width:200px;padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:var(--font);font-size:10px;font-weight:600;color:var(--text);background:#fff;cursor:pointer}
+.doc-remove{flex-shrink:0;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;border-radius:5px;transition:.15s}
+.doc-remove:hover{color:var(--red);background:rgba(192,57,43,.08)}
+.doc-status{flex-shrink:0;font-size:10px;font-weight:700}
+
+/* ── Access Banner ── */
+.access-banner{padding:10px 20px;background:linear-gradient(135deg,#fff8ec,#fffdf5);border-bottom:1px solid #ffe0a0;display:flex;align-items:center;gap:10px}
+#banner-text{font-size:12px;font-weight:600;color:var(--teal)}
+
+/* ── Score Grid ── */
+.score-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.score-tile{border-radius:12px;padding:14px;border:1px solid var(--border);text-align:center;position:relative;overflow:hidden}
+.score-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.score-tile.legal::before{background:linear-gradient(90deg,var(--teal),var(--teal3))}
+.score-tile.forensic::before{background:linear-gradient(90deg,#7B2D8B,#A855B5)}
+.score-tile.director::before{background:linear-gradient(90deg,#1565C0,#1E88E5)}
+.score-tile.financial::before{background:linear-gradient(90deg,var(--green),#22C58C)}
+.score-tile.credit::before{background:linear-gradient(90deg,var(--amber),var(--gold))}
+.tile-emoji{font-size:20px;margin-bottom:6px}
+.tile-label{font-size:9px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
+.tile-score{font-family:var(--serif);font-size:32px;font-weight:900;line-height:1}
+.tile-weight{font-size:9px;color:var(--muted);margin-top:2px}
+.overall-box{background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:14px;padding:20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;color:#fff}
+.overall-score{font-family:var(--serif);font-size:56px;font-weight:900;color:#fff;line-height:1}
+.overall-label{font-size:12px;opacity:.8;margin-top:4px}
+.overall-verdict{font-size:18px;font-weight:800;color:var(--amber)}
+
+/* ── Progress ── */
+.progress-wrap{margin:20px 0;display:none}
+.progress-bar{height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--teal3),var(--amber));border-radius:99px;transition:width .4s ease;width:0%}
+.progress-label{font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
+
+/* ── Report Output ── */
+#report-output{display:none}
+.report-text{font-size:12px;line-height:1.8;color:var(--text)}
+.report-text h2{font-family:var(--serif);font-size:16px;font-weight:900;color:var(--teal);margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--border)}
+.report-text h3{font-size:13px;font-weight:800;color:var(--teal2);margin:14px 0 6px}
+.report-text table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11px}
+.report-text th{background:var(--teal);color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:700}
+.report-text td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.report-text tr:nth-child(even) td{background:var(--bg)}
+.report-text strong{color:var(--teal);font-weight:800}
+
+/* ── Findings Lists ── */
+.findings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.finding-group{padding:14px;border-radius:10px}
+.finding-group.flags{background:rgba(192,57,43,.04);border:1px solid rgba(192,57,43,.15)}
+.finding-group.strengths{background:rgba(26,158,107,.04);border:1px solid rgba(26,158,107,.15)}
+.finding-title{font-size:11px;font-weight:800;margin-bottom:8px}
+.finding-title.red{color:var(--red)}
+.finding-title.green{color:var(--green)}
+.finding-item{font-size:11px;color:var(--text);padding:4px 0;border-bottom:1px solid rgba(0,0,0,.05);line-height:1.5}
+.finding-item:last-child{border-bottom:none}
+
+/* ── PIN Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:340px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.modal-header{background:linear-gradient(135deg,var(--teal),var(--teal2));padding:22px 26px}
+.modal-title{font-family:var(--serif);font-size:18px;font-weight:900;color:#fff}
+.modal-sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:3px}
+.modal-body{padding:24px 26px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--teal);color:#fff;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:600;display:none;max-width:320px;line-height:1.5}
+
+@media(max-width:700px){
+  .score-grid{grid-template-columns:repeat(3,1fr)}
+  .form-row{grid-template-columns:1fr}
+  .form-row.triple{grid-template-columns:1fr}
+  .findings-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="brand">ipowork<sup>AI</sup></a>
+  <nav class="nav-links">
+    <a href="index.html" class="nav-link">🏠 Home</a>
+    <a href="aira.html" class="nav-link">📊 AIRA</a>
+    <a href="mb.html" class="nav-link">🏦 MB Portal</a>
+    <a href="aif-intel.html" class="nav-link">🏛️ AIF Intel</a>
+    <a href="risk-desk.html" class="nav-link">⚡ Risk Desk</a>
+    <a href="legal-intel.html" class="nav-link">⚖️ Legal</a>
+    <a href="forensic-intel.html" class="nav-link">🔍 Forensic</a>
+    <a href="director-intel.html" class="nav-link">👤 Directors</a>
+    <a href="credit-intel.html" class="nav-link">💰 Credit</a>
+    <a href="doc-intel.html" class="nav-link active">📄 Doc Intel</a>
+    <a href="credits.html" class="nav-link">🪙 Credits</a>
+  </nav>
+</div>
+
+<div class="access-banner" id="access-banner">
+  <span style="font-size:16px">🔐</span>
+  <span id="banner-text">Staff-only portal. Enter your PIN to access Document Intelligence.</span>
+  <button onclick="openPin()" class="btn btn-amber btn-sm" style="margin-left:auto">Enter PIN</button>
+</div>
+
+<div class="hero-strip">
+  <div>
+    <div class="hero-title">📄 Document Intelligence</div>
+    <div class="hero-sub">Upload MCA reference documents alongside Probe42 data for<br>a complete, citation-backed AIRA 5-Pillar Master Scorecard</div>
+  </div>
+  <div style="display:flex;gap:24px">
+    <div class="hstat"><div class="hstat-val">5</div><div class="hstat-label">Intelligence Pillars</div></div>
+    <div class="hstat"><div class="hstat-val">20</div><div class="hstat-label">Docs per Scan</div></div>
+    <div class="hstat"><div class="hstat-val">MCA</div><div class="hstat-label">Source Cited</div></div>
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- ── STEP 1: COMPANY ── -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Step 1 — Select Company</div>
+      <span class="badge badge-teal">CIN Lookup</span>
+    </div>
+    <div class="card-body">
+      <div class="form-row triple">
+        <div class="form-group">
+          <label class="form-label">Company Name / CIN</label>
+          <input id="company-search" class="form-input" placeholder="e.g. Star Wire or U27109HR1963PLC105338" oninput="searchCompany(this.value)"/>
+          <div id="company-dropdown" style="display:none;position:absolute;z-index:99;background:#fff;border:1.5px solid var(--teal2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);margin-top:2px;min-width:300px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sector</label>
+          <select id="scan-sector" class="form-select">
+            <option>Manufacturing</option><option>NBFC</option><option>Technology</option>
+            <option>Healthcare</option><option>Infrastructure</option><option>Retail</option>
+            <option>Real Estate</option><option>Chemicals</option><option>Textiles</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Target Exchange</label>
+          <select id="scan-exchange" class="form-select">
+            <option>NSE Emerge (SME)</option><option>BSE SME</option>
+            <option>NSE Mainboard</option><option>BSE Mainboard</option>
+          </select>
+        </div>
+      </div>
+      <div id="selected-company" style="display:none;padding:12px;background:rgba(26,125,144,.06);border-radius:10px;border:1px solid var(--teal3);display:flex;align-items:center;gap:12px">
+        <div style="font-size:20px">🏢</div>
+        <div>
+          <div id="selected-name" style="font-weight:800;color:var(--teal)">—</div>
+          <div id="selected-cin" style="font-size:11px;font-family:var(--mono);color:var(--muted)">—</div>
+        </div>
+        <button onclick="clearSelection()" class="btn btn-outline btn-sm" style="margin-left:auto">Change</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: UPLOAD DOCUMENTS ── -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Step 2 — Upload MCA Reference Documents</div>
+      <span class="badge badge-amber" id="doc-count-badge">0 / 20 docs</span>
+    </div>
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.7">
+        Download documents from Probe42 dashboard → Reference Documents tab (Financial, Charge, Incorporation, Scanned).
+        Upload up to 20 PDFs at once. AIRA will auto-classify each document and assign it to the appropriate intelligence pillar.
+      </div>
+
+      <!-- Drop Zone -->
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+        <div class="drop-icon">📂</div>
+        <div class="drop-title">Drop PDFs here or click to browse</div>
+        <div class="drop-sub">Supports: AOC-4, MGT-7, CHG-1/4, DPT-3, MGT-14, DIR-12, Audit Reports, Annual Reports<br>Max 20 PDFs · Max 10MB each · PDF format only</div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,application/pdf" multiple onchange="handleFileSelect(this.files)"/>
+
+      <!-- Document Queue -->
+      <div id="doc-queue" class="doc-queue"></div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: RUN SCAN ── -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Step 3 — Run Document Intelligence Scan</div>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button onclick="runDocIntelScan()" class="btn btn-amber" id="scan-btn">
+          🧠 Run AIRA Document Intelligence Scan
+        </button>
+        <button onclick="clearAll()" class="btn btn-outline">Clear All</button>
+        <div style="font-size:11px;color:var(--muted)">
+          Cost: <strong>15–25 credits</strong> depending on document count · Probe42 lookup included
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-label" id="progress-label">Reading documents...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div id="report-output">
+
+    <!-- Overall Score -->
+    <div class="overall-box" id="overall-box">
+      <div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">AIRA Master Score</div>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div class="overall-score" id="overall-score">—</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.7)">/100</div>
+        </div>
+        <div class="overall-verdict" id="overall-verdict">—</div>
+        <div class="overall-label" id="overall-label">—</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="text-align:center">
+          <div style="font-size:20px font-family:var(--serif);font-weight:900;color:var(--amber)" id="ipo-score">—</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">IPO Readiness</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-family:var(--serif);font-weight:900;color:var(--amber)" id="debt-score">—</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">Debt Readiness</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-family:var(--serif);font-weight:900;color:var(--amber)" id="pe-score">—</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">PE/VC Readiness</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-family:var(--serif);font-weight:900;color:var(--amber)" id="gov-score">—</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px">Governance</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5-Pillar Tiles -->
+    <div class="score-grid">
+      <div class="score-tile legal">
+        <div class="tile-emoji">⚖️</div>
+        <div class="tile-label">Legal Intelligence</div>
+        <div class="tile-score" id="legal-score" style="color:#08404D">—</div>
+        <div class="tile-weight">Weight: 25%</div>
+      </div>
+      <div class="score-tile forensic">
+        <div class="tile-emoji">🔍</div>
+        <div class="tile-label">Forensic Intelligence</div>
+        <div class="tile-score" id="forensic-score" style="color:#7B2D8B">—</div>
+        <div class="tile-weight">Weight: 20%</div>
+      </div>
+      <div class="score-tile director">
+        <div class="tile-emoji">👤</div>
+        <div class="tile-label">Director Intelligence</div>
+        <div class="tile-score" id="director-score" style="color:#1565C0">—</div>
+        <div class="tile-weight">Weight: 20%</div>
+      </div>
+      <div class="score-tile financial">
+        <div class="tile-emoji">💰</div>
+        <div class="tile-label">Financial Intelligence</div>
+        <div class="tile-score" id="financial-score" style="color:#1A9E6B">—</div>
+        <div class="tile-weight">Weight: 25%</div>
+      </div>
+      <div class="score-tile credit">
+        <div class="tile-emoji">🏦</div>
+        <div class="tile-label">Credit Intelligence</div>
+        <div class="tile-score" id="credit-score" style="color:#E88A2E">—</div>
+        <div class="tile-weight">Weight: 10%</div>
+      </div>
+    </div>
+
+    <!-- Findings summary grid — top red flags and strengths -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Key Findings from Documents</div>
+        <span class="badge badge-teal" id="docs-analysed-badge">—</span>
+      </div>
+      <div class="card-body">
+        <div class="findings-grid">
+          <div class="finding-group flags">
+            <div class="finding-title red">⚠️ Red Flags Identified</div>
+            <div id="flags-list"></div>
+          </div>
+          <div class="finding-group strengths">
+            <div class="finding-title green">✅ Strengths Confirmed</div>
+            <div id="strengths-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full Report Text -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Full AIRA Document Intelligence Report</div>
+        <div style="display:flex;gap:8px">
+          <button onclick="downloadReport()" class="btn btn-primary btn-sm">📥 Download PDF</button>
+          <button onclick="copyReport()" class="btn btn-outline btn-sm">📋 Copy</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="report-text" id="report-text"></div>
+      </div>
+    </div>
+
+    <!-- Data Gaps Notice -->
+    <div class="card" id="data-gaps-card" style="display:none">
+      <div class="card-header">
+        <div class="card-title">📋 Data Gaps — Additional Documents Recommended</div>
+      </div>
+      <div class="card-body">
+        <div id="data-gaps-list" style="font-size:12px;color:var(--muted);line-height:2"></div>
+        <div style="margin-top:12px;padding:12px;background:rgba(232,138,46,.06);border-radius:10px;font-size:11px;color:var(--muted);border-left:3px solid var(--amber)">
+          <strong>Note:</strong> Private commercial contracts (customer/vendor/shareholder agreements, employment agreements) are
+          not MCA-filed documents and are not available from Probe42 or any public registry.
+          These require direct submission by the company for complete analysis.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #report-output -->
+
+</div><!-- end .page-wrap -->
+
+<!-- ── PIN Modal ── -->
+<div class="modal-overlay" id="pin-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Staff Access Required</div>
+      <div class="modal-sub">Document Intelligence is restricted to ipowork staff</div>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px">
+        <label class="form-label" style="display:block;margin-bottom:6px">Enter PIN</label>
+        <input id="pin-input" type="password" maxlength="6" class="form-input" placeholder="••••••"
+          style="font-size:20px;letter-spacing:8px;text-align:center" oninput="checkPin(this.value)"/>
+      </div>
+      <button onclick="closePin()" class="btn btn-outline btn-sm">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── Constants ── */
+var WORKER_URL = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+var AUTH_PIN = '2007';
+var ADMIN_PIN = '1234';
+var ACCESS_LEVEL = 0;
+
+/* ── State ── */
+var _selectedCompany = {cin:'', name:''};
+var _docs = []; // [{name, size, base64, doc_type}]
+var _lastReport = null;
+var _lastScorecard = null;
+var _searchTimeout = null;
+
+/* ── Document Types ── */
+var DOC_TYPES = [
+  'Form AOC-4 (XBRL) — Standalone Accounts',
+  'Form AOC-4 (XBRL) — Consolidated Accounts',
+  'Standalone Audit Report',
+  'Consolidated Audit Report',
+  'Annual Report (Full)',
+  'Form MGT-7 — Annual Return',
+  'Form MGT-14 — Board/Shareholder Resolutions',
+  'Form DPT-3 — Deposit Declaration',
+  'Form MSME I — Supplier Dues',
+  'Form CHG-1 — Charge Creation',
+  'Form CHG-4 — Charge Satisfaction',
+  'Charge Instrument / Loan Agreement',
+  'NDC Letter (No-Dues Certificate)',
+  'Form DIR-12 — Director Change',
+  'Board Resolution (General)',
+  'Certificate of Incorporation',
+  'Photograph of Registered Office',
+  'Scanned Document — Change in Directors',
+  'Optional Attachment',
+  'Other MCA Filing',
+];
+
+/* ── PIN ── */
+function openPin(){ document.getElementById('pin-modal').classList.add('open'); setTimeout(function(){document.getElementById('pin-input').focus();},100); }
+function closePin(){ document.getElementById('pin-modal').classList.remove('open'); document.getElementById('pin-input').value=''; }
+function checkPin(val){
+  if(val===ADMIN_PIN){ ACCESS_LEVEL=3; closePin(); onAccessChange(); showToast('✅ Admin access granted — Document Intelligence unlocked'); }
+  else if(val===AUTH_PIN){ ACCESS_LEVEL=2; closePin(); onAccessChange(); showToast('✅ Staff access granted'); }
+}
+function onAccessChange(){
+  var banner = document.getElementById('access-banner');
+  var bannerText = document.getElementById('banner-text');
+  if(ACCESS_LEVEL>=2){
+    banner.style.background='linear-gradient(135deg,#e8f5e9,#f0faf0)';
+    banner.style.borderBottomColor='#c8e6c9';
+    bannerText.innerHTML='🔐 <strong>Staff Access Granted</strong> — Document Intelligence enabled.';
+    banner.querySelector('button').style.display='none';
+  }
+}
+
+/* ── Company Search ── */
+function searchCompany(q){
+  if(_searchTimeout) clearTimeout(_searchTimeout);
+  if(!q||q.length<3){ document.getElementById('company-dropdown').style.display='none'; return; }
+  _searchTimeout = setTimeout(function(){
+    fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'company_search',query:q})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var results = d.results||[];
+      var dd = document.getElementById('company-dropdown');
+      if(!results.length){ dd.style.display='none'; return; }
+      dd.innerHTML = results.map(function(r){
+        return '<div onclick="selectCompany(\''+r.cin+'\',\''+r.name.replace(/'/g,"\\'")+'\')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;transition:.1s" onmouseover="this.style.background=\'rgba(8,64,77,.05)\'" onmouseout="this.style.background=\'\'"><div style="font-weight:700;color:var(--teal)">'+r.name+'</div><div style="font-size:10px;font-family:var(--mono);color:var(--muted)">'+r.cin+'</div></div>';
+      }).join('');
+      dd.style.display='block';
+    });
+  },400);
+}
+
+function selectCompany(cin,name){
+  _selectedCompany = {cin:cin,name:name};
+  document.getElementById('company-search').value=name;
+  document.getElementById('company-dropdown').style.display='none';
+  var sel = document.getElementById('selected-company');
+  sel.style.display='flex';
+  document.getElementById('selected-name').textContent=name;
+  document.getElementById('selected-cin').textContent=cin;
+}
+
+function clearSelection(){
+  _selectedCompany={cin:'',name:''};
+  document.getElementById('company-search').value='';
+  document.getElementById('selected-company').style.display='none';
+}
+
+/* ── File Handling ── */
+function handleDragOver(e){ e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function handleDragLeave(){ document.getElementById('drop-zone').classList.remove('drag-over'); }
+function handleDrop(e){ e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); handleFileSelect(e.dataTransfer.files); }
+
+function handleFileSelect(files){
+  var remaining = 20 - _docs.length;
+  var toProcess = Math.min(files.length, remaining);
+  if(toProcess===0){ showToast('Maximum 20 documents reached'); return; }
+  var processed = 0;
+  for(var i=0;i<toProcess;i++){
+    (function(file){
+      if(!file.type.includes('pdf')&&!file.name.toLowerCase().endsWith('.pdf')){
+        showToast('Skipped '+file.name+' — PDF files only'); return;
+      }
+      if(file.size>10*1024*1024){ showToast('Skipped '+file.name+' — max 10MB'); return; }
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var b64 = e.target.result.split(',')[1];
+        var docType = inferDocType(file.name);
+        _docs.push({name:file.name,size:file.size,base64:b64,doc_type:docType,id:Date.now()+Math.random()});
+        processed++;
+        if(processed>=toProcess) renderDocQueue();
+      };
+      reader.readAsDataURL(file);
+    })(files[i]);
+  }
+}
+
+function inferDocType(filename){
+  var f = filename.toLowerCase();
+  if(f.includes('aoc-4')||f.includes('aoc4')||f.includes('xbrl')) return 'Form AOC-4 (XBRL) — Standalone Accounts';
+  if(f.includes('mgt-7')||f.includes('mgt7')) return 'Form MGT-7 — Annual Return';
+  if(f.includes('mgt-14')||f.includes('mgt14')) return 'Form MGT-14 — Board/Shareholder Resolutions';
+  if(f.includes('chg-1')||f.includes('chg1')) return 'Form CHG-1 — Charge Creation';
+  if(f.includes('chg-4')||f.includes('chg4')) return 'Form CHG-4 — Charge Satisfaction';
+  if(f.includes('dpt-3')||f.includes('dpt3')) return 'Form DPT-3 — Deposit Declaration';
+  if(f.includes('dir-12')||f.includes('dir12')) return 'Form DIR-12 — Director Change';
+  if(f.includes('msme')) return 'Form MSME I — Supplier Dues';
+  if(f.includes('audit')) return 'Standalone Audit Report';
+  if(f.includes('annual')) return 'Annual Report (Full)';
+  if(f.includes('agreement')) return 'Charge Instrument / Loan Agreement';
+  if(f.includes('ndc')) return 'NDC Letter (No-Dues Certificate)';
+  if(f.includes('board-resolution')||f.includes('board_resolution')) return 'Board Resolution (General)';
+  if(f.includes('standalone')) return 'Form AOC-4 (XBRL) — Standalone Accounts';
+  if(f.includes('consolidated')) return 'Form AOC-4 (XBRL) — Consolidated Accounts';
+  return 'Other MCA Filing';
+}
+
+function renderDocQueue(){
+  var queue = document.getElementById('doc-queue');
+  document.getElementById('doc-count-badge').textContent = _docs.length+' / 20 docs';
+  if(!_docs.length){ queue.innerHTML=''; return; }
+  queue.innerHTML = _docs.map(function(doc,idx){
+    var sizeKB = Math.round(doc.size/1024);
+    var opts = DOC_TYPES.map(function(t){ return '<option value="'+t+'"'+(t===doc.doc_type?' selected':'')+'>'+t+'</option>'; }).join('');
+    return '<div class="doc-item" id="doc-item-'+idx+'">'
+      +'<div class="doc-icon">📄</div>'
+      +'<div class="doc-name" title="'+doc.name+'">'+doc.name+'</div>'
+      +'<div class="doc-size">'+sizeKB+'KB</div>'
+      +'<select class="doc-type-select" onchange="updateDocType('+idx+',this.value)">'+opts+'</select>'
+      +'<button class="doc-remove" onclick="removeDoc('+idx+')" title="Remove">✕</button>'
+      +'</div>';
+  }).join('');
+}
+
+function updateDocType(idx,val){ if(_docs[idx]) _docs[idx].doc_type=val; }
+
+function removeDoc(idx){
+  _docs.splice(idx,1);
+  renderDocQueue();
+}
+
+function clearAll(){
+  _docs=[];
+  _selectedCompany={cin:'',name:''};
+  document.getElementById('company-search').value='';
+  document.getElementById('selected-company').style.display='none';
+  renderDocQueue();
+  document.getElementById('report-output').style.display='none';
+  document.getElementById('progress-wrap').style.display='none';
+}
+
+/* ── Run Scan ── */
+async function runDocIntelScan(){
+  if(ACCESS_LEVEL<2){ openPin(); return; }
+  var cin = _selectedCompany.cin || document.getElementById('company-search').value.trim();
+  if(!cin){ showToast('Please select a company first'); return; }
+  if(!_docs.length){ showToast('Please upload at least one document'); return; }
+
+  // Show progress
+  document.getElementById('progress-wrap').style.display='block';
+  document.getElementById('report-output').style.display='none';
+  document.getElementById('scan-btn').disabled=true;
+  document.getElementById('scan-btn').textContent='⏳ Analysing documents...';
+
+  var stages = [
+    [10,'Fetching Probe42 company data...'],
+    [25,'Reading uploaded documents...'],
+    [45,'Analysing Legal & Forensic intelligence...'],
+    [65,'Analysing Director & Financial intelligence...'],
+    [80,'Generating 5-pillar scorecard...'],
+    [92,'Compiling citations and findings...'],
+  ];
+  var stageIdx=0;
+  var progressInterval = setInterval(function(){
+    if(stageIdx<stages.length){
+      setProgress(stages[stageIdx][0],stages[stageIdx][1]);
+      stageIdx++;
+    }
+  },4000);
+
+  try{
+    var payload = {
+      type:'doc_intel',
+      cin:cin,
+      company_name:_selectedCompany.name||cin,
+      sector:document.getElementById('scan-sector').value,
+      exchange:document.getElementById('scan-exchange').value,
+      documents:_docs.map(function(d){ return {base64:d.base64,doc_type:d.doc_type,name:d.name}; })
+    };
+
+    var r = await fetch(WORKER_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    var data = await r.json();
+
+    clearInterval(progressInterval);
+    setProgress(100,'Complete!');
+
+    if(data.error){ showToast('Error: '+data.error); resetScanBtn(); return; }
+
+    _lastReport=data._report||'';
+    _lastScorecard=data.scorecard||{};
+
+    renderResults(data);
+    document.getElementById('report-output').style.display='block';
+    document.getElementById('report-output').scrollIntoView({behavior:'smooth',block:'start'});
+    showToast('✅ Document Intelligence scan complete');
+
+  }catch(e){
+    clearInterval(progressInterval);
+    showToast('Scan failed: '+(e.message||'Unknown error'));
+  }
+  resetScanBtn();
+}
+
+function setProgress(pct,label){
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('progress-label').textContent=label;
+}
+
+function resetScanBtn(){
+  document.getElementById('scan-btn').disabled=false;
+  document.getElementById('scan-btn').textContent='🧠 Run AIRA Document Intelligence Scan';
+}
+
+/* ── Render Results ── */
+function renderResults(data){
+  var sc = data.scorecard||{};
+  var pillars = sc.pillars||{};
+  function scoreColor(s){ return s>=80?'#1A9E6B':s>=60?'#E88A2E':'#C0392B'; }
+  function pillarScore(p){ return pillars[p]&&pillars[p].score!=null ? pillars[p].score : '—'; }
+
+  document.getElementById('overall-score').textContent = sc.overall_score||'—';
+  document.getElementById('ipo-score').textContent = (sc.ipo_readiness_score||'—');
+  document.getElementById('debt-score').textContent = (sc.debt_readiness_score||'—');
+  document.getElementById('pe-score').textContent = (sc.pe_vc_readiness_score||'—');
+  document.getElementById('gov-score').textContent = (sc.governance_score||'—');
+
+  var overallS = sc.overall_score||0;
+  var verdict = overallS>=80?'LOW RISK — INVESTMENT READY':overallS>=65?'MODERATE RISK — CONDITIONAL':overallS>=50?'ELEVATED RISK — GAPS IDENTIFIED':'HIGH RISK — MATERIAL CONCERNS';
+  document.getElementById('overall-verdict').textContent = verdict;
+  document.getElementById('overall-label').textContent = 'Based on Probe42 data + '+data.documents_analysed+' MCA filing document(s)';
+
+  // Pillar scores
+  ['legal','forensic','director','financial','credit'].forEach(function(p){
+    var s = pillarScore(p);
+    var el = document.getElementById(p+'-score');
+    if(el){ el.textContent=s; if(typeof s==='number') el.style.color=scoreColor(s); }
+  });
+
+  // Collect all flags and strengths across pillars
+  var allFlags=[], allStrengths=[];
+  Object.values(pillars).forEach(function(p){
+    (p.red_flags||[]).forEach(function(f){ allFlags.push(f); });
+    (p.strengths||[]).forEach(function(s){ allStrengths.push(s); });
+  });
+  document.getElementById('flags-list').innerHTML = allFlags.slice(0,6).map(function(f){
+    return '<div class="finding-item">⚠️ '+f+'</div>';
+  }).join('')||(sc.overall_score>=70?'<div class="finding-item">No critical red flags identified</div>':'<div class="finding-item">Detailed flags in full report below</div>');
+  document.getElementById('strengths-list').innerHTML = allStrengths.slice(0,6).map(function(s){
+    return '<div class="finding-item">✅ '+s+'</div>';
+  }).join('')||(allFlags.length?'<div class="finding-item">Strengths detailed in full report below</div>':'<div class="finding-item">Analysis complete — see full report</div>');
+
+  // Badge
+  document.getElementById('docs-analysed-badge').textContent = data.documents_analysed+' document(s) analysed';
+
+  // Report text — render markdown-style
+  var reportHtml = (_lastReport||'')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\|(.+)\|/g,function(m){ return '<tr>'+m.split('|').filter(function(c){return c.trim();}).map(function(c){var t=c.trim();return t.match(/^[-:]+$/)?'<th style="background:var(--border)"></th>':'<td>'+t+'</td>';}).join('')+'</tr>'; })
+    .replace(/(<tr>.+<\/tr>(\n|$))+/g,'<table>$&</table>')
+    .replace(/\n{2,}/g,'</p><p>')
+    .replace(/\n/g,'<br>');
+  document.getElementById('report-text').innerHTML='<p>'+reportHtml+'</p>';
+
+  // Data gaps
+  var allGaps=[];
+  Object.values(pillars).forEach(function(p){ (p.data_gaps||[]).forEach(function(g){allGaps.push(g);}); });
+  if(allGaps.length){
+    document.getElementById('data-gaps-list').innerHTML = allGaps.map(function(g){return '• '+g;}).join('<br>');
+    document.getElementById('data-gaps-card').style.display='block';
+  }
+}
+
+/* ── Download ── */
+function downloadReport(){
+  if(!_lastReport){ showToast('No report to download'); return; }
+  var cname = _selectedCompany.name||'Company';
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>AIRA Doc Intel — '+cname+'</title>'
+    +'<style>body{font-family:-apple-system,sans-serif;font-size:12px;color:#1A2E35;padding:32px;max-width:900px;margin:0 auto}'
+    +'h1{font-size:22px;font-weight:900;color:#08404D;margin-bottom:4px}'
+    +'h2{font-size:15px;font-weight:800;color:#08404D;margin:20px 0 8px;border-bottom:2px solid #D8EDF0;padding-bottom:4px}'
+    +'h3{font-size:12px;font-weight:700;color:#0D5C6B;margin:12px 0 5px}'
+    +'table{width:100%;border-collapse:collapse;margin:10px 0;font-size:11px}'
+    +'th{background:#08404D;color:#fff;padding:6px 9px;text-align:left}'
+    +'td{padding:6px 9px;border-bottom:1px solid #EAF2F4}'
+    +'strong{color:#08404D}</style></head><body>'
+    +'<h1>AIRA Document Intelligence Report</h1>'
+    +'<div style="font-size:11px;color:#6B7E85;margin-bottom:20px">'+cname+' · '+(_selectedCompany.cin||'')
+    +' · Generated '+new Date().toLocaleString('en-IN')
+    +' · Based on Probe42 + '+_docs.length+' MCA document(s)</div>'
+    +document.getElementById('report-text').innerHTML
+    +'<div style="margin-top:28px;font-size:10px;color:#9AAFB5">ipowork Document Intelligence · Not a SEBI-registered opinion. Data: Probe42/MCA + uploaded documents. © 2025 ipowork.com</div>'
+    +'</body></html>';
+  var w=window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){w.print();},500);
+}
+
+function copyReport(){
+  if(!_lastReport){ showToast('No report to copy'); return; }
+  navigator.clipboard.writeText(_lastReport).then(function(){showToast('✅ Report copied to clipboard');});
+}
+
+/* ── Utils ── */
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(function(){t.style.display='none';},3500);
+}
+
+async function workerPost(payload){
+  var r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  return r.json();
+}
+
+document.addEventListener('click',function(e){
+  var dd=document.getElementById('company-dropdown');
+  if(dd&&!dd.contains(e.target)&&e.target.id!=='company-search') dd.style.display='none';
+});
+</script>
+</body>
+</html>
