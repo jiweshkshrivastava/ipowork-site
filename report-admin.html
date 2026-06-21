@@ -507,7 +507,29 @@
     </div>
     <div class="topbar-right">
       <button class="topbar-btn btn-ghost" onclick="switchTab('reports')">All Reports</button>
+      <button class="topbar-btn btn-ghost" onclick="openJSONImport()" style="color:var(--gold);border-color:rgba(201,168,76,0.4);">⚡ Import JSON</button>
       <button class="topbar-btn btn-gold" onclick="switchTab('create')">+ New Report</button>
+    </div>
+  </div>
+
+  <!-- JSON Import Modal -->
+  <div id="json-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:8px;width:min(640px,95vw);max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:20px 24px;border-bottom:1px solid var(--cream-dark);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--navy);">⚡ Import Report JSON</div>
+          <div style="font-size:11px;color:var(--text-light);margin-top:2px;">Paste the full report JSON — all fields will be auto-filled instantly</div>
+        </div>
+        <button onclick="closeJSONImport()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);">×</button>
+      </div>
+      <div style="padding:20px 24px;flex:1;overflow-y:auto;">
+        <textarea id="json-paste-area" placeholder='Paste JSON here...' style="width:100%;height:280px;font-family:monospace;font-size:12px;padding:12px;border:1px solid var(--cream-dark);border-radius:6px;background:var(--cream);resize:vertical;outline:none;line-height:1.5;"></textarea>
+        <div id="json-error" style="color:var(--error);font-size:12px;margin-top:8px;display:none;"></div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--cream-dark);display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="closeJSONImport()" class="topbar-btn btn-ghost">Cancel</button>
+        <button onclick="loadFromJSON()" class="btn-submit" style="padding:10px 24px;">Load & Fill Form</button>
+      </div>
     </div>
   </div>
 
@@ -1395,6 +1417,138 @@ function updateRegDeductions() {
   });
   document.getElementById('reg-deduction-total').textContent = total > 0 ? `-${total}` : '0';
   document.getElementById('reg-deduction-total').style.color = total > 0 ? 'var(--error)' : 'var(--success)';
+}
+
+// ═══════════════════════════════════════════════════════
+// JSON IMPORT
+// ═══════════════════════════════════════════════════════
+function openJSONImport() {
+  const m = document.getElementById('json-modal');
+  m.style.display = 'flex';
+  setTimeout(() => document.getElementById('json-paste-area').focus(), 100);
+}
+function closeJSONImport() {
+  document.getElementById('json-modal').style.display = 'none';
+  document.getElementById('json-error').style.display = 'none';
+}
+
+function loadFromJSON() {
+  const raw = document.getElementById('json-paste-area').value.trim();
+  const errEl = document.getElementById('json-error');
+  errEl.style.display = 'none';
+  let r;
+  try { r = JSON.parse(raw); } catch(e) {
+    errEl.textContent = 'Invalid JSON — check for missing commas or brackets: ' + e.message;
+    errEl.style.display = 'block'; return;
+  }
+
+  // Company info
+  if (r.report_id)      document.getElementById('f-report-id').value      = r.report_id;
+  if (r.company_name)   document.getElementById('f-company-name').value   = r.company_name;
+  if (r.cin)            document.getElementById('f-cin').value             = r.cin;
+  if (r.sector)         document.getElementById('f-sector').value          = r.sector;
+  if (r.report_date)    document.getElementById('f-date').value            = r.report_date;
+  if (r.client_firm_name) document.getElementById('f-client-name').value  = r.client_firm_name;
+  if (r.client_logo_url)  document.getElementById('f-client-logo').value  = r.client_logo_url;
+  if (r.custom_disclaimer) document.getElementById('f-custom-disclaimer').value = r.custom_disclaimer;
+
+  // Branding mode
+  if (r.branding_mode) {
+    brandingMode = r.branding_mode;
+    document.querySelectorAll('.branding-opt').forEach(b => b.classList.remove('active'));
+    const modeBtn = r.branding_mode === 'whitelabel'
+      ? document.querySelectorAll('.branding-opt')[1]
+      : document.querySelectorAll('.branding-opt')[0];
+    if (modeBtn) modeBtn.classList.add('active');
+    document.getElementById('custom-disclaimer-row').style.display =
+      r.branding_mode === 'whitelabel' ? 'block' : 'none';
+  }
+
+  // Scores — set sliders + value displays
+  if (r.scores) {
+    PILLARS.forEach(p => {
+      const val = r.scores[p.key];
+      if (val !== undefined) {
+        const slider = document.getElementById(`slider-${p.key}`);
+        const valEl  = document.getElementById(`val-${p.key}`);
+        if (slider) slider.value = val;
+        if (valEl)  valEl.textContent = val;
+      }
+    });
+    updateScorePreview();
+  }
+
+  // Regulatory checks
+  if (r.regulatory) {
+    const REG_KEYS = ['ed','cbi','sfio','sebi','rbi','nclt','drt','tax','other'];
+    REG_KEYS.forEach(k => {
+      const reg = r.regulatory[k];
+      if (!reg) return;
+      const sel   = document.getElementById(`reg-${k}`);
+      const notes = document.getElementById(`reg-${k}-notes`);
+      if (sel   && reg.status) sel.value = reg.status;
+      if (notes && reg.notes)  notes.value = reg.notes;
+    });
+    updateRegDeductions();
+  }
+
+  // Pillar details
+  if (r.pillar_details) {
+    PILLARS.forEach(p => {
+      const d = r.pillar_details[p.key];
+      if (!d) return;
+      // Open the accordion
+      const body = document.getElementById(`pa-body-${p.key}`);
+      if (body) body.classList.add('open');
+      // Summary
+      const sumEl = document.getElementById(`pa-summary-${p.key}`);
+      if (sumEl && d.summary) sumEl.value = d.summary;
+      // Recommendation
+      const recEl = document.getElementById(`pa-rec-${p.key}`);
+      if (recEl && d.recommendation) recEl.value = d.recommendation;
+      // Flags — clear existing, add from JSON
+      if (d.flags && d.flags.length) {
+        const flagList = document.getElementById(`flags-${p.key}`);
+        if (flagList) {
+          flagList.innerHTML = '';
+          d.flags.forEach(f => {
+            const row = document.createElement('div');
+            row.className = 'flag-row';
+            row.innerHTML = `
+              <select class="flag-severity" style="padding:8px 10px;border:1px solid var(--cream-dark);border-radius:var(--radius);font-family:'Space Grotesk',sans-serif;font-size:12px;background:var(--cream);">
+                <option value="low" ${f.severity==='low'?'selected':''}>🟢 Low</option>
+                <option value="medium" ${f.severity==='medium'?'selected':''}>🟡 Medium</option>
+                <option value="high" ${f.severity==='high'?'selected':''}>🔴 High</option>
+              </select>
+              <input type="text" class="flag-text" value="${(f.text||'').replace(/"/g,'&quot;')}" style="padding:8px 12px;border:1px solid var(--cream-dark);border-radius:var(--radius);font-family:'Space Grotesk',sans-serif;font-size:13px;background:var(--cream);width:100%;outline:none;">
+              <button class="remove-flag" onclick="this.parentElement.remove()">×</button>
+            `;
+            flagList.appendChild(row);
+          });
+        }
+      }
+    });
+  }
+
+  // Verdict
+  if (r.verdict) {
+    if (r.verdict.headline) document.getElementById('f-verdict-headline').value = r.verdict.headline;
+    if (r.verdict.body)     document.getElementById('f-verdict-body').value     = r.verdict.body;
+    if (r.verdict.conditions) {
+      r.verdict.conditions.forEach((c, i) => {
+        const n = i + 1;
+        const lEl = document.getElementById(`f-c${n}-label`);
+        const tEl = document.getElementById(`f-c${n}-text`);
+        if (lEl && c.label) lEl.value = c.label;
+        if (tEl && c.text)  tEl.value = c.text;
+      });
+    }
+  }
+
+  closeJSONImport();
+  showToast('✅ Report loaded — review and publish', 'success');
+  // Scroll to top of form
+  document.getElementById('panel-create').scrollTo({top:0, behavior:'smooth'});
 }
 
 // ═══════════════════════════════════════════════════════
