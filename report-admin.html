@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRA Report Admin — ipowork</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0A1628;
+    --navy-mid: #122040;
+    --navy-light: #1E3054;
+    --gold: #C9A84C;
+    --gold-light: #E2C97E;
+    --cream: #F8F6F1;
+    --cream-dark: #EDE9E0;
+    --white: #FFFFFF;
+    --text-primary: #0A1628;
+    --text-muted: #5A6478;
+    --text-light: #8A97AE;
+    --legal: #D94F3D;
+    --forensic: #E07B39;
+    --director: #5B6AF0;
+    --financial: #1E9E6B;
+    --credit: #2AABE2;
+    --success: #1E9E6B;
+    --error: #D94F3D;
+    --radius: 6px;
+    --shadow: 0 2px 16px rgba(10,22,40,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: #F0EDE8;
+    color: var(--text-primary);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ─── AUTH GATE ─── */
+  #auth-gate {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--navy);
+  }
+  .auth-card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+    padding: 48px 40px;
+    width: 360px; text-align: center;
+  }
+  .auth-logo {
+    font-size: 20px; font-weight: 700;
+    letter-spacing: 0.15em; color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .auth-sub {
+    font-size: 11px; color: rgba(255,255,255,0.3);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+  .auth-label {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: rgba(255,255,255,0.4); margin-bottom: 10px;
+    text-align: left;
+  }
+  .auth-input {
+    width: 100%; padding: 12px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius);
+    color: white; font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; letter-spacing: 0.3em;
+    text-align: center; outline: none;
+    transition: border-color 0.2s;
+  }
+  .auth-input:focus { border-color: var(--gold); }
+  .auth-btn {
+    width: 100%; margin-top: 20px;
+    padding: 13px; border: none; border-radius: var(--radius);
+    background: var(--gold); color: var(--navy);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.1em; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .auth-btn:hover { background: var(--gold-light); }
+  .auth-error {
+    margin-top: 12px; font-size: 12px;
+    color: #f07060; display: none;
+  }
+
+  /* ─── MAIN APP ─── */
+  #app { display: none; }
+  #app.visible { display: block; }
+
+  /* Topbar */
+  .topbar {
+    background: var(--navy);
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 56px; position: sticky; top: 0; z-index: 50;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-logo {
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.15em; color: var(--gold);
+  }
+  .topbar-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.12); }
+  .topbar-title {
+    font-size: 12px; color: rgba(255,255,255,0.4);
+    letter-spacing: 0.08em;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .topbar-btn {
+    padding: 7px 16px; border-radius: var(--radius);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    letter-spacing: 0.06em; border: none;
+    transition: all 0.15s;
+  }
+  .btn-ghost {
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.3); color: white; }
+  .btn-gold {
+    background: var(--gold); color: var(--navy);
+  }
+  .btn-gold:hover { background: var(--gold-light); }
+  .btn-primary {
+    background: var(--navy); color: white;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .btn-primary:hover { background: var(--navy-light); }
+
+  /* ─── TAB NAV ─── */
+  .tab-nav {
+    background: white;
+    border-bottom: 1px solid var(--cream-dark);
+    padding: 0 32px;
+    display: flex; gap: 0;
+  }
+  .tab-btn {
+    padding: 14px 20px;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-light); cursor: pointer;
+    border: none; background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .tab-btn:hover { color: var(--text-primary); }
+  .tab-btn.active { color: var(--navy); border-bottom-color: var(--gold); }
+
+  /* ─── TAB PANELS ─── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── LAYOUT ─── */
+  .page-content { padding: 28px 32px 60px; max-width: 1100px; }
+
+  /* ─── FORM SECTIONS ─── */
+  .form-section {
+    background: white; border-radius: var(--radius);
+    border: 1px solid var(--cream-dark);
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .form-section-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--cream-dark);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .fsh-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .fsh-title { font-size: 13px; font-weight: 600; }
+  .fsh-sub { font-size: 11px; color: var(--text-light); margin-left: auto; }
+  .form-section-body { padding: 24px; }
+
+  .form-row { display: grid; gap: 16px; margin-bottom: 16px; }
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .form-row:last-child { margin-bottom: 0; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .field input, .field select, .field textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--cream-dark);
+    border-radius: var(--radius);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; color: var(--text-primary);
+    background: var(--cream);
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--gold); background: white;
+  }
+  .field textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+  .field .hint { font-size: 11px; color: var(--text-light); }
+
+  /* Score sliders */
+  .score-slider-group {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+  }
+  .score-slider-item { display: flex; flex-direction: column; gap: 8px; }
+  .ssl-header { display: flex; align-items: center; justify-content: space-between; }
+  .ssl-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .ssl-value {
+    font-size: 22px; font-weight: 700;
+    line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .ssl-weight { font-size: 10px; color: var(--text-light); }
+  input[type="range"] {
+    -webkit-appearance: none; width: 100%; height: 4px;
+    border-radius: 2px; outline: none; cursor: pointer;
+    background: var(--cream-dark);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  /* Derived score preview */
+  .derived-preview {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-top: 16px;
+    padding: 16px; background: var(--cream);
+    border-radius: var(--radius);
+  }
+  .dp-item { text-align: center; }
+  .dp-label { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-light); margin-bottom: 4px; }
+  .dp-score { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* Master score preview */
+  .master-preview {
+    display: flex; align-items: center; gap: 20px;
+    padding: 20px 24px;
+    background: var(--navy);
+    border-radius: var(--radius);
+    margin-top: 16px;
+  }
+  .mp-number {
+    font-size: 56px; font-weight: 700; color: white;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .mp-right {}
+  .mp-label { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.3); }
+  .mp-tier { font-size: 14px; font-weight: 600; margin-top: 4px; }
+
+  /* Branding toggle */
+  .branding-toggle {
+    display: flex; gap: 0; border: 1px solid var(--cream-dark);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .branding-opt {
+    flex: 1; padding: 10px 16px; cursor: pointer;
+    font-size: 12px; font-weight: 600; text-align: center;
+    background: var(--cream); color: var(--text-muted);
+    border: none; font-family: 'Space Grotesk', sans-serif;
+    transition: all 0.15s;
+  }
+  .branding-opt.active { background: var(--navy); color: white; }
+  .branding-opt + .branding-opt { border-left: 1px solid var(--cream-dark); }
+
+  /* Pillar detail accordion */
+  .pillar-accordion { display: flex; flex-direction: column; gap: 12px; }
+  .pa-item {
+    border: 1px solid var(--cream-dark);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .pa-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; cursor: pointer;
+    background: var(--cream);
+    user-select: none;
+  }
+  .pa-header:hover { background: var(--cream-dark); }
+  .pa-header-left { display: flex; align-items: center; gap: 10px; }
+  .pa-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .pa-title { font-size: 12px; font-weight: 600; }
+  .pa-score-badge {
+    font-size: 12px; font-weight: 700;
+    padding: 3px 12px; border-radius: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pa-body { padding: 18px; display: none; }
+  .pa-body.open { display: block; }
+  .pa-body .form-row { margin-bottom: 12px; }
+
+  /* Flags builder */
+  .flags-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .flag-row {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .flag-row select { width: 100px; flex-shrink: 0; }
+  .flag-row input { flex: 1; }
+  .flag-row .remove-flag {
+    background: none; border: none; cursor: pointer;
+    color: var(--error); font-size: 16px; padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .add-flag-btn {
+    font-size: 11px; font-weight: 600; color: var(--gold);
+    background: none; border: 1px dashed var(--gold);
+    border-radius: var(--radius); padding: 6px 14px;
+    cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+    transition: all 0.15s;
+  }
+  .add-flag-btn:hover { background: rgba(201,168,76,0.08); }
+
+  /* ─── REPORT LIST ─── */
+  .report-list { display: flex; flex-direction: column; gap: 12px; }
+  .report-row {
+    background: white; border-radius: var(--radius);
+    border: 1px solid var(--cream-dark);
+    padding: 18px 24px;
+    display: flex; align-items: center; gap: 20px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.15s;
+  }
+  .report-row:hover { box-shadow: 0 4px 24px rgba(10,22,40,0.12); }
+  .rr-id {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--text-light); min-width: 120px;
+  }
+  .rr-company { font-size: 14px; font-weight: 600; flex: 1; }
+  .rr-meta { font-size: 11px; color: var(--text-muted); }
+  .rr-score {
+    font-size: 20px; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 50px; text-align: center;
+  }
+  .rr-mode {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    padding: 3px 10px; border-radius: 20px;
+    text-transform: uppercase;
+  }
+  .mode-cobrand { background: rgba(91,106,240,0.1); color: #5B6AF0; }
+  .mode-whitelabel { background: rgba(201,168,76,0.1); color: #9A7A2C; }
+  .rr-actions { display: flex; gap: 8px; }
+  .rr-btn {
+    padding: 6px 12px; border-radius: var(--radius);
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif; border: none;
+    transition: all 0.15s;
+  }
+  .rr-btn-view { background: var(--cream); color: var(--navy); border: 1px solid var(--cream-dark); }
+  .rr-btn-view:hover { background: var(--cream-dark); }
+  .rr-btn-copy { background: var(--navy); color: white; }
+  .rr-btn-copy:hover { background: var(--navy-light); }
+  .rr-btn-del { background: rgba(217,79,61,0.08); color: var(--error); border: 1px solid rgba(217,79,61,0.2); }
+  .rr-btn-del:hover { background: rgba(217,79,61,0.15); }
+
+  .empty-state {
+    text-align: center; padding: 60px 40px;
+    color: var(--text-light);
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-title { font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--navy); color: white;
+    padding: 12px 24px; border-radius: 24px;
+    font-size: 13px; font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    z-index: 999;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: #1a5c42; }
+  .toast.error { background: #7a2020; }
+
+  /* ─── SUBMIT BAR ─── */
+  .submit-bar {
+    position: sticky; bottom: 0;
+    background: white; border-top: 1px solid var(--cream-dark);
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 -4px 20px rgba(10,22,40,0.06);
+    z-index: 40;
+  }
+  .submit-bar-left { font-size: 12px; color: var(--text-muted); }
+  .submit-bar-actions { display: flex; gap: 10px; }
+  .btn-submit {
+    padding: 12px 28px; border: none; border-radius: var(--radius);
+    background: var(--gold); color: var(--navy);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.06em; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-submit:hover { background: var(--gold-light); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ─── REGULATORY CHECKS ─── */
+  .reg-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .reg-item {
+    border: 1px solid var(--cream-dark);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .reg-item-header {
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--cream-dark);
+  }
+  .reg-authority {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-primary); flex: 1;
+  }
+  .reg-authority-sub {
+    font-size: 10px; color: var(--text-light);
+    font-weight: 400; text-transform: none; letter-spacing: 0;
+  }
+  .reg-item-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .reg-status-select {
+    width: 100%; padding: 8px 10px;
+    border: 1px solid var(--cream-dark); border-radius: var(--radius);
+    font-family: 'Space Grotesk', sans-serif; font-size: 12px;
+    background: var(--cream); color: var(--text-primary); outline: none;
+    cursor: pointer;
+  }
+  .reg-status-select:focus { border-color: var(--gold); }
+  .reg-notes-input {
+    width: 100%; padding: 7px 10px;
+    border: 1px solid var(--cream-dark); border-radius: var(--radius);
+    font-family: 'Space Grotesk', sans-serif; font-size: 12px;
+    background: var(--cream); color: var(--text-primary); outline: none;
+    resize: none;
+  }
+  .reg-notes-input:focus { border-color: var(--gold); background: white; }
+  .reg-deduction-preview {
+    margin-top: 16px; padding: 14px 16px;
+    background: rgba(217,79,61,0.05);
+    border: 1px solid rgba(217,79,61,0.15);
+    border-radius: var(--radius);
+    font-size: 12px; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .reg-deduction-number {
+    font-size: 22px; font-weight: 700; color: var(--error);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    .page-content { padding: 20px 16px 80px; }
+    .score-slider-group { grid-template-columns: 1fr 1fr; }
+    .derived-preview { grid-template-columns: 1fr 1fr; }
+    .form-row.cols-3, .form-row.cols-4 { grid-template-columns: 1fr 1fr; }
+    .report-row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── AUTH GATE ─── -->
+<div id="auth-gate">
+  <div class="auth-card">
+    <div class="auth-logo">IPOWORK</div>
+    <div class="auth-sub">AIRA Report Admin</div>
+    <div class="auth-label">Staff PIN</div>
+    <input type="password" class="auth-input" id="pin-input" maxlength="4" placeholder="····" inputmode="numeric">
+    <button class="auth-btn" onclick="checkPin()">Enter</button>
+    <div class="auth-error" id="auth-error">Incorrect PIN. Try again.</div>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ─── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">IPOWORK</div>
+      <div class="topbar-divider"></div>
+      <div class="topbar-title">AIRA Report Admin</div>
+    </div>
+    <div class="topbar-right">
+      <button class="topbar-btn btn-ghost" onclick="switchTab('reports')">All Reports</button>
+      <button class="topbar-btn btn-gold" onclick="switchTab('create')">+ New Report</button>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tab-create" onclick="switchTab('create')">Create Report</button>
+    <button class="tab-btn" id="tab-reports" onclick="switchTab('reports')">All Reports</button>
+  </div>
+
+  <!-- ══════════ TAB: CREATE ══════════ -->
+  <div class="tab-panel active" id="panel-create">
+    <div class="page-content">
+
+      <!-- 1. Company Info -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="fsh-dot" style="background:var(--navy);"></div>
+          <div class="fsh-title">Company Information</div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-row cols-2">
+            <div class="field">
+              <label>Company Name *</label>
+              <input type="text" id="f-company-name" placeholder="e.g. Muthoot Fincorp Limited">
+            </div>
+            <div class="field">
+              <label>CIN</label>
+              <input type="text" id="f-cin" placeholder="e.g. U65910KL1997PLC011603">
+            </div>
+          </div>
+          <div class="form-row cols-3">
+            <div class="field">
+              <label>Sector</label>
+              <input type="text" id="f-sector" placeholder="e.g. NBFC — Gold Loan">
+            </div>
+            <div class="field">
+              <label>Report Date *</label>
+              <input type="date" id="f-date">
+            </div>
+            <div class="field">
+              <label>Report ID *</label>
+              <input type="text" id="f-report-id" placeholder="e.g. RPT-2026-001">
+              <span class="hint">Auto-generated — or override manually</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Branding -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="fsh-dot" style="background:var(--gold);"></div>
+          <div class="fsh-title">Client Branding</div>
+          <div class="fsh-sub">Controls how the report appears to the client</div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-row">
+            <div class="field">
+              <label>Branding Mode</label>
+              <div class="branding-toggle">
+                <button class="branding-opt active" onclick="setBranding('cobrand', this)">Co-branded (ipowork + Client)</button>
+                <button class="branding-opt" onclick="setBranding('whitelabel', this)">White Label (Client Only)</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="field">
+              <label>Client Firm Name</label>
+              <input type="text" id="f-client-name" placeholder="e.g. Axis Capital Limited">
+            </div>
+            <div class="field">
+              <label>Client Logo URL</label>
+              <input type="url" id="f-client-logo" placeholder="https://...">
+              <span class="hint">Direct image URL — PNG/SVG on white or transparent background</span>
+            </div>
+          </div>
+          <div class="form-row" id="custom-disclaimer-row" style="display:none;">
+            <div class="field">
+              <label>Custom Disclaimer (White Label)</label>
+              <textarea id="f-custom-disclaimer" placeholder="Enter custom disclaimer text for white-label reports..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. AIRA Scores -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="fsh-dot" style="background:var(--gold);"></div>
+          <div class="fsh-title">AIRA Pillar Scores</div>
+          <div class="fsh-sub">Drag sliders or click to set each pillar score</div>
+        </div>
+        <div class="form-section-body">
+          <div class="score-slider-group" id="score-sliders"></div>
+
+          <!-- Live master score preview -->
+          <div class="master-preview">
+            <div class="mp-number" id="preview-master">—</div>
+            <div class="mp-right">
+              <div class="mp-label">AIRA Master Score</div>
+              <div class="mp-tier" id="preview-tier">Set scores above</div>
+            </div>
+          </div>
+
+          <!-- Derived scores preview -->
+          <div class="derived-preview">
+            <div class="dp-item">
+              <div class="dp-label">IPO Readiness</div>
+              <div class="dp-score" id="dp-ipo" style="color:var(--financial);">—</div>
+            </div>
+            <div class="dp-item">
+              <div class="dp-label">Debt Readiness</div>
+              <div class="dp-score" id="dp-debt" style="color:var(--credit);">—</div>
+            </div>
+            <div class="dp-item">
+              <div class="dp-label">PE / VC</div>
+              <div class="dp-score" id="dp-pe" style="color:var(--director);">—</div>
+            </div>
+            <div class="dp-item">
+              <div class="dp-label">Governance</div>
+              <div class="dp-score" id="dp-gov" style="color:var(--gold);">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Pillar Details -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="fsh-dot" style="background:var(--navy-light);"></div>
+          <div class="fsh-title">Pillar Intelligence Details</div>
+          <div class="fsh-sub">Expand each pillar to add findings, flags, and recommendations</div>
+        </div>
+        <div class="form-section-body">
+          <div class="pillar-accordion" id="pillar-accordion"></div>
+        </div>
+      </div>
+
+      <!-- 5. Regulatory & Enforcement Actions -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="fsh-dot" style="background:var(--legal);"></div>
+          <div class="fsh-title">Regulatory & Enforcement Actions</div>
+          <div class="fsh-sub">Manual check — impacts Legal pillar score automatically</div>
+        </div>
+        <div class="form-section-body">
+          <div class="reg-grid" id="reg-grid">
+
+            <!-- ED -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">ED <span class="reg-authority-sub">Enforcement Directorate</span></div>
+                  <div style="font-size:9px;color:var(--error);font-weight:600;">FEMA / PMLA · Critical</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-ed" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — No action</option>
+                  <option value="notice">🟡 Notice / Show cause issued</option>
+                  <option value="attachment">🔴 Attachment order passed</option>
+                  <option value="prosecution">🔴 Prosecution launched</option>
+                  <option value="conviction">🔴 Conviction on record</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-ed-notes" rows="2" placeholder="Case details, order date, amount involved..."></textarea>
+              </div>
+            </div>
+
+            <!-- CBI -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">CBI <span class="reg-authority-sub">Central Bureau of Investigation</span></div>
+                  <div style="font-size:9px;color:var(--error);font-weight:600;">FIR / Chargesheet · Critical</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-cbi" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — No action</option>
+                  <option value="fir">🔴 FIR registered</option>
+                  <option value="chargesheet">🔴 Chargesheet filed</option>
+                  <option value="conviction">🔴 Conviction on record</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-cbi-notes" rows="2" placeholder="Case reference, date, nature of offence..."></textarea>
+              </div>
+            </div>
+
+            <!-- SFIO -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">SFIO <span class="reg-authority-sub">Serious Fraud Investigation Office</span></div>
+                  <div style="font-size:9px;color:var(--error);font-weight:600;">Investigation / Prosecution · Critical</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-sfio" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — No action</option>
+                  <option value="investigation">🟡 Under investigation</option>
+                  <option value="prosecution">🔴 Prosecution sanction issued</option>
+                  <option value="convicted">🔴 Conviction on record</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-sfio-notes" rows="2" placeholder="Investigation order reference, date..."></textarea>
+              </div>
+            </div>
+
+            <!-- SEBI -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">SEBI <span class="reg-authority-sub">Securities & Exchange Board of India</span></div>
+                  <div style="font-size:9px;color:var(--error);font-weight:600;">Debarment / Orders · Critical</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-sebi" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — No action</option>
+                  <option value="showcause">🟡 Show cause notice issued</option>
+                  <option value="penalty">🟡 Penalty order passed</option>
+                  <option value="settlement">🟡 Settlement proceedings</option>
+                  <option value="debarred">🔴 Debarred / Restrained</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-sebi-notes" rows="2" placeholder="Order reference, date, penalty amount..."></textarea>
+              </div>
+            </div>
+
+            <!-- RBI -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">RBI <span class="reg-authority-sub">Reserve Bank of India</span></div>
+                  <div style="font-size:9px;color:var(--error);font-weight:600;">NBFC / Banking · Critical</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-rbi" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — No action</option>
+                  <option value="penalty">🟡 Penalty imposed</option>
+                  <option value="pca">🟡 Under PCA framework</option>
+                  <option value="showcause">🟡 Show cause notice</option>
+                  <option value="cancelled">🔴 Licence cancelled / Suspended</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-rbi-notes" rows="2" placeholder="Penalty amount, PCA trigger, date..."></textarea>
+              </div>
+            </div>
+
+            <!-- NCLT / NCLAT -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">NCLT / NCLAT <span class="reg-authority-sub">Insolvency Tribunal</span></div>
+                  <div style="font-size:9px;color:var(--error);font-weight:600;">IBC Proceedings · High</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-nclt" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — No petition</option>
+                  <option value="filed">🟡 Petition filed (not admitted)</option>
+                  <option value="admitted">🔴 Petition admitted — CIRP initiated</option>
+                  <option value="liquidation">🔴 Liquidation ordered</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-nclt-notes" rows="2" placeholder="Petitioner, claim amount, current status..."></textarea>
+              </div>
+            </div>
+
+            <!-- DRT -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">DRT / DRAT <span class="reg-authority-sub">Debt Recovery Tribunal</span></div>
+                  <div style="font-size:9px;color:var(--forensic);font-weight:600;">Debt Recovery · High</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-drt" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — No proceedings</option>
+                  <option value="filed">🟡 OA / DRT application filed</option>
+                  <option value="decree">🟡 Recovery certificate issued</option>
+                  <option value="attachment">🔴 Property attachment ordered</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-drt-notes" rows="2" placeholder="Lender, claimed amount, current stage..."></textarea>
+              </div>
+            </div>
+
+            <!-- IT / GST -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">Income Tax / GST <span class="reg-authority-sub">Revenue Authorities</span></div>
+                  <div style="font-size:9px;color:var(--forensic);font-weight:600;">Demand / Raid · Medium</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-tax" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — Routine assessments only</option>
+                  <option value="demand">🟡 Major demand order (>₹1 Cr)</option>
+                  <option value="survey">🟡 Survey / search conducted</option>
+                  <option value="raid">🔴 Raid — prosecution pending</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-tax-notes" rows="2" placeholder="AY, demand amount, current appeal status..."></textarea>
+              </div>
+            </div>
+
+            <!-- SAT / Other -->
+            <div class="reg-item">
+              <div class="reg-item-header">
+                <div>
+                  <div class="reg-authority">SAT / Other <span class="reg-authority-sub">Other Regulatory Authorities</span></div>
+                  <div style="font-size:9px;color:var(--text-light);font-weight:600;">SAT / MCA / ROC / EPFO · Medium</div>
+                </div>
+              </div>
+              <div class="reg-item-body">
+                <select class="reg-status-select" id="reg-other" onchange="updateRegDeductions()">
+                  <option value="clean">✅ Clean — No material action</option>
+                  <option value="mca">🟡 MCA / ROC compounding / strike-off notice</option>
+                  <option value="sat">🟡 SAT appeal pending</option>
+                  <option value="epfo">🟢 EPFO / ESIC non-compliance</option>
+                  <option value="other">🟡 Other regulatory action</option>
+                </select>
+                <textarea class="reg-notes-input" id="reg-other-notes" rows="2" placeholder="Authority name, action type, details..."></textarea>
+              </div>
+            </div>
+
+          </div><!-- /reg-grid -->
+
+          <!-- Score impact preview -->
+          <div class="reg-deduction-preview">
+            <div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-light);margin-bottom:4px;">Legal Pillar Score Impact</div>
+              <div style="font-size:12px;color:var(--text-muted);">Regulatory deductions are automatically applied to the Legal pillar score when you publish.</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px;color:var(--text-light);margin-bottom:2px;">Points deducted</div>
+              <div class="reg-deduction-number" id="reg-deduction-total">0</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 6. Verdict -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="fsh-dot" style="background:var(--navy);"></div>
+          <div class="fsh-title">AIRA Verdict</div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-row">
+            <div class="field">
+              <label>Verdict Headline *</label>
+              <input type="text" id="f-verdict-headline" placeholder="e.g. Conditionally Ready — Moderate Risk Profile with Strong Capital Markets Appeal">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label>Verdict Body *</label>
+              <textarea id="f-verdict-body" style="min-height:120px;" placeholder="Overall assessment narrative..."></textarea>
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="field">
+              <label>Condition 1 Label</label>
+              <input type="text" id="f-c1-label" placeholder="e.g. For AIF Distribution (80+)">
+            </div>
+            <div class="field">
+              <label>Condition 1 Text</label>
+              <input type="text" id="f-c1-text" placeholder="e.g. Resolve NCLT matters and achieve ROE > 15%">
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="field">
+              <label>Condition 2 Label</label>
+              <input type="text" id="f-c2-label" placeholder="e.g. For Family Office (75+)">
+            </div>
+            <div class="field">
+              <label>Condition 2 Text</label>
+              <input type="text" id="f-c2-text" placeholder="">
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="field">
+              <label>Condition 3 Label</label>
+              <input type="text" id="f-c3-label" placeholder="e.g. Current Advisory Path">
+            </div>
+            <div class="field">
+              <label>Condition 3 Text</label>
+              <input type="text" id="f-c3-text" placeholder="">
+            </div>
+          </div>
+          <div class="form-row cols-2">
+            <div class="field">
+              <label>Condition 4 Label</label>
+              <input type="text" id="f-c4-label" placeholder="e.g. Key Monitoring Trigger">
+            </div>
+            <div class="field">
+              <label>Condition 4 Text</label>
+              <input type="text" id="f-c4-text" placeholder="">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+
+    <!-- Submit bar -->
+    <div class="submit-bar">
+      <div class="submit-bar-left" id="submit-status">Fill in company name, scores, and verdict to publish.</div>
+      <div class="submit-bar-actions">
+        <button class="topbar-btn btn-ghost" onclick="previewReport()">Preview</button>
+        <button class="btn-submit" id="submit-btn" onclick="submitReport()">Publish Report →</button>
+      </div>
+    </div>
+
+  </div><!-- /panel-create -->
+
+  <!-- ══════════ TAB: ALL REPORTS ══════════ -->
+  <div class="tab-panel" id="panel-reports">
+    <div class="page-content">
+      <div id="reports-list-container">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <div class="empty-title">Loading reports...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+const ADMIN_PIN = '1234';
+const REPORT_VIEWER_BASE = 'https://www.ipowork.com/report-viewer.html?id=';
+
+const PILLARS = [
+  { key: 'legal',     label: 'Legal',     weight: 25, color: '#D94F3D', icon: '⚖️' },
+  { key: 'forensic',  label: 'Forensic',  weight: 20, color: '#E07B39', icon: '🔬' },
+  { key: 'director',  label: 'Director',  weight: 20, color: '#5B6AF0', icon: '👤' },
+  { key: 'financial', label: 'Financial', weight: 25, color: '#1E9E6B', icon: '📊' },
+  { key: 'credit',    label: 'Credit',    weight: 10, color: '#2AABE2', icon: '🏦' }
+];
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+function checkPin() {
+  const pin = document.getElementById('pin-input').value;
+  if (pin === ADMIN_PIN) {
+    document.getElementById('auth-gate').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } else {
+    document.getElementById('auth-error').style.display = 'block';
+    document.getElementById('pin-input').value = '';
+  }
+}
+document.getElementById('pin-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPin();
+});
+
+// ═══════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  if (tab === 'reports') loadReports();
+}
+
+// ═══════════════════════════════════════════════════════
+// SCORE HELPERS
+// ═══════════════════════════════════════════════════════
+function getScores() {
+  const s = {};
+  PILLARS.forEach(p => {
+    s[p.key] = parseInt(document.getElementById(`slider-${p.key}`)?.value || 0);
+  });
+  return s;
+}
+function computeMaster(s) {
+  return Math.round((s.legal*0.25)+(s.forensic*0.20)+(s.director*0.20)+(s.financial*0.25)+(s.credit*0.10));
+}
+function scoreColor(v) {
+  if (v >= 80) return '#1E9E6B';
+  if (v >= 70) return '#C9A84C';
+  if (v >= 60) return '#E07B39';
+  return '#D94F3D';
+}
+function tierLabel(v) {
+  if (v >= 80) return '🏦 AIF Distribution Ready';
+  if (v >= 75) return '🏠 Family Office Ready';
+  if (v >= 70) return '📋 Advisory Pipeline';
+  return '⚠️ Remediation Required';
+}
+
+function updateScorePreview() {
+  const s = getScores();
+  const master = computeMaster(s);
+  const ipo  = Math.round((s.legal*0.25)+(s.financial*0.35)+(s.director*0.25)+(s.forensic*0.15));
+  const debt = Math.round((s.credit*0.35)+(s.financial*0.35)+(s.legal*0.20)+(s.forensic*0.10));
+  const pe   = Math.round((s.financial*0.30)+(s.director*0.30)+(s.forensic*0.25)+(s.legal*0.15));
+  const gov  = Math.round((s.director*0.40)+(s.legal*0.30)+(s.forensic*0.30));
+
+  const mn = document.getElementById('preview-master');
+  mn.textContent = master;
+  mn.style.color = scoreColor(master);
+  document.getElementById('preview-tier').textContent = tierLabel(master);
+  document.getElementById('preview-tier').style.color = scoreColor(master);
+  document.getElementById('dp-ipo').textContent  = ipo;
+  document.getElementById('dp-debt').textContent = debt;
+  document.getElementById('dp-pe').textContent   = pe;
+  document.getElementById('dp-gov').textContent  = gov;
+
+  // Update pillar badge colors in accordion
+  PILLARS.forEach(p => {
+    const badge = document.getElementById(`pa-badge-${p.key}`);
+    if (badge) {
+      badge.textContent = `${s[p.key]} / 100`;
+      const c = scoreColor(s[p.key]);
+      badge.style.color = c;
+      badge.style.background = `${c}18`;
+      badge.style.border = `1px solid ${c}40`;
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// BUILD SCORE SLIDERS
+// ═══════════════════════════════════════════════════════
+function buildSliders() {
+  const container = document.getElementById('score-sliders');
+  container.innerHTML = '';
+  PILLARS.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'score-slider-item';
+    div.innerHTML = `
+      <div class="ssl-header">
+        <div>
+          <div class="ssl-label">${p.icon} ${p.label}</div>
+          <div class="ssl-weight">${p.weight}% weight</div>
+        </div>
+        <div class="ssl-value" id="val-${p.key}" style="color:${p.color};">50</div>
+      </div>
+      <input type="range" id="slider-${p.key}" min="0" max="100" value="50"
+        style="accent-color:${p.color};"
+        oninput="document.getElementById('val-${p.key}').textContent=this.value; updateScorePreview();">
+    `;
+    container.appendChild(div);
+  });
+  updateScorePreview();
+}
+
+// ═══════════════════════════════════════════════════════
+// BUILD PILLAR ACCORDION
+// ═══════════════════════════════════════════════════════
+function buildPillarAccordion() {
+  const container = document.getElementById('pillar-accordion');
+  container.innerHTML = '';
+  PILLARS.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'pa-item';
+    div.innerHTML = `
+      <div class="pa-header" onclick="togglePA('${p.key}')">
+        <div class="pa-header-left">
+          <div class="pa-dot" style="background:${p.color};"></div>
+          <div class="pa-title">${p.icon} ${p.label} Intelligence</div>
+        </div>
+        <div class="pa-score-badge" id="pa-badge-${p.key}" style="color:${p.color};background:${p.color}18;border:1px solid ${p.color}40;">50 / 100</div>
+      </div>
+      <div class="pa-body" id="pa-body-${p.key}">
+        <div class="form-row">
+          <div class="field">
+            <label>Assessment Summary</label>
+            <textarea id="pa-summary-${p.key}" rows="4" placeholder="Write the assessment summary for this pillar..."></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Risk Flags</label>
+            <div class="flags-list" id="flags-${p.key}"></div>
+            <button class="add-flag-btn" onclick="addFlag('${p.key}')">+ Add Flag</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Analyst Recommendation</label>
+            <textarea id="pa-rec-${p.key}" rows="2" placeholder="Specific remediation or monitoring recommendation..."></textarea>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(div);
+    // Add one default flag row
+    addFlag(p.key);
+  });
+}
+
+function togglePA(key) {
+  const body = document.getElementById(`pa-body-${key}`);
+  body.classList.toggle('open');
+}
+
+function addFlag(pillarKey) {
+  const list = document.getElementById(`flags-${pillarKey}`);
+  const row = document.createElement('div');
+  row.className = 'flag-row';
+  row.innerHTML = `
+    <select class="flag-severity" style="padding:8px 10px;border:1px solid var(--cream-dark);border-radius:var(--radius);font-family:'Space Grotesk',sans-serif;font-size:12px;background:var(--cream);">
+      <option value="low">🟢 Low</option>
+      <option value="medium" selected>🟡 Medium</option>
+      <option value="high">🔴 High</option>
+    </select>
+    <input type="text" class="flag-text" placeholder="Describe the risk flag..." style="padding:8px 12px;border:1px solid var(--cream-dark);border-radius:var(--radius);font-family:'Space Grotesk',sans-serif;font-size:13px;background:var(--cream);width:100%;outline:none;">
+    <button class="remove-flag" onclick="this.parentElement.remove()">×</button>
+  `;
+  list.appendChild(row);
+}
+
+function getFlags(pillarKey) {
+  const rows = document.querySelectorAll(`#flags-${pillarKey} .flag-row`);
+  const flags = [];
+  rows.forEach(r => {
+    const text = r.querySelector('.flag-text').value.trim();
+    if (text) flags.push({ severity: r.querySelector('.flag-severity').value, text });
+  });
+  return flags;
+}
+
+// ═══════════════════════════════════════════════════════
+// BRANDING MODE
+// ═══════════════════════════════════════════════════════
+let brandingMode = 'cobrand';
+function setBranding(mode, btn) {
+  brandingMode = mode;
+  document.querySelectorAll('.branding-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('custom-disclaimer-row').style.display = mode === 'whitelabel' ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════
+// GENERATE REPORT ID
+// ═══════════════════════════════════════════════════════
+function generateReportId() {
+  const year = new Date().getFullYear();
+  const rand = Math.floor(Math.random() * 900) + 100;
+  return `RPT-${year}-${rand}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// BUILD REPORT OBJECT FROM FORM
+// ═══════════════════════════════════════════════════════
+function buildReportObject() {
+  const scores = getScores();
+  const conditions = [];
+  for (let i = 1; i <= 4; i++) {
+    const label = document.getElementById(`f-c${i}-label`).value.trim();
+    const text  = document.getElementById(`f-c${i}-text`).value.trim();
+    if (label && text) conditions.push({ label, text });
+  }
+  const pillarDetails = {};
+  PILLARS.forEach(p => {
+    pillarDetails[p.key] = {
+      summary: document.getElementById(`pa-summary-${p.key}`).value.trim(),
+      flags: getFlags(p.key),
+      recommendation: document.getElementById(`pa-rec-${p.key}`).value.trim(),
+      breakdown: []
+    };
+  });
+
+  // Collect regulatory checks
+  const REG_KEYS = ['ed','cbi','sfio','sebi','rbi','nclt','drt','tax','other'];
+  const regulatory = {};
+  REG_KEYS.forEach(k => {
+    regulatory[k] = {
+      status: document.getElementById(`reg-${k}`)?.value || 'clean',
+      notes: document.getElementById(`reg-${k}-notes`)?.value.trim() || ''
+    };
+  });
+
+  return {
+    report_id: document.getElementById('f-report-id').value.trim(),
+    company_name: document.getElementById('f-company-name').value.trim(),
+    cin: document.getElementById('f-cin').value.trim(),
+    sector: document.getElementById('f-sector').value.trim(),
+    report_date: document.getElementById('f-date').value,
+    branding_mode: brandingMode,
+    client_firm_name: document.getElementById('f-client-name').value.trim(),
+    client_logo_url: document.getElementById('f-client-logo').value.trim(),
+    custom_disclaimer: document.getElementById('f-custom-disclaimer').value.trim(),
+    scores,
+    pillar_details: pillarDetails,
+    regulatory,
+    verdict: {
+      headline: document.getElementById('f-verdict-headline').value.trim(),
+      body: document.getElementById('f-verdict-body').value.trim(),
+      conditions
+    },
+    created_at: new Date().toISOString()
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE HELPERS
+// ═══════════════════════════════════════════════════════
+async function supabaseInsert(report) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/reports`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(report)
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  return await res.json();
+}
+
+async function supabaseFetchAll() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/reports?select=report_id,company_name,sector,report_date,branding_mode,client_firm_name,scores,created_at&order=created_at.desc`, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  });
+  if (!res.ok) throw new Error('Failed to load reports');
+  return await res.json();
+}
+
+async function supabaseDelete(reportId) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/reports?report_id=eq.${encodeURIComponent(reportId)}`, {
+    method: 'DELETE',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  });
+  if (!res.ok) throw new Error('Delete failed');
+}
+
+// ═══════════════════════════════════════════════════════
+// SUBMIT
+// ═══════════════════════════════════════════════════════
+async function submitReport() {
+  const report = buildReportObject();
+  if (!report.company_name) return showToast('Company name is required', 'error');
+  if (!report.report_id)    return showToast('Report ID is required', 'error');
+  if (!report.report_date)  return showToast('Report date is required', 'error');
+  if (!report.verdict.headline) return showToast('Verdict headline is required', 'error');
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Publishing...';
+  document.getElementById('submit-status').textContent = 'Saving to Supabase...';
+
+  try {
+    await supabaseInsert(report);
+    const url = REPORT_VIEWER_BASE + report.report_id;
+    document.getElementById('submit-status').innerHTML = `✅ Published! <a href="${url}" target="_blank" style="color:var(--gold);">${url}</a>`;
+    showToast('Report published successfully!', 'success');
+    copyToClipboard(url);
+    btn.textContent = '✓ Published';
+    setTimeout(() => { btn.disabled = false; btn.textContent = 'Publish Report →'; }, 3000);
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+    document.getElementById('submit-status').textContent = 'Publish failed — check console.';
+    btn.disabled = false;
+    btn.textContent = 'Publish Report →';
+  }
+}
+
+function previewReport() {
+  const id = document.getElementById('f-report-id').value.trim() || 'DEMO';
+  window.open(REPORT_VIEWER_BASE + id, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════
+// LOAD REPORTS LIST
+// ═══════════════════════════════════════════════════════
+async function loadReports() {
+  const container = document.getElementById('reports-list-container');
+  container.innerHTML = `<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-title">Loading...</div></div>`;
+  try {
+    const rows = await supabaseFetchAll();
+    if (!rows.length) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No reports yet</div><div>Create your first AIRA report using the form.</div></div>`;
+      return;
+    }
+    container.innerHTML = '<div class="report-list" id="report-list"></div>';
+    const list = document.getElementById('report-list');
+    rows.forEach(r => {
+      const scores = r.scores || {};
+      const master = Math.round((scores.legal||0)*0.25+(scores.forensic||0)*0.20+(scores.director||0)*0.20+(scores.financial||0)*0.25+(scores.credit||0)*0.10);
+      const d = r.report_date ? new Date(r.report_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+      const row = document.createElement('div');
+      row.className = 'report-row';
+      row.innerHTML = `
+        <div class="rr-id">${r.report_id}</div>
+        <div>
+          <div class="rr-company">${r.company_name}</div>
+          <div class="rr-meta">${r.sector || '—'} · ${d}${r.client_firm_name ? ' · ' + r.client_firm_name : ''}</div>
+        </div>
+        <div class="rr-score" style="color:${scoreColor(master)};">${master}</div>
+        <div class="rr-mode mode-${r.branding_mode || 'cobrand'}">${r.branding_mode === 'whitelabel' ? 'White Label' : 'Co-brand'}</div>
+        <div class="rr-actions">
+          <button class="rr-btn rr-btn-view" onclick="window.open('${REPORT_VIEWER_BASE}${r.report_id}','_blank')">View</button>
+          <button class="rr-btn rr-btn-copy" onclick="copyToClipboard('${REPORT_VIEWER_BASE}${r.report_id}'); showToast('Link copied!','success')">Copy Link</button>
+          <button class="rr-btn rr-btn-del" onclick="deleteReport('${r.report_id}', this)">Delete</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+  } catch(e) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Failed to load reports</div><div>${e.message}</div></div>`;
+  }
+}
+
+async function deleteReport(reportId, btn) {
+  if (!confirm(`Delete report ${reportId}? This cannot be undone.`)) return;
+  btn.textContent = '...';
+  try {
+    await supabaseDelete(reportId);
+    btn.closest('.report-row').remove();
+    showToast('Report deleted', 'success');
+  } catch(e) {
+    showToast('Delete failed', 'error');
+    btn.textContent = 'Delete';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = text; document.body.appendChild(el);
+    el.select(); document.execCommand('copy');
+    document.body.removeChild(el);
+  });
+}
+
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ═══════════════════════════════════════════════════════
+// REGULATORY DEDUCTION CALCULATOR
+// ═══════════════════════════════════════════════════════
+const REG_DEDUCTIONS = {
+  ed:   { notice: 10, attachment: 25, prosecution: 35, conviction: 40 },
+  cbi:  { fir: 25, chargesheet: 35, conviction: 40 },
+  sfio: { investigation: 15, prosecution: 30, convicted: 40 },
+  sebi: { showcause: 5, penalty: 10, settlement: 8, debarred: 20 },
+  rbi:  { penalty: 8, pca: 12, showcause: 5, cancelled: 35 },
+  nclt: { filed: 8, admitted: 20, liquidation: 40 },
+  drt:  { filed: 5, decree: 8, attachment: 15 },
+  tax:  { demand: 5, survey: 8, raid: 15 },
+  other:{ mca: 5, sat: 3, epfo: 2, other: 5 }
+};
+
+function updateRegDeductions() {
+  const REG_KEYS = ['ed','cbi','sfio','sebi','rbi','nclt','drt','tax','other'];
+  let total = 0;
+  REG_KEYS.forEach(k => {
+    const val = document.getElementById(`reg-${k}`)?.value || 'clean';
+    if (val !== 'clean') total += (REG_DEDUCTIONS[k]?.[val] || 0);
+  });
+  document.getElementById('reg-deduction-total').textContent = total > 0 ? `-${total}` : '0';
+  document.getElementById('reg-deduction-total').style.color = total > 0 ? 'var(--error)' : 'var(--success)';
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function initApp() {
+  // Set default date to today
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  // Auto-generate report ID
+  document.getElementById('f-report-id').value = generateReportId();
+  buildSliders();
+  buildPillarAccordion();
+}
+</script>
+</body>
+</html>

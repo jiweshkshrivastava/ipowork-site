@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRA Intelligence Report — ipowork</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0A1628;
+    --navy-mid: #122040;
+    --navy-light: #1E3054;
+    --gold: #C9A84C;
+    --gold-light: #E2C97E;
+    --cream: #F8F6F1;
+    --cream-dark: #EDE9E0;
+    --text-primary: #0A1628;
+    --text-muted: #5A6478;
+    --text-light: #8A97AE;
+
+    /* Pillar colors */
+    --legal: #D94F3D;
+    --forensic: #E07B39;
+    --director: #5B6AF0;
+    --financial: #1E9E6B;
+    --credit: #2AABE2;
+
+    --radius: 4px;
+    --shadow: 0 2px 20px rgba(10,22,40,0.08);
+    --shadow-lg: 0 8px 40px rgba(10,22,40,0.14);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--cream);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── LOADING STATE ─── */
+  #loading-screen {
+    position: fixed; inset: 0;
+    background: var(--navy);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.5s ease;
+  }
+  #loading-screen.hidden { opacity: 0; pointer-events: none; }
+  .loading-logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 22px; font-weight: 700;
+    color: var(--gold); letter-spacing: 0.1em;
+    margin-bottom: 32px;
+  }
+  .loading-bar-wrap {
+    width: 200px; height: 2px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px; overflow: hidden;
+  }
+  .loading-bar-fill {
+    height: 100%; background: var(--gold);
+    animation: loadFill 1.4s ease forwards;
+  }
+  @keyframes loadFill { from { width: 0; } to { width: 100%; } }
+  .loading-label {
+    margin-top: 16px;
+    font-size: 11px; color: rgba(255,255,255,0.4);
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+
+  /* ─── ERROR STATE ─── */
+  #error-screen {
+    display: none;
+    min-height: 100vh;
+    align-items: center; justify-content: center; flex-direction: column;
+    background: var(--cream);
+    text-align: center; padding: 40px;
+  }
+  #error-screen.visible { display: flex; }
+  .error-icon { font-size: 48px; margin-bottom: 16px; }
+  .error-title { font-size: 22px; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
+  .error-msg { color: var(--text-muted); font-size: 14px; }
+
+  /* ─── MAIN REPORT (hidden until loaded) ─── */
+  #report-main { display: none; }
+  #report-main.visible { display: block; }
+
+  /* ─── HEADER BAND ─── */
+  .report-header {
+    background: var(--navy);
+    color: white;
+    padding: 0;
+  }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .brand-left { display: flex; align-items: center; gap: 16px; }
+  .client-logo-wrap img {
+    height: 36px; max-width: 160px;
+    object-fit: contain; filter: brightness(0) invert(1);
+  }
+  .brand-divider {
+    width: 1px; height: 28px;
+    background: rgba(255,255,255,0.2);
+  }
+  .ipowork-brand {
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.12em; color: var(--gold);
+    text-transform: uppercase;
+  }
+  .ipowork-brand.hidden { display: none; }
+  .report-id-badge {
+    font-size: 11px; font-weight: 500;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Company identity zone */
+  .header-identity {
+    padding: 36px 40px 32px;
+  }
+  .report-type-eyebrow {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 10px;
+  }
+  .company-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px, 4vw, 40px);
+    font-weight: 700; color: white;
+    line-height: 1.15; margin-bottom: 8px;
+  }
+  .company-meta {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    font-size: 12px; color: rgba(255,255,255,0.5);
+  }
+  .company-meta span { display: flex; align-items: center; gap: 5px; }
+  .company-meta .dot {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+  }
+
+  /* Report date + confidential strip */
+  .header-footer-strip {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 40px;
+    background: rgba(0,0,0,0.25);
+    font-size: 11px; color: rgba(255,255,255,0.35);
+    letter-spacing: 0.08em;
+  }
+  .confidential-tag {
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.3);
+    color: var(--gold-light);
+    padding: 3px 10px; border-radius: 2px;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+
+  /* ─── SCORE DASHBOARD ─── */
+  .score-dashboard {
+    background: var(--navy-mid);
+    padding: 40px;
+  }
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+
+  /* Master score ring area */
+  .master-score-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px;
+  }
+  .score-ring-svg { position: relative; }
+  .score-ring-bg { fill: none; stroke: rgba(255,255,255,0.06); }
+  .score-ring-fill {
+    fill: none;
+    stroke-linecap: round;
+    stroke-dasharray: 565;
+    stroke-dashoffset: 565;
+    transition: stroke-dashoffset 1.8s cubic-bezier(0.4,0,0.2,1) 0.3s;
+  }
+  .score-ring-text-wrap {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .master-score-number {
+    font-size: 52px; font-weight: 700;
+    color: white; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .master-score-label {
+    font-size: 10px; color: rgba(255,255,255,0.4);
+    letter-spacing: 0.15em; text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .master-score-tag {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 14px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+  .tag-green { background: rgba(30,158,107,0.2); color: #4ecfa0; border: 1px solid rgba(30,158,107,0.3); }
+  .tag-amber { background: rgba(224,123,57,0.2); color: #f5a464; border: 1px solid rgba(224,123,57,0.3); }
+  .tag-red   { background: rgba(217,79,61,0.2);  color: #f07060; border: 1px solid rgba(217,79,61,0.3);  }
+
+  /* Derived scores */
+  .derived-scores {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .derived-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .derived-card-label {
+    font-size: 10px; color: rgba(255,255,255,0.4);
+    letter-spacing: 0.14em; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .derived-card-score {
+    font-size: 32px; font-weight: 700;
+    color: white; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .derived-card-sub {
+    font-size: 10px; margin-top: 4px;
+  }
+  .derived-bar {
+    margin-top: 10px; height: 3px;
+    background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden;
+  }
+  .derived-bar-fill {
+    height: 100%; border-radius: 2px;
+    width: 0; transition: width 1.5s ease 0.8s;
+  }
+
+  /* ─── PILLAR SCORES STRIP ─── */
+  .pillar-strip {
+    padding: 32px 40px;
+    background: white;
+    border-bottom: 1px solid var(--cream-dark);
+  }
+  .section-eyebrow {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-light); margin-bottom: 20px;
+  }
+  .pillars-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+  }
+  .pillar-card {
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--cream);
+    border: 1px solid var(--cream-dark);
+  }
+  .pillar-card-top {
+    padding: 14px 16px 10px;
+  }
+  .pillar-icon {
+    font-size: 18px; margin-bottom: 6px;
+  }
+  .pillar-name {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 4px;
+  }
+  .pillar-weight {
+    font-size: 10px; color: var(--text-light);
+  }
+  .pillar-score-row {
+    display: flex; align-items: baseline; gap: 4px;
+    margin-top: 8px;
+  }
+  .pillar-score-num {
+    font-size: 30px; font-weight: 700;
+    line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .pillar-score-denom {
+    font-size: 12px; color: var(--text-light);
+  }
+  .pillar-bar-wrap {
+    height: 4px; background: var(--cream-dark);
+  }
+  .pillar-bar-fill {
+    height: 100%; width: 0;
+    transition: width 1.4s cubic-bezier(0.4,0,0.2,1) 0.5s;
+  }
+
+  /* ─── ACCESS TIER BADGE ─── */
+  .tier-banner {
+    margin: 24px 40px;
+    padding: 16px 24px;
+    border-radius: var(--radius);
+    display: flex; align-items: center; gap: 16px;
+    border-left: 4px solid;
+  }
+  .tier-banner.tier-aif {
+    background: rgba(30,158,107,0.08);
+    border-color: #1E9E6B;
+  }
+  .tier-banner.tier-fo {
+    background: rgba(91,106,240,0.08);
+    border-color: #5B6AF0;
+  }
+  .tier-banner.tier-advisory {
+    background: rgba(224,123,57,0.08);
+    border-color: #E07B39;
+  }
+  .tier-banner.tier-watch {
+    background: rgba(217,79,61,0.08);
+    border-color: #D94F3D;
+  }
+  .tier-icon { font-size: 24px; }
+  .tier-text h4 { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .tier-text p { font-size: 12px; color: var(--text-muted); }
+
+  /* ─── PILLAR DEEP-DIVE SECTIONS ─── */
+  .report-body { padding: 0 40px 60px; }
+
+  .pillar-section {
+    margin-top: 32px;
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--cream-dark);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .pillar-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 28px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .pillar-section-header:hover { background: var(--cream); }
+  .pillar-header-left {
+    display: flex; align-items: center; gap: 14px;
+  }
+  .pillar-color-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .pillar-section-title {
+    font-size: 14px; font-weight: 600;
+  }
+  .pillar-section-weight {
+    font-size: 11px; color: var(--text-light);
+    margin-left: 8px;
+  }
+  .pillar-section-score-badge {
+    font-size: 13px; font-weight: 700;
+    padding: 5px 16px; border-radius: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+  .pillar-section-body {
+    padding: 0 28px 28px;
+    border-top: 1px solid var(--cream-dark);
+  }
+  .pillar-section-body.collapsed { display: none; }
+
+  .findings-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px; margin-top: 20px;
+  }
+  .finding-block {}
+  .finding-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-light); margin-bottom: 8px;
+  }
+  .finding-text {
+    font-size: 13px; color: var(--text-primary);
+    line-height: 1.65;
+  }
+  .finding-text.full-width { grid-column: 1/-1; }
+
+  .flag-list { list-style: none; margin-top: 6px; }
+  .flag-list li {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 12px; color: var(--text-primary);
+    padding: 6px 0; border-bottom: 1px solid var(--cream-dark);
+  }
+  .flag-list li:last-child { border-bottom: none; }
+  .flag-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+
+  .score-breakdown-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--cream-dark);
+    font-size: 12px;
+  }
+  .score-breakdown-row:last-child { border-bottom: none; }
+  .sbd-label { flex: 1; color: var(--text-muted); }
+  .sbd-value { font-weight: 600; min-width: 60px; text-align: right; }
+  .sbd-bar { flex: 2; height: 4px; background: var(--cream-dark); border-radius: 2px; overflow: hidden; }
+  .sbd-bar-inner { height: 100%; border-radius: 2px; }
+
+  .pillar-recommendation {
+    margin-top: 20px;
+    padding: 16px 18px;
+    background: var(--cream);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--gold);
+  }
+  .pillar-recommendation .rec-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 6px;
+  }
+  .pillar-recommendation p { font-size: 12px; color: var(--text-primary); line-height: 1.6; }
+
+  /* ─── VERDICT ─── */
+  .verdict-section {
+    margin: 32px 0 0;
+    background: var(--navy);
+    border-radius: var(--radius);
+    padding: 36px;
+    color: white;
+  }
+  .verdict-eyebrow {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 16px;
+  }
+  .verdict-headline {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 700; line-height: 1.3;
+    margin-bottom: 16px;
+  }
+  .verdict-body {
+    font-size: 13px; color: rgba(255,255,255,0.65);
+    line-height: 1.75; max-width: 720px;
+  }
+  .verdict-conditions {
+    margin-top: 24px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .verdict-condition-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .vc-label {
+    font-size: 10px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.3);
+    margin-bottom: 6px;
+  }
+  .vc-text { font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+
+  /* ─── DISCLAIMER & FOOTER ─── */
+  .report-footer {
+    margin-top: 40px;
+    padding: 24px 40px 40px;
+    border-top: 1px solid var(--cream-dark);
+  }
+  .disclaimer {
+    font-size: 10px; color: var(--text-light);
+    line-height: 1.7; max-width: 800px;
+  }
+  .footer-bottom {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 20px;
+  }
+  .footer-ipowork {
+    font-size: 12px; font-weight: 700;
+    color: var(--navy); letter-spacing: 0.1em;
+  }
+  .footer-ipowork.hidden { display: none; }
+  .footer-tagline { font-size: 11px; color: var(--text-light); }
+
+  /* ─── PRINT BUTTON ─── */
+  .print-fab {
+    position: fixed; bottom: 30px; right: 30px;
+    background: var(--navy); color: white;
+    border: none; border-radius: 28px;
+    padding: 13px 24px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px; font-weight: 600;
+    letter-spacing: 0.08em; cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    display: flex; align-items: center; gap: 8px;
+    z-index: 100;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .print-fab:hover { background: var(--navy-light); transform: translateY(-1px); }
+
+  /* ─── REGULATORY ENFORCEMENT BLOCK ─── */
+  .reg-enforcement-block {
+    margin-top: 20px;
+    border: 1px solid rgba(217,79,61,0.2);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .reb-header {
+    background: rgba(217,79,61,0.06);
+    padding: 12px 18px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid rgba(217,79,61,0.15);
+  }
+  .reb-header-title {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--legal);
+  }
+  .reb-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+  }
+  .reb-item {
+    padding: 12px 16px;
+    border-right: 1px solid var(--cream-dark);
+    border-bottom: 1px solid var(--cream-dark);
+  }
+  .reb-item:nth-child(3n) { border-right: none; }
+  .reb-authority {
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 5px;
+  }
+  .reb-status {
+    font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .reb-status.clean { color: var(--financial); }
+  .reb-status.flag  { color: var(--forensic); }
+  .reb-status.critical { color: var(--legal); }
+  .reb-notes {
+    font-size: 11px; color: var(--text-muted);
+    margin-top: 4px; line-height: 1.5;
+  }
+
+  /* ─── PRINT STYLES ─── */
+  @media print {
+    .print-fab { display: none; }
+    #loading-screen { display: none; }
+    body { background: white; }
+    .report-header { background: var(--navy) !important; -webkit-print-color-adjust: exact; }
+    .score-dashboard { background: var(--navy-mid) !important; -webkit-print-color-adjust: exact; }
+    .pillar-section { break-inside: avoid; }
+    .verdict-section { break-inside: avoid; -webkit-print-color-adjust: exact; }
+    @page { margin: 0; size: A4; }
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    .header-top, .header-identity, .header-footer-strip,
+    .score-dashboard, .pillar-strip, .report-body, .report-footer { padding-left: 20px; padding-right: 20px; }
+    .tier-banner { margin-left: 20px; margin-right: 20px; }
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .derived-scores { grid-template-columns: 1fr 1fr; }
+    .pillars-row { grid-template-columns: 1fr 1fr; }
+    .findings-grid { grid-template-columns: 1fr; }
+    .verdict-conditions { grid-template-columns: 1fr; }
+    .footer-bottom { flex-direction: column; gap: 8px; align-items: flex-start; }
+    .print-fab { bottom: 20px; right: 20px; }
+  }
+  @media (max-width: 480px) {
+    .pillars-row { grid-template-columns: 1fr; }
+    .derived-scores { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div class="loading-logo">AIRA</div>
+  <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
+  <div class="loading-label">Loading Intelligence Report</div>
+</div>
+
+<!-- ERROR SCREEN -->
+<div id="error-screen">
+  <div class="error-icon">⚠️</div>
+  <div class="error-title">Report Not Found</div>
+  <div class="error-msg" id="error-detail">This report ID does not exist or has expired.<br>Please contact your ipowork relationship manager.</div>
+</div>
+
+<!-- MAIN REPORT -->
+<div id="report-main">
+
+  <!-- ─── HEADER ─── -->
+  <div class="report-header">
+    <div class="header-top">
+      <div class="brand-left">
+        <!-- Client logo (shown in co-brand & white-label) -->
+        <div class="client-logo-wrap" id="client-logo-wrap" style="display:none;">
+          <img id="client-logo-img" src="" alt="">
+        </div>
+        <div class="brand-divider" id="brand-divider" style="display:none;"></div>
+        <!-- ipowork brand (hidden in white-label mode) -->
+        <div class="ipowork-brand" id="ipowork-topbrand">IPOWORK</div>
+      </div>
+      <div class="report-id-badge" id="report-id-badge">RPT-2026-001</div>
+    </div>
+
+    <div class="header-identity">
+      <div class="report-type-eyebrow">AIRA Master Scorecard · Intelligence Report</div>
+      <div class="company-name" id="company-name">Company Name Ltd</div>
+      <div class="company-meta">
+        <span id="meta-cin">CIN: —</span>
+        <span class="dot"></span>
+        <span id="meta-sector">Sector: —</span>
+        <span class="dot"></span>
+        <span id="meta-date">Report Date: —</span>
+        <span class="dot"></span>
+        <span id="meta-analyst">Prepared by ipowork</span>
+      </div>
+    </div>
+
+    <div class="header-footer-strip">
+      <span id="client-firm-strip"></span>
+      <span class="confidential-tag">Confidential</span>
+    </div>
+  </div>
+
+  <!-- ─── SCORE DASHBOARD ─── -->
+  <div class="score-dashboard">
+    <div class="dashboard-grid">
+
+      <!-- Master Score Ring -->
+      <div class="master-score-wrap">
+        <div class="score-ring-svg" style="position:relative; width:190px; height:190px;">
+          <svg viewBox="0 0 200 200" width="190" height="190">
+            <circle class="score-ring-bg" cx="100" cy="100" r="90" stroke-width="10"/>
+            <circle id="ring-fill" class="score-ring-fill" cx="100" cy="100" r="90"
+              stroke-width="10" stroke="#C9A84C"
+              transform="rotate(-90 100 100)"/>
+          </svg>
+          <div class="score-ring-text-wrap">
+            <div class="master-score-number" id="master-score-num">—</div>
+            <div class="master-score-label">AIRA Score</div>
+          </div>
+        </div>
+        <div class="master-score-tag" id="master-score-tag">Loading...</div>
+      </div>
+
+      <!-- Derived Scores -->
+      <div class="derived-scores">
+        <div class="derived-card">
+          <div class="derived-card-label">IPO Readiness</div>
+          <div class="derived-card-score" id="ds-ipo">—</div>
+          <div class="derived-bar"><div class="derived-bar-fill" id="db-ipo" style="background:#1E9E6B;"></div></div>
+          <div class="derived-card-sub" id="ds-ipo-sub" style="color:var(--text-light);"></div>
+        </div>
+        <div class="derived-card">
+          <div class="derived-card-label">Debt Readiness</div>
+          <div class="derived-card-score" id="ds-debt">—</div>
+          <div class="derived-bar"><div class="derived-bar-fill" id="db-debt" style="background:#2AABE2;"></div></div>
+          <div class="derived-card-sub" id="ds-debt-sub" style="color:var(--text-light);"></div>
+        </div>
+        <div class="derived-card">
+          <div class="derived-card-label">PE / VC Readiness</div>
+          <div class="derived-card-score" id="ds-pe">—</div>
+          <div class="derived-bar"><div class="derived-bar-fill" id="db-pe" style="background:#5B6AF0;"></div></div>
+          <div class="derived-card-sub" id="ds-pe-sub" style="color:var(--text-light);"></div>
+        </div>
+        <div class="derived-card">
+          <div class="derived-card-label">Governance Score</div>
+          <div class="derived-card-score" id="ds-gov">—</div>
+          <div class="derived-bar"><div class="derived-bar-fill" id="db-gov" style="background:#C9A84C;"></div></div>
+          <div class="derived-card-sub" id="ds-gov-sub" style="color:var(--text-light);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PILLAR STRIP ─── -->
+  <div class="pillar-strip">
+    <div class="section-eyebrow">Intelligence Pillar Scores</div>
+    <div class="pillars-row" id="pillars-row">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- ─── ACCESS TIER ─── -->
+  <div class="tier-banner" id="tier-banner">
+    <div class="tier-icon" id="tier-icon">🏦</div>
+    <div class="tier-text">
+      <h4 id="tier-title">Distribution Tier</h4>
+      <p id="tier-desc">Evaluating access tier based on AIRA score.</p>
+    </div>
+  </div>
+
+  <!-- ─── PILLAR DEEP-DIVES ─── -->
+  <div class="report-body">
+    <div id="pillar-sections-container">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- ─── VERDICT ─── -->
+    <div class="verdict-section" id="verdict-section">
+      <div class="verdict-eyebrow">AIRA Intelligence Verdict</div>
+      <div class="verdict-headline" id="verdict-headline">—</div>
+      <div class="verdict-body" id="verdict-body">—</div>
+      <div class="verdict-conditions" id="verdict-conditions"></div>
+    </div>
+  </div>
+
+  <!-- ─── FOOTER ─── -->
+  <div class="report-footer">
+    <div class="disclaimer" id="disclaimer-text">
+      This report has been prepared by ipowork for the exclusive use of the addressee only. It is based on information obtained from sources believed to be reliable and has not been independently verified. AIRA scores are based on a proprietary AI-powered methodology combining structured public registry data and document intelligence. ipowork earns distribution fees only and does not serve as issuer advisor, ensuring score independence. This report does not constitute investment advice, a solicitation to buy or sell securities, or a legal opinion. SEBI-registered Merchant Bankers and registered intermediaries must conduct their own due diligence before making investment decisions. Unauthorised distribution of this report is strictly prohibited.
+    </div>
+    <div class="footer-bottom">
+      <div class="ipowork-brand footer-ipowork" id="footer-ipowork-brand">
+        IPOWORK · Unbiased intelligence. Decisive capital.
+      </div>
+      <div class="footer-tagline" id="client-firm-footer"></div>
+    </div>
+  </div>
+
+</div><!-- /report-main -->
+
+<!-- PRINT FAB -->
+<button class="print-fab" onclick="window.print()">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+    <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+    <rect x="6" y="14" width="12" height="8"/>
+  </svg>
+  Download PDF
+</button>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONFIG — update your Supabase URL & anon key
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+
+// ═══════════════════════════════════════════════════════
+// PILLAR CONFIG
+// ═══════════════════════════════════════════════════════
+const PILLARS = [
+  { key: 'legal',     label: 'Legal Intelligence',            weight: 25, color: '#D94F3D', icon: '⚖️' },
+  { key: 'forensic',  label: 'Forensic Intelligence',         weight: 20, color: '#E07B39', icon: '🔬' },
+  { key: 'director',  label: 'Director & Promoter',           weight: 20, color: '#5B6AF0', icon: '👤' },
+  { key: 'financial', label: 'Financial Intelligence',         weight: 25, color: '#1E9E6B', icon: '📊' },
+  { key: 'credit',    label: 'Credit Intelligence',            weight: 10, color: '#2AABE2', icon: '🏦' }
+];
+
+// ═══════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════
+function getReportIdFromURL() {
+  // Supports: /report/RPT-2026-001  OR  ?id=RPT-2026-001  OR  #RPT-2026-001
+  const path = window.location.pathname;
+  const pathMatch = path.match(/\/report\/([A-Z0-9\-]+)/i);
+  if (pathMatch) return pathMatch[1].toUpperCase();
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('id')) return params.get('id').toUpperCase();
+  const hash = window.location.hash.replace('#', '');
+  if (hash) return hash.toUpperCase();
+  return null;
+}
+
+function scoreColor(score) {
+  if (score >= 80) return '#1E9E6B';
+  if (score >= 70) return '#C9A84C';
+  if (score >= 60) return '#E07B39';
+  return '#D94F3D';
+}
+function scoreLabel(score) {
+  if (score >= 80) return 'AIF Distribution Ready';
+  if (score >= 75) return 'Family Office Ready';
+  if (score >= 70) return 'Advisory Pipeline';
+  return 'Requires Remediation';
+}
+function scoreBadgeClass(score) {
+  if (score >= 75) return 'tag-green';
+  if (score >= 65) return 'tag-amber';
+  return 'tag-red';
+}
+function derivedLabel(score) {
+  if (score >= 80) return 'Strong';
+  if (score >= 70) return 'Adequate';
+  if (score >= 60) return 'Moderate';
+  return 'Weak';
+}
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE FETCH
+// ═══════════════════════════════════════════════════════
+async function fetchReport(reportId) {
+  const url = `${SUPABASE_URL}/rest/v1/reports?report_id=eq.${encodeURIComponent(reportId)}&select=*&limit=1`;
+  const res = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase error: ${res.status}`);
+  const rows = await res.json();
+  if (!rows || rows.length === 0) throw new Error('NOT_FOUND');
+  return rows[0];
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ═══════════════════════════════════════════════════════
+function renderBranding(report) {
+  const mode = report.branding_mode || 'cobrand'; // 'cobrand' | 'whitelabel'
+  const clientName = report.client_firm_name || '';
+  const clientLogo = report.client_logo_url || '';
+
+  // Title
+  const companyName = report.company_name || 'Company';
+  document.title = `AIRA Report — ${companyName}`;
+
+  // Top bar
+  if (clientLogo) {
+    document.getElementById('client-logo-img').src = clientLogo;
+    document.getElementById('client-logo-img').alt = clientName;
+    document.getElementById('client-logo-wrap').style.display = 'block';
+  }
+  if (clientName && mode === 'cobrand') {
+    document.getElementById('brand-divider').style.display = 'block';
+  }
+  if (mode === 'whitelabel') {
+    document.getElementById('ipowork-topbrand').classList.add('hidden');
+    document.getElementById('footer-ipowork-brand').classList.add('hidden');
+    document.getElementById('meta-analyst').textContent = clientName ? `Prepared by ${clientName}` : '';
+    document.getElementById('disclaimer-text').textContent =
+      (report.custom_disclaimer) || document.getElementById('disclaimer-text').textContent;
+  } else {
+    // Co-brand: show client name alongside ipowork
+    if (clientName) {
+      document.getElementById('client-firm-strip').textContent = `Prepared for ${clientName}`;
+      document.getElementById('client-firm-footer').textContent = clientName;
+      if (clientLogo) document.getElementById('brand-divider').style.display = 'block';
+    }
+  }
+}
+
+function renderMeta(report) {
+  document.getElementById('company-name').textContent = report.company_name || '—';
+  document.getElementById('report-id-badge').textContent = report.report_id || '—';
+  document.getElementById('meta-cin').textContent = `CIN: ${report.cin || '—'}`;
+  document.getElementById('meta-sector').textContent = `Sector: ${report.sector || '—'}`;
+  const d = report.report_date ? new Date(report.report_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+  document.getElementById('meta-date').textContent = `Report Date: ${d}`;
+}
+
+function renderMasterScore(scores) {
+  const s = scores;
+  const master = Math.round(
+    (s.legal * 0.25) + (s.forensic * 0.20) + (s.director * 0.20) + (s.financial * 0.25) + (s.credit * 0.10)
+  );
+
+  document.getElementById('master-score-num').textContent = master;
+  const tag = document.getElementById('master-score-tag');
+  tag.textContent = scoreLabel(master);
+  tag.className = `master-score-tag ${scoreBadgeClass(master)}`;
+
+  // Animate ring: circumference = 2π×90 ≈ 565
+  const circumference = 565;
+  const offset = circumference - (master / 100) * circumference;
+  const ring = document.getElementById('ring-fill');
+  ring.style.stroke = scoreColor(master);
+  setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
+
+  return master;
+}
+
+function renderDerived(scores) {
+  const s = scores;
+  const derived = {
+    ipo:  Math.round((s.legal*0.25) + (s.financial*0.35) + (s.director*0.25) + (s.forensic*0.15)),
+    debt: Math.round((s.credit*0.35) + (s.financial*0.35) + (s.legal*0.20) + (s.forensic*0.10)),
+    pe:   Math.round((s.financial*0.30) + (s.director*0.30) + (s.forensic*0.25) + (s.legal*0.15)),
+    gov:  Math.round((s.director*0.40) + (s.legal*0.30) + (s.forensic*0.30))
+  };
+  ['ipo','debt','pe','gov'].forEach(k => {
+    document.getElementById(`ds-${k}`).textContent = derived[k];
+    document.getElementById(`ds-${k}-sub`).textContent = derivedLabel(derived[k]);
+    document.getElementById(`ds-${k}-sub`).style.color = scoreColor(derived[k]);
+    setTimeout(() => {
+      document.getElementById(`db-${k}`).style.width = `${derived[k]}%`;
+    }, 200);
+  });
+  return derived;
+}
+
+function renderPillarStrip(scores) {
+  const container = document.getElementById('pillars-row');
+  container.innerHTML = '';
+  PILLARS.forEach(p => {
+    const score = scores[p.key] || 0;
+    const div = document.createElement('div');
+    div.className = 'pillar-card';
+    div.innerHTML = `
+      <div class="pillar-card-top">
+        <div class="pillar-icon">${p.icon}</div>
+        <div class="pillar-name">${p.label}</div>
+        <div class="pillar-weight">Weight: ${p.weight}%</div>
+        <div class="pillar-score-row">
+          <div class="pillar-score-num" style="color:${p.color};">${score}</div>
+          <div class="pillar-score-denom">/100</div>
+        </div>
+      </div>
+      <div class="pillar-bar-wrap">
+        <div class="pillar-bar-fill" data-target="${score}" style="background:${p.color};"></div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+  // Animate bars
+  setTimeout(() => {
+    document.querySelectorAll('.pillar-bar-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 300);
+}
+
+function renderTierBanner(master) {
+  const b = document.getElementById('tier-banner');
+  const title = document.getElementById('tier-title');
+  const desc = document.getElementById('tier-desc');
+  const icon = document.getElementById('tier-icon');
+  if (master >= 80) {
+    b.className = 'tier-banner tier-aif';
+    icon.textContent = '🏦';
+    title.textContent = 'AIF Distribution Ready (Score ≥ 80)';
+    desc.textContent = 'This issuer qualifies for distribution to SEBI-registered Alternative Investment Funds under ipowork\'s network. Full institutional placement eligible.';
+  } else if (master >= 75) {
+    b.className = 'tier-banner tier-fo';
+    icon.textContent = '🏠';
+    title.textContent = 'Family Office Distribution Ready (Score 75–79)';
+    desc.textContent = 'Eligible for Family Office placement. Suitable for sophisticated HNI capital with appropriate risk disclosures.';
+  } else if (master >= 70) {
+    b.className = 'tier-banner tier-advisory';
+    icon.textContent = '📋';
+    title.textContent = 'Paid Advisory Pipeline (Score 70–74)';
+    desc.textContent = 'Issuer qualifies for paid advisory pipeline. Remediation of flagged items recommended prior to institutional placement.';
+  } else {
+    b.className = 'tier-banner tier-watch';
+    icon.textContent = '⚠️';
+    title.textContent = 'Remediation Required (Score < 70)';
+    desc.textContent = 'AIRA score below distribution threshold. Significant risk factors require resolution before capital markets access.';
+  }
+}
+
+function renderPillarSections(report, scores) {
+  const container = document.getElementById('pillar-sections-container');
+  container.innerHTML = '';
+  const details = report.pillar_details || {};
+  const regulatory = report.regulatory || {};
+
+  PILLARS.forEach((p, idx) => {
+    const score = scores[p.key] || 0;
+    const detail = details[p.key] || {};
+    const sec = document.createElement('div');
+    sec.className = 'pillar-section';
+
+    const bg = score >= 75 ? 'rgba(30,158,107,0.1)' : score >= 65 ? 'rgba(224,123,57,0.1)' : 'rgba(217,79,61,0.1)';
+    const tc = scoreColor(score);
+
+    sec.innerHTML = `
+      <div class="pillar-section-header" onclick="togglePillar(this)">
+        <div class="pillar-header-left">
+          <div class="pillar-color-dot" style="background:${p.color};"></div>
+          <span class="pillar-section-title">${p.icon} ${p.label}</span>
+          <span class="pillar-section-weight">${p.weight}% weight</span>
+        </div>
+        <div class="pillar-section-score-badge" style="background:${bg}; color:${tc}; border: 1px solid ${tc}40;">
+          ${score} / 100
+        </div>
+      </div>
+      <div class="pillar-section-body ${idx > 0 ? 'collapsed' : ''}">
+        ${buildPillarBody(p, score, detail, regulatory)}
+      </div>
+    `;
+    container.appendChild(sec);
+  });
+}
+
+function buildPillarBody(p, score, detail, regulatory) {
+  const summary = detail.summary || `No summary available for ${p.label}.`;
+  const flags = detail.flags || [];
+  const breakdown = detail.breakdown || [];
+  const recommendation = detail.recommendation || '';
+
+  let flagsHTML = '';
+  if (flags.length) {
+    flagsHTML = `<ul class="flag-list">${flags.map(f =>
+      `<li><span class="flag-icon">${f.severity === 'high' ? '🔴' : f.severity === 'medium' ? '🟡' : '🟢'}</span>${f.text}</li>`
+    ).join('')}</ul>`;
+  }
+
+  let breakdownHTML = '';
+  if (breakdown.length) {
+    breakdownHTML = breakdown.map(b => `
+      <div class="score-breakdown-row">
+        <div class="sbd-label">${b.label}</div>
+        <div class="sbd-bar"><div class="sbd-bar-inner" style="width:${b.value}%;background:${p.color}40;"></div></div>
+        <div class="sbd-value" style="color:${p.color};">${b.display || b.value}</div>
+      </div>
+    `).join('');
+  }
+
+  // Regulatory enforcement block — only for legal pillar
+  let regHTML = '';
+  if (p.key === 'legal' && regulatory && Object.keys(regulatory).length) {
+    const REG_META = {
+      ed:    { label: 'ED', sub: 'Enforcement Directorate' },
+      cbi:   { label: 'CBI', sub: 'Central Bureau of Investigation' },
+      sfio:  { label: 'SFIO', sub: 'Serious Fraud Investigation Office' },
+      sebi:  { label: 'SEBI', sub: 'Securities Board' },
+      rbi:   { label: 'RBI', sub: 'Reserve Bank of India' },
+      nclt:  { label: 'NCLT / NCLAT', sub: 'Insolvency Tribunal' },
+      drt:   { label: 'DRT / DRAT', sub: 'Debt Recovery Tribunal' },
+      tax:   { label: 'IT / GST', sub: 'Revenue Authorities' },
+      other: { label: 'Other', sub: 'SAT / MCA / ROC / EPFO' }
+    };
+    const CRITICAL_STATUSES = ['attachment','prosecution','conviction','fir','chargesheet','convicted','debarred','cancelled','liquidation','admitted','raid'];
+    const FLAG_STATUSES = ['notice','investigation','showcause','penalty','settlement','pca','filed','decree','demand','survey','mca','sat','other'];
+
+    const itemsHTML = Object.entries(REG_META).map(([k, meta]) => {
+      const reg = regulatory[k] || { status: 'clean', notes: '' };
+      const isCritical = CRITICAL_STATUSES.includes(reg.status);
+      const isFlag = FLAG_STATUSES.includes(reg.status);
+      const statusClass = isCritical ? 'critical' : isFlag ? 'flag' : 'clean';
+      const statusIcon = isCritical ? '🔴' : isFlag ? '🟡' : '✅';
+      const statusText = reg.status === 'clean' ? 'Clean' : reg.status.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+      return `
+        <div class="reb-item">
+          <div class="reb-authority">${meta.label} <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px;color:var(--text-light);">${meta.sub}</span></div>
+          <div class="reb-status ${statusClass}">${statusIcon} ${statusText}</div>
+          ${reg.notes ? `<div class="reb-notes">${reg.notes}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    regHTML = `
+      <div class="reg-enforcement-block">
+        <div class="reb-header">
+          <span>⚖️</span>
+          <div class="reb-header-title">Regulatory & Enforcement Actions — Manual Verification</div>
+        </div>
+        <div class="reb-grid">${itemsHTML}</div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="findings-grid" style="margin-top:20px;">
+      <div class="finding-block finding-text full-width">
+        <div class="finding-label">Assessment Summary</div>
+        <div class="finding-text">${summary}</div>
+      </div>
+      ${flags.length ? `
+        <div class="finding-block">
+          <div class="finding-label">Risk Flags (${flags.length})</div>
+          ${flagsHTML}
+        </div>
+      ` : ''}
+      ${breakdown.length ? `
+        <div class="finding-block">
+          <div class="finding-label">Score Breakdown</div>
+          ${breakdownHTML}
+        </div>
+      ` : ''}
+    </div>
+    ${regHTML}
+    ${recommendation ? `
+      <div class="pillar-recommendation">
+        <div class="rec-label">Analyst Recommendation</div>
+        <p>${recommendation}</p>
+      </div>
+    ` : ''}
+  `;
+}
+
+function togglePillar(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('collapsed');
+}
+
+function renderVerdict(report, master) {
+  const verdict = report.verdict || {};
+  document.getElementById('verdict-headline').textContent =
+    verdict.headline || `AIRA Score: ${master} — ${scoreLabel(master)}`;
+  document.getElementById('verdict-body').textContent =
+    verdict.body || 'Overall risk-adjusted assessment based on 5-pillar AIRA intelligence framework.';
+
+  const conditions = verdict.conditions || [];
+  const vc = document.getElementById('verdict-conditions');
+  vc.innerHTML = conditions.map(c => `
+    <div class="verdict-condition-card">
+      <div class="vc-label">${c.label}</div>
+      <div class="vc-text">${c.text}</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// DEMO DATA — used when no ?id= in URL (for preview)
+// ═══════════════════════════════════════════════════════
+function getDemoReport() {
+  return {
+    report_id: 'RPT-2026-DEMO',
+    company_name: 'Muthoot Fincorp Limited',
+    cin: 'U65910KL1997PLC011603',
+    sector: 'NBFC — Gold Loan',
+    report_date: '2026-06-21',
+    branding_mode: 'cobrand',
+    client_firm_name: 'Axis Capital Limited',
+    client_logo_url: '',
+    scores: {
+      legal: 72,
+      forensic: 68,
+      director: 78,
+      financial: 74,
+      credit: 82
+    },
+    pillar_details: {
+      legal: {
+        summary: 'Legal profile shows moderate exposure with 23 cases filed against the corporate across NCLT, High Courts, and consumer forums. No SEBI debarment orders or RBI regulatory sanctions identified. Company does not appear on Wilful Defaulter or CIBIL defaulter lists. Three cases remain pending at NCLT with outstanding amounts > ₹50 Lakhs.',
+        flags: [
+          { severity: 'medium', text: '23 cases filed against the corporate — above sector median of 14' },
+          { severity: 'medium', text: '3 NCLT cases pending with material outstanding amounts' },
+          { severity: 'low', text: 'No wilful defaulter classification identified' }
+        ],
+        recommendation: 'Engage independent legal counsel to provide a case status matrix and outcome probability assessment for the 3 pending NCLT matters prior to merchant banker engagement.',
+        breakdown: [
+          { label: 'Defaulter status', value: 100, display: 'Clean' },
+          { label: 'SEBI / RBI sanctions', value: 100, display: 'None' },
+          { label: 'Case volume score', value: 60, display: '60/100' },
+          { label: 'Pending severity', value: 65, display: '65/100' }
+        ]
+      },
+      forensic: {
+        summary: 'Forensic analysis reveals no qualified audit opinions for FY24 and FY23. Related party transactions represent 18.4% of net revenue — within acceptable thresholds (trigger: >30%). No going concern flags noted. Minor disclosure gap identified in EPFO compliance for two subsidiary establishments.',
+        flags: [
+          { severity: 'low', text: 'RPT as % of revenue: 18.4% — within acceptable range' },
+          { severity: 'medium', text: 'EPFO non-filing for 2 subsidiary establishments in FY23' },
+          { severity: 'low', text: 'No qualified audit opinion in FY23 or FY24' }
+        ],
+        recommendation: 'Resolve EPFO compliance gaps for subsidiary establishments and obtain confirmation letters from auditors. Document RPT rationale for DRHP disclosure.',
+        breakdown: [
+          { label: 'Audit opinion quality', value: 80, display: '80/100' },
+          { label: 'RPT exposure', value: 72, display: '72/100' },
+          { label: 'Compliance filings', value: 60, display: '60/100' },
+          { label: 'Promoter transactions', value: 65, display: '65/100' }
+        ]
+      },
+      director: {
+        summary: 'Board composition is strong with 4 Independent Directors (exceeding SEBI LODR requirements), including a woman Independent Director. Promoter holding at 68.2% provides strong ownership alignment. No DIN deactivations identified across the board. MD tenure of 14 years signals operational stability.',
+        flags: [
+          { severity: 'low', text: 'Promoter holding 68.2% — adequate control alignment' },
+          { severity: 'low', text: '4 Independent Directors — meets SEBI LODR threshold' },
+          { severity: 'low', text: 'Woman Independent Director in place' }
+        ],
+        recommendation: 'Board composition is IPO-ready. Consider adding a Director with listed entity CFO experience ahead of DRHP filing to strengthen Audit Committee credibility.',
+        breakdown: [
+          { label: 'Independent Directors', value: 85, display: '85/100' },
+          { label: 'Promoter alignment', value: 80, display: '80/100' },
+          { label: 'DIN compliance', value: 100, display: 'Clean' },
+          { label: 'Board diversity', value: 75, display: '75/100' }
+        ]
+      },
+      financial: {
+        summary: 'Revenue CAGR of 17.2% over 3 years is above the 15% threshold. NIM at 11.8% and GNPA at 2.4% are within acceptable NBFC benchmarks. ROE of 14.1% is marginally below the 15% threshold. Capital Adequacy Ratio (CAR) of 19.8% provides adequate buffer. Gold loan AUM grew 22% YoY in FY24.',
+        flags: [
+          { severity: 'low', text: 'Revenue CAGR 17.2% — above 15% threshold (+15 pts)' },
+          { severity: 'medium', text: 'ROE at 14.1% — marginally below 15% target' },
+          { severity: 'low', text: 'CAR 19.8% — healthy regulatory buffer' }
+        ],
+        recommendation: 'ROE improvement path should be articulated in the DRHP. Focus on reducing cost-to-income ratio from current 52% towards sub-45% over 18 months.',
+        breakdown: [
+          { label: 'Revenue CAGR', value: 85, display: '17.2%' },
+          { label: 'Profitability (ROE/NIM)', value: 70, display: '14.1% ROE' },
+          { label: 'Asset quality (GNPA)', value: 75, display: '2.4%' },
+          { label: 'Capital adequacy', value: 80, display: '19.8%' }
+        ]
+      },
+      credit: {
+        summary: 'ICRA has assigned AA- (Negative Outlook) to long-term borrowing program. ICR of 3.8x is strong. Open charges total ₹3,240 Cr — within sector norms for gold loan NBFCs given secured nature of underlying assets. Perfected security on primary charge holders confirmed.',
+        flags: [
+          { severity: 'low', text: 'Credit rating: ICRA AA- (Negative Outlook) — above BBB threshold' },
+          { severity: 'low', text: 'ICR 3.8x — above 3x threshold (+15 pts)' },
+          { severity: 'medium', text: 'Negative outlook — rating may be under review; monitor quarterly' }
+        ],
+        recommendation: 'Engage ICRA proactively to understand negative outlook triggers and develop a narrative for DRHP investors. Consider seeking a second rating agency opinion.',
+        breakdown: [
+          { label: 'Credit rating grade', value: 85, display: 'AA-' },
+          { label: 'Interest coverage (ICR)', value: 90, display: '3.8x' },
+          { label: 'Security perfection', value: 80, display: 'Perfected' },
+          { label: 'Charge exposure', value: 70, display: '₹3,240 Cr' }
+        ]
+      }
+    },
+    regulatory: {
+      ed:    { status: 'clean', notes: '' },
+      cbi:   { status: 'clean', notes: '' },
+      sfio:  { status: 'clean', notes: '' },
+      sebi:  { status: 'showcause', notes: 'Show cause notice issued in 2022 for minor disclosure delay — compounded and closed. No current proceedings.' },
+      rbi:   { status: 'penalty', notes: 'RBI penalty of ₹25 Lakhs imposed in FY23 for KYC non-compliance in gold loan segment. Paid and complied.' },
+      nclt:  { status: 'filed', notes: 'One petition filed by a vendor for ₹18 Lakhs — disputed, not admitted by NCLT.' },
+      drt:   { status: 'clean', notes: '' },
+      tax:   { status: 'demand', notes: 'IT demand of ₹3.2 Cr for AY 2021-22 — appealed before CIT(A), stay granted.' },
+      other: { status: 'clean', notes: '' }
+    },
+    verdict: {
+      headline: 'Conditionally Ready — Moderate Risk Profile with Strong Capital Markets Appeal',
+      body: 'Muthoot Fincorp presents a compelling capital markets profile anchored by strong credit ratings, above-threshold revenue growth, and a governance structure that meets SEBI LODR requirements. The AIRA composite score of 74 places the company in the paid advisory pipeline, with a clear remediation pathway to Family Office distribution tier (75+). Key near-term actions centre on NCLT case resolution, EPFO compliance closure, and ROE improvement articulation. The company\'s gold loan franchise and 68.2% promoter holding provide strong institutional investor confidence signals.',
+      conditions: [
+        { label: 'For AIF Distribution (80+)', text: 'Resolve 3 pending NCLT matters and achieve quarterly ROE improvement to >15%.' },
+        { label: 'For Family Office (75+)', text: 'Close EPFO compliance gaps; obtain ICRA outlook revision to Stable.' },
+        { label: 'Current Advisory Path', text: 'Suitable for paid advisory mandate engagement at current score.' },
+        { label: 'Key Monitoring Trigger', text: 'ICRA rating review outcome (expected Q2 FY27) — downgrade would impact credit pillar score.' }
+      ]
+    }
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// MAIN INIT
+// ═══════════════════════════════════════════════════════
+async function initReport() {
+  const reportId = getReportIdFromURL();
+
+  let report;
+  try {
+    if (!reportId || reportId === 'DEMO') {
+      // Use demo data for preview
+      report = getDemoReport();
+    } else if (SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+      // Key not yet configured — show demo
+      report = getDemoReport();
+      report.report_id = reportId;
+    } else {
+      report = await fetchReport(reportId);
+    }
+  } catch(e) {
+    document.getElementById('loading-screen').classList.add('hidden');
+    const es = document.getElementById('error-screen');
+    es.classList.add('visible');
+    if (e.message === 'NOT_FOUND') {
+      document.getElementById('error-detail').textContent =
+        `Report ID "${reportId}" not found. Please check the link or contact your ipowork relationship manager.`;
+    }
+    return;
+  }
+
+  // Render everything
+  const scores = report.scores || {};
+  renderBranding(report);
+  renderMeta(report);
+  const master = renderMasterScore(scores);
+  renderDerived(scores);
+  renderPillarStrip(scores);
+  renderTierBanner(master);
+  renderPillarSections(report, scores);
+  renderVerdict(report, master);
+
+  // Show report, hide loader
+  setTimeout(() => {
+    document.getElementById('loading-screen').classList.add('hidden');
+    document.getElementById('report-main').classList.add('visible');
+  }, 1600);
+}
+
+document.addEventListener('DOMContentLoaded', initReport);
+</script>
+</body>
+</html>
