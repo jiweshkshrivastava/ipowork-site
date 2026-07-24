@@ -1762,7 +1762,7 @@ async function runDocCore(){
         var fP=function(v){return v!=null&&!isNaN(v)?parseFloat(v).toFixed(1)+'%':'N/A';};
         var _d2=(p42.directors||[]).filter(function(x){return !x.cessation;});
         var _c2=p42.charges||[];
-        var _ct=_c2.reduce(function(s,c){return s+parseFloat(c.amount||0)/100;},0);
+        var _ct=_c2.reduce(function(s,c){var _x=parseFloat(c.amount||0);return s+(_x>=100000?_x/10000000:0);},0);
         var _rc=parseFloat(f.revenue_fy22||0)>0?((Math.pow(parseFloat(f.revenue_fy24||0)/parseFloat(f.revenue_fy22),0.5)-1)*100).toFixed(2)+'%':'N/A';
         p42ctx = '\nPROBE42 MCA DATA (LOCKED):'
           +'\nRevenue: '+fC(f.revenue_fy24)+' | PAT: '+fC(f.pat_fy24)+' | EBITDA%: '+fP(f.ebitda_margin)
@@ -1771,7 +1771,7 @@ async function runDocCore(){
           +'\nRevenue CAGR: '+_rc+' | Int Coverage: '+(f.interest_coverage||'N/A')+'x'
           +'\nAuditor: '+(f.auditor||'N/A')+' | Defaulter: No'
           +'\nDirectors: '+_d2.length+' active | Charges: '+_c2.filter(function(c){return c.status==='Open';}).length+' open (₹'+_ct.toFixed(2)+' Cr total)'
-          +'\nLEGAL DATA:\n'          +(function(){            var leg=p42.legal||{};            var comp=p42.compliance||{};            return 'Litigation: '+(leg.litigation_count||0)+' cases | Material: '+(leg.material_litigation||'None')              +'\nSEBI Orders: '+(leg.sebi_orders||'None')              +'\nGST Status: '+(comp.gst_status||'Unknown')+' | Filings: '+(comp.roc_filing_status||'Unknown')              +'\nCIRP: '+(p42.cirp_status||'None')+' | Defaulter: '+(comp.defaulter?'YES':'No')              +'\nIT Disputes: '+(leg.income_tax_disputes||0)+' | NCLT: '+(leg.nclt_matters||0);          })()          +'\nCHARGE/BOARD RULES: Use amounts exactly (in Crores). Use real director names. No [Placeholder] rows.\nLEGAL RULES: Use actual litigation count above. Never say litigation data unavailable.\n';
+          +'\nLEGAL DATA:\n'          +(function(){            var leg=p42.legal||{};            var comp=p42.compliance||{};            return 'Litigation: '+(leg.litigation_count||0)+' cases | Material: '+(leg.material_litigation||'None')              +'\nSEBI Orders: '+(leg.sebi_orders||'None')              +'\nGST Status: '+(comp.gst_status||'Unknown')+' | Filings: '+(comp.roc_filing_status||'Unknown')              +'\nCIRP: '+(p42.cirp_status||'None')+' | Defaulter: '+(comp.defaulter?'YES':'No')              +'\nIT Disputes: '+(leg.income_tax_disputes||0)+' | NCLT: '+(leg.nclt_matters||0);          })()          +'\nBOARD ROSTER (REAL — use exactly, never placeholder):'+_d2.map(function(d){return '\n  '+(d.name||'?')+' | DIN '+(d.din||'?')+' | '+(d.designation||'Director');}).join('')+'\nCHARGE REGISTER (REAL lender names — use exactly, never [Refer MCA]; never claim charges are nil/satisfied):'+_c2.map(function(c){var _q=parseFloat(c.amount||0);var _qs=(_q>0)?(_q>=100000?'₹'+(_q/10000000).toFixed(2)+' Cr':'₹'+_q.toFixed(0)):'amount not filed';return '\n  '+(c.charge_holder||c.holder||'?')+' | '+_qs+' | '+(c.status||'?')+' | '+(c.date_of_creation||'');}).join('')+'\nCHARGE/BOARD RULES: Use amounts exactly (in Crores). Use real director names and DINs from the roster. No [Placeholder]/Pending rows. If a datapoint is absent above, write Not in MCA extract — do not fabricate.\n';
       }
     }catch(e){}
   }
@@ -3370,7 +3370,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       chgs.forEach(function(c,i){
         var holder=c.charge_holder||c.holder||c.lender_name||c.bank||'[Refer MCA21]';
         var amt='N/D';
-        if(c.amount){var _l=parseFloat(c.amount);if(!isNaN(_l)&&_l>0){amt=_l>=100?'₹'+(_l/100).toFixed(2)+' Cr':'₹'+_l.toFixed(2)+' L';}}
+        if(c.amount){var _l=parseFloat(c.amount);if(!isNaN(_l)&&_l>0){amt=_l>=100000?'₹'+(_l/10000000).toFixed(2)+' Cr':'₹'+_l.toFixed(0);}}
         html+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
           +'<td style="padding:7px 10px;font-weight:600">'+esc(holder)+'</td>'
           +'<td style="padding:7px 10px"><span style="color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600;font-size:11px">'+esc(c.status||'')+'</span></td>'
@@ -3441,7 +3441,7 @@ async function runValuationDoc(){
     dcfVal=+(dcfVal+parseFloat(tvVal)).toFixed(1);
     var base=+(pe_eq*0.4+ev_eq*0.4+dcfVal*0.2).toFixed(1);
     var cons=+(base*0.80).toFixed(1),opti=+(base*1.25).toFixed(1);
-    var _vdct=chgs.reduce(function(s,c){return s+parseFloat(c.amount||0)/100;},0);
+    var _vdct=chgs.reduce(function(s,c){var _x=parseFloat(c.amount||0);return s+(_x>=100000?_x/10000000:0);},0);
     var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED'
       +'\nRevenue=\u20b9'+rev+' Cr | PAT=\u20b9'+pat+' Cr ('+netM+'%) | EBITDA='+ePct+'% (\u20b9'+eCr+' Cr)'
       +'\nNW=\u20b9'+nw+' Cr | Debt=\u20b9'+debt+' Cr | ROE='+roe+'% | ROCE='+roce+'%'
@@ -3488,7 +3488,7 @@ async function runValuationDoc(){
       dirs.forEach(function(d,i){repHtml+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'"><td style="padding:7px 10px;font-weight:600">'+esc(d.name||'')+'</td><td style="padding:7px 10px">'+esc(d.designation||'')+'</td><td style="padding:7px 10px;color:#6B8A94;font-size:11px">'+esc(d.din||'')+'</td></tr>';});
       repHtml+='</tbody></table></div>';
     }
-    if(chgs&&chgs.length){repHtml+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#1A3A5C;margin-bottom:8px">CHARGE REGISTER — '+chgs.length+' charges (SEBI ICDR Reg 26)</div><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#F0F5FB"><th style="padding:6px 10px">Holder</th><th style="padding:6px 10px">Status</th><th style="padding:6px 10px">Amount</th><th style="padding:6px 10px">Date</th></tr></thead><tbody>';chgs.forEach(function(c,ci){var h=c.charge_holder||c.holder||c.lender_name||c.bank||'[Refer MCA21]';var a='N/D';if(c.amount){var l=parseFloat(c.amount);if(!isNaN(l)&&l>0)a=l>=100?'₹'+(l/100).toFixed(2)+' Cr':'₹'+l.toFixed(2)+' L';}repHtml+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(ci%2?'#FAFCFD':'#fff')+'" ><td style="padding:6px 10px;font-weight:600">'+esc(h)+'</td><td style="padding:6px 10px;color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600">'+esc(c.status||'')+'</td><td style="padding:6px 10px">'+esc(a)+'</td><td style="padding:6px 10px;color:#9AB0B8">'+esc(c.date_of_creation||'')+'</td></tr>';});repHtml+='</tbody></table></div>';}
+    if(chgs&&chgs.length){repHtml+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#1A3A5C;margin-bottom:8px">CHARGE REGISTER — '+chgs.length+' charges (SEBI ICDR Reg 26)</div><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#F0F5FB"><th style="padding:6px 10px">Holder</th><th style="padding:6px 10px">Status</th><th style="padding:6px 10px">Amount</th><th style="padding:6px 10px">Date</th></tr></thead><tbody>';chgs.forEach(function(c,ci){var h=c.charge_holder||c.holder||c.lender_name||c.bank||'[Refer MCA21]';var a='N/D';if(c.amount){var l=parseFloat(c.amount);if(!isNaN(l)&&l>0)a=l>=100000?'₹'+(l/10000000).toFixed(2)+' Cr':'₹'+l.toFixed(0);}repHtml+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(ci%2?'#FAFCFD':'#fff')+'" ><td style="padding:6px 10px;font-weight:600">'+esc(h)+'</td><td style="padding:6px 10px;color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600">'+esc(c.status||'')+'</td><td style="padding:6px 10px">'+esc(a)+'</td><td style="padding:6px 10px;color:#9AB0B8">'+esc(c.date_of_creation||'')+'</td></tr>';});repHtml+='</tbody></table></div>';}
     repHtml+='<div style="font-size:10px;color:#9AB0B8;padding:8px">⚠ ipowork AI is not SEBI-registered. Not investment advice. Data: Probe42/MCA. © 2025 ipowork.com</div></div>';
     if(out){out.innerHTML=repHtml;out.scrollIntoView({behavior:'smooth',block:'start'});}
     var res={_report:repHtml,company_name:cname,cin:cin,sector:sector,val_base_cr:base};
@@ -3559,7 +3559,7 @@ async function runValuationIntel(){
     var ipoColor=score>=75?'#1A6B3A':score>=50?'#E67E22':'#C0392B';
     var ipoRating=score>=75?'GREEN \u2014 IPO Ready':score>=50?'AMBER \u2014 Conditional':'RED \u2014 Not Ready';
 
-    var _vict=chgs.reduce(function(s,c){return s+parseFloat(c.amount||0)/100;},0);
+    var _vict=chgs.reduce(function(s,c){var _x=parseFloat(c.amount||0);return s+(_x>=100000?_x/10000000:0);},0);
     var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED'
       +'\n'+yr22lbl+' Rev=\u20b9'+rev22+' Cr | '+yr23lbl+' Rev=\u20b9'+rev23+' Cr | '+yr24+' Rev=\u20b9'+rev+' Cr ('+revGr+'% YoY)'
       +'\nPAT=\u20b9'+pat+' Cr ('+netM+'%) | EBITDA='+ePct+'% (\u20b9'+eCr+' Cr) | NW=\u20b9'+nw+' Cr | Debt=\u20b9'+debt+' Cr'
@@ -3668,7 +3668,7 @@ async function runValuationIntel(){
       dirs.forEach(function(d,i){report+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'"><td style="padding:7px 10px;font-weight:600">'+esc(d.name||'')+'</td><td style="padding:7px 10px">'+esc(d.designation||'')+'</td><td style="padding:7px 10px;color:#6B8A94;font-size:11px">'+esc(d.din||'')+'</td></tr>';});
       report+='</tbody></table></div>';
     }
-    if(chgs&&chgs.length){report+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#3B30B0;margin-bottom:8px">CHARGE REGISTER — '+chgs.length+' charges (SEBI ICDR Reg 26)</div><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#F5F0FF"><th style="padding:6px 10px">Holder</th><th style="padding:6px 10px">Status</th><th style="padding:6px 10px">Amount</th><th style="padding:6px 10px">Date</th></tr></thead><tbody>';chgs.forEach(function(c,ci){var hv=c.charge_holder||c.holder||c.lender_name||c.bank||'[Refer MCA21]';var av='N/D';if(c.amount){var lv=parseFloat(c.amount);if(!isNaN(lv)&&lv>0)av=lv>=100?'₹'+(lv/100).toFixed(2)+' Cr':'₹'+lv.toFixed(2)+' L';}report+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(ci%2?'#FAFCFD':'#fff')+'"><td style="padding:6px 10px;font-weight:600">'+esc(hv)+'</td><td style="padding:6px 10px;color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600">'+esc(c.status||'')+'</td><td style="padding:6px 10px">'+esc(av)+'</td><td style="padding:6px 10px;color:#9AB0B8">'+esc(c.date_of_creation||'')+'</td></tr>';});report+='</tbody></table></div>';}
+    if(chgs&&chgs.length){report+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#3B30B0;margin-bottom:8px">CHARGE REGISTER — '+chgs.length+' charges (SEBI ICDR Reg 26)</div><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#F5F0FF"><th style="padding:6px 10px">Holder</th><th style="padding:6px 10px">Status</th><th style="padding:6px 10px">Amount</th><th style="padding:6px 10px">Date</th></tr></thead><tbody>';chgs.forEach(function(c,ci){var hv=c.charge_holder||c.holder||c.lender_name||c.bank||'[Refer MCA21]';var av='N/D';if(c.amount){var lv=parseFloat(c.amount);if(!isNaN(lv)&&lv>0)av=lv>=100000?'₹'+(lv/10000000).toFixed(2)+' Cr':'₹'+lv.toFixed(0);}report+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(ci%2?'#FAFCFD':'#fff')+'"><td style="padding:6px 10px;font-weight:600">'+esc(hv)+'</td><td style="padding:6px 10px;color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600">'+esc(c.status||'')+'</td><td style="padding:6px 10px">'+esc(av)+'</td><td style="padding:6px 10px;color:#9AB0B8">'+esc(c.date_of_creation||'')+'</td></tr>';});report+='</tbody></table></div>';}
     report+='<div style="padding:8px 14px;background:#F8F9FA;border-radius:6px;font-size:10px;color:#9AB0B8">ipowork not SEBI-registered. Informational only. © 2025</div></div>';
     if(out){out.innerHTML=report;out.scrollIntoView({behavior:'smooth',block:'start'});}
     var res={_report:report,company_name:cname,cin:cin,sector:sector,exchange:exchange,
@@ -3907,6 +3907,11 @@ async function runDeepResearchFull(){
       +'\n  ROE: '+roe+'%  |  ROCE: '+roce+'%  |  Int Coverage: '+intCov+'x'
       +'\n  Current Ratio: '+cr2+'x  |  Net Margin: '+netM+'%'
       +'\n'
+      +'\nBOARD ROSTER (MCA verified — these are the REAL names and DINs; use them EXACTLY everywhere. NEVER write Pending, [DIN Not Provided], To be provided, or placeholder director rows):'
+      +dirs.map(function(d){return '\n  '+(d.name||'?')+' | DIN '+(d.din||'?')+' | '+(d.designation||'Director')+(d.appointed?' | appointed '+d.appointed:'');}).join('')
+      +'\nCHARGE REGISTER (MCA verified — REAL lender names and dates; use EXACTLY. NEVER write [From MCA], Refer MCA, or Check MCA. NEVER state charges are zero, nil or satisfied — '+openChgs+' of '+chgs.length+' are OPEN):'
+      +chgs.map(function(c){var _n=parseFloat(c.amount||0);var _as=(_n>0)?(_n>=100000?'₹'+(_n/10000000).toFixed(2)+' Cr':'₹'+_n.toFixed(0)):'amount not filed';return '\n  '+(c.charge_holder||c.holder||'?')+' | '+_as+' | '+(c.status||'?')+(c.date_of_creation?' | created '+c.date_of_creation:'');}).join('')
+      +'\n'
       +'\nVALUATION (computed in JS — use exactly):'
       +'\n  P/E ('+sPE+'x, '+Math.round(disc*100)+'% disc): ₹'+pe_eq+' Cr'
       +'\n  EV/EBITDA ('+sEV+'x): ₹'+ev_eq+' Cr'
@@ -3937,7 +3942,7 @@ async function runDeepResearchFull(){
       +((!pat22||pat22===pat)?'\n  ⚠ FY22 PAT unavailable — do not repeat FY24 PAT figure':'\n  ✓ FY22 PAT available')
       +'\n  Charge register: ALL '+chgs.length+' charges must be shown — SEBI ICDR Regulation 26 requires full disclosure'
       +'\n  Open charges: '+openChgs+' | Closed: '+(chgs.length-openChgs)
-      +'\n  INSTRUCTION: Show ALL '+chgs.length+' charges in the table. If lender name is blank, write "[Lender: Refer MCA charge ID]". Never reduce the count.'
+      +'\n  INSTRUCTION: Show ALL '+chgs.length+' charges using the REAL lender names, amounts and dates from the CHARGE REGISTER above. Never reduce the count and never print placeholder text.'
       +(isNBFC?'\n  ⚠ NBFC: NPA/CRAR/NIM not in Probe42 — must be sourced from website or flagged as data gap':'')
       +'\n╚══════════════════════════════════════════════════════════════╝'
     );
@@ -3945,7 +3950,7 @@ async function runDeepResearchFull(){
     var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED (Pre-IPO)'
       +VERIFIED_FINANCIALS;
 
-    var DR_GR='DATA RULES: 1.CHARGES:use amounts from CHARGE REGISTER exactly-never restate. 2.BOARD:use names+DINs from data exactly-never placeholder. 3.LOCKED METRICS:use values exactly-never recompute. 4.BS SUB-LINES:only show if in Probe42-else write Not in MCA extract. 5.VALUATION:Indicative Enterprise Value Range NOT Price Band. 6.PEERS wire/cable:KEI/Finolex/Polycab/Paramount NOT Tata Steel/HZL. ';
+    var DR_GR='DATA RULES: 1.CHARGES:use amounts from CHARGE REGISTER exactly-never restate. 2.BOARD:use names+DINs from data exactly-never placeholder. 3.LOCKED METRICS:use values exactly-never recompute. 4.BS SUB-LINES:only show if in Probe42-else write Not in MCA extract. 5.VALUATION:Indicative Enterprise Value Range NOT Price Band. 6.PEERS wire/cable:KEI/Finolex/Polycab/Paramount NOT Tata Steel/HZL. 7.NEVER print Data not available/Pending/To be provided/[X Required]/Check MCA for any datapoint present in LOCKED DATA — the roster and charge register ARE provided. 8.If a datapoint is genuinely absent from LOCKED DATA, write Not in MCA extract once — never build placeholder tables of pending rows. 9.NEVER fabricate or estimate multi-year figures for years marked DATA UNAVAILABLE. ';
     var sys='You are ipowork AI, a SEBI-aligned IPO analysis system. ABSOLUTE RULE: Never mention McKinsey, KPMG, Goldman Sachs, Morgan Stanley, Deloitte, or any advisory firm anywhere in the report — not in headers, module titles, footers, or body text. Headers must read "ipowork AI Analysis" not any firm name. Attribution in every module: "Source: ipowork AI | Data: Probe42/MCA". Write detailed, data-driven analysis using ONLY the verified financial data provided. CRITICAL: Use exact figures given — never contradict them. Every CAGR, margin, ratio must match the verified data exactly. Write tables, cite specific regulations, provide actionable insights. '+DR_GR;
 
     // ── SECTOR-SPECIFIC MODULE OVERRIDES ───────────────────────────────
@@ -3962,7 +3967,7 @@ async function runDeepResearchFull(){
       {id:'M04',t:'Financial Performance Deep-Dive',p:fd+'\n\n'+(isNBFC?nbfcOverride.M04:'Write M04 - FINANCIAL PERFORMANCE DEEP-DIVE:\n(1) 3-year P&L table: '+yr22lbl+'/'+yr23lbl+'/'+yr24+' Revenue/EBITDA/PAT — using VERIFIED figures ONLY. If year is DATA UNAVAILABLE, write that explicitly, do not repeat FY24 figures.\n(2) Revenue CAGR: MUST use '+rev2yrCagr+'% — do not compute differently\n(3) DuPont ROE: '+roe+'% = Net Margin '+netM+'% × Asset Turnover '+assetTurnover+'x × Equity Multiplier '+equityMultiplier+'x\n(4) EBITDA bridge: Revenue → EBITDA → EBIT → PBT → PAT — reconcile to ₹'+pat+' Cr PAT\n(5) Working capital efficiency: DSO, DPO, DIO, Cash Conversion Cycle\n(6) FCF quality: OCF ₹'+ocf+' Cr vs PAT ₹'+pat+' Cr = '+ocfPat+'x ratio\n(7) Red flags screening: 5 items')},
       {id:'M05',t:'Balance Sheet & Capital Structure',p:fd+'\n\n'+(isNBFC?nbfcOverride.M05:'Write M05 - BALANCE SHEET & CAPITAL STRUCTURE:\n(1) Asset composition: Fixed/Current/Intangible breakdown\n(2) Liability structure: bank debt, bonds, trade payables\n(3) Net Worth ₹'+nw+' Cr adequacy vs listing requirements\n(4) Open charges: '+openChgs+' charges — show ALL '+chgs.length+' (SEBI ICDR Reg 26 mandates full disclosure)\n(5) Debt serviceability: Int Coverage '+intCov+'x — stress test at +200bps\n(6) Post-IPO capital structure target\n(7) Off-balance sheet: guarantees, contingent liabilities')},
       {id:'M06',t:'Return Metrics & Shareholder Value',p:fd+'\n\nWrite M06 - RETURN METRICS (use ONLY pre-computed DuPont values from locked data):\n(1) DuPont ROE table: ROE '+roe+'% = Net Margin '+netM+'% × Asset Turnover '+assetTurnover+'x × Equity Multiplier '+equityMultiplier+'x\nCRITICAL: Interest expense = EBIT − PBT = ₹'+interestExpense+' Cr. DO NOT compute interest as Debt × rate.\n(2) ROCE '+roce+'% = EBIT ₹'+ebitFromRoce+' Cr ÷ Capital Employed ₹'+capEmployed+' Cr\n(3) EVA: ROCE '+roce+'% − WACC 13% = '+(+(parseFloat(roce)-13).toFixed(2))+'% × ₹'+capEmployed+' Cr = ₹'+(+(capEmployed*(parseFloat(roce)-13)/100).toFixed(1))+' Cr\n(4) FCF: OCF ₹'+ocf+' Cr vs PAT ₹'+pat+' Cr = '+ocfPat+'x ('+( parseFloat(ocfPat)>=0.8?'strong':'review' )+')\n(5) Dividend capacity: EBITDA ₹'+eCr+' Cr − Interest ₹'+interestExpense+' Cr − Tax ₹'+taxExpense+' Cr − CapEx ₹'+capex+' Cr = FCF ₹'+fcfEst+' Cr. If intCov '+intCov+'x < 1.5x, state dividend not recommended pre-IPO.\n(6) 8 listed '+sector+' peers: ROE|ROCE|Net Margin|Asset Turn|Eq Multiplier table\n(7) Value creation scorecard: 5 metrics GREEN/AMBER/RED'},
-      {id:'M07',t:'Governance & Board Assessment',p:fd+'\n\nWrite M07 - GOVERNANCE & BOARD ASSESSMENT:\n(1) Board scorecard: '+dirs.length+' directors — Independence ratio vs SEBI LODR Reg 17\nSEBI ACCURACY: Reg 17(1) — if executive chairman: 50% IDs required post-listing; if non-executive: 1/3rd. Pre-IPO company is UNLISTED — current gap is preparation requirement, not a violation.\n(2) Director table: Name|DIN|Independence|Qualification|Other Directorships\nCRITICAL: Only mark as Independent if DIN confirmed. Unknown directors = "Details Pending". Never overstate independence.\n(3) Board committees: Audit/NRC/CSR/Risk vs LODR requirements\n(4) Related party transactions\n(5) Promoter shareholding and pledge\n(6) Governance maturity matrix: Dimension|Current|Required|Gap|Timeline\n(7) Pre-IPO governance action plan'},
+      {id:'M07',t:'Governance & Board Assessment',p:fd+'\n\nWrite M07 - GOVERNANCE & BOARD ASSESSMENT:\n(1) Board scorecard: '+dirs.length+' directors — Independence ratio vs SEBI LODR Reg 17\nSEBI ACCURACY: Reg 17(1) — if executive chairman: 50% IDs required post-listing; if non-executive: 1/3rd. Pre-IPO company is UNLISTED — current gap is preparation requirement, not a violation.\n(2) Director table: Name|DIN|Independence|Qualification|Other Directorships\nCRITICAL: All names+DINs are in BOARD ROSTER — use them for every row. For Independence write "To be designated pre-IPO" where not established. Never overstate independence and never write placeholder rows.\n(3) Board committees: Audit/NRC/CSR/Risk vs LODR requirements\n(4) Related party transactions\n(5) Promoter shareholding and pledge\n(6) Governance maturity matrix: Dimension|Current|Required|Gap|Timeline\n(7) Pre-IPO governance action plan'},
       {id:'M08',t:'Regulatory & Compliance Deep-Dive',p:fd+'\n\nWrite M08 - REGULATORY & COMPLIANCE:\n(1) SEBI ICDR Regulation 6 eligibility checklist\n(2) MCA/ROC compliance: Annual returns, ROC forms\n(3) Tax compliance: Income Tax, GST, TDS\n(4) Labour law: PF, ESI, Shops & Establishments\n(5) Industry-specific: '+sector+' licences'+(isNBFC?' + RBI Certificate of Registration. NBFC LIQUIDITY: Reference RBI Master Direction DNBR.PD.007/03.10.119/2016-17 and LCR Circular (RBI/2019-20/88). For assets > ₹10,000 Cr, LCR compliance applies. Do NOT cite a flat 5-7% cash rule.':'')+'\n(6) Environmental: factory approvals, PCB NOC\n(7) Litigation screening: civil, criminal, regulatory'},
       {id:'M09',t:'IPO Valuation Assessment',p:fd+'\n\nWrite M09 - IPO VALUATION (use ONLY pre-computed values):\n(1) P/E: PAT ₹'+pat+' Cr × '+sPE+'x × (1−'+Math.round(disc*100)+'%) = ₹'+pe_eq+' Cr\n(2) EV/EBITDA: EBITDA ₹'+eCr+' Cr × '+sEV+'x − Debt ₹'+debt+' Cr = ₹'+ev_eq+' Cr\n(3) DCF WACC 13%, g 5%: FCF table, TV ₹'+tvVal+' Cr, equity ₹'+dcfVal+' Cr\n(4) P/B: Book ₹'+nw+' Cr × 1.5x = ₹'+pbVal+' Cr\n(5) Weighted table: Method|Value|Weight|Weighted — Base ₹'+baseVal+' Cr\n(6) Sensitivity: ±20% PAT impact table\n(7) 6 listed '+sector+' peers: P/E|EV/EBITDA|P/B|ROE|Mkt Cap\nCRITICAL UNIT: equity value is in CRORES. Price/share = (Equity Cr × 10,000,000) ÷ shares. State shares assumption.\n(8) Recommended price band with per-share calculation and data source footnote'},
       {id:'M10',t:'Risk Intelligence Matrix',p:fd+'\n\nWrite M10 - RISK INTELLIGENCE MATRIX:\n(1) Risk register — ALL 12 ROWS MUST BE POPULATED (no blank rows): Risk|Category|Probability(H/M/L)|Impact(H/M/L)|Severity(1-25)|Mitigation|Owner. Required risks: NPA deterioration, Funding cost spike, Regulatory tightening, Key man risk, Fintech competition, Interest rate risk, Lender NOC for charges, Governance gaps, IPO market conditions, Post-listing lock-in expiry, Portfolio concentration, Cyber/operational risk\n(2) Top 3 critical risks with financial quantification\n(3) Sector risks for '+sector+(isNBFC?' — NPA deterioration, funding squeeze, rate sensitivity':'')+'\n(4) Governance risks: '+openChgs+' open charges, '+dirs.length+' director board\n(5) Macro risks: rates, competition, regulation\n(6) Post-IPO risks: lock-in expiry, promoter selling, earnings miss'},
@@ -4065,11 +4070,11 @@ async function runDeepResearchFull(){
       chgs.forEach(function(c,i){
         var holder=c.charge_holder||c.holder||c.lender_name||c.bank||'[Lender: Refer MCA Charge ID '+esc(c.id||c.charge_id||String(i+1))+']';
         var rawAmt=parseFloat(c.amount)||0;
-        var amt='Check MCA';
-        // FIX: MCA charge amounts are in LAKHS
+        var amt='Not filed';
+        // Probe42 charge amounts are RAW RUPEES — divide by 1e7 for Crores
         if(rawAmt>0){
-          if(rawAmt>=100) amt='₹'+(rawAmt/100).toFixed(2)+' Cr';
-          else amt='₹'+rawAmt.toFixed(2)+' L';
+          if(rawAmt>=100000) amt='₹'+(rawAmt/10000000).toFixed(2)+' Cr';
+          else amt='₹'+rawAmt.toFixed(0);
         }
         report+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
           +'<td style="padding:7px 10px;color:#9AB0B8;font-size:11px">'+(i+1)+'</td>'
@@ -4345,13 +4350,15 @@ function generateFullReport(){
     +'</head><body>';
 
   /* ── COVER PAGE ── */
-  var score=0,rev='—',pat='—';
+  var score=0,rev='—',pat='—',fyLbl='Latest FY';
   keys.forEach(function(k){
     var r=AIRA_RESULTS[k];
     if(r&&r.result){
       if(r.result.ipo_score||r.result.score) score=r.result.ipo_score||r.result.score||score;
       if(r.result.revenue_cr) rev='₹'+r.result.revenue_cr+' Cr';
       if(r.result.pat_cr) pat='₹'+r.result.pat_cr+' Cr';
+      var _fy=(r.result.financials&&r.result.financials.fy_year)||r.result.fy_year;
+      if(_fy) fyLbl=_fy;
     }
   });
   var scoreColor=score>=75?'#6DDC9E':score>=50?'#F5C842':'#FF8080';
@@ -4363,7 +4370,7 @@ function generateFullReport(){
     +'<div class="cover-meta">'
     +(score?'<div class="cover-stat"><div class="cover-stat-n" style="color:'+scoreColor+'">'+score+'/100</div><div class="cover-stat-l">IPO Score</div></div>':'')
     +'<div class="cover-stat"><div class="cover-stat-n">'+keys.length+'</div><div class="cover-stat-l">Modules</div></div>'
-    +'<div class="cover-stat"><div class="cover-stat-n" style="font-size:14px">'+rev+'</div><div class="cover-stat-l">Revenue '+('FY24')+'</div></div>'
+    +'<div class="cover-stat"><div class="cover-stat-n" style="font-size:14px">'+rev+'</div><div class="cover-stat-l">Revenue '+fyLbl+'</div></div>'
     +'</div>'
     +'<div class="cover-date">Prepared on '+date+' · ipowork AI · Data: Probe42/MCA</div>'
     +'<div class="cover-disc">⚠ This report is generated by ipowork AI and is NOT SEBI-registered. It does not constitute investment advice, an offer to sell, or a solicitation to buy securities. For informational purposes only.</div>'
@@ -4392,6 +4399,17 @@ function generateFullReport(){
     var rawContent=(el&&el.innerHTML.length>100)?el.innerHTML:(rep&&rep.result&&rep.result._report)||'';
     if(!rawContent) return;
     var content=cleanForPrint(rawContent);
+    if(i<keys.length-1){
+      // Strip Probe42 appendix tables from all but the final module to avoid duplication
+      var _tmp=document.createElement('div');_tmp.innerHTML=content;
+      Array.prototype.slice.call(_tmp.querySelectorAll('div')).forEach(function(_dv){
+        var _t=(_dv.textContent||'').trim();
+        if(/^(Board of Directors|Charge Register|BOARD OF DIRECTORS|CHARGE REGISTER)\s*[\(\u2014-]/.test(_t)&&_t.length<80&&_dv.parentElement&&_dv.parentElement!==_tmp){
+          var _w=_dv.parentElement; if(_w.parentElement) _w.parentElement.removeChild(_w);
+        }
+      });
+      content=_tmp.innerHTML;
+    }
     var col=tierColors[k]||'#08404D';
 
     html+='<div class="module">'
