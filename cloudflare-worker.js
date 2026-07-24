@@ -1,4 +1,4 @@
-/* ipowork Worker v11.2 — charge holder_name fix (Probe42 v1.3 field) + valuation data-injection support */
+/* ipowork Worker v11.3 — registered_address+email extraction; holder_name fix; valuation data-injection */
 
 /* ── Probe42 via Supabase Edge Function proxy ── */
 async function probe42Fetch(endpoint, env) {
@@ -639,6 +639,13 @@ function extractProbe42(raw, cin) {
     paid_up_capital:      d.paid_up_capital || null,
     authorised_capital:   d.authorized_capital || d.authorised_capital || null,
     registered_state:     (d.registered_address&&d.registered_address.state) || d.registered_state || null,
+    registered_address:   (d.registered_address && (d.registered_address.full_address ||
+                            [d.registered_address.address_line1||d.registered_address.line1,
+                             d.registered_address.address_line2||d.registered_address.line2,
+                             d.registered_address.city, d.registered_address.state,
+                             d.registered_address.pincode||d.registered_address.pin_code]
+                            .filter(Boolean).join(', '))) || d.registered_office_address || null,
+    email:                d.email || null,
     last_agm_date:        d.last_agm_date || null,
     last_filing_date:     d.last_filing_date || null,
     listing_status:       d.status || (d.cin&&d.cin[0]==='L'?'Listed':'Unlisted'),
@@ -1580,7 +1587,7 @@ export default {
           }), {headers:{...CORS,'Content-Type':'application/json'}});
         }
       }
-      return new Response('ipowork Worker v11.2 OK — charge holder_name mapping fix',{headers:{...CORS,'Content-Type':'text/plain'}});
+      return new Response('ipowork Worker v11.3 OK — address/email extraction + holder_name fix',{headers:{...CORS,'Content-Type':'text/plain'}});
     }
     let body={};
     try{body=await req.json();}catch(e){}
