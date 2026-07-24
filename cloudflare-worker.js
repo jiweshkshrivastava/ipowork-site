@@ -1,4 +1,4 @@
-/* ipowork Worker v11.0 — single full_paid call, exact Probe42 field paths */
+/* ipowork Worker v11.2 — charge holder_name fix (Probe42 v1.3 field) + valuation data-injection support */
 
 /* ── Probe42 via Supabase Edge Function proxy ── */
 async function probe42Fetch(endpoint, env) {
@@ -574,7 +574,7 @@ function extractProbe42(raw, cin) {
                    Array.isArray(d.open_charges) ? d.open_charges : [];
   const charges = chargeRaw.map(function(c){
     return {
-      charge_holder: c.charge_holder||c.holder||c.lender_name||c.bank_name||c.creditor||'N/A',
+      charge_holder: c.charge_holder||c.holder_name||c.charge_holder_name||c.holder||c.lender_name||c.bank_name||c.creditor||'N/A',
       amount: c.amount||c.charge_amount||null,
       status: c.status||c.charge_status||(c.date_of_satisfaction?'Satisfied':'Open'),
       date_of_creation: c.date_of_creation||c.created_date||c.date||null,
@@ -1580,7 +1580,7 @@ export default {
           }), {headers:{...CORS,'Content-Type':'application/json'}});
         }
       }
-      return new Response('ipowork Worker v11.1 OK — data-integrity fix: roster+charges in all prompts',{headers:{...CORS,'Content-Type':'text/plain'}});
+      return new Response('ipowork Worker v11.2 OK — charge holder_name mapping fix',{headers:{...CORS,'Content-Type':'text/plain'}});
     }
     let body={};
     try{body=await req.json();}catch(e){}

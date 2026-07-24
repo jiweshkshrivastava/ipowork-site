@@ -3110,7 +3110,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       ddbundle:'Due Diligence Bundle',deepresearch:'Deep Research'};
     var rTitle=tierNames[tier]||'IPO Report';
 
-    var AIRA_GR='CRITICAL DATA RULES:\n1. CHARGES: Use amounts EXACTLY as shown — never restate.\n2. BOARD: Use real names+DINs — never write [Placeholder].\n3. LOCKED METRICS: Use pre-computed CAGRs/ROCE/ROE/D/E — never recompute.\n4. BS SUB-LINES: Only show items in Probe42 data — missing: write Not in MCA extract.\n5. VALUATION: Label Indicative Enterprise Value Range NOT Price Band.\n6. EBITDA FY23/FY24 if N/A: write Not itemised in MCA filings for unlisted companies.\n7. REVENUE MIX if estimated: add WARNING ipowork AI estimate — not from MCA filings.\n8. PEERS wire/cable: use KEI/Finolex/Polycab/Paramount NOT Tata Steel/Hindustan Zinc.\n\n';
+    var AIRA_GR='CRITICAL DATA RULES:\n1. CHARGES: Use amounts EXACTLY as shown — never restate.\n2. BOARD: Use real names+DINs — never write [Placeholder].\n3. LOCKED METRICS: Use pre-computed CAGRs/ROCE/ROE/D/E — never recompute.\n4. BS SUB-LINES: Only show items in Probe42 data — missing: write Not in MCA extract.\n5. VALUATION: Label Indicative Enterprise Value Range NOT Price Band.\n6. EBITDA FY23/FY24 if N/A: write Not itemised in MCA filings for unlisted companies.\n7. REVENUE MIX if estimated: add WARNING ipowork AI estimate — not from MCA filings.\n8. PEERS: select listed NSE/BSE peers from the company\u2019s ACTUAL sub-sector (per MCA activity/website data provided) \u2014 NEVER default to wire/cable names (KEI/Polycab/Finolex) or any other industry unless the data shows the company is genuinely in that business; if sub-sector unclear, benchmark against broad sector averages and say so.\n\n';
     var sysP=(customSystem||'You are a Senior IPO advisor. Write comprehensive reports with tables, numbered sections, specific regulatory references, and actionable insights. Use exact financial data provided.')+' '+AIRA_GR;
 
     // Base financial data string passed to all Claude calls
@@ -3442,14 +3442,31 @@ async function runValuationDoc(){
     var base=+(pe_eq*0.4+ev_eq*0.4+dcfVal*0.2).toFixed(1);
     var cons=+(base*0.80).toFixed(1),opti=+(base*1.25).toFixed(1);
     var _vdct=chgs.reduce(function(s,c){var _x=parseFloat(c.amount||0);return s+(_x>=100000?_x/10000000:0);},0);
+    /* FIX-JUL26-B: valuation fd previously passed only COUNTS (Directors:8 | Charges:10) while
+       VAL_GR demanded "real names/DINs" — the AI, given the instruction but not the data, generated
+       [Name to be verified]/[Banking Institution] placeholder tables. Full roster + charge register
+       now injected, same as Deep Research. Also removed the false "MCA Lakhs" conversion rule
+       (Probe42 charge amounts are RAW RUPEES, already converted to Cr in JS). */
+    var vdDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    var vdRoster=dirs.length
+      ? 'BOARD ROSTER ('+dirs.length+' \u2014 REAL MCA-verified names/DINs, use EXACTLY in every board table; NEVER write [Name to be verified], [DIN], Pending, or placeholder rows):'
+        +dirs.map(function(d){return '\n  '+(d.name||'?')+' | DIN '+(d.din||'?')+' | '+(d.designation||'Director')+(d.appointed?' | appointed '+d.appointed:'');}).join('')
+      : 'BOARD ROSTER: Not in MCA extract';
+    var vdCharges=chgs.length
+      ? 'CHARGE REGISTER ('+chgs.length+' charges, '+openChgs+' OPEN, TOTAL OPEN \u20b9'+_vdct.toFixed(2)+' Cr \u2014 amounts below are ALREADY in \u20b9 Crores; use EXACTLY, never re-convert, never mention lakhs, NEVER write [Banking Institution]/[Amount]/placeholder rows):'
+        +chgs.map(function(c){var _n=parseFloat(c.amount||0);var _as=(_n>0)?(_n>=100000?'\u20b9'+(_n/10000000).toFixed(2)+' Cr':'\u20b9'+_n.toFixed(0)):'amount not filed';return '\n  '+(c.charge_holder||c.holder_name||c.holder||'N/A')+' | '+_as+' | '+(c.status||'?')+(c.date_of_creation?' | created '+c.date_of_creation:'');}).join('')
+      : 'CHARGE REGISTER: no charges on record';
     var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED'
+      +'\nREPORT DATE: '+vdDate+' \u2014 use this exact date everywhere; NEVER write [Current Date]'
       +'\nRevenue=\u20b9'+rev+' Cr | PAT=\u20b9'+pat+' Cr ('+netM+'%) | EBITDA='+ePct+'% (\u20b9'+eCr+' Cr)'
       +'\nNW=\u20b9'+nw+' Cr | Debt=\u20b9'+debt+' Cr | ROE='+roe+'% | ROCE='+roce+'%'
       +'\nP/E Value=\u20b9'+pe_eq+' Cr | EV/EBITDA=\u20b9'+ev_eq+' Cr | DCF=\u20b9'+dcfVal+' Cr'
       +'\nBase=\u20b9'+base+' Cr | Conservative=\u20b9'+cons+' Cr | Optimistic=\u20b9'+opti+' Cr'
-      +'\nDirectors:'+dirs.length+' | Open Charges:'+openChgs+' (\u20b9'+_vdct.toFixed(2)+' Cr total)'
+      +'\n'+vdRoster
+      +'\n'+vdCharges
+      +'\nTOTAL OPEN CHARGES (LOCKED): \u20b9'+_vdct.toFixed(2)+' Cr \u2014 use this exact figure in every section; never restate as '+(_vdct-0.1).toFixed(2)+' or any variant'
       +'\nPrepared by ipowork AI. Valuation=Indicative Enterprise Value Range NOT Price Band.';
-    var VAL_GR='CRITICAL RULES: 1.CHARGES:show ALL with amounts in Crores(MCA Lakhs converted). 2.BOARD:real names/DINs. 3.Valuation=Indicative Enterprise Value Range NOT Price Band. 4.Use only provided figures. ';
+    var VAL_GR='CRITICAL RULES: 1.CHARGES: show ALL from CHARGE REGISTER with lender names \u2014 amounts are ALREADY in \u20b9 Crores, use exactly as shown, never convert or mention lakhs. 2.BOARD: use the REAL names+DINs from BOARD ROSTER \u2014 never placeholders. 3.Valuation=Indicative Enterprise Value Range NOT Price Band. 4.Use only provided figures \u2014 never recompute or restate. 5.If a datapoint is genuinely absent, write "Not in MCA extract" once \u2014 never build placeholder tables. 6.SECTOR: describe the business only from provided data/website \u2014 NEVER guess a sub-sector or borrow another industry\u0027s peer set. ';
     var sys='You are a Senior Merchant Banker. Write a comprehensive IPO Valuation Report using ONLY the provided data. '+VAL_GR;
     if(btn)btn.innerHTML='<span class="spinner"></span> Section 1/4\u2026';
     var v1=await workerPost({type:'claudeProxy',model:'claude-haiku-4-5-20251001',max_tokens:1300,system:sys,messages:[{role:'user',content:fd+'\n\nSection 1 - EXECUTIVE SUMMARY:\n(1) Company snapshot table\n(2) Business description & investment highlights\n(3) Valuation summary: Conservative \u20b9'+cons+' Cr | Base \u20b9'+base+' Cr | Optimistic \u20b9'+opti+' Cr'}]});
@@ -3910,7 +3927,8 @@ async function runDeepResearchFull(){
       +'\nBOARD ROSTER (MCA verified — these are the REAL names and DINs; use them EXACTLY everywhere. NEVER write Pending, [DIN Not Provided], To be provided, or placeholder director rows):'
       +dirs.map(function(d){return '\n  '+(d.name||'?')+' | DIN '+(d.din||'?')+' | '+(d.designation||'Director')+(d.appointed?' | appointed '+d.appointed:'');}).join('')
       +'\nCHARGE REGISTER (MCA verified — REAL lender names and dates; use EXACTLY. NEVER write [From MCA], Refer MCA, or Check MCA. NEVER state charges are zero, nil or satisfied — '+openChgs+' of '+chgs.length+' are OPEN):'
-      +chgs.map(function(c){var _n=parseFloat(c.amount||0);var _as=(_n>0)?(_n>=100000?'₹'+(_n/10000000).toFixed(2)+' Cr':'₹'+_n.toFixed(0)):'amount not filed';return '\n  '+(c.charge_holder||c.holder||'?')+' | '+_as+' | '+(c.status||'?')+(c.date_of_creation?' | created '+c.date_of_creation:'');}).join('')
+      +chgs.map(function(c){var _n=parseFloat(c.amount||0);var _as=(_n>0)?(_n>=100000?'₹'+(_n/10000000).toFixed(2)+' Cr':'₹'+_n.toFixed(0)):'amount not filed';return '\n  '+(c.charge_holder||c.holder_name||c.holder||'?')+' | '+_as+' | '+(c.status||'?')+(c.date_of_creation?' | created '+c.date_of_creation:'');}).join('')
+      +'\n  TOTAL OPEN CHARGES (LOCKED): ₹'+chgs.reduce(function(s,c){var _x=parseFloat(c.amount||0);return s+((c.status==='Open'&&_x>=100000)?_x/10000000:0);},0).toFixed(2)+' Cr — every module MUST use this exact total; never restate with a different decimal (no .77/.67 variants)'
       +'\n'
       +'\nVALUATION (computed in JS — use exactly):'
       +'\n  P/E ('+sPE+'x, '+Math.round(disc*100)+'% disc): ₹'+pe_eq+' Cr'
@@ -3950,7 +3968,7 @@ async function runDeepResearchFull(){
     var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET: '+exchange+' | STATUS: PRIVATE UNLISTED (Pre-IPO)'
       +VERIFIED_FINANCIALS;
 
-    var DR_GR='DATA RULES: 1.CHARGES:use amounts from CHARGE REGISTER exactly-never restate. 2.BOARD:use names+DINs from data exactly-never placeholder. 3.LOCKED METRICS:use values exactly-never recompute. 4.BS SUB-LINES:only show if in Probe42-else write Not in MCA extract. 5.VALUATION:Indicative Enterprise Value Range NOT Price Band. 6.PEERS wire/cable:KEI/Finolex/Polycab/Paramount NOT Tata Steel/HZL. 7.NEVER print Data not available/Pending/To be provided/[X Required]/Check MCA for any datapoint present in LOCKED DATA — the roster and charge register ARE provided. 8.If a datapoint is genuinely absent from LOCKED DATA, write Not in MCA extract once — never build placeholder tables of pending rows. 9.NEVER fabricate or estimate multi-year figures for years marked DATA UNAVAILABLE. ';
+    var DR_GR='DATA RULES: 1.CHARGES:use amounts from CHARGE REGISTER exactly-never restate. 2.BOARD:use names+DINs from data exactly-never placeholder. 3.LOCKED METRICS:use values exactly-never recompute. 4.BS SUB-LINES:only show if in Probe42-else write Not in MCA extract. 5.VALUATION:Indicative Enterprise Value Range NOT Price Band. 6.PEERS: choose listed peers from the company\u2019s ACTUAL sub-sector per MCA/website data \u2014 NEVER default to wire/cable (KEI/Polycab/Finolex) or any industry the data does not support; if sub-sector unclear, use broad sector averages and state the limitation. 7.NEVER print Data not available/Pending/To be provided/[X Required]/Check MCA for any datapoint present in LOCKED DATA — the roster and charge register ARE provided. 8.If a datapoint is genuinely absent from LOCKED DATA, write Not in MCA extract once — never build placeholder tables of pending rows. 9.NEVER fabricate or estimate multi-year figures for years marked DATA UNAVAILABLE. ';
     var sys='You are ipowork AI, a SEBI-aligned IPO analysis system. ABSOLUTE RULE: Never mention McKinsey, KPMG, Goldman Sachs, Morgan Stanley, Deloitte, or any advisory firm anywhere in the report — not in headers, module titles, footers, or body text. Headers must read "ipowork AI Analysis" not any firm name. Attribution in every module: "Source: ipowork AI | Data: Probe42/MCA". Write detailed, data-driven analysis using ONLY the verified financial data provided. CRITICAL: Use exact figures given — never contradict them. Every CAGR, margin, ratio must match the verified data exactly. Write tables, cite specific regulations, provide actionable insights. '+DR_GR;
 
     // ── SECTOR-SPECIFIC MODULE OVERRIDES ───────────────────────────────
