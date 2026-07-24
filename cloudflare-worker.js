@@ -40,12 +40,56 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
    Law: SEBI ICDR 2018, Companies Act 2013, IndAS 113, FEMA
    ═══════════════════════════════════════════════════════════════ */
 
-async function valuationDoc(body, key) {
+
+/* ═══ FIX-JUL26: shared Probe42 full-data serializers + anti-placeholder rules ═══ */
+function p42AmtCr(v){const n=parseFloat(v)||0;if(n<=0)return 'amount not filed';return n>=100000?'\u20b9'+(n/10000000).toFixed(2)+' Cr':'\u20b9'+n.toFixed(0);}
+function p42Roster(flat){
+  const ds=(flat.directors||[]).filter(d=>!d.cessation);
+  if(!ds.length) return 'BOARD ROSTER: not available in MCA extract';
+  return 'BOARD ROSTER ('+ds.length+' active \u2014 REAL names/DINs, use EXACTLY, never Pending/[DIN Not Provided]/placeholder rows):\n'
+    +ds.map(d=>'  '+(d.name||'?')+' | DIN '+(d.din||'?')+' | '+(d.designation||'Director')+(d.appointed?' | appointed '+d.appointed:'')).join('\n');
+}
+function p42Charges(flat){
+  const cs=flat.charges||[];
+  if(!cs.length) return 'CHARGE REGISTER: no charges on record';
+  const open=cs.filter(c=>String(c.status||'').toLowerCase()!=='satisfied').length;
+  return 'CHARGE REGISTER ('+cs.length+' total, '+open+' OPEN \u2014 REAL lender names/dates, use EXACTLY; never [From MCA]/Refer MCA/Check MCA; NEVER claim charges are zero, nil or satisfied):\n'
+    +cs.map(c=>'  '+(c.charge_holder||'?')+' | '+p42AmtCr(c.amount)+' | '+(c.status||'?')+(c.date_of_creation?' | created '+c.date_of_creation:'')).join('\n');
+}
+function p42ThreeYr(flat){
+  const f=flat.financials||{};
+  const fC=v=>{if(v==null||v===''||isNaN(v))return 'DATA UNAVAILABLE';const n=Number(v);return n>=10000000?'\u20b9'+(n/10000000).toFixed(2)+' Cr':'\u20b9'+n.toLocaleString('en-IN');};
+  return 'THREE-YEAR FINANCIALS (actuals \u2014 never estimate/fabricate; if a year says DATA UNAVAILABLE, write exactly that):\n'
+    +'  Revenue: '+(flat.fy22_year||'FY22')+'='+fC(f.revenue_fy22)+' | '+(flat.fy23_year||'FY23')+'='+fC(f.revenue_fy23)+' | '+(flat.fy24_year||f.fy_year||'Latest FY')+'='+fC(f.revenue_fy24)+'\n'
+    +'  PAT:     '+(flat.fy22_year||'FY22')+'='+fC(f.pat_fy22)+' | '+(flat.fy23_year||'FY23')+'='+fC(f.pat_fy23)+' | '+(flat.fy24_year||f.fy_year||'Latest FY')+'='+fC(f.pat_fy24);
+}
+const P42_RULES='DATA INTEGRITY RULES (mandatory): (1) Every datapoint in the VERIFIED DATA above is REAL \u2014 use it exactly; NEVER print "Data not available", "Pending", "To be provided", "[X Required]", "Check MCA" or placeholder table rows for anything provided. (2) If a datapoint is genuinely absent from the VERIFIED DATA, write "Not in MCA extract" once \u2014 do not build placeholder tables. (3) NEVER fabricate or estimate multi-year figures; three-year actuals are provided where they exist. (4) NEVER contradict the charge register \u2014 never state charges are zero/nil/satisfied when open charges are listed. (5) Use the exact FY labels provided. ';
+/* ═══ END FIX-JUL26 helpers ═══ */
+
+async function valuationDoc(body, key, probeKey) {
   const { company_name='', cin='', sector='Manufacturing', exchange='NSE Emerge (SME)',
           documents='', revenue='', pat='', ebitda='', net_worth='', total_assets='' } = body;
   if(!company_name) return jErr('Company name required', 400);
 
   const today = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+
+  /* ═══ FIX-JUL26: valuationDoc previously received ZERO Probe42 data — fetch and inject it ═══ */
+  let vFlat=null;
+  if(cin && probeKey){
+    try{
+      const vc=new AbortController();const vt=setTimeout(()=>vc.abort(),9000);
+      try{
+        const vr=await fetch(`https://api.probe42.in/probe_pro/companies/${encodeURIComponent(cin)}/comprehensive-details`,{headers:{'x-api-key':probeKey,'Accept':'application/json','x-api-version':'1.3'},signal:vc.signal});
+        clearTimeout(vt);
+        if(vr.ok){const vraw=await vr.json();vFlat=extractProbe42(vraw.data||{},cin);}
+      }catch(_e){clearTimeout(vt);}
+    }catch(_e){}
+  }
+  const vBlock = vFlat ? ('\n=== PROBE42 VERIFIED DATA (MCA \u2014 ground truth) ===\n'
+    +'Company: '+(vFlat.company_name||company_name)+' | Status: '+(vFlat.status||'?')+' | Incorporated: '+(vFlat.date_of_incorporation||'?')+'\n'
+    +p42ThreeYr(vFlat)+'\n'+p42Roster(vFlat)+'\n'+p42Charges(vFlat)+'\n'
+    +'Compliance: '+(vFlat.active_compliance||'?')+' | Last Filing: '+(vFlat.last_filing_date||'?')+' | CIRP: '+(vFlat.cirp_status||'None')+'\n'
+    +P42_RULES+'\n') : '';
 
   const prompt = `TODAY: ${today}. Use this exact date as Valuation Date everywhere.
 
@@ -56,6 +100,7 @@ Revenue: ${revenue||'estimate from docs'} | PAT: ${pat||'estimate'} | EBITDA: ${
 Net Worth: ${net_worth||'estimate'} | Total Assets: ${total_assets||'estimate'}
 
 Documents: ${documents.substring(0,4000)}
+${vBlock}
 
 STEP 1 — Return ONLY this JSON block first:
 ---VALUATION_JSON_START---
@@ -557,9 +602,9 @@ function extractProbe42(raw, cin) {
     pat_fy23:       toCrY(f1,'profit_after_tax'),
     revenue_fy22:   toCrY(f2,'net_revenue'),
     pat_fy22:       toCrY(f2,'profit_after_tax'),
-    fy24_year:      (function(){var y=f0.year||f0.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY24';var n=parseInt(s.length>=4?0:4));return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY24';})(),
-    fy23_year:      (function(){var y=f1.year||f1.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY23';var n=parseInt(s.length>=4?0:4));return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY23';})(),
-    fy22_year:      (function(){var y=f2.year||f2.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY22';var n=parseInt(s.length>=4?0:4));return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY22';})(),
+    fy24_year:      (function(){var y=f0.year||f0.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY24';var n=parseInt(s.slice(0,4),10);return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY24';})(),
+    fy23_year:      (function(){var y=f1.year||f1.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY23';var n=parseInt(s.slice(0,4),10);return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY23';})(),
+    fy22_year:      (function(){var y=f2.year||f2.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY22';var n=parseInt(s.slice(0,4),10);return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY22';})(),
     ebitda_margin:  ga(ratios.ebitda_margin),
     net_worth:      toCr(bsS.total_equity||bsL.share_capital),
     total_assets:   toCr(bsA.given_assets_total||bsS.total_current_assets),
@@ -675,11 +720,15 @@ COMPLIANCE:
 GST: ${fmt(c.gst_status)} | ROC Filing: ${fmt(c.roc_filing_status)} | EPFO: ${c.epfo_registered?'Yes':'No'}
 Defaulter: ${c.defaulter?'YES - CRITICAL':'No'} | MSME Delays: ${fmt(c.msme_delays||0)}
 
-DIRECTORS (${dirs.length} active):
-${dirs.slice(0,5).map(d=>`${d.name||''} | DIN:${d.din||''} | ${d.designation||'Director'} | ${d.gender||''}`).join('\n')}
+${p42ThreeYr(flat)}
 
-CHARGES: ${(flat.charges||[]).length} open | Sum: ${fmtCr(flat.sum_of_charges)}
-CIRP: ${fmt(flat.cirp_status)||'None'} | SECTOR: ${sector} | EXCHANGE: ${exchange}`;
+${p42Roster(flat)}
+
+${p42Charges(flat)}
+Sum of charges: ${fmtCr(flat.sum_of_charges)}
+CIRP: ${fmt(flat.cirp_status)||'None'} | SECTOR: ${sector} | EXCHANGE: ${exchange}
+
+${P42_RULES}`;
 
   const isMB = board==='mainboard'||exchange.toLowerCase().includes('main');
   const prompt=`You are AIRA, a SEBI-expert AI with web search access. Search for recent news, regulatory actions, and sector data on this company, then analyse this ${isMB?'MAINBOARD':'SME IPO'} company and provide a complete IPO Readiness Report.
@@ -1336,10 +1385,13 @@ Revenue Growth: ${fP(f.revenue_growth)} | Net Margin: ${fP(f.net_margin)}
 Current Ratio: ${f.current_ratio||'N/A'}x | Interest Coverage: ${f.interest_coverage||'N/A'}x
 Auditor: ${f.auditor||'N/A'} | Inventory Days: ${f.inventory_days||'N/A'} | Debtor Days: ${f.debtor_days||'N/A'}
 
-DIRECTORS (${(flat.directors||[]).length} total):
-${(flat.directors||[]).filter(d=>!d.cessation).slice(0,8).map(d=>`${d.name} | DIN:${d.din} | ${d.designation} | ${d.gender}`).join('\n')}
+${p42ThreeYr(flat)}
 
-CHARGES: ${(flat.charges||[]).length} open charges | Sum: ${fC(flat.sum_of_charges)}
+${p42Roster(flat)}
+
+${p42Charges(flat)}
+Sum of charges: ${fC(flat.sum_of_charges)}
+${P42_RULES}
 COMPLIANCE: GST:${flat.compliance&&flat.compliance.gst_status||'N/A'} | EPFO:${flat.compliance&&flat.compliance.epfo_registered?'Yes':'No'} | Defaulter:${flat.compliance&&flat.compliance.defaulter?'YES':'No'}
 RPT: ${(flat.related_party_transactions||[]).length} related party transactions on record` 
   : `CIN: ${cin} | Company: ${company_name||cin} | Sector: ${sector} | [Probe42 data unavailable - AI analysis only]`;
@@ -1528,7 +1580,7 @@ export default {
           }), {headers:{...CORS,'Content-Type':'application/json'}});
         }
       }
-      return new Response('ipowork Worker v11.0 OK — deep_research_module ready',{headers:{...CORS,'Content-Type':'text/plain'}});
+      return new Response('ipowork Worker v11.1 OK — data-integrity fix: roster+charges in all prompts',{headers:{...CORS,'Content-Type':'text/plain'}});
     }
     let body={};
     try{body=await req.json();}catch(e){}
@@ -1591,7 +1643,7 @@ if(t==='probe42_search') return probe42Search(body,key,env);
       if(t==='admin_data')     return adminData(body);
       if(t==='sb_test')        return sbTest();
       if(t==='aira_doc')       return airaDoc(body,key);
-      if(t==='valuation_doc')  return valuationDoc(body,key);
+      if(t==='valuation_doc')  return valuationDoc(body,key,env.PROBE42_KEY);
       if(t==='valuation_intel')return valuationIntel(body,key,env.PROBE42_KEY);
       if(t==='aira_clean_chit')return airaCleanChit(body,key,env.PROBE42_KEY);
       if(t==='director_scan')  return directorScan(body,key);
