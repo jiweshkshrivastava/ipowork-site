@@ -3110,17 +3110,49 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       ddbundle:'Due Diligence Bundle',deepresearch:'Deep Research'};
     var rTitle=tierNames[tier]||'IPO Report';
 
-    var AIRA_GR='CRITICAL DATA RULES:\n1. CHARGES: Use amounts EXACTLY as shown — never restate.\n2. BOARD: Use real names+DINs — never write [Placeholder].\n3. LOCKED METRICS: Use pre-computed CAGRs/ROCE/ROE/D/E — never recompute.\n4. BS SUB-LINES: Only show items in Probe42 data — missing: write Not in MCA extract.\n5. VALUATION: Label Indicative Enterprise Value Range NOT Price Band.\n6. EBITDA FY23/FY24 if N/A: write Not itemised in MCA filings for unlisted companies.\n7. REVENUE MIX if estimated: add WARNING ipowork AI estimate — not from MCA filings.\n8. PEERS: select listed NSE/BSE peers from the company\u2019s ACTUAL sub-sector (per MCA activity/website data provided) \u2014 NEVER default to wire/cable names (KEI/Polycab/Finolex) or any other industry unless the data shows the company is genuinely in that business; if sub-sector unclear, benchmark against broad sector averages and say so.\n\n';
+    var AIRA_GR='CRITICAL DATA RULES:\n1. CHARGES: itemise from the CHARGE REGISTER exactly as listed — lender, amount, date; never restate amounts or write breakdown not itemised.\n2. BOARD: use the BOARD ROSTER names+DINs — never write [Placeholder], not specified, or data required for information present in the roster.\n3. LOCKED METRICS: Use pre-computed CAGRs/ROCE/ROE/D/E — never recompute.\n4. BS SUB-LINES: Only show items in Probe42 data — missing: write Not in MCA extract.\n5. VALUATION: Label Indicative Enterprise Value Range NOT Price Band.\n6. EBITDA prior years: use the LOCKED 3-YEAR P&L figures; only if a year is marked Not in MCA extract write Not itemised in MCA filings.\n7. REVENUE MIX if estimated: add WARNING ipowork AI estimate — not from MCA filings.\n9. NEVER INVENT DATA: prior-year PAT/EBITDA, incorporation dates, charge breakdowns and director details must come ONLY from the locked data above — inventing a plausible-looking figure or date is a CRITICAL defect; if truly absent, write Not in MCA extract.\n8. PEERS: select listed NSE/BSE peers from the company\u2019s ACTUAL sub-sector (per MCA activity/website data provided) \u2014 NEVER default to wire/cable names (KEI/Polycab/Finolex) or any other industry unless the data shows the company is genuinely in that business; if sub-sector unclear, benchmark against broad sector averages and say so.\n\n';
     var sysP=(customSystem||'You are a Senior IPO advisor. Write comprehensive reports with tables, numbered sections, specific regulatory references, and actionable insights. Use exact financial data provided.')+' '+AIRA_GR;
 
     // Base financial data string passed to all Claude calls
     var listingNote=(p42&&p42.listing_status&&p42.listing_status.toLowerCase()==='listed')?'(Currently listed - Migration/Upgrade scenario)':'PRIVATE LIMITED COMPANY - CURRENTLY UNLISTED (Pre-IPO Analysis)';
+    /* FIX-JUL25-E: this fd previously carried only current-year PAT and COUNTS of directors/charges.
+       The AI, asked to analyse 3-year PAT / board / charges with no data, FABRICATED prior-year PAT
+       figures, incorporation dates and charge summaries. Full locked data now injected. */
+    var e23L=+(parseFloat(f.ebitda_fy23)||0).toFixed(2);
+    var e22L=+(parseFloat(f.ebitda_fy22)||0).toFixed(2);
+    var icIncDate=(p42&&p42.date_of_incorporation)||'';
+    var _icM=(String(icIncDate).match(/(19|20)\d{2}/)||String(cin).match(/(19|20)\d{2}/)||[]);
+    var icIncYear=_icM[0]||'';
+    var icAge=icIncYear?(new Date().getFullYear()-parseInt(icIncYear,10)):'';
+    var icDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    var icChgTotal=chgs.reduce(function(s,c){var _x=parseFloat(c.amount||0);return s+((c.status==='Open'&&_x>=100000)?_x/10000000:0);},0);
+    var icWebCtx='';
+    if(p42&&p42.website){
+      try{
+        var _iw=await workerPost({type:'website_fetch', url:p42.website, max_chars:3000});
+        var _iwt=(_iw&&_iw.text)?_iw.text:'';
+        if(_iwt.length<1000){
+          try{var _iw2=await workerPost({type:'website_fetch', url:String(p42.website).replace(/\/+$/,'')+'/about.html', max_chars:2500});
+            if(_iw2&&_iw2.text&&_iw2.text.length>200)_iwt+='\n'+_iw2.text;}catch(_ie2){}
+        }
+        if(_iwt.length>100)icWebCtx='\n\nCOMPANY WEBSITE DATA ('+p42.website+') \u2014 the company\u2019s ACTUAL business; all product/segment claims MUST derive from this; NEVER invent product lines:\n'+_iwt.substring(0,4000);
+      }catch(_ie){}
+    }
     var fd='COMPANY: '+cname+' | CIN: '+cin+' | SECTOR: '+sector+' | TARGET EXCHANGE: '+exchange+' | STATUS: '+listingNote
-      +'\nREVENUE: '+yr22+'=\u20b9'+rev22+' Cr, '+yr23+'=\u20b9'+rev23+' Cr, '+yr24+'=\u20b9'+rev+' Cr ('+revGr+'% YoY)'
-      +'\nPAT '+yr24+'=\u20b9'+pat+' Cr ('+netM+'% margin) | EBITDA='+ePct+'% (\u20b9'+eCr+' Cr)'
+      +((p42&&p42.registered_address)?'\nREGISTERED OFFICE (MCA): '+p42.registered_address:'')
+      +(icIncYear?'\nINCORPORATED: '+(icIncDate||icIncYear)+' \u2014 company age '+icAge+' years (LOCKED \u2014 use exactly; NEVER invent a day/month; director DIN appointment dates are NOT the incorporation date)':'')
+      +'\nREPORT DATE: '+icDate+' (LOCKED \u2014 use this exact date wherever a date is needed)'
+      +'\n3-YEAR P&L (LOCKED \u2014 use these EXACT figures; NEVER invent or estimate prior-year numbers):'
+      +'\n  '+yr22+': Revenue \u20b9'+rev22+' Cr | PAT '+(pat22>0?'\u20b9'+pat22+' Cr':'Not in MCA extract')+' | EBITDA '+(e22L>0?'\u20b9'+e22L+' Cr':'Not in MCA extract')
+      +'\n  '+yr23+': Revenue \u20b9'+rev23+' Cr | PAT '+(pat23>0?'\u20b9'+pat23+' Cr':'Not in MCA extract')+' | EBITDA '+(e23L>0?'\u20b9'+e23L+' Cr':'Not in MCA extract')
+      +'\n  '+yr24+': Revenue \u20b9'+rev+' Cr ('+revGr+'% YoY) | PAT \u20b9'+pat+' Cr ('+netM+'% margin) | EBITDA \u20b9'+eCr+' Cr ('+ePct+'%)'
       +'\nNET WORTH=\u20b9'+nw+' Cr | DEBT=\u20b9'+debt+' Cr | D/E='+de+'x | ASSETS=\u20b9'+assets+' Cr'
-      +'\nROE='+roe+'% | ROCE='+roce+'% | CURRENT RATIO='+cr2+'x | INTEREST COVERAGE='+intCov+'x'
-      +'\nDIRECTORS='+dirs.length+' | OPEN CHARGES='+openChgs+'/'+chgs.length+' total | IPO SCORE='+score+'/100';
+      +'\nROE='+roe+'% | ROCE='+roce+'% | CURRENT RATIO='+cr2+'x | INTEREST COVERAGE='+intCov+'x | IPO SCORE='+score+'/100'
+      +'\nBOARD ROSTER ('+dirs.length+' \u2014 REAL MCA-verified names/DINs; use EXACTLY; NEVER write "not specified" or "data required" for items listed here):'
+      +dirs.map(function(d){return '\n  '+(d.name||'?')+' | DIN '+(d.din||'?')+' | '+(d.designation||'Director')+(d.gender?' | '+d.gender:'')+(d.appointed?' | appointed '+d.appointed:'');}).join('')
+      +'\nCHARGE REGISTER ('+chgs.length+' charges, '+openChgs+' OPEN, TOTAL OPEN \u20b9'+icChgTotal.toFixed(2)+' Cr \u2014 amounts ALREADY in \u20b9 Crores; itemise from THIS list; NEVER write "breakdown not itemised"):'
+      +chgs.map(function(c){var _n=parseFloat(c.amount||0);var _as=(_n>0)?(_n>=100000?'\u20b9'+(_n/10000000).toFixed(2)+' Cr':'\u20b9'+_n.toFixed(0)):'amount not filed';return '\n  '+(c.charge_holder||'N/A')+' | '+_as+' | '+(c.status||'?')+(c.date_of_creation?' | created '+c.date_of_creation:'');}).join('')
+      +icWebCtx;
 
     var tierPrompts={
       free:{

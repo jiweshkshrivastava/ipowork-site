@@ -1,4 +1,4 @@
-/* ipowork Worker v11.3 — registered_address+email extraction; holder_name fix; valuation data-injection */
+/* ipowork Worker v11.4 — prior-year EBITDA/PBT/net-worth extraction + address/email + holder_name fix */
 
 /* ── Probe42 via Supabase Edge Function proxy ── */
 async function probe42Fetch(endpoint, env) {
@@ -602,6 +602,15 @@ function extractProbe42(raw, cin) {
     pat_fy23:       toCrY(f1,'profit_after_tax'),
     revenue_fy22:   toCrY(f2,'net_revenue'),
     pat_fy22:       toCrY(f2,'profit_after_tax'),
+    /* FIX-JUL25-D: prior-year EBITDA exists in Probe42 as pnl.lineItems.operating_profit (same
+       field the current year uses) but was never extracted — reports showed "Data not available"
+       for FY23/FY24 EBITDA despite the data being present. Also prior-year PBT and net worth. */
+    ebitda_fy23:    toCrY(f1,'operating_profit'),
+    ebitda_fy22:    toCrY(f2,'operating_profit'),
+    pbt_fy23:       toCrY(f1,'profit_before_tax'),
+    pbt_fy22:       toCrY(f2,'profit_before_tax'),
+    net_worth_fy23: (function(){var b=f1.bs||{},s=b.subTotals||{};return s.total_equity?toCr(s.total_equity):null;})(),
+    net_worth_fy22: (function(){var b=f2.bs||{},s=b.subTotals||{};return s.total_equity?toCr(s.total_equity):null;})(),
     fy24_year:      (function(){var y=f0.year||f0.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY24';var n=parseInt(s.slice(0,4),10);return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY24';})(),
     fy23_year:      (function(){var y=f1.year||f1.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY23';var n=parseInt(s.slice(0,4),10);return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY23';})(),
     fy22_year:      (function(){var y=f2.year||f2.financial_year||'';var s=String(y).replace(/[^0-9]/g,'');if(!s)return 'FY22';var n=parseInt(s.slice(0,4),10);return(n>=2018&&n<=2032)?'FY'+String(n).slice(-2):'FY22';})(),
@@ -1587,7 +1596,7 @@ export default {
           }), {headers:{...CORS,'Content-Type':'application/json'}});
         }
       }
-      return new Response('ipowork Worker v11.3 OK — address/email extraction + holder_name fix',{headers:{...CORS,'Content-Type':'text/plain'}});
+      return new Response('ipowork Worker v11.4 OK — prior-year EBITDA extraction',{headers:{...CORS,'Content-Type':'text/plain'}});
     }
     let body={};
     try{body=await req.json();}catch(e){}
