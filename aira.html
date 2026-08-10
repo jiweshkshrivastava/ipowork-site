@@ -897,7 +897,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='JUL25-F';
+var IPOWORK_BUILD='JUL25-G';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 var ADMIN_UNLOCKED = false;
@@ -4440,35 +4440,10 @@ async function generateFullReport(){
     }
   });
 
-  /* ── PROSPECT CARD: push a shareable summary to Supabase so the QR code has
-     a real destination (report-viewer.html?id=...). One shared insert point
-     for every tier, so this is NOT repeated per-tier — avoids repetitive work.
-     Uses the SAME 0-100 composite score across all 5 pillar fields since most
-     tiers do not compute separate legal/forensic/director/financial/credit
-     sub-scores — this is an honest simplification, never a fabricated
-     breakdown (report-viewer's master-score formula averages back to this
-     same number regardless of the weights). */
-  var SUPABASE_URL='https://esqlfsjhekdspycfgnoz.supabase.co';
-  var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
-  var reportId='RPT-'+(cin?cin.replace(/[^A-Za-z0-9]/g,'').slice(-8):(cname||'CO').replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase())+'-'+Date.now().toString(36).toUpperCase();
-  var qrUrl='';
-  try{
-    var insertBody={
-      report_id:reportId, company_name:cname||'Company', cin:cin||null, sector:sector||null,
-      report_date:new Date().toISOString().slice(0,10),
-      scores:{legal:score,forensic:score,director:score,financial:score,credit:score},
-      created_at:new Date().toISOString()
-    };
-    var _sres=await fetch(SUPABASE_URL+'/rest/v1/reports',{
-      method:'POST',
-      headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify(insertBody)
-    });
-    if(_sres.ok){
-      var viewerUrl=location.origin+location.pathname.replace(/[^/]*$/,'')+'report-viewer.html?id='+encodeURIComponent(reportId);
-      qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data='+encodeURIComponent(viewerUrl);
-    }
-  }catch(_se){ /* Supabase unreachable — prospect card page below simply omits the QR */ }
+  /* NOTE: the Supabase push + QR now happens further down, AFTER the module
+     loop, so it can capture the ACTUAL assembled report content (cover+TOC+
+     all modules) rather than firing before that content exists. See the
+     "FULL REPORT CAPTURE" block below, right before the Prospect Summary page. */
   var scoreColor=score>=75?'#6DDC9E':score>=50?'#F5C842':'#FF8080';
   html+='<div class="cover">'
     +'<div class="cover-badge">IPO Readiness Report · Confidential</div>'
@@ -4537,6 +4512,44 @@ async function generateFullReport(){
       +'</div>';
   });
 
+  /* ── FULL REPORT CAPTURE: push the ACTUAL assembled report (cover+TOC+
+     every module rendered above) to Supabase so the QR code opens the real
+     report content, not a score summary. `html` at this exact point already
+     contains a complete open document (CSS+cover+TOC+modules); we snapshot
+     it, close the tags, and store it — the printable window built later in
+     this function is untouched. Stored inside the existing `scores` jsonb
+     field (no schema change required) under the key `full_report_html`.
+     NOTE: this does mean report-admin.html's list view — which already
+     selects `scores` for every row — now pulls this larger payload too. For
+     86 companies this is a minor bandwidth cost, not a functional problem.
+     To split it into a dedicated column later: run
+       ALTER TABLE reports ADD COLUMN full_report_html text;
+     in the Supabase SQL editor, then move the key below from `scores.
+     full_report_html` to a top-level `full_report_html` field, and update
+     full-report.html's select= accordingly. */
+  var SUPABASE_URL='https://esqlfsjhekdspycfgnoz.supabase.co';
+  var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+  var reportId='RPT-'+(cin?cin.replace(/[^A-Za-z0-9]/g,'').slice(-8):(cname||'CO').replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase())+'-'+Date.now().toString(36).toUpperCase();
+  var qrUrl='';
+  try{
+    var fullReportSnapshot=html+'</body></html>';
+    var insertBody={
+      report_id:reportId, company_name:cname||'Company', cin:cin||null, sector:sector||null,
+      report_date:new Date().toISOString().slice(0,10),
+      scores:{legal:score,forensic:score,director:score,financial:score,credit:score,full_report_html:fullReportSnapshot},
+      created_at:new Date().toISOString()
+    };
+    var _sres=await fetch(SUPABASE_URL+'/rest/v1/reports',{
+      method:'POST',
+      headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify(insertBody)
+    });
+    if(_sres.ok){
+      var viewerUrl=location.origin+location.pathname.replace(/[^/]*$/,'')+'full-report.html?id='+encodeURIComponent(reportId);
+      qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data='+encodeURIComponent(viewerUrl);
+    }
+  }catch(_se){ /* Supabase unreachable — prospect card page below simply omits the QR */ }
+
   /* ── PROSPECT SUMMARY CARD (booklet-ready page) ── */
   var pcTier=score>=80?{label:'AIF Distribution Ready',bg:'#E8F8F0',fg:'#0F7A50'}
     :score>=75?{label:'Family Office Ready',bg:'#E6F4F7',fg:'#0D5C6B'}
@@ -4563,7 +4576,7 @@ async function generateFullReport(){
     +'<div style="font-size:10px;color:#9AB0B8;margin-top:20px;line-height:1.6">Composite score shown above; a detailed 5-pillar breakdown (legal, forensic, director, financial, credit) is available for engagements with full document intelligence scope.</div>'
     +'</div>'
     +(qrUrl
-      ? '<div style="text-align:center;flex-shrink:0"><img src="'+qrUrl+'" width="180" height="180" style="border:1px solid #E0EEF0;border-radius:10px;padding:10px;background:#fff"><div style="font-size:10px;color:#6B8A94;margin-top:8px;max-width:180px">Scan for the full live AIRA report</div></div>'
+      ? '<div style="text-align:center;flex-shrink:0"><img src="'+qrUrl+'" width="180" height="180" style="border:1px solid #E0EEF0;border-radius:10px;padding:10px;background:#fff"><div style="font-size:10px;color:#6B8A94;margin-top:8px;max-width:180px">Scan for the complete report</div></div>'
       : '<div style="text-align:center;flex-shrink:0;width:180px;padding:10px;font-size:10px;color:#9AB0B8">Full report link unavailable offline</div>')
     +'</div>'
     +'</div>';

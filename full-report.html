@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ipowork AI — Loading report…</title>
+<style>
+  body{font-family:'Inter',Arial,sans-serif;background:#08404D;color:#fff;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:40px;margin:0}
+  .spin{width:36px;height:36px;border:3px solid rgba(255,255,255,.25);
+    border-top-color:#6DDC9E;border-radius:50%;animation:sp .8s linear infinite;margin-bottom:18px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .msg{font-size:13px;color:rgba(255,255,255,.7)}
+  .err{font-size:14px;color:#FF8080;max-width:360px;line-height:1.6}
+</style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spin"></div>
+    <div class="msg">Loading report…</div>
+  </div>
+
+<script>
+(async function(){
+  var SUPABASE_URL='https://esqlfsjhekdspycfgnoz.supabase.co';
+  var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+
+  function showError(msg){
+    document.getElementById('loading').innerHTML =
+      '<div style="font-size:32px;margin-bottom:14px">⚠️</div><div class="err">'+msg+'</div>';
+  }
+
+  var id = new URLSearchParams(location.search).get('id');
+  if(!id){ showError('No report ID provided in the link.'); return; }
+
+  try{
+    var res = await fetch(
+      SUPABASE_URL+'/rest/v1/reports?report_id=eq.'+encodeURIComponent(id)+'&select=scores&limit=1',
+      { headers:{ 'apikey':SUPABASE_ANON_KEY, 'Authorization':'Bearer '+SUPABASE_ANON_KEY } }
+    );
+    if(!res.ok) throw new Error('Server returned '+res.status);
+    var rows = await res.json();
+    var full = rows && rows[0] && rows[0].scores && rows[0].scores.full_report_html;
+    if(!full){ showError('This report is not available. It may have been generated before this feature was added, or the link is invalid.'); return; }
+    document.open();
+    document.write(full);
+    document.close();
+  }catch(e){
+    showError('Could not load this report. Please check your connection and try again.');
+  }
+})();
+</script>
+</body>
+</html>
