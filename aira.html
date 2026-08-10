@@ -897,9 +897,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='JUL25-G';
+var IPOWORK_BUILD='JUL25-I';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
+/* Guards against cross-company contamination in the combined "Full Report":
+   AIRA_RESULTS is keyed by TIER only (free/mainboard/valdoc/...), never by
+   company, and nothing previously cleared it between companies. Running
+   Valuation Doc for Company A then only Deep Research for Company B would
+   silently leave Company A's stale valdoc module sitting in AIRA_RESULTS and
+   get bundled into Company B's Full Report. This guard auto-clears
+   AIRA_RESULTS the moment the company being generated for actually changes,
+   while leaving it untouched when re-running the SAME company (so the normal
+   iterate-and-regenerate workflow for one company is unaffected). */
+var _AIRA_LAST_CNAME='';
+function _guardCompanyChange(cname){
+  var key=(cname||'').trim().toUpperCase();
+  if(_AIRA_LAST_CNAME && key && key!==_AIRA_LAST_CNAME){
+    AIRA_RESULTS={};
+    try{ if(typeof updateFullReportBtn==='function') updateFullReportBtn(); }catch(e){}
+  }
+  if(key) _AIRA_LAST_CNAME=key;
+}
 var ADMIN_UNLOCKED = false;
 var CURRENT_USER = null;
 var ADMIN_PWD = 'ipowork@admin';
@@ -1878,6 +1896,7 @@ async function runDocCore(){
     var result = Object.assign({},dims,{_report:clean,_type:'doc'});
     // Save under 'free' so generateFullReport finds element 'result-free'
     // Also save under 'doc' for backward compat
+    _guardCompanyChange(cname);
     AIRA_RESULTS['free'] = {result:result,cname:cname,sector:sector,exchange:exchange,tier:'free'};
     AIRA_RESULTS['doc']  = {result:result,cname:cname,sector:sector,exchange:exchange,tier:'free'};
     console.log('DIMS before render:', result.financial, result.governance, result.compliance, result.promoter, result.legal, result.readiness, result.score);
@@ -2621,6 +2640,7 @@ function downloadReport(tier){
 
 function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   if(!out) return;
+  _guardCompanyChange(cname);
   AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,exchange:exchange,tier:tier};
     saveReportToStore(tier, cname, sector, result);
 
@@ -3023,6 +3043,7 @@ function renderSimpleReport(result, cname, sector, outEl, tier) {
   html += '<' + '/div>';
 
   outEl.innerHTML = html;
+  _guardCompanyChange(cname);
   AIRA_RESULTS[tier] = {result:result, cname:cname, sector:sector, tier:tier};
 }
 
@@ -3417,6 +3438,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     if(out){out.innerHTML=html;out.scrollIntoView({behavior:'smooth',block:'start'});}
     var result={_report:html,company_name:cname,cin:cin,sector:sector,exchange:exchange,tier:tier,
       revenue_cr:rev,pat_cr:pat,ipo_score:score};
+    _guardCompanyChange(cname);
     AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,tier:tier};
     saveReportToStore(tier,cname,sector,result);
     updateFullReportBtn();
@@ -3543,6 +3565,7 @@ async function runValuationDoc(){
     repHtml+='<div style="font-size:10px;color:#9AB0B8;padding:8px">⚠ ipowork AI is not SEBI-registered. Not investment advice. Data: Probe42/MCA. © 2025 ipowork.com</div></div>';
     if(out){out.innerHTML=repHtml;out.scrollIntoView({behavior:'smooth',block:'start'});}
     var res={_report:repHtml,company_name:cname,cin:cin,sector:sector,val_base_cr:base};
+    _guardCompanyChange(cname);
     AIRA_RESULTS['valdoc']={result:res,cname:cname,sector:sector,tier:'valdoc'};
     saveReportToStore('valdoc',cname,sector,res);
     updateFullReportBtn();
@@ -3724,6 +3747,7 @@ async function runValuationIntel(){
     if(out){out.innerHTML=report;out.scrollIntoView({behavior:'smooth',block:'start'});}
     var res={_report:report,company_name:cname,cin:cin,sector:sector,exchange:exchange,
       val_base_cr:base,val_conservative_cr:cons,val_optimistic_cr:opti,price_band_low:pLow,price_band_high:pHigh,ipo_score:score};
+    _guardCompanyChange(cname);
     AIRA_RESULTS['valintel']={result:res,cname:cname,sector:sector,tier:'valintel'};
     saveReportToStore('valintel',cname,sector,res);
     updateFullReportBtn();
@@ -4168,6 +4192,7 @@ async function runDeepResearchFull(){
 
     if(out){out.innerHTML=report;out.scrollIntoView({behavior:'smooth',block:'start'});}
     var res={_report:report,company_name:cname,cin:cin,sector:sector,exchange:exchange,revenue_cr:rev,pat_cr:pat,ipo_score:score};
+    _guardCompanyChange(cname);
     AIRA_RESULTS['deepresearch']={result:res,cname:cname,sector:sector,tier:'deepresearch'};
     saveReportToStore('deepresearch',cname,sector,res);
     updateFullReportBtn();
@@ -4512,43 +4537,19 @@ async function generateFullReport(){
       +'</div>';
   });
 
-  /* ── FULL REPORT CAPTURE: push the ACTUAL assembled report (cover+TOC+
-     every module rendered above) to Supabase so the QR code opens the real
-     report content, not a score summary. `html` at this exact point already
-     contains a complete open document (CSS+cover+TOC+modules); we snapshot
-     it, close the tags, and store it — the printable window built later in
-     this function is untouched. Stored inside the existing `scores` jsonb
-     field (no schema change required) under the key `full_report_html`.
-     NOTE: this does mean report-admin.html's list view — which already
-     selects `scores` for every row — now pulls this larger payload too. For
-     86 companies this is a minor bandwidth cost, not a functional problem.
-     To split it into a dedicated column later: run
-       ALTER TABLE reports ADD COLUMN full_report_html text;
-     in the Supabase SQL editor, then move the key below from `scores.
-     full_report_html` to a top-level `full_report_html` field, and update
-     full-report.html's select= accordingly. */
+  /* ── QR TARGET: compute the report_id and QR image URL up front (pure
+     string construction, no network call) so the Prospect Summary page
+     below can always render its QR. The actual Supabase push happens AFTER
+     the full document — including this very prospect card and the back
+     cover — is fully assembled, so what gets stored and what the QR opens
+     is byte-identical to what you see in the printed PDF. (Previously this
+     was captured too early, which is why the prospect summary page itself
+     was missing when scanned — fixed here.) */
   var SUPABASE_URL='https://esqlfsjhekdspycfgnoz.supabase.co';
   var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
   var reportId='RPT-'+(cin?cin.replace(/[^A-Za-z0-9]/g,'').slice(-8):(cname||'CO').replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase())+'-'+Date.now().toString(36).toUpperCase();
-  var qrUrl='';
-  try{
-    var fullReportSnapshot=html+'</body></html>';
-    var insertBody={
-      report_id:reportId, company_name:cname||'Company', cin:cin||null, sector:sector||null,
-      report_date:new Date().toISOString().slice(0,10),
-      scores:{legal:score,forensic:score,director:score,financial:score,credit:score,full_report_html:fullReportSnapshot},
-      created_at:new Date().toISOString()
-    };
-    var _sres=await fetch(SUPABASE_URL+'/rest/v1/reports',{
-      method:'POST',
-      headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify(insertBody)
-    });
-    if(_sres.ok){
-      var viewerUrl=location.origin+location.pathname.replace(/[^/]*$/,'')+'full-report.html?id='+encodeURIComponent(reportId);
-      qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data='+encodeURIComponent(viewerUrl);
-    }
-  }catch(_se){ /* Supabase unreachable — prospect card page below simply omits the QR */ }
+  var viewerUrl=location.origin+location.pathname.replace(/[^/]*$/,'')+'full-report.html?id='+encodeURIComponent(reportId);
+  var qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data='+encodeURIComponent(viewerUrl);
 
   /* ── PROSPECT SUMMARY CARD (booklet-ready page) ── */
   var pcTier=score>=80?{label:'AIF Distribution Ready',bg:'#E8F8F0',fg:'#0F7A50'}
@@ -4596,6 +4597,34 @@ async function generateFullReport(){
     +'</div>';
 
   html+='</body></html>';
+
+  /* ── STORE THE COMPLETE DOCUMENT: `html` now includes cover, TOC, every
+     module, the prospect summary page, and the back cover — exactly what
+     gets printed. This is what the QR code (already embedded above under
+     `reportId`) will open. Stored inside the existing `scores` jsonb field
+     to avoid a schema change; see the note below for the clean-column
+     upgrade path. Best-effort: if this fails (offline, RLS, etc.) the
+     printed report is unaffected — only the QR destination stays empty,
+     and full-report.html shows a clear "not available" message rather than
+     failing silently. */
+  try{
+    var insertBody={
+      report_id:reportId, company_name:cname||'Company', cin:cin||null, sector:sector||null,
+      report_date:new Date().toISOString().slice(0,10),
+      scores:{legal:score,forensic:score,director:score,financial:score,credit:score,full_report_html:html},
+      created_at:new Date().toISOString()
+    };
+    // NOTE: `scores` also feeds report-admin.html's list view (selects `scores` for every row),
+    // so this list now pulls the larger payload too. For 86 companies that's a minor bandwidth
+    // cost, not a functional problem. To split into a dedicated column later:
+    //   ALTER TABLE reports ADD COLUMN full_report_html text;
+    // then move full_report_html out of `scores` here and update full-report.html's select=.
+    await fetch(SUPABASE_URL+'/rest/v1/reports',{
+      method:'POST',
+      headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify(insertBody)
+    });
+  }catch(_se){ /* offline/blocked — printed report unaffected, QR just won't resolve */ }
 
   if(w){
     w.document.open();
