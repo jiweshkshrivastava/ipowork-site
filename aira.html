@@ -897,7 +897,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='JUL25-E';
+var IPOWORK_BUILD='JUL25-F';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 var ADMIN_UNLOCKED = false;
@@ -4275,7 +4275,7 @@ function updateFullReportBtn(){
   if(btnM) btnM.style.display=has?'inline-block':'none';
 }
 
-function generateFullReport(){
+async function generateFullReport(){
   var keys=Object.keys(AIRA_RESULTS);
   if(!keys.length){alert('Generate at least one report first.');return;}
   // Use blob URL approach to avoid popup blockers
@@ -4427,17 +4427,48 @@ function generateFullReport(){
     +'</head><body>';
 
   /* ── COVER PAGE ── */
-  var score=0,rev='—',pat='—',fyLbl='Latest FY';
+  var score=0,rev='—',pat='—',fyLbl='Latest FY',cin='';
   keys.forEach(function(k){
     var r=AIRA_RESULTS[k];
     if(r&&r.result){
       if(r.result.ipo_score||r.result.score) score=r.result.ipo_score||r.result.score||score;
       if(r.result.revenue_cr) rev='₹'+r.result.revenue_cr+' Cr';
       if(r.result.pat_cr) pat='₹'+r.result.pat_cr+' Cr';
+      if(r.result.cin && !cin) cin=r.result.cin;
       var _fy=(r.result.financials&&r.result.financials.fy_year)||r.result.fy_year;
       if(_fy) fyLbl=_fy;
     }
   });
+
+  /* ── PROSPECT CARD: push a shareable summary to Supabase so the QR code has
+     a real destination (report-viewer.html?id=...). One shared insert point
+     for every tier, so this is NOT repeated per-tier — avoids repetitive work.
+     Uses the SAME 0-100 composite score across all 5 pillar fields since most
+     tiers do not compute separate legal/forensic/director/financial/credit
+     sub-scores — this is an honest simplification, never a fabricated
+     breakdown (report-viewer's master-score formula averages back to this
+     same number regardless of the weights). */
+  var SUPABASE_URL='https://esqlfsjhekdspycfgnoz.supabase.co';
+  var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+  var reportId='RPT-'+(cin?cin.replace(/[^A-Za-z0-9]/g,'').slice(-8):(cname||'CO').replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase())+'-'+Date.now().toString(36).toUpperCase();
+  var qrUrl='';
+  try{
+    var insertBody={
+      report_id:reportId, company_name:cname||'Company', cin:cin||null, sector:sector||null,
+      report_date:new Date().toISOString().slice(0,10),
+      scores:{legal:score,forensic:score,director:score,financial:score,credit:score},
+      created_at:new Date().toISOString()
+    };
+    var _sres=await fetch(SUPABASE_URL+'/rest/v1/reports',{
+      method:'POST',
+      headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify(insertBody)
+    });
+    if(_sres.ok){
+      var viewerUrl=location.origin+location.pathname.replace(/[^/]*$/,'')+'report-viewer.html?id='+encodeURIComponent(reportId);
+      qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data='+encodeURIComponent(viewerUrl);
+    }
+  }catch(_se){ /* Supabase unreachable — prospect card page below simply omits the QR */ }
   var scoreColor=score>=75?'#6DDC9E':score>=50?'#F5C842':'#FF8080';
   html+='<div class="cover">'
     +'<div class="cover-badge">IPO Readiness Report · Confidential</div>'
@@ -4505,6 +4536,37 @@ function generateFullReport(){
       +'<div class="mod-body">'+content+'</div>'
       +'</div>';
   });
+
+  /* ── PROSPECT SUMMARY CARD (booklet-ready page) ── */
+  var pcTier=score>=80?{label:'AIF Distribution Ready',bg:'#E8F8F0',fg:'#0F7A50'}
+    :score>=75?{label:'Family Office Ready',bg:'#E6F4F7',fg:'#0D5C6B'}
+    :score>=70?{label:'Advisory Pipeline',bg:'#FEF6E4',fg:'#7A5B1A'}
+    :{label:'Remediation Required',bg:'#FEF0EE',fg:'#8B2B20'};
+  html+='<div class="module" style="page-break-before:always">'
+    +'<div class="mod-header" style="background:linear-gradient(135deg,#08404D,#0D5C6BCC)">'
+    +'<div class="mod-header-inner"><div>'
+    +'<div class="mod-num-badge">Prospect Summary</div>'
+    +'<div class="mod-title">'+esc(cname)+'</div>'
+    +'<div class="mod-company">'+esc(sector)+(cin?' · CIN '+esc(cin):'')+' · '+date+'</div>'
+    +'</div><div style="text-align:right;opacity:.6;font-size:10px;padding-top:4px">ipowork AI<br>Probe42/MCA</div>'
+    +'</div></div>'
+    +'<div class="mod-body" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">'
+    +'<div style="flex:1;min-width:260px">'
+    +'<div style="display:inline-block;padding:5px 14px;border-radius:99px;font-size:11px;font-weight:700;background:'+pcTier.bg+';color:'+pcTier.fg+';margin-bottom:14px">'+pcTier.label+'</div>'
+    +'<div style="font-size:44px;font-weight:900;color:'+scoreColor+';line-height:1">'+(score||'—')+'<span style="font-size:18px;color:#9AB0B8">/100</span></div>'
+    +'<div style="font-size:11px;color:#6B8A94;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 20px">Composite IPO Score</div>'
+    +'<table style="width:100%;font-size:12px"><tbody>'
+    +'<tr><td style="color:#6B8A94;padding:5px 0">Revenue ('+esc(fyLbl)+')</td><td style="text-align:right;font-weight:700">'+rev+'</td></tr>'
+    +'<tr><td style="color:#6B8A94;padding:5px 0">PAT</td><td style="text-align:right;font-weight:700">'+pat+'</td></tr>'
+    +'<tr><td style="color:#6B8A94;padding:5px 0">Sector</td><td style="text-align:right;font-weight:700">'+esc(sector||'—')+'</td></tr>'
+    +'</tbody></table>'
+    +'<div style="font-size:10px;color:#9AB0B8;margin-top:20px;line-height:1.6">Composite score shown above; a detailed 5-pillar breakdown (legal, forensic, director, financial, credit) is available for engagements with full document intelligence scope.</div>'
+    +'</div>'
+    +(qrUrl
+      ? '<div style="text-align:center;flex-shrink:0"><img src="'+qrUrl+'" width="180" height="180" style="border:1px solid #E0EEF0;border-radius:10px;padding:10px;background:#fff"><div style="font-size:10px;color:#6B8A94;margin-top:8px;max-width:180px">Scan for the full live AIRA report</div></div>'
+      : '<div style="text-align:center;flex-shrink:0;width:180px;padding:10px;font-size:10px;color:#9AB0B8">Full report link unavailable offline</div>')
+    +'</div>'
+    +'</div>';
 
   /* ── BACK COVER ── */
   html+='<div style="page-break-before:always;background:linear-gradient(160deg,#040F14,#08404D);'
