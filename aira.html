@@ -897,7 +897,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='JUL25-J';
+var IPOWORK_BUILD='JUL25-K';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 /* Guards against cross-company contamination in the combined "Full Report":
@@ -3437,7 +3437,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     html+='<div style="padding:8px 14px;background:#F8F9FA;border-radius:6px;font-size:10px;color:#9AB0B8">ipowork is not SEBI-registered. Not investment advice. Data: Probe42/MCA. © 2025 ipowork.</div></div>';
     if(out){out.innerHTML=html;out.scrollIntoView({behavior:'smooth',block:'start'});}
     var result={_report:html,company_name:cname,cin:cin,sector:sector,exchange:exchange,tier:tier,
-      revenue_cr:rev,pat_cr:pat,ipo_score:score};
+      revenue_cr:rev,pat_cr:pat,ipo_score:score,roe_pct:roe,roce_pct:roce,de_ratio:de,ebitda_pct:ePct,revenue_growth_pct:revGr};
     _guardCompanyChange(cname);
     AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,tier:tier};
     saveReportToStore(tier,cname,sector,result);
@@ -3564,7 +3564,9 @@ async function runValuationDoc(){
     if(chgs&&chgs.length){repHtml+='<div style="background:#fff;border:1px solid #E0EAF0;border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:#1A3A5C;margin-bottom:8px">CHARGE REGISTER — '+chgs.length+' charges (SEBI ICDR Reg 26)</div><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#F0F5FB"><th style="padding:6px 10px">Holder</th><th style="padding:6px 10px">Status</th><th style="padding:6px 10px">Amount</th><th style="padding:6px 10px">Date</th></tr></thead><tbody>';chgs.forEach(function(c,ci){var h=c.charge_holder||c.holder||c.lender_name||c.bank||'[Refer MCA21]';var a='N/D';if(c.amount){var l=parseFloat(c.amount);if(!isNaN(l)&&l>0)a=l>=100000?'₹'+(l/10000000).toFixed(2)+' Cr':'₹'+l.toFixed(0);}repHtml+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(ci%2?'#FAFCFD':'#fff')+'" ><td style="padding:6px 10px;font-weight:600">'+esc(h)+'</td><td style="padding:6px 10px;color:'+(c.status==='Open'?'#C0392B':'#1A6B3A')+';font-weight:600">'+esc(c.status||'')+'</td><td style="padding:6px 10px">'+esc(a)+'</td><td style="padding:6px 10px;color:#9AB0B8">'+esc(c.date_of_creation||'')+'</td></tr>';});repHtml+='</tbody></table></div>';}
     repHtml+='<div style="font-size:10px;color:#9AB0B8;padding:8px">⚠ ipowork AI is not SEBI-registered. Not investment advice. Data: Probe42/MCA. © 2025 ipowork.com</div></div>';
     if(out){out.innerHTML=repHtml;out.scrollIntoView({behavior:'smooth',block:'start'});}
-    var res={_report:repHtml,company_name:cname,cin:cin,sector:sector,val_base_cr:base};
+    var res={_report:repHtml,company_name:cname,cin:cin,sector:sector,val_base_cr:base,
+      revenue_cr:rev,pat_cr:pat,roe_pct:roe,roce_pct:roce,de_ratio:(nw>0?+(debt/nw).toFixed(2):0),ebitda_pct:ePct,
+      revenue_growth_pct:(rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0)};
     _guardCompanyChange(cname);
     AIRA_RESULTS['valdoc']={result:res,cname:cname,sector:sector,tier:'valdoc'};
     saveReportToStore('valdoc',cname,sector,res);
@@ -3746,7 +3748,8 @@ async function runValuationIntel(){
     report+='<div style="padding:8px 14px;background:#F8F9FA;border-radius:6px;font-size:10px;color:#9AB0B8">ipowork not SEBI-registered. Informational only. © 2025</div></div>';
     if(out){out.innerHTML=report;out.scrollIntoView({behavior:'smooth',block:'start'});}
     var res={_report:report,company_name:cname,cin:cin,sector:sector,exchange:exchange,
-      val_base_cr:base,val_conservative_cr:cons,val_optimistic_cr:opti,price_band_low:pLow,price_band_high:pHigh,ipo_score:score};
+      val_base_cr:base,val_conservative_cr:cons,val_optimistic_cr:opti,price_band_low:pLow,price_band_high:pHigh,ipo_score:score,
+      revenue_cr:rev,pat_cr:pat,roe_pct:roe,roce_pct:roce,de_ratio:de,ebitda_pct:ePct,revenue_growth_pct:revGr};
     _guardCompanyChange(cname);
     AIRA_RESULTS['valintel']={result:res,cname:cname,sector:sector,tier:'valintel'};
     saveReportToStore('valintel',cname,sector,res);
@@ -4191,7 +4194,9 @@ async function runDeepResearchFull(){
     report+='<div style="padding:8px 14px;background:#F8F9FA;border-radius:6px;font-size:10px;color:#9AB0B8">\u26a0\ufe0f ipowork AI is not SEBI-registered. For informational purposes only. Not investment advice. Data: Probe42/MCA'+(website?' + '+esc(website):'')+'. \u00a9 2025 ipowork.com</div></div>';
 
     if(out){out.innerHTML=report;out.scrollIntoView({behavior:'smooth',block:'start'});}
-    var res={_report:report,company_name:cname,cin:cin,sector:sector,exchange:exchange,revenue_cr:rev,pat_cr:pat,ipo_score:score};
+    var res={_report:report,company_name:cname,cin:cin,sector:sector,exchange:exchange,revenue_cr:rev,pat_cr:pat,ipo_score:score,
+      roe_pct:roe,roce_pct:roce,de_ratio:de,ebitda_pct:ePct,
+      revenue_growth_pct:(rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0)};
     _guardCompanyChange(cname);
     AIRA_RESULTS['deepresearch']={result:res,cname:cname,sector:sector,tier:'deepresearch'};
     saveReportToStore('deepresearch',cname,sector,res);
@@ -4453,6 +4458,7 @@ async function generateFullReport(){
 
   /* ── COVER PAGE ── */
   var score=0,rev='—',pat='—',fyLbl='Latest FY',cin='';
+  var pcRoe=0,pcRoce=0,pcDe=0,pcEbitda=0,pcGrowth=0,pcValBase=0;
   keys.forEach(function(k){
     var r=AIRA_RESULTS[k];
     if(r&&r.result){
@@ -4462,6 +4468,13 @@ async function generateFullReport(){
       if(r.result.cin && !cin) cin=r.result.cin;
       var _fy=(r.result.financials&&r.result.financials.fy_year)||r.result.fy_year;
       if(_fy) fyLbl=_fy;
+      // Opportunistic: not every tier computes these, so take the first tier that has them
+      if(r.result.roe_pct && !pcRoe) pcRoe=r.result.roe_pct;
+      if(r.result.roce_pct && !pcRoce) pcRoce=r.result.roce_pct;
+      if(r.result.de_ratio && !pcDe) pcDe=r.result.de_ratio;
+      if(r.result.ebitda_pct && !pcEbitda) pcEbitda=r.result.ebitda_pct;
+      if(r.result.revenue_growth_pct && !pcGrowth) pcGrowth=r.result.revenue_growth_pct;
+      if(r.result.val_base_cr && !pcValBase) pcValBase=r.result.val_base_cr;
     }
   });
 
@@ -4568,11 +4581,33 @@ async function generateFullReport(){
     +'Data sourced from Probe42/MCA public filings. © 2025 ipowork.com</div>'
     +'</div>';
 
-  /* ── PROSPECT SUMMARY CARD (booklet-ready page — now the TRUE LAST PAGE) ── */
+  /* ── PROSPECT SUMMARY CARD (booklet-ready page — the TRUE LAST PAGE) ──
+     Every metric and bullet below is drawn from real, already-computed
+     numbers stored on the tier results (roe_pct/roce_pct/de_ratio/
+     ebitda_pct/revenue_growth_pct/val_base_cr) — nothing here is
+     AI-generated prose or an invented "strength"; the bullets are template
+     sentences gated behind real threshold checks on the locked figures. */
   var pcTier=score>=80?{label:'AIF Distribution Ready',bg:'#E8F8F0',fg:'#0F7A50'}
     :score>=75?{label:'Family Office Ready',bg:'#E6F4F7',fg:'#0D5C6B'}
     :score>=70?{label:'Advisory Pipeline',bg:'#FEF6E4',fg:'#7A5B1A'}
     :{label:'Remediation Required',bg:'#FEF0EE',fg:'#8B2B20'};
+  var pcMetrics=[];
+  pcMetrics.push({l:'Revenue ('+fyLbl+')',v:rev});
+  pcMetrics.push({l:'PAT',v:pat});
+  if(pcGrowth)  pcMetrics.push({l:'Revenue Growth YoY',v:pcGrowth+'%'});
+  if(pcEbitda)  pcMetrics.push({l:'EBITDA Margin',v:pcEbitda+'%'});
+  if(pcRoe)     pcMetrics.push({l:'ROE',v:pcRoe+'%'});
+  if(pcRoce)    pcMetrics.push({l:'ROCE',v:pcRoce+'%'});
+  if(pcDe)      pcMetrics.push({l:'Debt/Equity',v:pcDe+'x'});
+  pcMetrics.push({l:'Sector',v:sector||'—'});
+  var pcStrengths=[];
+  if(pcRoe>=20) pcStrengths.push('ROE of '+pcRoe+'% signals strong capital efficiency');
+  if(pcRoce>=15) pcStrengths.push('ROCE of '+pcRoce+'% exceeds typical cost-of-capital benchmarks');
+  if(pcGrowth>=20) pcStrengths.push('Revenue growing '+pcGrowth+'% YoY');
+  if(pcDe && pcDe<=1) pcStrengths.push('Conservative leverage at '+pcDe+'x debt-to-equity');
+  if(pcEbitda>=15) pcStrengths.push('EBITDA margin of '+pcEbitda+'% is above typical mid-market benchmarks');
+  if(score>=80) pcStrengths.push('Composite score of '+score+'/100 qualifies for AIF-grade distribution');
+  pcStrengths=pcStrengths.slice(0,4);
   html+='<div class="module" style="page-break-before:always">'
     +'<div class="mod-header" style="background:linear-gradient(135deg,#08404D,#0D5C6BCC)">'
     +'<div class="mod-header-inner"><div>'
@@ -4581,21 +4616,33 @@ async function generateFullReport(){
     +'<div class="mod-company">'+esc(sector)+(cin?' · CIN '+esc(cin):'')+' · '+date+'</div>'
     +'</div><div style="text-align:right;opacity:.6;font-size:10px;padding-top:4px">ipowork AI<br>Probe42/MCA</div>'
     +'</div></div>'
-    +'<div class="mod-body" style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">'
-    +'<div style="flex:1;min-width:260px">'
-    +'<div style="display:inline-block;padding:5px 14px;border-radius:99px;font-size:11px;font-weight:700;background:'+pcTier.bg+';color:'+pcTier.fg+';margin-bottom:14px">'+pcTier.label+'</div>'
-    +'<div style="font-size:44px;font-weight:900;color:'+scoreColor+';line-height:1">'+(score||'—')+'<span style="font-size:18px;color:#9AB0B8">/100</span></div>'
-    +'<div style="font-size:11px;color:#6B8A94;text-transform:uppercase;letter-spacing:.5px;margin:2px 0 20px">Composite IPO Score</div>'
-    +'<table style="width:100%;font-size:12px"><tbody>'
-    +'<tr><td style="color:#6B8A94;padding:5px 0">Revenue ('+esc(fyLbl)+')</td><td style="text-align:right;font-weight:700">'+rev+'</td></tr>'
-    +'<tr><td style="color:#6B8A94;padding:5px 0">PAT</td><td style="text-align:right;font-weight:700">'+pat+'</td></tr>'
-    +'<tr><td style="color:#6B8A94;padding:5px 0">Sector</td><td style="text-align:right;font-weight:700">'+esc(sector||'—')+'</td></tr>'
-    +'</tbody></table>'
-    +'<div style="font-size:10px;color:#9AB0B8;margin-top:20px;line-height:1.6">Composite score shown above; a detailed 5-pillar breakdown (legal, forensic, director, financial, credit) is available for engagements with full document intelligence scope.</div>'
+    +'<div class="mod-body">'
+    +'<div style="display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap;margin-bottom:22px">'
+    +'<div>'
+    +'<div style="display:inline-block;padding:5px 14px;border-radius:99px;font-size:11px;font-weight:700;background:'+pcTier.bg+';color:'+pcTier.fg+';margin-bottom:12px">'+pcTier.label+'</div>'
+    +'<div style="font-size:48px;font-weight:900;color:'+scoreColor+';line-height:1">'+(score||'—')+'<span style="font-size:18px;color:#9AB0B8">/100</span></div>'
+    +'<div style="font-size:11px;color:#6B8A94;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Composite IPO Score</div>'
     +'</div>'
+    +(pcValBase?('<div style="background:#F0F8FA;border:1px solid #D0E4EA;border-radius:10px;padding:14px 20px;text-align:center">'
+      +'<div style="font-size:24px;font-weight:900;color:#08404D">₹'+pcValBase+' Cr</div>'
+      +'<div style="font-size:10px;color:#6B8A94;text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Indicative Base Valuation</div>'
+      +'</div>'):'')
+    +'<div style="flex-shrink:0;margin-left:auto">'
     +(qrUrl
-      ? '<div style="text-align:center;flex-shrink:0"><img src="'+qrUrl+'" width="180" height="180" style="border:1px solid #E0EEF0;border-radius:10px;padding:10px;background:#fff"><div style="font-size:10px;color:#6B8A94;margin-top:8px;max-width:180px">Scan for the complete report</div></div>'
-      : '<div style="text-align:center;flex-shrink:0;width:180px;padding:10px;font-size:10px;color:#9AB0B8">Full report link unavailable offline</div>')
+      ? '<div style="text-align:center"><img src="'+qrUrl+'" width="160" height="160" style="border:1px solid #E0EEF0;border-radius:10px;padding:8px;background:#fff"><div style="font-size:10px;color:#6B8A94;margin-top:6px;max-width:160px">Scan for the complete report</div></div>'
+      : '<div style="text-align:center;width:160px;padding:10px;font-size:10px;color:#9AB0B8">Full report link unavailable offline</div>')
+    +'</div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:'+(pcStrengths.length?'20px':'0')+'">'
+    +pcMetrics.map(function(m){return '<div style="background:#F8FAFB;border:1px solid #E0EEF0;border-radius:8px;padding:10px 12px">'
+      +'<div style="font-size:9px;color:#6B8A94;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">'+esc(m.l)+'</div>'
+      +'<div style="font-size:15px;font-weight:800;color:#08404D">'+esc(m.v)+'</div></div>';}).join('')
+    +'</div>'
+    +(pcStrengths.length?('<div style="font-size:11px;font-weight:700;color:#6B8A94;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Key Highlights</div>'
+      +'<ul style="margin:0;padding-left:18px;font-size:12px;color:#2C3E47;line-height:1.9">'
+      +pcStrengths.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')
+      +'</ul>'):'')
+    +'<div style="font-size:10px;color:#9AB0B8;margin-top:18px;line-height:1.6">Composite score shown above; a detailed 5-pillar breakdown (legal, forensic, director, financial, credit) is available for engagements with full document intelligence scope.</div>'
     +'</div>'
     +'</div>';
 
