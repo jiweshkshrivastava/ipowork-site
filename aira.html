@@ -897,7 +897,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG11-A';
+var IPOWORK_BUILD='AUG11-B';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 /* Guards against cross-company contamination in the combined "Full Report":
@@ -3149,6 +3149,23 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
     var icAge=icIncYear?(new Date().getFullYear()-parseInt(icIncYear,10)):'';
     var icDate=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
     var icChgTotal=chgs.reduce(function(s,c){var _x=parseFloat(c.amount||0);return s+((c.status==='Open'&&_x>=100000)?_x/10000000:0);},0);
+    /* FIX-AUG11-K: description/industry come from Probe42's MCA/credit-report
+       data directly, NOT the company website — so unlike icWebCtx below,
+       this works even for companies with no website at all (confirmed:
+       Mateshwari has website=null but a real, detailed description). This
+       is real prose sourced from the company's own credit rating report,
+       plus real industry+segment classification — inject unconditionally so
+       every tier gets genuine product/sector grounding instead of falling
+       back to "product-level detail not available" when a website is simply
+       absent but real classification data exists anyway. */
+    var icProbeBiz='';
+    if(p42&&(p42.description||(p42.industry_segments&&p42.industry_segments.length))){
+      icProbeBiz='\n\nBUSINESS DESCRIPTION & CLASSIFICATION (Probe42, LOCKED \u2014 this IS the company\u2019s real business; use it, never write "product-level detail not available" or "sub-sector to be confirmed" when this is present):';
+      if(p42.description) icProbeBiz+='\n  '+p42.description;
+      if(p42.industry_segments&&p42.industry_segments.length){
+        icProbeBiz+='\n  Industry/Segment: '+p42.industry_segments.map(function(s){return (s.industry||s.name||'')+(s.segment?' | '+s.segment:'');}).join('; ');
+      }
+    }
     var icWebCtx='';
     if(p42&&p42.website){
       try{
@@ -3202,6 +3219,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       +(p42&&p42.suit_filed_cases&&p42.suit_filed_cases.length?('\n\nSUIT-FILED CASES PER BUREAUS (Probe42, LOCKED): '+p42.suit_filed_cases.map(function(s){return JSON.stringify(s);}).join('; ')):'')
       +(p42&&p42.peer_comparison&&p42.peer_comparison.length?('\n\nLISTED/COMPARABLE PEERS (Probe42-sourced, LOCKED \u2014 use these REAL peers instead of selecting your own; NEVER invent additional peers when real ones are provided here): '
         +p42.peer_comparison.map(function(pe){return pe.name+(pe.cin?' (CIN '+pe.cin+')':'')+(pe.revenue?' \u2014 Revenue \u20b9'+pe.revenue+' Cr':'')+(pe.pat?', PAT \u20b9'+pe.pat+' Cr':'');}).join('; ')):'')
+      +icProbeBiz
       +icWebCtx;
 
     var tierPrompts={
@@ -3964,6 +3982,20 @@ async function runDeepResearchFull(){
     // ── WEBSITE DATA FETCH ─────────────────────────────────────────────
     var website = (p42&&p42.website)||'';
     var websiteCtx = '';
+    /* FIX-AUG11-K: Probe42's description/industry_segments come from MCA/
+       credit-report data, NOT the company website, so this works even when
+       website is null (confirmed case: Mateshwari). Injected unconditionally
+       and BEFORE the website fetch so it's available regardless of whether
+       a website exists — this is what should have been eliminating "product-
+       level detail not available" all along. */
+    var probeBizCtx = '';
+    if(p42 && (p42.description || (p42.industry_segments && p42.industry_segments.length))){
+      probeBizCtx = '\n\nBUSINESS DESCRIPTION & CLASSIFICATION (Probe42, LOCKED — this IS the company\u2019s real business; use it, NEVER write "product-level detail not available" or "sub-sector to be confirmed by management" when this is present):';
+      if(p42.description) probeBizCtx += '\n  '+p42.description;
+      if(p42.industry_segments && p42.industry_segments.length){
+        probeBizCtx += '\n  Industry/Segment: '+p42.industry_segments.map(function(s){return (s.industry||s.name||'')+(s.segment?' | '+s.segment:'');}).join('; ');
+      }
+    }
     if(website){
       setPct(8,'Fetching company website\u2026');
       try{
@@ -4071,8 +4103,9 @@ async function runDeepResearchFull(){
       +((p42&&p42.registered_address)?'\nREGISTERED OFFICE (MCA): '+p42.registered_address:'')
       +(incYear?'\nINCORPORATED: '+(incDate||incYear)+' \u2014 company age '+coAge+' years (LOCKED \u2014 use exactly; director DIN appointment dates are NOT the incorporation date)':'')
       +VERIFIED_FINANCIALS
+      +probeBizCtx
       +websiteCtx
-      +(websiteCtx?'':'\n\nNO WEBSITE DATA AVAILABLE \u2014 the company\u2019s specific products are UNKNOWN. Describe the business ONLY as "'+sector+'" at broad level. Write "Product-level detail not available \u2014 sub-sector to be confirmed by management before DRHP" wherever products would be discussed. NEVER invent product categories, product tables, or product-specific TAM figures.')
+      +((websiteCtx||probeBizCtx)?'':'\n\nNO PRODUCT DATA AVAILABLE — the company\u2019s specific products are UNKNOWN from both Probe42 and website sources. Describe the business ONLY as "'+sector+'" at broad level. Write "Product-level detail not available — sub-sector to be confirmed by management before DRHP" wherever products would be discussed. NEVER invent product categories, product tables, or product-specific TAM figures.')
       +'\n\nOUTPUT DISCIPLINE (mandatory for THIS module):'
       +'\n- Output ONLY the module you are asked to write, starting directly with its own heading. NO executive summary, NO company snapshot, NO "Key Highlights", NO valuation summary and NO metrics table unless the module instruction explicitly asks for that item.'
       +'\n- NEVER create internal sub-headers labelled M01/M02/MODULE 01 etc. inside your module \u2014 those labels belong to other modules.'
