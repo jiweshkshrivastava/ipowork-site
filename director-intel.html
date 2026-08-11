@@ -136,141 +136,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 }
 </style>
 
-<script src="probe42.js">
-// ── PROBE42 LIVE SEARCH ──
-
-var _p42_results = [];
-var _p42_selected = {cin:'', name:''};
-
-
-
-
-
-// Close dropdown on outside click
-document.addEventListener('click', function(e) {
-  document.querySelectorAll('.p42-dropdown').forEach(function(d) {
-    if (!d.contains(e.target)) d.style.display='none';
-  });
-});
-
-
-// ── PROBE42 LIVE DATA LOADER ──
-
-
-
-// ── DIRECT WORKER INTEGRATION ──
-var WORKER_URL = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
-
-async function workerPost(payload) {
-  var resp = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(payload)
-  });
-  return await resp.json();
-}
-
-async function searchCompany(query) {
-  return workerPost({type: 'company_search', query: query});
-}
-
-async function loadProbe42Data(cin, displayName) {
-  showToast('⏳ Loading live board data...');
-  try {
-    var result = await workerPost({type: 'probe42_raw', cin: cin});
-    if (!result || result.error) throw new Error(result && result.error || 'No data');
-
-    var name = result.company_name || displayName;
-    window._lastDirResult = result;
-    window._lastDirCompany = name;
-
-    document.getElementById('dir-name').textContent = name;
-    document.getElementById('dir-initials').textContent = name.substring(0,2).toUpperCase();
-    var bcn = document.getElementById('board-company-name');
-    if(bcn) bcn.textContent = name + (cin ? ' · CIN ' + cin : '');
-
-    var dirs = (result.directors || []).filter(function(d){ return !d.cessation; });
-
-    // Show board roster, hide single-profile checks (not applicable for company-wide scan)
-    document.getElementById('board-roster-card').style.display = 'block';
-    document.getElementById('board-count-badge').textContent = dirs.length + ' Director' + (dirs.length!==1?'s':'');
-
-    var tbody = document.getElementById('board-roster-tbody');
-    if (dirs.length) {
-      tbody.innerHTML = dirs.map(function(d){
-        return '<tr><td style="font-weight:700">'+(d.director_name||d.name||'—')+'</td>'
-          +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
-          +'<td>'+(d.designation||d.role||'Director')+'</td>'
-          +'<td><span class="badge" style="background:#F0F0F0;color:#666">Not Verified</span></td>'
-          +'<td><span class="badge" style="background:#F0F0F0;color:#666">Not Verified</span></td>'
-          +'<td>'+(d.appointed||d.appointment_date||d.date_of_appointment||'—')+'</td></tr>';
-      }).join('') + '<tr><td colspan="6" style="font-size:10px;color:var(--muted);padding:8px 4px">CIBIL and disqualification status require dedicated director-level checks beyond this company-level extract — not yet performed for the directors above.</td></tr>';
-    } else {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No director data available from Probe42 for this CIN</td></tr>';
-    }
-
-    // Update charge-based risk note in network card (repurposed to show charges summary)
-    var charges = result.charges || [];
-    var openCh = charges.filter(function(c){ return (c.status||'').toLowerCase().includes('open'); }).length;
-    document.getElementById('network-count-badge').textContent = openCh + ' Open Charge' + (openCh!==1?'s':'');
-
-    document.getElementById('dir-credit-chip').textContent = '🪙 2 credits used — ' + dirs.length + ' director(s) scanned';
-
-    showToast('✅ Live board data loaded — ' + dirs.length + ' director(s)');
-  } catch(e) {
-    console.error('Probe42 error:', e);
-    showToast('⚠️ Could not fetch live data — ' + (e.message||''));
-    document.getElementById('board-roster-card').style.display = 'none';
-  }
-}
-
-async function p42Search(inputId, dropId) {
-  var q = document.getElementById(inputId).value.trim();
-  var drop = document.getElementById(dropId);
-  if(!drop) return;
-  if(q.length < 3) { drop.style.display='none'; return; }
-  drop.style.display='block';
-  drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">⏳ Searching...</div>';
-  try {
-    var result = await searchCompany(q);
-    var list = result.data || result || [];
-    if(!Array.isArray(list)) list = list.companies || [];
-    if(!list.length) {
-      drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">No companies found</div>';
-      return;
-    }
-    drop.innerHTML = list.slice(0,10).map(function(co){
-      var cin = co.cin||co.company_cin||'';
-      var name = co.company_name||co.name||cin;
-      return '<div onclick="selectCompany(\''+cin+'\',\''+name.replace(/\'/g,"\\'")+'\',\''+inputId+'\',\''+dropId+'\')" '
-        +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(13,92,107,.08);font-size:12px;font-weight:600;transition:.1s" '
-        +'onmouseover="this.style.background=\'rgba(13,92,107,.05)\'" onmouseout="this.style.background=\'\'">'
-        +'<div>'+name+'</div>'
-        +'<div style="font-size:10px;color:#6B7E85;font-family:monospace;margin-top:2px">'+cin+'</div>'
-        +'</div>';
-    }).join('');
-  } catch(e) {
-    drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#C0392B">Error: '+e.message+'</div>';
-  }
-}
-
-function selectCompany(cin, name, inputId, dropId) {
-  _p42_selected = {cin:cin, name:name};
-  var inp = document.getElementById(inputId);
-  if(inp) inp.value = name + (cin?' ('+cin+')':'');
-  var drop = document.getElementById(dropId);
-  if(drop) drop.style.display='none';
-}
-
-function resetP42Selection() { _p42_selected = {cin:'', name:''}; }
-
-document.addEventListener('click', function(e) {
-  document.querySelectorAll('.p42-dropdown').forEach(function(d){
-    if(!d.contains(e.target)) d.style.display='none';
-  });
-});
-
-</script>
+<script src="probe42.js"></script>
 </head>
 <body>
 <div class="topbar">
@@ -544,17 +410,156 @@ document.addEventListener('click', function(e) {
 <script>
 var DIRECTOR_INTEL_BUILD='AUG11-D';
 console.log('director-intel build '+DIRECTOR_INTEL_BUILD+' loaded');
-/* FIX-AUG11-N: _p42_selected was declared at line ~143, but that line sits
-   inside a script tag with a src attribute (external file reference) —
-   browsers completely ignore inline content of an EXTERNAL script tag (only
-   the fetched file actually runs), so that declaration was dead code, never
-   executed. Every button here (runCompanyScan, runDINScan, etc.) references
-   _p42_selected assuming it already exists globally — it never did, causing
-   an immediate, uncaught, and completely silent ReferenceError on every
-   click. Declared for real here, in the script block that actually executes. */
-var _p42_selected = {cin:'', name:''};
+/* FIX-AUG11-N (superseded by FIX-AUG11-Q below): the earlier narrow fix here
+   only declared _p42_selected — it turned out the ENTIRE original script
+   block (workerPost, loadProbe42Data, and everything else) was equally dead
+   code for the same reason. See FIX-AUG11-Q below for the complete fix;
+   this narrower declaration is removed since it's now redundant. */
 var ACCESS_LEVEL = 0;
 var AUTH_PIN = '2007';
+
+/* FIX-AUG11-Q: the block below (workerPost, loadProbe42Data, searchCompany,
+   p42Search, selectCompany, resetP42Selection, _p42_selected, _p42_results,
+   WORKER_URL) was ALWAYS dead code — it sat inside a script tag with a src
+   attribute (external file reference), and browsers completely ignore inline
+   content of an EXTERNAL script tag. workerPost() specifically is the function
+   EVERY feature on this page uses to talk to the backend, so this single bug
+   meant nothing on this page could ever have worked, not just the director-scan
+   buttons. Relocated here, into the script block that actually executes. */
+// ── PROBE42 LIVE SEARCH ──
+
+var _p42_results = [];
+var _p42_selected = {cin:'', name:''};
+
+
+
+
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.p42-dropdown').forEach(function(d) {
+    if (!d.contains(e.target)) d.style.display='none';
+  });
+});
+
+
+// ── PROBE42 LIVE DATA LOADER ──
+
+
+
+// ── DIRECT WORKER INTEGRATION ──
+var WORKER_URL = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+async function workerPost(payload) {
+  var resp = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+  return await resp.json();
+}
+
+async function searchCompany(query) {
+  return workerPost({type: 'company_search', query: query});
+}
+
+async function loadProbe42Data(cin, displayName) {
+  showToast('⏳ Loading live board data...');
+  try {
+    var result = await workerPost({type: 'probe42_raw', cin: cin});
+    if (!result || result.error) throw new Error(result && result.error || 'No data');
+
+    var name = result.company_name || displayName;
+    window._lastDirResult = result;
+    window._lastDirCompany = name;
+
+    document.getElementById('dir-name').textContent = name;
+    document.getElementById('dir-initials').textContent = name.substring(0,2).toUpperCase();
+    var bcn = document.getElementById('board-company-name');
+    if(bcn) bcn.textContent = name + (cin ? ' · CIN ' + cin : '');
+
+    var dirs = (result.directors || []).filter(function(d){ return !d.cessation; });
+
+    // Show board roster, hide single-profile checks (not applicable for company-wide scan)
+    document.getElementById('board-roster-card').style.display = 'block';
+    document.getElementById('board-count-badge').textContent = dirs.length + ' Director' + (dirs.length!==1?'s':'');
+
+    var tbody = document.getElementById('board-roster-tbody');
+    if (dirs.length) {
+      tbody.innerHTML = dirs.map(function(d){
+        return '<tr><td style="font-weight:700">'+(d.director_name||d.name||'—')+'</td>'
+          +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
+          +'<td>'+(d.designation||d.role||'Director')+'</td>'
+          +'<td><span class="badge" style="background:#F0F0F0;color:#666">Not Verified</span></td>'
+          +'<td><span class="badge" style="background:#F0F0F0;color:#666">Not Verified</span></td>'
+          +'<td>'+(d.appointed||d.appointment_date||d.date_of_appointment||'—')+'</td></tr>';
+      }).join('') + '<tr><td colspan="6" style="font-size:10px;color:var(--muted);padding:8px 4px">CIBIL and disqualification status require dedicated director-level checks beyond this company-level extract — not yet performed for the directors above.</td></tr>';
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No director data available from Probe42 for this CIN</td></tr>';
+    }
+
+    // Update charge-based risk note in network card (repurposed to show charges summary)
+    var charges = result.charges || [];
+    var openCh = charges.filter(function(c){ return (c.status||'').toLowerCase().includes('open'); }).length;
+    document.getElementById('network-count-badge').textContent = openCh + ' Open Charge' + (openCh!==1?'s':'');
+
+    document.getElementById('dir-credit-chip').textContent = '🪙 2 credits used — ' + dirs.length + ' director(s) scanned';
+
+    showToast('✅ Live board data loaded — ' + dirs.length + ' director(s)');
+  } catch(e) {
+    console.error('Probe42 error:', e);
+    showToast('⚠️ Could not fetch live data — ' + (e.message||''));
+    document.getElementById('board-roster-card').style.display = 'none';
+  }
+}
+
+async function p42Search(inputId, dropId) {
+  var q = document.getElementById(inputId).value.trim();
+  var drop = document.getElementById(dropId);
+  if(!drop) return;
+  if(q.length < 3) { drop.style.display='none'; return; }
+  drop.style.display='block';
+  drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">⏳ Searching...</div>';
+  try {
+    var result = await searchCompany(q);
+    var list = result.data || result || [];
+    if(!Array.isArray(list)) list = list.companies || [];
+    if(!list.length) {
+      drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#6B7E85">No companies found</div>';
+      return;
+    }
+    drop.innerHTML = list.slice(0,10).map(function(co){
+      var cin = co.cin||co.company_cin||'';
+      var name = co.company_name||co.name||cin;
+      return '<div onclick="selectCompany(\''+cin+'\',\''+name.replace(/\'/g,"\\'")+'\',\''+inputId+'\',\''+dropId+'\')" '
+        +'style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(13,92,107,.08);font-size:12px;font-weight:600;transition:.1s" '
+        +'onmouseover="this.style.background=\'rgba(13,92,107,.05)\'" onmouseout="this.style.background=\'\'">'
+        +'<div>'+name+'</div>'
+        +'<div style="font-size:10px;color:#6B7E85;font-family:monospace;margin-top:2px">'+cin+'</div>'
+        +'</div>';
+    }).join('');
+  } catch(e) {
+    drop.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#C0392B">Error: '+e.message+'</div>';
+  }
+}
+
+function selectCompany(cin, name, inputId, dropId) {
+  _p42_selected = {cin:cin, name:name};
+  var inp = document.getElementById(inputId);
+  if(inp) inp.value = name + (cin?' ('+cin+')':'');
+  var drop = document.getElementById(dropId);
+  if(drop) drop.style.display='none';
+}
+
+function resetP42Selection() { _p42_selected = {cin:'', name:''}; }
+
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.p42-dropdown').forEach(function(d){
+    if(!d.contains(e.target)) d.style.display='none';
+  });
+});
+
+
 var ADMIN_PIN = '1234';
 var _pinTarget = '';
 
