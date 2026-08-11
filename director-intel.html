@@ -542,7 +542,7 @@ document.addEventListener('click', function(e) {
 <div id="toast"></div>
 
 <script>
-var DIRECTOR_INTEL_BUILD='AUG11-C';
+var DIRECTOR_INTEL_BUILD='AUG11-D';
 console.log('director-intel build '+DIRECTOR_INTEL_BUILD+' loaded');
 /* FIX-AUG11-N: _p42_selected was declared at line ~143, but that line sits
    inside a script tag with a src attribute (external file reference) —
@@ -672,9 +672,20 @@ function runBatchScan(){
 }
 
 function downloadDirectorReport(){
-  var name = window._lastDirCompany || document.getElementById('dir-name').textContent || 'Director Report';
   var result = window._lastDirResult;
   var dirs = (result && result.directors || []).filter(function(d){ return !d.cessation; });
+  /* FIX-AUG11-P: this function previously had NO guard at all — it would
+     open a print window showing "No director data available" even when no
+     scan had ever successfully run, giving no indication of what actually
+     went wrong or what to do next. Now matches the same guard pattern
+     already used in credit-intel.html/forensic-intel.html: stop clearly
+     and tell the user to run a scan first, rather than producing a
+     report that only looks broken. */
+  if(!result || !dirs.length){
+    showToast('⚠️ Run a director scan first — no data to download yet');
+    return;
+  }
+  var name = window._lastDirCompany || result.company_name || document.getElementById('board-company-name').textContent || 'Director Report';
 
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Director Intelligence — '+name+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;font-size:12px;color:#1A2E35;background:#fff;padding:32px}'
@@ -684,9 +695,9 @@ function downloadDirectorReport(){
     +'<h1>👥 Director Intelligence — '+name+'</h1>'
     +'<div style="font-size:11px;color:#6B7E85;margin-bottom:10px">Generated '+new Date().toLocaleString('en-IN')+' · ipowork AI · Data: Probe42/MCA</div>'
     +'<table><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Status</th></tr></thead><tbody>'
-    +(dirs.length ? dirs.map(function(d){
+    +dirs.map(function(d){
         return '<tr><td><strong>'+(d.director_name||d.name||'—')+'</strong></td><td style="font-family:monospace">'+(d.din||'—')+'</td><td>'+(d.designation||'Director')+'</td><td>Active</td></tr>';
-      }).join('') : '<tr><td colspan="4">No director data available</td></tr>')
+      }).join('')
     +'</tbody></table>'
     +'<div style="margin-top:24px;font-size:10px;color:#6B7E85">ipowork is not SEBI-registered. Not investment advice. Data: Probe42/MCA. © 2025 ipowork.com</div>'
     +'</body></html>';
