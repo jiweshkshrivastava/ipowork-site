@@ -368,6 +368,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
       </div>
     </div>
 
+    <!-- FIX-AUG11-R: replaces the bare director table with real computed
+         governance context — board composition adequacy checks (Companies
+         Act minimums) and the company-level compliance/legal exposure this
+         board is accountable for (open charges, litigation, struck-off risk,
+         defaulter status). All figures come from the SAME already-confirmed
+         Probe42 extraction used elsewhere — nothing fabricated, no CIBIL/
+         SEBI-debarment/Watchout claims (no confirmed data source for those
+         yet), but genuinely more than a name/DIN list. -->
+    <div class="card" style="margin-bottom:20px;display:none" id="governance-context-card">
+      <div class="card-header">
+        <div class="card-title">⚖️ Governance & Risk Context</div>
+        <span class="badge badge-teal" id="governance-summary-badge">—</span>
+      </div>
+      <div class="card-body">
+        <div id="governance-context-body" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px solid #eee">This reflects company-level compliance/legal exposure from Probe42/MCA data, which the board above is accountable for — not individual director-level checks (CIBIL, SEBI debarment, Watchout notings, NCLT history), which require a dedicated verification source not yet available on this platform.</div>
+      </div>
+    </div>
+
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button onclick="downloadDirectorReport()" class="btn btn-primary">📥 Download Report</button>
       <button onclick="shareDirectorReport()" class="btn btn-outline">📤 Share Report</button>
@@ -408,7 +427,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 <div id="toast"></div>
 
 <script>
-var DIRECTOR_INTEL_BUILD='AUG11-D';
+var DIRECTOR_INTEL_BUILD='AUG11-E';
 console.log('director-intel build '+DIRECTOR_INTEL_BUILD+' loaded');
 /* FIX-AUG11-N (superseded by FIX-AUG11-Q below): the earlier narrow fix here
    only declared _p42_selected — it turned out the ENTIRE original script
@@ -498,10 +517,43 @@ async function loadProbe42Data(cin, displayName) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No director data available from Probe42 for this CIN</td></tr>';
     }
 
-    // Update charge-based risk note in network card (repurposed to show charges summary)
+    // FIX-AUG11-R: real governance context, computed from already-confirmed
+    // Probe42 fields — board composition adequacy + company-level compliance/
+    // legal exposure this board is accountable for.
     var charges = result.charges || [];
     var openCh = charges.filter(function(c){ return (c.status||'').toLowerCase().includes('open'); }).length;
-    document.getElementById('network-count-badge').textContent = openCh + ' Open Charge' + (openCh!==1?'s':'');
+    var comp = result.compliance || {};
+    var legal = result.legal || {};
+    var litigation = legal.total_cases || 0;
+    var litigationPending = legal.pending_count || 0;
+    var struckoffRisk = !!comp.struckoff_risk;
+    var defaulter = !!comp.defaulter;
+    var hasCS = dirs.some(function(d){ return /company secretary/i.test(d.designation||d.role||''); });
+    var minDirectorsOk = dirs.length >= 2; // Companies Act 2013 §149(1): private co minimum 2 directors
+
+    var govItems = [];
+    govItems.push({label:'Board Size', ok: minDirectorsOk, detail: dirs.length+' director(s) on record'+(minDirectorsOk?' — meets §149(1) minimum':' — below §149(1) minimum of 2 for a private company')});
+    govItems.push({label:'Company Secretary', ok: hasCS, detail: hasCS?'Company Secretary on record':'No Company Secretary identified in this extract'});
+    govItems.push({label:'Open Charges', ok: openCh===0, detail: openCh+' open charge(s) registered against company assets'});
+    govItems.push({label:'Litigation Exposure', ok: litigation===0, detail: litigation+' total case(s) on record'+(litigationPending?', '+litigationPending+' pending':'')});
+    govItems.push({label:'Section 248(5) Struck-off Risk', ok: !struckoffRisk, detail: struckoffRisk?'Company appears in struck-off risk records — verify current status':'No struck-off history on record'});
+    govItems.push({label:'Wilful Defaulter Flag', ok: !defaulter, detail: defaulter?'Company listed in MCA wilful defaulter records':'Not listed in MCA wilful defaulter records'});
+
+    var redCount = govItems.filter(function(g){return !g.ok;}).length;
+    var govCard = document.getElementById('governance-context-card');
+    var govBody = document.getElementById('governance-context-body');
+    var govBadge = document.getElementById('governance-summary-badge');
+    if(govCard && govBody){
+      govCard.style.display = 'block';
+      govBadge.textContent = redCount===0 ? 'No flags' : redCount+' flag'+(redCount!==1?'s':'');
+      govBadge.className = 'badge ' + (redCount===0?'badge-green':'badge-amber');
+      govBody.innerHTML = govItems.map(function(g){
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:#f8fafa;border-radius:8px">'
+          +'<div><span style="font-size:12px;font-weight:700;color:var(--text)">'+g.label+'</span>'
+          +'<div style="font-size:10px;color:var(--muted);margin-top:1px">'+g.detail+'</div></div>'
+          +'<span class="badge '+(g.ok?'badge-green':'badge-amber')+'">'+(g.ok?'Clear ✓':'Flag ⚠')+'</span></div>';
+      }).join('');
+    }
 
     document.getElementById('dir-credit-chip').textContent = '🪙 2 credits used — ' + dirs.length + ' director(s) scanned';
 
@@ -510,6 +562,8 @@ async function loadProbe42Data(cin, displayName) {
     console.error('Probe42 error:', e);
     showToast('⚠️ Could not fetch live data — ' + (e.message||''));
     document.getElementById('board-roster-card').style.display = 'none';
+    var gcErr = document.getElementById('governance-context-card');
+    if(gcErr) gcErr.style.display = 'none';
   }
 }
 
@@ -692,18 +746,53 @@ function downloadDirectorReport(){
   }
   var name = window._lastDirCompany || result.company_name || document.getElementById('board-company-name').textContent || 'Director Report';
 
+  /* FIX-AUG11-R: the downloaded report was just a bare name/DIN/designation
+     table — genuinely not "intelligence" in any meaningful sense. Adding
+     the same real, computed governance context shown on-screen: board
+     composition checks against Companies Act minimums, plus the company-
+     level compliance/legal exposure (charges, litigation, struck-off risk,
+     defaulter status) this board is accountable for — all from the same
+     already-confirmed Probe42 data, nothing fabricated. */
+  var charges = result.charges || [];
+  var openCh = charges.filter(function(c){ return (c.status||'').toLowerCase().includes('open'); }).length;
+  var comp = result.compliance || {};
+  var legal = result.legal || {};
+  var litigation = legal.total_cases || 0;
+  var litigationPending = legal.pending_count || 0;
+  var struckoffRisk = !!comp.struckoff_risk;
+  var defaulter = !!comp.defaulter;
+  var hasCS = dirs.some(function(d){ return /company secretary/i.test(d.designation||d.role||''); });
+  var minDirectorsOk = dirs.length >= 2;
+  var govItems = [
+    {label:'Board Size', ok: minDirectorsOk, detail: dirs.length+' director(s) on record'+(minDirectorsOk?' — meets §149(1) minimum':' — below §149(1) minimum of 2 for a private company')},
+    {label:'Company Secretary', ok: hasCS, detail: hasCS?'Company Secretary on record':'No Company Secretary identified in this extract'},
+    {label:'Open Charges', ok: openCh===0, detail: openCh+' open charge(s) registered against company assets'},
+    {label:'Litigation Exposure', ok: litigation===0, detail: litigation+' total case(s) on record'+(litigationPending?', '+litigationPending+' pending':'')},
+    {label:'Section 248(5) Struck-off Risk', ok: !struckoffRisk, detail: struckoffRisk?'Company appears in struck-off risk records — verify current status':'No struck-off history on record'},
+    {label:'Wilful Defaulter Flag', ok: !defaulter, detail: defaulter?'Company listed in MCA wilful defaulter records':'Not listed in MCA wilful defaulter records'}
+  ];
+
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Director Intelligence — '+name+'</title>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;font-size:12px;color:#1A2E35;background:#fff;padding:32px}'
-    +'h1{font-size:22px;font-weight:900;color:#08404D;margin-bottom:10px}'
+    +'h1{font-size:22px;font-weight:900;color:#08404D;margin-bottom:10px}h2{font-size:14px;color:#08404D;margin:24px 0 8px}'
     +'table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#08404D;color:#fff;padding:8px 10px;text-align:left;font-size:11px}'
-    +'td{padding:8px 10px;border-bottom:1px solid #EAF2F4;font-size:11px}</style></head><body>'
+    +'td{padding:8px 10px;border-bottom:1px solid #EAF2F4;font-size:11px}'
+    +'.flag-ok{color:#1A9E6B;font-weight:700}.flag-bad{color:#E88A2E;font-weight:700}</style></head><body>'
     +'<h1>👥 Director Intelligence — '+name+'</h1>'
     +'<div style="font-size:11px;color:#6B7E85;margin-bottom:10px">Generated '+new Date().toLocaleString('en-IN')+' · ipowork AI · Data: Probe42/MCA</div>'
+    +'<h2>Board of Directors</h2>'
     +'<table><thead><tr><th>Name</th><th>DIN</th><th>Designation</th><th>Status</th></tr></thead><tbody>'
     +dirs.map(function(d){
         return '<tr><td><strong>'+(d.director_name||d.name||'—')+'</strong></td><td style="font-family:monospace">'+(d.din||'—')+'</td><td>'+(d.designation||'Director')+'</td><td>Active</td></tr>';
       }).join('')
     +'</tbody></table>'
+    +'<h2>Governance & Risk Context</h2>'
+    +'<table><thead><tr><th>Check</th><th>Detail</th><th>Status</th></tr></thead><tbody>'
+    +govItems.map(function(g){
+        return '<tr><td><strong>'+g.label+'</strong></td><td>'+g.detail+'</td><td class="'+(g.ok?'flag-ok':'flag-bad')+'">'+(g.ok?'Clear ✓':'Flag ⚠')+'</td></tr>';
+      }).join('')
+    +'</tbody></table>'
+    +'<div style="font-size:10px;color:#6B7E85;margin-top:10px">Reflects company-level compliance/legal exposure from Probe42/MCA data, which the board above is accountable for — not individual director-level checks (CIBIL, SEBI debarment, Watchout notings, NCLT history), which require a dedicated verification source not yet available on this platform.</div>'
     +'<div style="margin-top:24px;font-size:10px;color:#6B7E85">ipowork is not SEBI-registered. Not investment advice. Data: Probe42/MCA. © 2025 ipowork.com</div>'
     +'</body></html>';
 
