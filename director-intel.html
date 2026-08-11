@@ -199,10 +199,10 @@ async function loadProbe42Data(cin, displayName) {
         return '<tr><td style="font-weight:700">'+(d.director_name||d.name||'—')+'</td>'
           +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
           +'<td>'+(d.designation||d.role||'Director')+'</td>'
-          +'<td><span class="badge badge-green">Active ✓</span></td>'
-          +'<td><span class="badge badge-green">None ✓</span></td>'
-          +'<td>'+(d.appointment_date||d.date_of_appointment||'—')+'</td></tr>';
-      }).join('');
+          +'<td><span class="badge" style="background:#F0F0F0;color:#666">Not Verified</span></td>'
+          +'<td><span class="badge" style="background:#F0F0F0;color:#666">Not Verified</span></td>'
+          +'<td>'+(d.appointed||d.appointment_date||d.date_of_appointment||'—')+'</td></tr>';
+      }).join('') + '<tr><td colspan="6" style="font-size:10px;color:var(--muted);padding:8px 4px">CIBIL and disqualification status require dedicated director-level checks beyond this company-level extract — not yet performed for the directors above.</td></tr>';
     } else {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No director data available from Probe42 for this CIN</td></tr>';
     }
@@ -517,6 +517,8 @@ document.addEventListener('click', function(e) {
 <div id="toast"></div>
 
 <script>
+var DIRECTOR_INTEL_BUILD='AUG11-A';
+console.log('director-intel build '+DIRECTOR_INTEL_BUILD+' loaded');
 var ACCESS_LEVEL = 0;
 var AUTH_PIN = '2007';
 var ADMIN_PIN = '1234';
@@ -582,7 +584,7 @@ async function runDINScan(){
   var priorCin = _p42_selected.cin || '';
 
   try {
-    var result = await workerPost({type:'din_search', din:din, company_cin:priorCin});
+    var result = await workerPost({type:'director_scan', din:din, company_cin:priorCin});
     if(result && result.found){
       document.getElementById('dir-name').textContent = result.name+' (DIN: '+din+')';
       document.getElementById('dir-initials').textContent = (result.name||'??').substring(0,2).toUpperCase();
