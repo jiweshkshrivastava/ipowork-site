@@ -186,6 +186,8 @@ async function loadProbe42Data(cin, displayName) {
 
     document.getElementById('dir-name').textContent = name;
     document.getElementById('dir-initials').textContent = name.substring(0,2).toUpperCase();
+    var bcn = document.getElementById('board-company-name');
+    if(bcn) bcn.textContent = name + (cin ? ' · CIN ' + cin : '');
 
     var dirs = (result.directors || []).filter(function(d){ return !d.cessation; });
 
@@ -349,7 +351,22 @@ document.addEventListener('click', function(e) {
 
   <!-- DIRECTOR RESULT -->
   <div id="director-result" style="display:none">
-    <div class="grid-2" style="margin-bottom:20px">
+    <!-- FIX-AUG11-O: the two cards below (Director Profile + Background
+         Checks) and the Company Network table after them were 100%
+         hardcoded static demo content — DIN 00123456, "Acme Industries
+         Limited", Director Risk Score 88, "8/8 Background Checks Clean" —
+         and were NEVER populated by any JS in either scan path
+         (loadProbe42Data or runDINScan). Both paths reveal this whole
+         #director-result container unconditionally, so this fabricated
+         content displayed on every single scan for every company,
+         regardless of what was actually searched. No confirmed real data
+         source exists yet for single-DIN background checks (CIBIL/SEBI
+         debarment/Watchout/NCLT signals), so rather than leave a fabricated
+         "clean" bill of health showing by default, this whole block is now
+         hidden until genuine data is wired up. The REAL, live board roster
+         table (#board-roster-card, populated from actual Probe42 data) is
+         unaffected and still displays normally below. -->
+    <div class="grid-2" style="margin-bottom:20px;display:none" id="fake-profile-cards-DISABLED">
 
       <!-- Profile Card -->
       <div class="card">
@@ -440,8 +457,13 @@ document.addEventListener('click', function(e) {
       </div>
     </div>
 
-    <!-- Company Network -->
-    <div class="card" style="margin-bottom:20px" id="company-network-card">
+    <!-- Company Network — hidden, was 100% fabricated (fake "Acme Industries" row),
+         never populated. Probe42 DOES appear to have real director-network data
+         (seen directly on their website UI: other directorships per director,
+         with paid-up capital, sum of charges, incorporation date, city, status) —
+         a genuine candidate for a future real fix, but not yet extracted/wired
+         into the worker, so left honestly hidden rather than shipped fake. -->
+    <div class="card" style="margin-bottom:20px;display:none" id="company-network-card">
       <div class="card-header">
         <div class="card-title">🕸️ Company Network</div>
         <span class="badge badge-teal" id="network-count-badge">3 Companies</span>
@@ -466,7 +488,10 @@ document.addEventListener('click', function(e) {
     <!-- Board Roster (shown when scanning a whole company) -->
     <div class="card" style="margin-bottom:20px;display:none" id="board-roster-card">
       <div class="card-header">
-        <div class="card-title">👥 Board of Directors</div>
+        <div>
+          <div class="card-title">👥 Board of Directors</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px" id="board-company-name"></div>
+        </div>
         <span class="badge badge-teal" id="board-count-badge">0 Directors</span>
       </div>
       <div class="card-body">
@@ -517,7 +542,7 @@ document.addEventListener('click', function(e) {
 <div id="toast"></div>
 
 <script>
-var DIRECTOR_INTEL_BUILD='AUG11-B';
+var DIRECTOR_INTEL_BUILD='AUG11-C';
 console.log('director-intel build '+DIRECTOR_INTEL_BUILD+' loaded');
 /* FIX-AUG11-N: _p42_selected was declared at line ~143, but that line sits
    inside a script tag with a src attribute (external file reference) —
