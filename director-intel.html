@@ -517,8 +517,17 @@ document.addEventListener('click', function(e) {
 <div id="toast"></div>
 
 <script>
-var DIRECTOR_INTEL_BUILD='AUG11-A';
+var DIRECTOR_INTEL_BUILD='AUG11-B';
 console.log('director-intel build '+DIRECTOR_INTEL_BUILD+' loaded');
+/* FIX-AUG11-N: _p42_selected was declared at line ~143, but that line sits
+   inside a script tag with a src attribute (external file reference) —
+   browsers completely ignore inline content of an EXTERNAL script tag (only
+   the fetched file actually runs), so that declaration was dead code, never
+   executed. Every button here (runCompanyScan, runDINScan, etc.) references
+   _p42_selected assuming it already exists globally — it never did, causing
+   an immediate, uncaught, and completely silent ReferenceError on every
+   click. Declared for real here, in the script block that actually executes. */
+var _p42_selected = {cin:'', name:''};
 var ACCESS_LEVEL = 0;
 var AUTH_PIN = '2007';
 var ADMIN_PIN = '1234';
