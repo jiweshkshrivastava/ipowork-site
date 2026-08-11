@@ -897,7 +897,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='JUL25-L';
+var IPOWORK_BUILD='AUG11-A';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 var AIRA_RESULTS={};
 /* Guards against cross-company contamination in the combined "Full Report":
@@ -3133,7 +3133,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       ddbundle:'Due Diligence Bundle',deepresearch:'Deep Research'};
     var rTitle=tierNames[tier]||'IPO Report';
 
-    var AIRA_GR='CRITICAL DATA RULES:\n1. CHARGES: itemise from the CHARGE REGISTER exactly as listed — lender, amount, date; never restate amounts or write breakdown not itemised.\n2. BOARD: use the BOARD ROSTER names+DINs — never write [Placeholder], not specified, or data required for information present in the roster.\n3. LOCKED METRICS: Use pre-computed CAGRs/ROCE/ROE/D/E — never recompute.\n4. BS SUB-LINES: Only show items in Probe42 data — missing: write Not in MCA extract.\n5. VALUATION: Label Indicative Enterprise Value Range NOT Price Band.\n6. EBITDA prior years: use the LOCKED 3-YEAR P&L figures; only if a year is marked Not in MCA extract write Not itemised in MCA filings.\n7. REVENUE MIX if estimated: add WARNING ipowork AI estimate — not from MCA filings.\n9. NEVER INVENT DATA: prior-year PAT/EBITDA, incorporation dates, charge breakdowns and director details must come ONLY from the locked data above — inventing a plausible-looking figure or date is a CRITICAL defect; if truly absent, write Not in MCA extract.\n8. PEERS: select listed NSE/BSE peers from the company\u2019s ACTUAL sub-sector (per MCA activity/website data provided) \u2014 NEVER default to wire/cable names (KEI/Polycab/Finolex) or any other industry unless the data shows the company is genuinely in that business; if sub-sector unclear, benchmark against broad sector averages and say so.\n\n';
+    var AIRA_GR='CRITICAL DATA RULES:\n1. CHARGES: itemise from the CHARGE REGISTER exactly as listed — lender, amount, date; never restate amounts or write breakdown not itemised.\n2. BOARD: use the BOARD ROSTER names+DINs — never write [Placeholder], not specified, or data required for information present in the roster.\n3. LOCKED METRICS: Use pre-computed CAGRs/ROCE/ROE/D/E — never recompute.\n4. BS SUB-LINES: Only show items in Probe42 data — missing: write Not in MCA extract.\n5. VALUATION: Label Indicative Enterprise Value Range NOT Price Band.\n6. EBITDA prior years: use the LOCKED 3-YEAR P&L figures; only if a year is marked Not in MCA extract write Not itemised in MCA filings.\n7. REVENUE MIX if estimated: add WARNING ipowork AI estimate — not from MCA filings.\n9. NEVER INVENT DATA: prior-year PAT/EBITDA, incorporation dates, charge breakdowns and director details must come ONLY from the locked data above — inventing a plausible-looking figure or date is a CRITICAL defect; if truly absent, write Not in MCA extract.\n8. PEERS: if LISTED/COMPARABLE PEERS (Probe42-sourced) are provided in the data above, use THOSE REAL peers \u2014 never invent additional or alternate peers when real ones are supplied. Only if no Probe42 peer data is provided, select listed NSE/BSE peers from the company\u2019s ACTUAL sub-sector (per MCA activity/website data) \u2014 NEVER default to wire/cable names (KEI/Polycab/Finolex) or any other industry unless the data shows the company is genuinely in that business; if sub-sector unclear, benchmark against broad sector averages and say so.\n10. COMPLIANCE/LEGAL SECTIONS: for Auditors\u2019 Comments, Section 248(5) name-removal, Legal History (cases filed against/by), Credit Ratings, CDR History, BIFR History, GST, and EPFO \u2014 this data IS provided above from Probe42 for every category. Use it exactly. NEVER write "Not available on MCA", "not itemised", or invent a data gap for any of these sections \u2014 if the LOCKED data says "None on record per Probe42", write that (a real, checked absence), never a vaguer excuse implying the data wasn\u2019t looked up.\n\n';
     var sysP=(customSystem||'You are a Senior IPO advisor. Write comprehensive reports with tables, numbered sections, specific regulatory references, and actionable insights. Use exact financial data provided.')+' '+AIRA_GR;
 
     // Base financial data string passed to all Claude calls
@@ -3175,6 +3175,33 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
       +dirs.map(function(d){return '\n  '+(d.name||'?')+' | DIN '+(d.din||'?')+' | '+(d.designation||'Director')+(d.gender?' | '+d.gender:'')+(d.appointed?' | appointed '+d.appointed:'');}).join('')
       +'\nCHARGE REGISTER ('+chgs.length+' charges, '+openChgs+' OPEN, TOTAL OPEN \u20b9'+icChgTotal.toFixed(2)+' Cr \u2014 amounts ALREADY in \u20b9 Crores; itemise from THIS list; NEVER write "breakdown not itemised"):'
       +chgs.map(function(c){var _n=parseFloat(c.amount||0);var _as=(_n>0)?(_n>=100000?'\u20b9'+(_n/10000000).toFixed(2)+' Cr':'\u20b9'+_n.toFixed(0)):'amount not filed';return '\n  '+(c.charge_holder||'N/A')+' | '+_as+' | '+(c.status||'?')+(c.date_of_creation?' | created '+c.date_of_creation:'');}).join('')
+      // FIX-AUG11: compliance/litigation/credit-rating/peer data from Probe42's
+      // "Compliance Checks" report — previously never surfaced in any prompt,
+      // so DD Bundle / CA-CS Bundle always wrote "Not available on MCA" for
+      // sections Probe42 actually provides. If a category below is genuinely
+      // empty for this company, that's real (not every company has litigation
+      // or a credit rating) — write "None on record per Probe42" not "Not in
+      // MCA extract", since the source was checked and returned nothing.
+      +(p42&&p42.compliance?('\n\nCOMPLIANCE STATUS (Probe42 \u2014 LOCKED, use exactly):'
+        +'\n  GST: '+(p42.compliance.gst_status||'Not disclosed')+(p42.compliance.gst_count?' ('+p42.compliance.gst_count+' registration(s))':'')
+        +'\n  EPFO Registered: '+(p42.compliance.epfo_registered?'Yes':'No disclosure')+(p42.compliance.epfo_count?' ('+p42.compliance.epfo_count+' establishment(s))':'')
+        +'\n  ROC Filing Status: '+(p42.compliance.roc_filing_status||'Not disclosed')
+        +'\n  MSME Payment Delays: '+(p42.compliance.msme_delays||'0')
+        +'\n  Wilful Defaulter Flag: '+(p42.compliance.defaulter?'YES \u2014 FLAG PROMINENTLY':'No')):'')
+      +((p42&&p42.gst_details&&p42.gst_details.length)?('\n  GST Registrations ('+p42.gst_details.length+'): '+p42.gst_details.map(function(g){return (g.gstin||g.state||JSON.stringify(g));}).join('; ')):'')
+      +((p42&&p42.epfo_establishments&&p42.epfo_establishments.length)?('\n  EPFO Establishments ('+p42.epfo_establishments.length+'): '+p42.epfo_establishments.map(function(e){return (e.establishment_name||e.name||e.location||JSON.stringify(e));}).join('; ')):'')
+      +(p42&&p42.auditor_comments?('\n\nAUDITORS\u2019 COMMENTS (Probe42, LOCKED): '+(typeof p42.auditor_comments==='string'?p42.auditor_comments:JSON.stringify(p42.auditor_comments))):'\n\nAUDITORS\u2019 COMMENTS: None on record per Probe42.')
+      +(p42&&p42.name_removal_248?('\n\nSECTION 248(5) NAME-REMOVAL HISTORY (Probe42, LOCKED): '+(typeof p42.name_removal_248==='string'?p42.name_removal_248:JSON.stringify(p42.name_removal_248))):'\n\nSECTION 248(5) NAME-REMOVAL HISTORY: None on record per Probe42.')
+      +'\n\nLEGAL HISTORY (Probe42, LOCKED \u2014 itemise from this list; do not write "not itemised in MCA extract" for cases listed here):'
+      +'\n  Cases Filed AGAINST this company ('+((p42&&p42.legal_cases_against&&p42.legal_cases_against.length)||0)+'): '+((p42&&p42.legal_cases_against&&p42.legal_cases_against.length)?p42.legal_cases_against.map(function(cs){return (cs.case_title||cs.title||cs.court||JSON.stringify(cs));}).join('; '):'None on record per Probe42')
+      +'\n  Cases Filed BY this company ('+((p42&&p42.legal_cases_by&&p42.legal_cases_by.length)||0)+'): '+((p42&&p42.legal_cases_by&&p42.legal_cases_by.length)?p42.legal_cases_by.map(function(cs){return (cs.case_title||cs.title||cs.court||JSON.stringify(cs));}).join('; '):'None on record per Probe42')
+      +(p42&&p42.credit_ratings&&p42.credit_ratings.length?('\n\nCREDIT RATINGS (Probe42, LOCKED): '+p42.credit_ratings.map(function(r){return (r.agency||'')+' '+(r.rating||'')+' ('+(r.instrument||r.date||'')+')';}).join('; ')):'\n\nCREDIT RATINGS: None on record per Probe42.')
+      +(p42&&p42.unaccepted_ratings&&p42.unaccepted_ratings.length?('\n  Unaccepted Ratings: '+p42.unaccepted_ratings.map(function(r){return (r.agency||'')+' '+(r.rating||'');}).join('; ')):'')
+      +(p42&&p42.cdr_history?('\n\nCORPORATE DEBT RESTRUCTURING (CDR) HISTORY (Probe42, LOCKED): '+(typeof p42.cdr_history==='string'?p42.cdr_history:JSON.stringify(p42.cdr_history))):'\n\nCDR HISTORY: None on record per Probe42.')
+      +(p42&&p42.bifr_history?('\n\nBIFR HISTORY (Probe42, LOCKED): '+(typeof p42.bifr_history==='string'?p42.bifr_history:JSON.stringify(p42.bifr_history))):'\n\nBIFR HISTORY: None on record per Probe42.')
+      +(p42&&p42.suit_filed_cases&&p42.suit_filed_cases.length?('\n\nSUIT-FILED CASES PER BUREAUS (Probe42, LOCKED): '+p42.suit_filed_cases.map(function(s){return JSON.stringify(s);}).join('; ')):'')
+      +(p42&&p42.peer_comparison&&p42.peer_comparison.length?('\n\nLISTED/COMPARABLE PEERS (Probe42-sourced, LOCKED \u2014 use these REAL peers instead of selecting your own; NEVER invent additional peers when real ones are provided here): '
+        +p42.peer_comparison.map(function(pe){return pe.name+(pe.cin?' (CIN '+pe.cin+')':'')+(pe.revenue?' \u2014 Revenue \u20b9'+pe.revenue+' Cr':'')+(pe.pat?', PAT \u20b9'+pe.pat+' Cr':'');}).join('; ')):'')
       +icWebCtx;
 
     var tierPrompts={
