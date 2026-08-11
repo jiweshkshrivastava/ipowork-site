@@ -137,7 +137,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 </style>
 
 <script>
-var LEGAL_INTEL_BUILD='AUG11-D';
+var LEGAL_INTEL_BUILD='AUG11-E';
 console.log('legal-intel build '+LEGAL_INTEL_BUILD+' loaded');
 // ── PROBE42 LIVE SEARCH ──
 
@@ -303,6 +303,22 @@ async function loadProbe42Data(cin, displayName) {
         +'<div style="font-size:13px;font-weight:800;color:var(--teal)">'+(result.paid_up_capital?'₹'+(result.paid_up_capital/10000000).toFixed(2)+' Cr':'N/A')+'</div>'
         +'<div style="font-size:11px;color:var(--muted);margin-top:2px">Auth: '+(result.authorised_capital?'₹'+(result.authorised_capital/10000000).toFixed(2)+' Cr':'N/A')+'</div>';
     }
+    /* FIX-AUG11-G: the "MCA Filing" table below these 3 cards (Annual Return
+       MGT-7 Sep 2024 / Financial Statements AOC-4 / Board Changes DIR-12 /
+       Charge Creation CHG-1) was 100% static mockup HTML with invented form
+       numbers and dates — it was never wired to any JS/Probe42 data at all,
+       so it silently displayed the same fake rows for every company. Probe42
+       doesn't give us a per-form filing history (only two dates: last AGM,
+       last filing), so replaced with an honest summary of what we actually
+       have rather than inventing specific forms/dates we don't know. */
+    var mcaFilingTable = document.querySelector('#tab-mca table.data-table tbody');
+    if(mcaFilingTable){
+      var filingRows = [];
+      if(result.last_agm_date) filingRows.push('<tr><td>Last AGM</td><td>—</td><td>'+result.last_agm_date+'</td><td><span class="badge badge-green">On record</span></td></tr>');
+      if(result.last_filing_date) filingRows.push('<tr><td>Last Filing</td><td>—</td><td>'+result.last_filing_date+'</td><td><span class="badge badge-green">On record</span></td></tr>');
+      mcaFilingTable.innerHTML = filingRows.length ? filingRows.join('') :
+        '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:14px">Detailed filing history not available from Probe42 for this CIN</td></tr>';
+    }
 
     // ── REGULATORY TAB ──
     var regContainer = document.querySelector('#tab-regulatory > div');
@@ -323,6 +339,14 @@ async function loadProbe42Data(cin, displayName) {
     }
 
     // ── DIRECTORS TAB ──
+    /* FIX-AUG11-H: CIBIL Signal and Disqualification columns were HARDCODED
+       to "Active ✓" / "None ✓" for every director on every scan, regardless
+       of any real check — Probe42's director objects only carry name/din/
+       designation/gender/cessation/appointed, no disqualification or CIBIL
+       data at all. This was presenting a fabricated clean bill of health,
+       which is a real risk in a tool meant for legal/compliance diligence —
+       replaced with an honest "Not Verified" label rather than a false
+       positive claim of clearance. */
     var dtbody = document.getElementById('directors-tbody');
     if(dtbody){
       if(dirs.length){
@@ -330,10 +354,10 @@ async function loadProbe42Data(cin, displayName) {
           return '<tr><td style="font-weight:700">'+(d.name||'—')+'</td>'
             +'<td style="font-family:var(--mono);font-size:10px">'+(d.din||'—')+'</td>'
             +'<td>'+(d.designation||'Director')+'</td>'
-            +'<td><span class="badge badge-green">Active ✓</span></td>'
-            +'<td><span class="badge badge-green">None ✓</span></td>'
+            +'<td><span class="badge" style="background:#F0F0F0;color:#666">Not Verified</span></td>'
+            +'<td><span class="badge" style="background:#F0F0F0;color:#666">Not Verified</span></td>'
             +'<td>'+(d.appointed||'—')+'</td></tr>';
-        }).join('');
+        }).join('') + '<tr><td colspan="6" style="font-size:10px;color:var(--muted);padding:8px 4px">CIBIL and disqualification status require dedicated director-level checks beyond this company-level extract — not yet performed for the directors above.</td></tr>';
       } else {
         dtbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">No director data available from Probe42 for this CIN</td></tr>';
       }
