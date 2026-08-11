@@ -530,7 +530,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 <div id="toast"></div>
 
 <script>
-var RISK_DESK_BUILD='AUG11-A';
+var RISK_DESK_BUILD='AUG11-B';
 console.log('risk-desk build '+RISK_DESK_BUILD+' loaded - pin-modal element:', !!document.getElementById('pin-modal'));
 var ACCESS_LEVEL = 0;
 var _p42_selected = {cin:"", name:""};
@@ -733,10 +733,23 @@ function downloadRiskReport(){
   var fin = data.financials||{}, leg = data.legal||{}, comp = data.compliance||{};
   var dirs = (data.directors||[]).filter(function(d){return !d.cessation;});
   var charges = data.charges||[];
-  var rpt = (data.related_party_transactions||{}).transactions||[];
-  var peer = data.peer_comparison||{};
+  /* FIX-AUG11-I: rpt/peer previously assumed the worker returns
+     related_party_transactions/peer_comparison as OBJECTS with sub-
+     properties (.transactions/.years_available, .industry/.segment/
+     .closest_peers) — the worker actually returns both as FLAT ARRAYS
+     directly. .transactions on an array is always undefined, so rpt was
+     always empty and the header always showed "()"; peer.industry/segment
+     were always blank and closestPeers (peer.closest_peers) was always
+     empty even when real peer rows existed. Also filters out blank
+     placeholder entries Probe42 can return (e.g. {party:"",amount:null}) —
+     same pattern already fixed for peer_comparison in the worker itself. */
+  var rpt = (Array.isArray(data.related_party_transactions) ? data.related_party_transactions : [])
+    .filter(function(r){return r && r.party;});
+  var peerList = (Array.isArray(data.peer_comparison) ? data.peer_comparison : [])
+    .filter(function(p){return p && (p.name||p.company_name);});
+  var peer = {}; // kept for compatibility; industry/segment were never real fields — see closestPeers below
   var benchmarks = peer.benchmarks_by_year||[];
-  var closestPeers = peer.closest_peers||[];
+  var closestPeers = peerList;
 
   function cr(v){ if(v==null||v===''||isNaN(v)) return 'N/A'; return '₹'+parseFloat(v).toFixed(2)+' Cr'; }
   function pct(v){ return v!=null&&!isNaN(v) ? parseFloat(v).toFixed(1)+'%' : 'N/A'; }
@@ -754,7 +767,8 @@ function downloadRiskReport(){
   if((leg.cases_against_count||0)>20) flags.push(leg.cases_against_count+' cases filed against the company on record');
   if((comp.msme_delays||0)>0) flags.push(comp.msme_delays+' MSME suppliers reporting payment delays');
   if(parseFloat(fin.debt_equity_ratio)>1.5) flags.push('D/E ratio of '+fin.debt_equity_ratio+'x is elevated vs industry');
-  if((data.rpt_total_amount_cr||0)>0) flags.push('₹'+data.rpt_total_amount_cr+' Cr in related-party transactions on record — review concentration');
+  var rptTotalCr = rpt.reduce(function(s,r){var a=parseFloat(r.amount)||0;return s+(a>=100000?a/10000000:a);},0);
+  if(rptTotalCr>0) flags.push('₹'+rptTotalCr.toFixed(2)+' Cr in related-party transactions on record — review concentration');
   if(charges.filter(function(c){return (c.status||'').toLowerCase()==='open';}).length>5) flags.push(charges.length+' charges registered against company assets');
   if(!flags.length) flags.push('No critical red flags identified from available MCA/Probe42 data');
 
@@ -887,10 +901,10 @@ function downloadRiskReport(){
     })()
     +'</table>'
 
-    +'<h3>Closest Peers ('+esc(peer.industry||'')+' / '+esc(peer.segment||'')+')</h3>'
+    +'<h3>Closest Peers'+(closestPeers.length?' ('+closestPeers.length+')':'')+'</h3>'
     +(closestPeers.length ? '<table><tr><th>Company</th><th>CIN</th><th>City</th><th>Revenue (₹ Cr)</th></tr>'
-      +closestPeers.map(function(p){return '<tr><td>'+esc(p.name)+'</td><td style="font-family:monospace;font-size:9px">'+esc(p.cin)+'</td><td>'+esc(p.city)+'</td><td>'+num(p.revenue_cr,2)+'</td></tr>';}).join('')
-      +'</table>' : '<p style="color:#6B7E85;font-size:11px">No peer data available</p>')
+      +closestPeers.map(function(p){return '<tr><td>'+esc(p.name)+'</td><td style="font-family:monospace;font-size:9px">'+esc(p.cin)+'</td><td>'+esc(p.city)+'</td><td>'+num(p.revenue,2)+'</td></tr>';}).join('')
+      +'</table>' : '<p style="color:#6B7E85;font-size:11px">No peer comparison data available from Probe42 for this company</p>')
 
     // ══ PAGE 3: LEGAL & RPT ══
     +'<div class="section-break"></div>'
@@ -907,13 +921,13 @@ function downloadRiskReport(){
 
     +'<h2>🔗 Charge Register</h2>'
     +(charges.length ? '<table><tr><th>Holder</th><th>Amount (₹ Cr)</th><th>Status</th><th>Date</th></tr>'
-      +charges.map(function(c){return '<tr><td>'+esc(c.charge_holder)+'</td><td>'+(c.amount_cr!=null?num(c.amount_cr,2):'N/A')+'</td><td><span class="badge '+((c.status||'').toLowerCase()==='open'?'b-open':'b-sat')+'">'+esc(c.status)+'</span></td><td>'+esc(c.date_of_creation)+'</td></tr>';}).join('')+'</table>'
+      +charges.map(function(c){var amtN=parseFloat(c.amount)||0;var amtD=amtN>0?(amtN>=100000?num(amtN/10000000,2):num(amtN,0)):'N/A';return '<tr><td>'+esc(c.charge_holder)+'</td><td>'+amtD+'</td><td><span class="badge '+((c.status||'').toLowerCase()==='open'?'b-open':'b-sat')+'">'+esc(c.status)+'</span></td><td>'+esc(c.date_of_creation)+'</td></tr>';}).join('')+'</table>'
       : '<p style="color:#6B7E85;font-size:11px">No charges on record</p>')
 
-    +'<h2>🤝 Related Party Transactions ('+esc((data.related_party_transactions||{}).years_available&&(data.related_party_transactions||{}).years_available[0]||'')+')</h2>'
+    +'<h2>🤝 Related Party Transactions'+(rpt.length?' ('+rpt.length+')':'')+'</h2>'
     +(rpt.length ? '<table><tr><th>Party</th><th>Relationship</th><th>Nature</th><th>Amount (₹ Cr)</th></tr>'
-      +rpt.filter(function(r){return r.financial_year===(data.related_party_transactions.years_available||[])[0];}).map(function(r){return '<tr><td>'+esc(r.party)+'</td><td>'+esc(r.relation)+'</td><td>'+esc(r.nature)+'</td><td>'+num(r.amount_cr,4)+'</td></tr>';}).join('')
-      +'</table><div style="font-size:11px;color:#6B7E85;margin-top:-8px">Total RPT (all years on record): '+cr(data.rpt_total_amount_cr)+'</div>'
+      +rpt.map(function(r){var amtN=parseFloat(r.amount)||0;var amtD=amtN>0?(amtN>=100000?num(amtN/10000000,4):num(amtN,2)):'N/A';return '<tr><td>'+esc(r.party)+'</td><td>'+esc(r.relation)+'</td><td>'+esc(r.nature)+'</td><td>'+amtD+'</td></tr>';}).join('')
+      +'</table>'
       : '<p style="color:#6B7E85;font-size:11px">No related party transactions on record</p>')
 
     // ══ PAGE 4: DIRECTORS ══
