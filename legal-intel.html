@@ -137,6 +137,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 </style>
 
 <script>
+var LEGAL_INTEL_BUILD='AUG11-B';
+console.log('legal-intel build '+LEGAL_INTEL_BUILD+' loaded');
 // ── PROBE42 LIVE SEARCH ──
 
 var _p42_results = [];
@@ -316,7 +318,7 @@ async function loadProbe42Data(cin, displayName) {
       var html = regRow('SEBI', sebiClean?'Clean ✓':'Flagged', sebiClean, sebiClean?'No defaulter flag or struck-off risk found in available records.':'Wilful defaulter or struck-off risk flagged — requires verification.');
       html += regRow('MCA / ROC', (comp.active_compliance&&/active/i.test(comp.active_compliance))?'Compliant ✓':'Verify', !!(comp.active_compliance&&/active/i.test(comp.active_compliance)), 'Active compliance status: '+(comp.active_compliance||'Unknown')+'.');
       html += regRow('BIFR / CDR History', ((comp.bifr_history||0)+(comp.cdr_history||0))===0?'None ✓':'On Record', ((comp.bifr_history||0)+(comp.cdr_history||0))===0, ((comp.bifr_history||0)+(comp.cdr_history||0))===0?'No BIFR or CDR referral history found.':'Historical BIFR/CDR referral found — requires review.');
-      html += regRow('Litigation Exposure', casesAgainst<=5?'Low ✓':casesAgainst<=15?'Moderate':'High', casesAgainst<=5, totalCases+' total case(s) on record across '+(legal.categories||[]).length+' categories.');
+      html += regRow('Litigation Exposure', casesAgainst<=5?'Low ✓':casesAgainst<=15?'Moderate':'High', casesAgainst<=5, totalCases+' total case(s) on record across '+(function(){var cats={};(legal.all_cases||[]).forEach(function(x){if(x.category)cats[x.category]=1;});return Object.keys(cats).length;})()+' categories.');
       regContainer.innerHTML = html;
     }
 
@@ -343,9 +345,11 @@ async function loadProbe42Data(cin, displayName) {
       if(charges.length){
         chargesTbody.innerHTML = charges.map(function(c){
           var isOpen = (c.status||'').toLowerCase()==='open';
+          var amtNum = parseFloat(c.amount)||0;
+          var amtDisplay = amtNum>0 ? ('₹'+(amtNum>=100000?(amtNum/10000000).toFixed(2)+' Cr':amtNum.toFixed(0))) : 'N/A';
           return '<tr><td style="font-family:var(--mono);font-size:10px">'+(c.charge_id||'—')+'</td>'
             +'<td style="font-weight:700">'+(c.charge_holder||'N/A')+'</td>'
-            +'<td>'+(c.amount_cr!=null?'₹'+c.amount_cr+' Cr':'N/A')+'</td>'
+            +'<td>'+amtDisplay+'</td>'
             +'<td>'+(c.date_of_creation||'—')+'</td>'
             +'<td><span class="badge '+(isOpen?'badge-amber':'badge-green')+'">'+(c.status||'—')+(isOpen?'':' ✓')+'</span></td>'
             +'<td>—</td></tr>';
