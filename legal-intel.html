@@ -137,7 +137,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font
 </style>
 
 <script>
-var LEGAL_INTEL_BUILD='AUG11-B';
+var LEGAL_INTEL_BUILD='AUG11-C';
 console.log('legal-intel build '+LEGAL_INTEL_BUILD+' loaded');
 // ── PROBE42 LIVE SEARCH ──
 
@@ -980,14 +980,42 @@ function downloadReport(){
   var companyName = (document.querySelector('[id="risk-company-name"],[id$="-name-display"]')||{}).textContent || 'Company';
   var w = window.open('', '_blank');
   if(!w){ showToast('⚠️ Pop-up blocked — allow pop-ups to download'); return; }
+  /* FIX-AUG11-F: results-panel DOES contain all six tab sections (litigation,
+     mca, regulatory, directors, charges, lawyers) as children — but five of
+     them carry inline style="display:none" (whichever tab wasn't active when
+     Download was clicked), which was copied verbatim into the print window,
+     making those sections physically present but invisible. This is why the
+     downloaded report only ever showed the one tab you happened to be on.
+     Fix: read each tab's .innerHTML directly (the CONTENT inside the div,
+     not the div's own display:none attribute) and wrap it in a fresh div in
+     the print document — this sidesteps the display:none problem entirely
+     rather than fighting it with a CSS override. Add a labelled heading +
+     print page-break before each section so the combined document reads as
+     one coherent multi-section report, and hide the tab nav buttons since
+     they're meaningless in a static document. */
+  var sectionTitles = {
+    'tab-litigation':'⚖️ Litigation', 'tab-mca':'🏛️ MCA / Corporate',
+    'tab-regulatory':'📋 Regulatory', 'tab-directors':'👤 Directors',
+    'tab-charges':'🔗 Charges', 'tab-lawyers':'⚖️ Recommended Lawyers'
+  };
+  var sectionsHtml = Object.keys(sectionTitles).map(function(id){
+    var el = document.getElementById(id);
+    if(!el || !el.innerHTML.trim()) return '';
+    return '<div style="page-break-before:always;padding-top:18px">'
+      +'<h3 style="font-family:Arial;color:#08404D;border-bottom:2px solid #08404D;padding-bottom:6px;margin-bottom:14px">'+sectionTitles[id]+'</h3>'
+      +el.innerHTML+'</div>';
+  }).join('');
+  // Score/red-flags summary sits directly in results-panel, outside the tab divs — grab that separately, before the tab content
+  var summaryHtml = panel.innerHTML.split('<div id="tab-')[0];
   w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Legal Report — '+companyName+'</title>'
     +'<style>body{font-family:Arial,sans-serif;padding:24px;color:#222;max-width:900px;margin:0 auto;background:#fff}'
-    +'.btn,.tab,button{display:none !important}.card{border:1px solid #ddd;border-radius:10px;margin-bottom:14px;padding:0}'
+    +'.btn,.tab,button,[class*="tab-nav"]{display:none !important}.card{border:1px solid #ddd;border-radius:10px;margin-bottom:14px;padding:0}'
     +'@media print{.no-print{display:none}}</style></head><body>'
     +'<h2 style="font-family:Arial;color:#08404D">⚖️ ipowork Legal Intelligence Report — '+companyName+'</h2>'
     +'<p style="font-size:11px;color:#888">Generated '+new Date().toLocaleString('en-IN')+' · Data: Probe42/MCA</p>'
-    +panel.innerHTML
-    +'<p style="margin-top:30px;font-size:10px;color:#999">ipowork is not SEBI-registered. Not investment advice. © 2026 ipowork.com</p>'
+    +summaryHtml
+    +sectionsHtml
+    +'<p style="margin-top:30px;font-size:10px;color:#999;page-break-before:avoid">ipowork is not SEBI-registered. Not investment advice. © 2026 ipowork.com</p>'
     +'<script>window.onload=function(){setTimeout(function(){window.print();},500);}<'+'/script>'
     +'</body></html>');
   w.document.close();
