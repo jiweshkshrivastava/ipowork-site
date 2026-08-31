@@ -930,7 +930,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG12-H';
+var IPOWORK_BUILD='AUG12-I';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1628,59 +1628,78 @@ async function checkCinTrialAndRecord(cin){
   if(!CURRENT_USER || !CURRENT_USER.email) return {allowed:true}; // not logged in — other gates handle this
   var email = CURRENT_USER.email.toLowerCase();
   if(email===ADMIN_EMAIL || CURRENT_USER.plan==='admin') return {allowed:true}; // admin never limited
-  /* FIX-AUG12-E: the PATCH that records CIN usage was completely unchecked
-     (Prefer: return=minimal gave no confirmation of success, and the response
-     was never even inspected). If that PATCH was silently matching ZERO rows
-     — e.g. because the user's account had no synced Supabase record, or any
-     other mismatch — trialCins would NEVER actually persist, so every check
-     would always see an empty history and think "this is their first CIN",
-     letting unlimited companies through regardless of the set limit. Now
-     uses Prefer: return=representation so the actual affected row count can
-     be verified directly, with explicit console logging at every step so
-     this is diagnosable instead of silently wrong. */
+  /* FIX-AUG12-I: CONFIRMED via live diagnostic — the GET request correctly
+     found the user's account row, but the PATCH right after it (same
+     filter, same row) matched ZERO rows. This is the classic signature of
+     Row Level Security allowing SELECT/INSERT for the anon key but not
+     UPDATE — a common, sensible default. No amount of fixing the filter
+     syntax would help; UPDATE simply isn't permitted.
+     Redesigned entirely around INSERT + SELECT (both confirmed working),
+     never UPDATE: each CIN usage is its own new row (report_id =
+     TRIAL-{email}-{cin}, globally unique per user+CIN pair), and "how many
+     companies has this user used" is answered by COUNTING matching rows,
+     not by mutating a single row's array field. */
+  var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
   try{
-    var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
-    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+    var acctReportId = 'USER-'+emailSafe;
+    var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
       headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
     });
-    if(!r.ok){ console.error('checkCinTrialAndRecord: GET failed, status', r.status, '— failing open'); return {allowed:true}; }
-    var rows = await r.json();
-    if(!rows || !rows[0]){
-      console.error('checkCinTrialAndRecord: NO Supabase account record found for', email, '(report_id:', reportId, ') — this user was likely approved before the Supabase sync fix, or their record is missing. Trial CANNOT be enforced until they have a synced account. Re-approve them from the admin panel to create one.');
+    if(!acctR.ok){ console.error('checkCinTrialAndRecord: account GET failed, status', acctR.status, '— failing open'); return {allowed:true}; }
+    var acctRows = await acctR.json();
+    if(!acctRows || !acctRows[0]){
+      console.error('checkCinTrialAndRecord: NO Supabase account record found for', email, '— re-approve them from the admin panel.');
       return {allowed:true}; // fail open — can't enforce a limit we have no record to check against
     }
-    var s = rows[0].scores || {};
-    var trialCins = Array.isArray(s.trialCins) ? s.trialCins : [];
-    var creditBalance = parseInt(s.creditBalance||0, 10) || 0;
+    var s = acctRows[0].scores || {};
+    var creditR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.credit_grant&report_id=like.'+encodeURIComponent('CREDIT-'+emailSafe+'-')+'*&select=score', {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var creditBalance = 0;
+    if(creditR.ok){
+      var creditRows = await creditR.json();
+      creditBalance = (creditRows||[]).reduce(function(sum,row){return sum+(parseInt(row.score,10)||0);}, 0);
+    }
     var trialLimit = parseInt(s.trialLimit, 10);
-    if(isNaN(trialLimit)) trialLimit = 3; // legacy accounts created before this feature default to 3
+    if(isNaN(trialLimit)) trialLimit = 3;
     var limit = trialLimit + creditBalance;
-    console.log('checkCinTrialAndRecord:', email, '| CIN:', cin, '| already used:', trialCins, '| limit:', limit, '(trial', trialLimit, '+ credits', creditBalance+')');
-    if(trialCins.indexOf(cin) !== -1){ console.log('checkCinTrialAndRecord: CIN already in trial history — free re-run, allowed'); return {allowed:true}; }
-    if(trialCins.length >= limit){
+
+    // Check if THIS exact CIN was already used (its own row exists) — free re-run if so
+    var thisCinReportId = 'TRIAL-'+emailSafe+'-'+cin.replace(/[^a-z0-9]/gi,'-');
+    var cinR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.trial_usage&report_id=eq.'+encodeURIComponent(thisCinReportId), {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var cinRows = cinR.ok ? await cinR.json() : [];
+    if(cinRows && cinRows[0]){ console.log('checkCinTrialAndRecord: CIN already in trial history — free re-run, allowed'); return {allowed:true}; }
+
+    // Count ALL companies this user has used so far
+    var allR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.trial_usage&report_id=like.'+encodeURIComponent('TRIAL-'+emailSafe+'-')+'*&select=report_id', {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var usedCount = 0;
+    if(allR.ok){ var allRows = await allR.json(); usedCount = Array.isArray(allRows) ? allRows.length : 0; }
+    else { console.error('checkCinTrialAndRecord: usage-count GET failed, status', allR.status, '— failing open'); return {allowed:true}; }
+
+    console.log('checkCinTrialAndRecord:', email, '| CIN:', cin, '| companies used so far:', usedCount, '| limit:', limit, '(trial', trialLimit, '+ credits', creditBalance+')');
+    if(usedCount >= limit){
       console.log('checkCinTrialAndRecord: LIMIT REACHED — blocking');
       return {
         allowed:false,
-        message:'Trial limit reached: you\u2019ve used '+trialCins.length+' of '+limit+' company slots ('+(creditBalance?'':'no ')+'bonus credits applied). Contact the ipowork admin to add more credits after payment.'
+        message:'Trial limit reached: you\u2019ve used '+usedCount+' of '+limit+' company slots ('+(creditBalance?'':'no ')+'bonus credits applied). Contact the ipowork admin to add more credits after payment.'
       };
     }
-    // Record this CIN as used — PATCH the Supabase record, with verification
-    var newTrialCins = trialCins.concat([cin]);
-    var patchR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
-      method:'PATCH',
-      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
-      body: JSON.stringify({ scores: Object.assign({}, s, {trialCins:newTrialCins}) })
+
+    // Record this CIN as used — a plain INSERT, never an update
+    var insertR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        report_id: thisCinReportId, company_name: cin, cin: cin, sector: 'N/A', exchange: 'N/A',
+        tier: 'free', score: 0, source: 'trial_usage', scores: { email: email, cin: cin, usedAt: new Date().toISOString() }
+      })
     });
-    if(!patchR.ok){
-      console.error('checkCinTrialAndRecord: PATCH FAILED, status', patchR.status, '— usage will NOT be recorded for this request. Response:', await patchR.text().catch(function(){return '(could not read body)';}));
-    } else {
-      var patchedRows = await patchR.json().catch(function(){return [];});
-      if(!patchedRows || !patchedRows.length){
-        console.error('checkCinTrialAndRecord: PATCH returned OK but matched ZERO rows — trialCins was NOT actually saved. This means the record lookup (report_id/tier filter) isn\u2019t matching this user\u2019s row correctly.');
-      } else {
-        console.log('checkCinTrialAndRecord: PATCH confirmed — trialCins now:', patchedRows[0].scores && patchedRows[0].scores.trialCins);
-      }
-    }
+    if(!insertR.ok){ console.error('checkCinTrialAndRecord: usage INSERT failed, status', insertR.status, '— this usage will not be recorded, but allowing the request through.'); }
+    else { console.log('checkCinTrialAndRecord: usage recorded for', cin); }
     return {allowed:true};
   }catch(e){
     console.error('checkCinTrialAndRecord failed — failing open:', e);
@@ -1704,25 +1723,41 @@ async function addCreditsToUser(){
   if(!email || !email.includes('@')){ if(statusEl) statusEl.textContent='Enter a valid email.'; return; }
   if(amount <= 0){ if(statusEl) statusEl.textContent='Enter a credit amount > 0.'; return; }
   if(statusEl) statusEl.textContent = 'Adding\u2026';
+  /* FIX-AUG12-I: same RLS-blocks-UPDATE issue as checkCinTrialAndRecord —
+     PATCHing creditBalance onto the account row was silently matching zero
+     rows. Redesigned to INSERT a "credit grant" event row instead, with the
+     amount stored in the real numeric `score` column — total credits is
+     then the SUM of every grant row for that user, never an UPDATE. */
+  var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
   try{
-    var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
-    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+    var acctReportId = 'USER-'+emailSafe;
+    var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
       headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
     });
-    var rows = await r.json();
-    if(!rows || !rows[0]){ if(statusEl) statusEl.textContent='No account found for that email — approve them first.'; return; }
-    var s = rows[0].scores || {};
-    var currentBalance = parseInt(s.creditBalance||0, 10) || 0;
-    var newBalance = currentBalance + amount;
-    var patchR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
-      method:'PATCH',
-      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
-      body: JSON.stringify({ scores: Object.assign({}, s, {creditBalance:newBalance}) })
+    var acctRows = acctR.ok ? await acctR.json() : [];
+    if(!acctRows || !acctRows[0]){ if(statusEl) statusEl.textContent='No account found for that email — approve them first.'; return; }
+
+    var grantReportId = 'CREDIT-'+emailSafe+'-'+Date.now();
+    var insertR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        report_id: grantReportId, company_name: 'CREDIT_GRANT', cin: 'N/A', sector: 'N/A', exchange: 'N/A',
+        tier: 'free', score: amount, source: 'credit_grant', scores: { email: email, amount: amount, grantedAt: new Date().toISOString() }
+      })
     });
-    if(!patchR.ok){ if(statusEl) statusEl.textContent = 'Error: update failed (status '+patchR.status+') — credit was NOT saved.'; return; }
-    var patchedRows = await patchR.json().catch(function(){return [];});
-    if(!patchedRows || !patchedRows.length){ if(statusEl) statusEl.textContent = 'Error: update matched no record — credit was NOT saved.'; return; }
-    if(statusEl) statusEl.textContent = '\u2705 '+email+' now has '+newBalance+' bonus credit(s) (was '+currentBalance+').';
+    if(!insertR.ok){ if(statusEl) statusEl.textContent = 'Error: could not save credit (status '+insertR.status+').'; return; }
+
+    // Sum all credit grants for this user to show the accurate new total
+    var sumR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.credit_grant&report_id=like.'+encodeURIComponent('CREDIT-'+emailSafe+'-')+'*&select=score', {
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var totalCredits = amount; // fallback if the sum check itself fails
+    if(sumR.ok){
+      var grantRows = await sumR.json();
+      totalCredits = (grantRows||[]).reduce(function(sum,row){return sum+(parseInt(row.score,10)||0);}, 0);
+    }
+    if(statusEl) statusEl.textContent = '\u2705 '+email+' now has '+totalCredits+' total bonus credit(s) (+'+amount+' just added).';
     if(emailEl) emailEl.value='';
   }catch(e){
     if(statusEl) statusEl.textContent = 'Error: '+e.message;
