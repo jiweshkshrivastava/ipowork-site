@@ -930,7 +930,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG12-F';
+var IPOWORK_BUILD='AUG12-G';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1750,7 +1750,7 @@ async function syncAllLocalUsersToSupabase(){
         method:'POST',
         headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
         body: JSON.stringify({
-          report_id: reportId, company_name: 'IPOWORK_USER_ACCOUNT', tier: 'user_account', score: 0, source: 'user_account',
+          report_id: reportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector: 'N/A', exchange: 'N/A', tier: 'user_account', score: 0, source: 'user_account',
           scores: { email: email, name: u.name||email, password: u.password||'ipowork2024', approved: !!u.approved, plan: u.plan||'paid', trialCins: [], creditBalance: 0, trialLimit: 3 }
         })
       });
@@ -1778,9 +1778,15 @@ async function addApprovedUser(email, name, password, plan, trialLimit){
     users[email] = IPOWORK_USERS[email];
     localStorage.setItem('ipowork_approved_users', JSON.stringify(users));
   } catch(e){}
-  // FIX-AUG12-B: also push to Supabase so this account is visible from any device
+  // FIX-AUG12-B/G: push to Supabase so this account is visible from any device.
+  // Previously this fetch's result was never checked at all — it was firing
+  // a request and moving on regardless of outcome, so a failure (like the
+  // 400 this exact insert was hitting from missing cin/sector/exchange
+  // fields) was completely invisible: the admin always saw "approved!"
+  // even when the Supabase record was never actually created.
+  var supabaseSynced = false;
   try {
-    await fetch('https://esqlfsjhekdspycfgnoz.supabase.co/rest/v1/reports', {
+    var syncR = await fetch('https://esqlfsjhekdspycfgnoz.supabase.co/rest/v1/reports', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1791,15 +1797,20 @@ async function addApprovedUser(email, name, password, plan, trialLimit){
       body: JSON.stringify({
         report_id: 'USER-'+email.replace(/[^a-z0-9]/gi,'-'),
         company_name: 'IPOWORK_USER_ACCOUNT',
+        cin: 'USER-ACCOUNT',
+        sector: 'N/A',
+        exchange: 'N/A',
         tier: 'user_account',
         score: 0,
         source: 'user_account',
         scores: { email: email, name: name||email, password: password||'ipowork2024', approved: true, plan: plan||'paid', trialCins: [], creditBalance: 0, trialLimit: trialLimit }
       })
     });
+    if(syncR.ok){ supabaseSynced = true; }
+    else { console.error('addApprovedUser: Supabase sync FAILED for', email, 'status', syncR.status, '— this account will only work on THIS device until re-synced. Response:', await syncR.text().catch(function(){return '(unreadable)';})); }
   } catch(e){ console.error('Failed to sync user to Supabase — this account will only work on this device:', e); }
   renderApprovedUsers();
-  return true;
+  return supabaseSynced;
 }
 
 function revokeUser(el){ var email=typeof el==='string'?el:(el.dataset?el.dataset.e:el);
@@ -1854,17 +1865,21 @@ function renderAccessRequests(){
   } catch(e){ el.innerHTML='<div style="padding:12px;color:#C0392B;font-size:12px">Error loading requests<' + '/div>'; }
 }
 
-function approveRequest(i){
+async function approveRequest(i){
   try {
     var reqs = JSON.parse(localStorage.getItem('ipowork_access_requests')||'[]');
     var r = reqs[i];
     if(!r) return;
     var defaultPw = 'ipowork2024';
-    addApprovedUser(r.email, r.name, defaultPw, 'paid');
+    var synced = await addApprovedUser(r.email, r.name, defaultPw, 'paid', 3);
     reqs.splice(i, 1);
     localStorage.setItem('ipowork_access_requests', JSON.stringify(reqs));
     renderAccessRequests();
-    alert('✅ '+r.name+' approved!\nCredentials: '+r.email+' / '+defaultPw+'\nPlease share these with the user.');
+    if(synced){
+      alert('✅ '+r.name+' approved!\nCredentials: '+r.email+' / '+defaultPw+'\nPlease share these with the user.\nTrial: 3 companies (synced to Supabase — works from any device).');
+    } else {
+      alert('⚠️ '+r.name+' approved locally, but the Supabase sync FAILED — their trial limit will NOT be enforced. Credentials: '+r.email+' / '+defaultPw+'. Try "Sync All Local Users to Supabase" or check the console for the error.');
+    }
   } catch(e){ alert('Error: '+e.message); }
 }
 
@@ -1895,19 +1910,23 @@ function renderApprovedUsers(){
     +'<' + '/tr><' + '/thead><tbody>'+rows+'<' + '/tbody><' + '/table>';
 }
 
-function addUserFromForm(){
+async function addUserFromForm(){
   var email = (document.getElementById('new-user-email')||{}).value||'';
   var name  = (document.getElementById('new-user-name')||{}).value||'';
   var pw    = (document.getElementById('new-user-pw')||{}).value||'ipowork2024';
   var plan  = (document.getElementById('new-user-plan')||{}).value||'paid';
   var trialLimit = parseInt((document.getElementById('new-user-trial-limit')||{}).value||'3', 10) || 3;
   if(!email || !email.includes('@')){ alert('Valid email required.'); return; }
-  addApprovedUser(email.trim(), name.trim(), pw.trim(), plan, trialLimit);
+  var synced = await addApprovedUser(email.trim(), name.trim(), pw.trim(), plan, trialLimit);
   // Clear form
   ['new-user-email','new-user-name','new-user-pw'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value='';
   });
-  alert('✅ User '+email+' approved with a trial of '+trialLimit+' compan'+(trialLimit===1?'y':'ies')+'!');
+  if(synced){
+    alert('✅ User '+email+' approved with a trial of '+trialLimit+' compan'+(trialLimit===1?'y':'ies')+'! Synced to Supabase — works from any device.');
+  } else {
+    alert('⚠️ User '+email+' approved locally, but the Supabase sync FAILED — their trial limit will NOT be enforced until this is fixed. Check the browser console for the error, or try the "Sync All Local Users to Supabase" button.');
+  }
 }
 
 // requireLoginThen replaced by AUTH_SYSTEM above
