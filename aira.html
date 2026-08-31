@@ -874,6 +874,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#9989; Approved Users</div>
   <div id="approved-users-list" style="border:1px solid #E0EEF0;border-radius:10px;overflow:hidden;margin-bottom:18px"></div>
 
+  <!-- FIX-AUG12-C: Add Credits — trial is 3 free companies (by CIN) per user;
+       once used up, admin adds credits here after receiving payment offline.
+       Works by email, independent of whether that user shows in the local
+       table above, since accounts are looked up fresh from Supabase. -->
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#128176; Add Trial Credits</div>
+  <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px">
+    <input id="credit-email" type="email" placeholder="user@email.com" style="flex:2;min-width:180px;padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px"/>
+    <input id="credit-amount" type="number" min="1" value="5" placeholder="Credits" style="width:80px;padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px"/>
+    <button onclick="addCreditsToUser()" style="padding:8px 16px;background:#1A9E6B;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">+ Add Credits</button>
+    <span id="credit-status" style="font-size:11px;color:#6B8A94"></span>
+  </div>
+  <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Each user gets 3 free companies (by CIN) before hitting their trial limit. Re-running a report for a company they've already used doesn't count again. Add credits here after confirming payment — each credit unlocks one more new company.</div>
+
   <!-- Add User form -->
   <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:18px">
     <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:12px">&#10133; Add / Approve New User</div>
@@ -888,6 +901,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
         <option value="ca">CA/CS Partner</option>
         <option value="mb">Merchant Banker</option>
       </select>
+      <!-- FIX-AUG12-D: per-user trial limit, set by admin at approval time — NOT a
+           fixed "everyone gets 3" rule. Admin decides 1, 2, or 3 per individual user. -->
+      <select id="new-user-trial-limit" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none" title="How many free companies (by CIN) this user gets before needing credits">
+        <option value="1">Trial: 1 company</option>
+        <option value="2">Trial: 2 companies</option>
+        <option value="3" selected>Trial: 3 companies</option>
+      </select>
     </div>
     <button onclick="addUserFromForm()" style="padding:9px 20px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">&#9989; Add & Approve User</button>
   </div>
@@ -897,7 +917,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG12-A';
+var IPOWORK_BUILD='AUG12-D';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1444,7 +1464,7 @@ function closeAccessGate(){
 
 var _loginCallback = null;
 
-function gateLogin(){
+async function gateLogin(){
   var emailEl = document.getElementById('gate-email');
   var pwEl = document.getElementById('gate-password');
   var errEl = document.getElementById('gate-error');
@@ -1457,6 +1477,32 @@ function gateLogin(){
   }
 
   var u = IPOWORK_USERS[email];
+  /* FIX-AUG12-B: if not found locally, check Supabase before giving up —
+     this is the account-lookup half of the fix; addApprovedUser now writes
+     new approvals there, so any device can find them here regardless of
+     which browser the admin used to approve the account. */
+  if(!u){
+    try{
+      var lookupBtn = document.querySelector('[onclick="gateLogin()"]');
+      var origBtnText = lookupBtn ? lookupBtn.textContent : '';
+      if(lookupBtn) lookupBtn.textContent = 'Checking…';
+      var r = await fetch('https://esqlfsjhekdspycfgnoz.supabase.co/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent('USER-'+email.replace(/[^a-z0-9]/gi,'-')), {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc'
+        }
+      });
+      if(lookupBtn) lookupBtn.textContent = origBtnText;
+      if(r.ok){
+        var rows = await r.json();
+        if(rows && rows[0] && rows[0].scores && rows[0].scores.email === email){
+          var s = rows[0].scores;
+          u = { name: s.name, password: s.password, approved: !!s.approved, plan: s.plan, free: false };
+          IPOWORK_USERS[email] = u; // cache locally for this session
+        }
+      }
+    }catch(e){ console.error('Supabase user lookup failed:', e); }
+  }
   if(!u){
     if(errEl) errEl.textContent = '❌ Email not registered. Contact ipowork admin for access.';
     return;
@@ -1539,8 +1585,111 @@ function updateUserUI(){
 }
 
 /* ── ADMIN USER MANAGEMENT ── */
-function addApprovedUser(email, name, password, plan){
+/* FIX-AUG12-B: addApprovedUser only ever wrote to THIS BROWSER's localStorage
+   — localStorage is per-browser/per-device, never shared. Approving a user
+   here made the admin's OWN browser think the account existed, but the new
+   user's browser (a completely different device) had no way to ever see
+   that approval — their IPOWORK_USERS never contained the new account, so
+   login always failed with "Email not registered", regardless of password.
+   Now also pushes the approval to Supabase (reusing the existing `reports`
+   table with a distinct tier marker, since a dedicated `users` table with
+   the right schema doesn't exist and can't be created from here) so ANY
+   browser/device can find the account on login. */
+/* FIX-AUG12-C: TRIAL-BY-CIN-COUNT + ADMIN CREDIT TOP-UP
+   Requested: instead of a time-based trial, new users get up to 3 DISTINCT
+   companies (by CIN) free — re-running a report for a CIN they've already
+   used doesn't count again — and once they hit the limit, the admin can
+   manually add more credits after receiving payment (offline, not an
+   automated gateway).
+   Enforcement ALWAYS re-fetches the user's current trial usage from
+   Supabase rather than trusting any local/cached copy — if it trusted a
+   local value, a user could bypass the limit entirely just by clearing
+   their browser storage or switching devices, the same class of gap the
+   login fix (FIX-AUG12-B) just closed for account existence itself. The
+   admin account (ADMIN_EMAIL / plan 'admin') is always exempt. */
+var SUPA_URL_TRIAL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
+var SUPA_KEY_TRIAL = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+async function checkCinTrialAndRecord(cin){
+  cin = String(cin||'').trim().toUpperCase();
+  if(!cin) return {allowed:true}; // let the normal "CIN required" validation handle this
+  if(!CURRENT_USER || !CURRENT_USER.email) return {allowed:true}; // not logged in — other gates handle this
+  var email = CURRENT_USER.email.toLowerCase();
+  if(email===ADMIN_EMAIL || CURRENT_USER.plan==='admin') return {allowed:true}; // admin never limited
+  try{
+    var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    if(!r.ok) return {allowed:true}; // fail open on infrastructure error — never block a paying/approved user due to a network hiccup
+    var rows = await r.json();
+    var s = (rows && rows[0] && rows[0].scores) || {};
+    var trialCins = Array.isArray(s.trialCins) ? s.trialCins : [];
+    var creditBalance = parseInt(s.creditBalance||0, 10) || 0;
+    var trialLimit = parseInt(s.trialLimit, 10);
+    if(isNaN(trialLimit)) trialLimit = 3; // legacy accounts created before this feature default to 3
+    var limit = trialLimit + creditBalance;
+    if(trialCins.indexOf(cin) !== -1) return {allowed:true}; // already used this CIN — free re-runs
+    if(trialCins.length >= limit){
+      return {
+        allowed:false,
+        message:'Trial limit reached: you\u2019ve used '+trialCins.length+' of '+limit+' company slots ('+(creditBalance?'':'no ')+'bonus credits applied). Contact the ipowork admin to add more credits after payment.'
+      };
+    }
+    // Record this CIN as used — PATCH the Supabase record
+    var newTrialCins = trialCins.concat([cin]);
+    await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+      method:'PATCH',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({ scores: Object.assign({}, s, {trialCins:newTrialCins}) })
+    });
+    return {allowed:true};
+  }catch(e){
+    console.error('checkCinTrialAndRecord failed — failing open:', e);
+    return {allowed:true}; // fail open — never block on a network error
+  }
+}
+function showTrialBlockedMessage(outEl, msg){
+  var html = '<div style="padding:32px;text-align:center;background:#FEF0EE;border:1.5px solid #F0A090;border-radius:12px;margin:16px 0">'
+    +'<div style="font-size:32px;margin-bottom:10px">🔒</div>'
+    +'<div style="font-size:15px;font-weight:800;color:#8B2B20;margin-bottom:8px">Trial Limit Reached</div>'
+    +'<div style="font-size:12.5px;color:#8B2B20;max-width:480px;margin:0 auto;line-height:1.6">'+msg+'</div></div>';
+  if(outEl) outEl.innerHTML = html;
+}
+
+async function addCreditsToUser(){
+  var emailEl = document.getElementById('credit-email');
+  var amtEl = document.getElementById('credit-amount');
+  var statusEl = document.getElementById('credit-status');
+  var email = (emailEl?emailEl.value:'').trim().toLowerCase();
+  var amount = parseInt((amtEl?amtEl.value:'0'), 10) || 0;
+  if(!email || !email.includes('@')){ if(statusEl) statusEl.textContent='Enter a valid email.'; return; }
+  if(amount <= 0){ if(statusEl) statusEl.textContent='Enter a credit amount > 0.'; return; }
+  if(statusEl) statusEl.textContent = 'Adding\u2026';
+  try{
+    var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var rows = await r.json();
+    if(!rows || !rows[0]){ if(statusEl) statusEl.textContent='No account found for that email — approve them first.'; return; }
+    var s = rows[0].scores || {};
+    var currentBalance = parseInt(s.creditBalance||0, 10) || 0;
+    var newBalance = currentBalance + amount;
+    await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+      method:'PATCH',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({ scores: Object.assign({}, s, {creditBalance:newBalance}) })
+    });
+    if(statusEl) statusEl.textContent = '\u2705 '+email+' now has '+newBalance+' bonus credit(s) (was '+currentBalance+').';
+    if(emailEl) emailEl.value='';
+  }catch(e){
+    if(statusEl) statusEl.textContent = 'Error: '+e.message;
+  }
+}
+
+async function addApprovedUser(email, name, password, plan, trialLimit){
   email = email.trim().toLowerCase();
+  trialLimit = parseInt(trialLimit, 10) || 3; // default 3 if not specified (backward compatible)
   IPOWORK_USERS[email] = {
     name: name||email,
     password: password||'ipowork2024',
@@ -1556,6 +1705,26 @@ function addApprovedUser(email, name, password, plan){
     users[email] = IPOWORK_USERS[email];
     localStorage.setItem('ipowork_approved_users', JSON.stringify(users));
   } catch(e){}
+  // FIX-AUG12-B: also push to Supabase so this account is visible from any device
+  try {
+    await fetch('https://esqlfsjhekdspycfgnoz.supabase.co/rest/v1/reports', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        report_id: 'USER-'+email.replace(/[^a-z0-9]/gi,'-'),
+        company_name: 'IPOWORK_USER_ACCOUNT',
+        tier: 'user_account',
+        score: 0,
+        source: 'user_account',
+        scores: { email: email, name: name||email, password: password||'ipowork2024', approved: true, plan: plan||'paid', trialCins: [], creditBalance: 0, trialLimit: trialLimit }
+      })
+    });
+  } catch(e){ console.error('Failed to sync user to Supabase — this account will only work on this device:', e); }
   renderApprovedUsers();
   return true;
 }
@@ -1658,13 +1827,14 @@ function addUserFromForm(){
   var name  = (document.getElementById('new-user-name')||{}).value||'';
   var pw    = (document.getElementById('new-user-pw')||{}).value||'ipowork2024';
   var plan  = (document.getElementById('new-user-plan')||{}).value||'paid';
+  var trialLimit = parseInt((document.getElementById('new-user-trial-limit')||{}).value||'3', 10) || 3;
   if(!email || !email.includes('@')){ alert('Valid email required.'); return; }
-  addApprovedUser(email.trim(), name.trim(), pw.trim(), plan);
+  addApprovedUser(email.trim(), name.trim(), pw.trim(), plan, trialLimit);
   // Clear form
   ['new-user-email','new-user-name','new-user-pw'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value='';
   });
-  alert('✅ User '+email+' approved!');
+  alert('✅ User '+email+' approved with a trial of '+trialLimit+' compan'+(trialLimit===1?'y':'ies')+'!');
 }
 
 // requireLoginThen replaced by AUTH_SYSTEM above
@@ -3084,6 +3254,8 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById(btnId),prog=document.getElementById(progId),out=document.getElementById(outId);
   if(blockIfListed(cin, out)){ return; }
+  var trialCheck1=await checkCinTrialAndRecord(cin);
+  if(!trialCheck1.allowed){ showTrialBlockedMessage(out, trialCheck1.message); return; }
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating Report\u2026';}
   if(out)out.innerHTML='<div style="padding:20px;text-align:center;color:#6B8A94;font-size:13px">Fetching company data from Probe42\u2026</div>';
   if(prog)prog.style.display='flex';
@@ -3549,6 +3721,8 @@ async function runValuationDoc(){
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById('btn-vd-run'),prog=document.getElementById('prog-valdoc'),out=document.getElementById('result-valdoc');
   if(blockIfListed(cin, out)){ return; }
+  var trialCheck2=await checkCinTrialAndRecord(cin);
+  if(!trialCheck2.allowed){ showTrialBlockedMessage(out, trialCheck2.message); return; }
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating\u2026';}
   if(out)out.innerHTML='<div class="status-msg">Fetching live data\u2026</div>';
   if(prog)prog.style.display='flex';
@@ -3676,6 +3850,8 @@ async function runValuationIntel(){
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById('btn-vi-run'),prog=document.getElementById('prog-valintel'),out=document.getElementById('result-valintel');
   if(blockIfListed(cin, out)){ return; }
+  var trialCheck3=await checkCinTrialAndRecord(cin);
+  if(!trialCheck3.allowed){ showTrialBlockedMessage(out, trialCheck3.message); return; }
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating Intelligence\u2026';}
   if(out)out.innerHTML='<div style="padding:20px;text-align:center;color:#6B8A94">Fetching data\u2026</div>';
   if(prog)prog.style.display='flex';
@@ -3866,6 +4042,8 @@ async function runDeepResearchFull(){
   if(!cin){alert('Please enter CIN.');return;}
   var btn=document.getElementById('btn-dr-run'),prog=document.getElementById('prog-deepresearch'),out=document.getElementById('result-deepresearch');
   if(blockIfListed(cin, out)){ return; }
+  var trialCheck4=await checkCinTrialAndRecord(cin);
+  if(!trialCheck4.allowed){ showTrialBlockedMessage(out, trialCheck4.message); return; }
   if(btn){btn.disabled=true;}
   if(out)out.innerHTML='<div style="padding:30px;text-align:center;font-family:\'Segoe UI\',Arial,sans-serif"><div class="status-msg" style="font-size:14px;font-weight:700;color:#3B30B0;margin-bottom:12px">Deep Research Engine Starting\u2026</div><div style="background:#F0EEFF;border-radius:8px;padding:2px;margin-bottom:12px"><div class="dr-progress-bar" style="background:linear-gradient(90deg,#3B30B0,#5B4ED4);height:8px;border-radius:6px;width:3%;transition:width .5s"></div></div><div id="dr-status-text" style="font-size:12px;color:#6B8A94"></div></div>';
   if(prog)prog.style.display='flex';
