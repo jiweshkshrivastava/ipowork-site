@@ -930,7 +930,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG12-G';
+var IPOWORK_BUILD='AUG12-H';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1499,7 +1499,7 @@ async function gateLogin(){
       var lookupBtn = document.querySelector('[onclick="gateLogin()"]');
       var origBtnText = lookupBtn ? lookupBtn.textContent : '';
       if(lookupBtn) lookupBtn.textContent = 'Checking…';
-      var r = await fetch('https://esqlfsjhekdspycfgnoz.supabase.co/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent('USER-'+email.replace(/[^a-z0-9]/gi,'-')), {
+      var r = await fetch('https://esqlfsjhekdspycfgnoz.supabase.co/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent('USER-'+email.replace(/[^a-z0-9]/gi,'-')), {
         headers: {
           'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc'
@@ -1640,7 +1640,7 @@ async function checkCinTrialAndRecord(cin){
      this is diagnosable instead of silently wrong. */
   try{
     var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
-    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
       headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
     });
     if(!r.ok){ console.error('checkCinTrialAndRecord: GET failed, status', r.status, '— failing open'); return {allowed:true}; }
@@ -1666,7 +1666,7 @@ async function checkCinTrialAndRecord(cin){
     }
     // Record this CIN as used — PATCH the Supabase record, with verification
     var newTrialCins = trialCins.concat([cin]);
-    var patchR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+    var patchR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
       method:'PATCH',
       headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
       body: JSON.stringify({ scores: Object.assign({}, s, {trialCins:newTrialCins}) })
@@ -1706,7 +1706,7 @@ async function addCreditsToUser(){
   if(statusEl) statusEl.textContent = 'Adding\u2026';
   try{
     var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
-    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
       headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
     });
     var rows = await r.json();
@@ -1714,7 +1714,7 @@ async function addCreditsToUser(){
     var s = rows[0].scores || {};
     var currentBalance = parseInt(s.creditBalance||0, 10) || 0;
     var newBalance = currentBalance + amount;
-    var patchR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+    var patchR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
       method:'PATCH',
       headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
       body: JSON.stringify({ scores: Object.assign({}, s, {creditBalance:newBalance}) })
@@ -1740,7 +1740,7 @@ async function syncAllLocalUsersToSupabase(){
     var email = candidates[i][0], u = candidates[i][1];
     var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
     try{
-      var checkR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+      var checkR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
         headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
       });
       var checkRows = checkR.ok ? await checkR.json() : [];
@@ -1750,7 +1750,7 @@ async function syncAllLocalUsersToSupabase(){
         method:'POST',
         headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
         body: JSON.stringify({
-          report_id: reportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector: 'N/A', exchange: 'N/A', tier: 'user_account', score: 0, source: 'user_account',
+          report_id: reportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector: 'N/A', exchange: 'N/A', tier: 'free', score: 0, source: 'user_account',
           scores: { email: email, name: u.name||email, password: u.password||'ipowork2024', approved: !!u.approved, plan: u.plan||'paid', trialCins: [], creditBalance: 0, trialLimit: 3 }
         })
       });
@@ -1800,7 +1800,7 @@ async function addApprovedUser(email, name, password, plan, trialLimit){
         cin: 'USER-ACCOUNT',
         sector: 'N/A',
         exchange: 'N/A',
-        tier: 'user_account',
+        tier: 'free',
         score: 0,
         source: 'user_account',
         scores: { email: email, name: name||email, password: password||'ipowork2024', approved: true, plan: plan||'paid', trialCins: [], creditBalance: 0, trialLimit: trialLimit }
