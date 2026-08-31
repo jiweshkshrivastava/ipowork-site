@@ -917,7 +917,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG12-D';
+var IPOWORK_BUILD='AUG12-E';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1615,33 +1615,59 @@ async function checkCinTrialAndRecord(cin){
   if(!CURRENT_USER || !CURRENT_USER.email) return {allowed:true}; // not logged in — other gates handle this
   var email = CURRENT_USER.email.toLowerCase();
   if(email===ADMIN_EMAIL || CURRENT_USER.plan==='admin') return {allowed:true}; // admin never limited
+  /* FIX-AUG12-E: the PATCH that records CIN usage was completely unchecked
+     (Prefer: return=minimal gave no confirmation of success, and the response
+     was never even inspected). If that PATCH was silently matching ZERO rows
+     — e.g. because the user's account had no synced Supabase record, or any
+     other mismatch — trialCins would NEVER actually persist, so every check
+     would always see an empty history and think "this is their first CIN",
+     letting unlimited companies through regardless of the set limit. Now
+     uses Prefer: return=representation so the actual affected row count can
+     be verified directly, with explicit console logging at every step so
+     this is diagnosable instead of silently wrong. */
   try{
     var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
     var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
       headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
     });
-    if(!r.ok) return {allowed:true}; // fail open on infrastructure error — never block a paying/approved user due to a network hiccup
+    if(!r.ok){ console.error('checkCinTrialAndRecord: GET failed, status', r.status, '— failing open'); return {allowed:true}; }
     var rows = await r.json();
-    var s = (rows && rows[0] && rows[0].scores) || {};
+    if(!rows || !rows[0]){
+      console.error('checkCinTrialAndRecord: NO Supabase account record found for', email, '(report_id:', reportId, ') — this user was likely approved before the Supabase sync fix, or their record is missing. Trial CANNOT be enforced until they have a synced account. Re-approve them from the admin panel to create one.');
+      return {allowed:true}; // fail open — can't enforce a limit we have no record to check against
+    }
+    var s = rows[0].scores || {};
     var trialCins = Array.isArray(s.trialCins) ? s.trialCins : [];
     var creditBalance = parseInt(s.creditBalance||0, 10) || 0;
     var trialLimit = parseInt(s.trialLimit, 10);
     if(isNaN(trialLimit)) trialLimit = 3; // legacy accounts created before this feature default to 3
     var limit = trialLimit + creditBalance;
-    if(trialCins.indexOf(cin) !== -1) return {allowed:true}; // already used this CIN — free re-runs
+    console.log('checkCinTrialAndRecord:', email, '| CIN:', cin, '| already used:', trialCins, '| limit:', limit, '(trial', trialLimit, '+ credits', creditBalance+')');
+    if(trialCins.indexOf(cin) !== -1){ console.log('checkCinTrialAndRecord: CIN already in trial history — free re-run, allowed'); return {allowed:true}; }
     if(trialCins.length >= limit){
+      console.log('checkCinTrialAndRecord: LIMIT REACHED — blocking');
       return {
         allowed:false,
         message:'Trial limit reached: you\u2019ve used '+trialCins.length+' of '+limit+' company slots ('+(creditBalance?'':'no ')+'bonus credits applied). Contact the ipowork admin to add more credits after payment.'
       };
     }
-    // Record this CIN as used — PATCH the Supabase record
+    // Record this CIN as used — PATCH the Supabase record, with verification
     var newTrialCins = trialCins.concat([cin]);
-    await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+    var patchR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
       method:'PATCH',
-      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
       body: JSON.stringify({ scores: Object.assign({}, s, {trialCins:newTrialCins}) })
     });
+    if(!patchR.ok){
+      console.error('checkCinTrialAndRecord: PATCH FAILED, status', patchR.status, '— usage will NOT be recorded for this request. Response:', await patchR.text().catch(function(){return '(could not read body)';}));
+    } else {
+      var patchedRows = await patchR.json().catch(function(){return [];});
+      if(!patchedRows || !patchedRows.length){
+        console.error('checkCinTrialAndRecord: PATCH returned OK but matched ZERO rows — trialCins was NOT actually saved. This means the record lookup (report_id/tier filter) isn\u2019t matching this user\u2019s row correctly.');
+      } else {
+        console.log('checkCinTrialAndRecord: PATCH confirmed — trialCins now:', patchedRows[0].scores && patchedRows[0].scores.trialCins);
+      }
+    }
     return {allowed:true};
   }catch(e){
     console.error('checkCinTrialAndRecord failed — failing open:', e);
