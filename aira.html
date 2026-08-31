@@ -887,6 +887,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   </div>
   <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Each user gets 3 free companies (by CIN) before hitting their trial limit. Re-running a report for a company they've already used doesn't count again. Add credits here after confirming payment — each credit unlocks one more new company.</div>
 
+  <!-- FIX-AUG12-F: users approved before the Supabase-sync fix only exist in
+       this browser's localStorage — the trial system has NOTHING to check
+       their usage against, so it fails open (unlimited reports, silently).
+       This finds every such user and creates their missing Supabase record,
+       without touching anyone who already has one (so real usage/credits
+       already recorded are never overwritten). -->
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">&#128260; Sync Legacy Users</div>
+  <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px">
+    <button onclick="syncAllLocalUsersToSupabase()" style="padding:8px 16px;background:#0D5C6B;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">&#128260; Sync All Local Users to Supabase</button>
+    <span id="sync-status" style="font-size:11px;color:#6B8A94"></span>
+  </div>
+  <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Finds any approved user who exists only in this browser (not yet synced to Supabase) and creates their trial record with a default limit of 3 companies. Safe to run repeatedly — never touches users who already have a synced record, so nobody's real usage or credits get reset.</div>
+
   <!-- Add User form -->
   <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:18px">
     <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:12px">&#10133; Add / Approve New User</div>
@@ -917,7 +930,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG12-E';
+var IPOWORK_BUILD='AUG12-F';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1701,16 +1714,50 @@ async function addCreditsToUser(){
     var s = rows[0].scores || {};
     var currentBalance = parseInt(s.creditBalance||0, 10) || 0;
     var newBalance = currentBalance + amount;
-    await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+    var patchR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
       method:'PATCH',
-      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
       body: JSON.stringify({ scores: Object.assign({}, s, {creditBalance:newBalance}) })
     });
+    if(!patchR.ok){ if(statusEl) statusEl.textContent = 'Error: update failed (status '+patchR.status+') — credit was NOT saved.'; return; }
+    var patchedRows = await patchR.json().catch(function(){return [];});
+    if(!patchedRows || !patchedRows.length){ if(statusEl) statusEl.textContent = 'Error: update matched no record — credit was NOT saved.'; return; }
     if(statusEl) statusEl.textContent = '\u2705 '+email+' now has '+newBalance+' bonus credit(s) (was '+currentBalance+').';
     if(emailEl) emailEl.value='';
   }catch(e){
     if(statusEl) statusEl.textContent = 'Error: '+e.message;
   }
+}
+
+async function syncAllLocalUsersToSupabase(){
+  var statusEl = document.getElementById('sync-status');
+  if(statusEl) statusEl.textContent = 'Checking\u2026';
+  var candidates = Object.entries(IPOWORK_USERS).filter(function(entry){
+    return entry[0] !== ADMIN_EMAIL;
+  });
+  var created = 0, alreadySynced = 0, failed = 0;
+  for(var i=0;i<candidates.length;i++){
+    var email = candidates[i][0], u = candidates[i][1];
+    var reportId = 'USER-'+email.replace(/[^a-z0-9]/gi,'-');
+    try{
+      var checkR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?tier=eq.user_account&report_id=eq.'+encodeURIComponent(reportId), {
+        headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+      });
+      var checkRows = checkR.ok ? await checkR.json() : [];
+      if(checkRows && checkRows[0]){ alreadySynced++; continue; } // already has a record — never overwrite
+      if(statusEl) statusEl.textContent = 'Creating record for '+email+'\u2026 ('+(i+1)+'/'+candidates.length+')';
+      var createR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+        method:'POST',
+        headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
+        body: JSON.stringify({
+          report_id: reportId, company_name: 'IPOWORK_USER_ACCOUNT', tier: 'user_account', score: 0, source: 'user_account',
+          scores: { email: email, name: u.name||email, password: u.password||'ipowork2024', approved: !!u.approved, plan: u.plan||'paid', trialCins: [], creditBalance: 0, trialLimit: 3 }
+        })
+      });
+      if(createR.ok){ created++; } else { failed++; console.error('syncAllLocalUsersToSupabase: failed to create record for', email, 'status', createR.status); }
+    }catch(e){ failed++; console.error('syncAllLocalUsersToSupabase: error for', email, e); }
+  }
+  if(statusEl) statusEl.textContent = '\u2705 Done — created '+created+', already synced '+alreadySynced+(failed?', failed '+failed:'')+'. Default trial: 3 companies (adjust individually with Add Credits if needed).';
 }
 
 async function addApprovedUser(email, name, password, plan, trialLimit){
