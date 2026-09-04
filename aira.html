@@ -999,7 +999,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG13-E';
+var IPOWORK_BUILD='AUG13-F';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1964,7 +1964,19 @@ async function addCreditsToUser(){
 }
 
 function parseCsvSimple(text){
-  // Handles quoted fields with embedded commas/quotes (RFC 4180-ish)
+  /* FIX-AUG13-F: Excel's clipboard format for copied cells is tab-separated,
+     not comma-separated — pasting through Notepad as an intermediate step
+     doesn't change this, since Notepad just displays the raw text as-is,
+     tabs included. A comma-only parser would see the entire header as one
+     unrecognized blob, which is exactly the "missing required columns"
+     error this was producing. Auto-detects the real delimiter from the
+     first line instead of assuming comma. */
+  var firstLine = text.split(/\r?\n/)[0] || '';
+  var tabCount = (firstLine.match(/\t/g)||[]).length;
+  var commaCount = (firstLine.match(/,/g)||[]).length;
+  var delim = tabCount > commaCount ? '\t' : ',';
+
+  // Handles quoted fields with embedded delimiters/quotes (RFC 4180-ish)
   var rows = [];
   var i = 0, field = '', row = [], inQuotes = false;
   while(i < text.length){
@@ -1977,7 +1989,7 @@ function parseCsvSimple(text){
       field += c; i++; continue;
     }
     if(c === '"'){ inQuotes = true; i++; continue; }
-    if(c === ','){ row.push(field); field=''; i++; continue; }
+    if(c === delim){ row.push(field); field=''; i++; continue; }
     if(c === '\r'){ i++; continue; }
     if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; i++; continue; }
     field += c; i++;
