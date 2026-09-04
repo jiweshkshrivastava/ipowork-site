@@ -900,9 +900,51 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   </div>
   <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Finds any approved user who exists only in this browser (not yet synced to Supabase) and creates their trial record with a default limit of 3 companies. Safe to run repeatedly — never touches users who already have a synced record, so nobody's real usage or credits get reset.</div>
 
+  <!-- FIX-AUG13-A: bulk magic-link generator for mail-merge campaigns —
+       paste CSV (columns: Sr_No,MERCHANT_BANKER_NAME,FIRM_NAME,SEBI_MB_REG_NO,Email,Phone,LOGIN_URL,ACTIVATION_DATE),
+       creates any missing accounts + a unique 30-day login token per row,
+       outputs a new CSV with real working login links. -->
+  <!-- FIX-AUG13-B: the 6 free evaluation CINs are the SAME for every MB —
+       admin-configurable here rather than hardcoded, using the same
+       insert-only pattern (saving writes a new record; the system always
+       reads the most recent one). -->
+  <!-- FIX-AUG13-C: renew a specific user's subscription — adds 2 more
+       Normal CIN slots on top of whatever they've already used. -->
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">🔄 Renew Subscription</div>
+  <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px">
+    <input id="renew-email" type="email" placeholder="user@email.com" style="flex:2;min-width:180px;padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px"/>
+    <button onclick="renewSubscription()" style="padding:8px 16px;background:#1A9E6B;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 Renew (+2 Companies)</button>
+    <span id="renew-status" style="font-size:11px;color:#6B8A94"></span>
+  </div>
+  <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Each renewal adds 2 more Normal CIN slots on top of what they've already used — e.g. renewed once takes someone from 2/2 to 2/4 (2 more usable). Confirm payment before clicking.</div>
+
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">🆓 Free Evaluation Companies (Same for Every MB)</div>
+  <div style="padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px;margin-bottom:8px">
+    <p style="margin:0 0 8px;font-size:11px;color:#6B8A94;">One CIN per line. These are always free for every merchant banker and never count toward their 2-company subscription limit.</p>
+    <textarea id="evalcin-input" rows="6" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;font-family:monospace;margin-bottom:8px" placeholder="U12345MH2020PTC123456&#10;U23456DL2019PTC234567&#10;..."></textarea>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button onclick="saveEvaluationCinList()" style="padding:8px 16px;background:#1A9E6B;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">💾 Save List</button>
+      <button onclick="loadEvaluationCinListIntoForm()" style="padding:8px 16px;background:#fff;color:#0D5C6B;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">↻ Load Current List</button>
+      <span id="evalcin-status" style="font-size:11px;color:#6B8A94"></span>
+    </div>
+  </div>
+  <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Click "Load Current List" to see what's active right now before editing. Saving replaces the active list for everyone immediately.</div>
+
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">🔗 Bulk Generate Magic Login Links</div>
+  <div style="padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px;margin-bottom:8px">
+    <p style="margin:0 0 8px;font-size:11px;color:#6B8A94;">Paste CSV with header row: <code style="font-size:10px;">Sr_No,MERCHANT_BANKER_NAME,FIRM_NAME,SEBI_MB_REG_NO,Email,Phone,LOGIN_URL,ACTIVATION_DATE</code></p>
+    <textarea id="magiclink-csv-input" rows="6" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:11px;font-family:monospace;margin-bottom:8px" placeholder="Paste CSV rows here..."></textarea>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button onclick="bulkGenerateMagicLinks()" style="padding:8px 16px;background:#0D5C6B;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔗 Generate Links for All Rows</button>
+      <span id="magiclink-status" style="font-size:11px;color:#6B8A94"></span>
+    </div>
+    <textarea id="magiclink-csv-output" rows="6" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:11px;font-family:monospace;margin-top:8px;display:none" readonly placeholder="Output CSV with real login links will appear here..."></textarea>
+  </div>
+  <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Each link is unique per person and expires 30 days after generation. Rows with no email are skipped (flagged in the output). Safe to re-run — existing accounts are reused, not duplicated; a fresh token is generated each run.</div>
+
   <!-- Add User form -->
   <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:18px">
-    <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:12px">&#10133; Add / Approve New User</div>
+    <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:12px">➕ Add / Approve New User</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <input id="new-user-email" type="email" placeholder="Email address *" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
       <input id="new-user-name" type="text" placeholder="Full Name" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
@@ -914,12 +956,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
         <option value="ca">CA/CS Partner</option>
         <option value="mb">Merchant Banker</option>
       </select>
-      <!-- FIX-AUG12-D: per-user trial limit, set by admin at approval time — NOT a
-           fixed "everyone gets 3" rule. Admin decides 1, 2, or 3 per individual user. -->
-      <select id="new-user-trial-limit" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none" title="How many free companies (by CIN) this user gets before needing credits">
-        <option value="1">Trial: 1 company</option>
-        <option value="2">Trial: 2 companies</option>
-        <option value="3" selected>Trial: 3 companies</option>
+      <!-- FIX-AUG13-D: replaces the old ad-hoc "1/2/3 free companies" picker —
+           limits now come from the real subscription tier, confirmed against
+           the pitch deck and founder-provided numbers. -->
+      <select id="new-user-tier" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none" title="Subscription tier — determines their Normal CIN allowance">
+        <option value="4">Tier 4 — Emerging (₹25,000/mo, pay per report)</option>
+        <option value="3" selected>Tier 3 — SME Specialist (₹50,000/mo, 2 companies)</option>
+        <option value="2">Tier 2 — Growth (₹75,000/mo, 5 companies)</option>
+        <option value="1">Tier 1 — Elite (₹1,50,000/mo, unlimited)</option>
       </select>
     </div>
     <button onclick="addUserFromForm()" style="padding:9px 20px;background:linear-gradient(135deg,#08404D,#0D5C6B);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">&#9989; Add & Approve User</button>
@@ -930,7 +974,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG12-I';
+var IPOWORK_BUILD='AUG13-D';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1622,86 +1666,216 @@ function updateUserUI(){
    admin account (ADMIN_EMAIL / plan 'admin') is always exempt. */
 var SUPA_URL_TRIAL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
 var SUPA_KEY_TRIAL = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+/* FIX-AUG13-B: COMPLETE REDESIGN — replaces the single "N free trials"
+   pool with the REAL business model:
+   (1) EVALUATION CINs — a fixed set of 6 companies, THE SAME for every
+       merchant banker, provided by ipowork. Genuinely free, unlimited use,
+       never counted against anything, never expires.
+   (2) NORMAL CINs — any company NOT in that evaluation set. Exactly 2 are
+       included in the ₹50,000/month subscription. Once a user has used 2
+       DISTINCT normal CINs, the subscription is considered fully consumed
+       — ALL further report generation (any tier, including Risk Desk) is
+       blocked until they renew.
+   The evaluation list itself is stored in Supabase (source=
+   'evaluation_cin_config'), admin-editable below, so it never needs a code
+   deployment to change. Same insert-only architecture as the rest of this
+   system (confirmed RLS blocks UPDATE for the anon key) — saving a new
+   list INSERTS a new record; reading always takes the most recent one. */
+async function getEvaluationCinList(){
+  try{
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.evaluation_cin_config&order=created_at.desc&limit=1', {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    if(!r.ok) return [];
+    var rows = await r.json();
+    var list = (rows && rows[0] && rows[0].scores && rows[0].scores.cins) || [];
+    return Array.isArray(list) ? list.map(function(c){return String(c).trim().toUpperCase();}) : [];
+  }catch(e){ console.error('getEvaluationCinList failed:', e); return []; }
+}
+
+async function loadEvaluationCinListIntoForm(){
+  var statusEl = document.getElementById('evalcin-status');
+  var input = document.getElementById('evalcin-input');
+  if(statusEl) statusEl.textContent = 'Loading\u2026';
+  var list = await getEvaluationCinList();
+  if(input) input.value = list.join('\n');
+  if(statusEl) statusEl.textContent = list.length ? ('Loaded '+list.length+' CIN(s), currently active.') : 'No list saved yet — enter CINs and click Save.';
+}
+
+async function renewSubscription(){
+  var emailEl = document.getElementById('renew-email');
+  var statusEl = document.getElementById('renew-status');
+  var email = (emailEl?emailEl.value:'').trim().toLowerCase();
+  if(!email || !email.includes('@')){ if(statusEl) statusEl.textContent='Enter a valid email.'; return; }
+  if(statusEl) statusEl.textContent = 'Checking account\u2026';
+  var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
+  try{
+    var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent('USER-'+emailSafe), {
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var acctRows = acctR.ok ? await acctR.json() : [];
+    if(!acctRows || !acctRows[0]){ if(statusEl) statusEl.textContent='No account found for that email — approve them first.'; return; }
+    var acctScores = acctRows[0].scores || {};
+    var tierNum = parseTierNumber(acctScores.tier);
+    var baseLimit = TIER_BASE_LIMITS[tierNum];
+
+    if(baseLimit === Infinity){ if(statusEl) statusEl.textContent = email+' is on Tier 1 (Elite) — already unlimited, nothing to renew.'; return; }
+    if(baseLimit === 0){ if(statusEl) statusEl.textContent = email+' is on Tier 4 (Emerging) — pay-per-report plan, no included allowance to renew. Bill them per report instead.'; return; }
+
+    if(statusEl) statusEl.textContent = 'Renewing\u2026';
+    var insertR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        report_id: 'RENEWAL-'+emailSafe+'-'+Date.now(), company_name:'SUBSCRIPTION_RENEWAL', cin:'N/A', sector:'N/A', exchange:'N/A',
+        tier:'free', score:0, source:'subscription_renewal',
+        scores: { email: email, renewedAt: new Date().toISOString(), renewedBy: (CURRENT_USER&&CURRENT_USER.email)||'admin' }
+      })
+    });
+    if(!insertR.ok){ if(statusEl) statusEl.textContent = 'Error renewing (status '+insertR.status+').'; return; }
+
+    // Show updated total for confirmation
+    var renewR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.subscription_renewal&report_id=like.'+encodeURIComponent('RENEWAL-'+emailSafe+'-')+'*&select=report_id', {
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var renewCount = 1;
+    if(renewR.ok){ var rr = await renewR.json(); renewCount = Array.isArray(rr) ? rr.length : 1; }
+    var newLimit = baseLimit * (1 + renewCount);
+    if(statusEl) statusEl.textContent = '\u2705 '+email+' (Tier '+tierNum+' — '+TIER_NAMES[tierNum]+') renewed \u2014 now entitled to '+newLimit+' total companies (renewed '+renewCount+' time'+(renewCount!==1?'s':'')+').';
+    if(emailEl) emailEl.value = '';
+  }catch(e){
+    if(statusEl) statusEl.textContent = 'Error: '+e.message;
+  }
+}
+
+async function saveEvaluationCinList(){
+  var input = document.getElementById('evalcin-input');
+  var statusEl = document.getElementById('evalcin-status');
+  var raw = (input?input.value:'').trim();
+  var cins = raw.split('\n').map(function(c){return c.trim().toUpperCase();}).filter(function(c){return c.length>0;});
+  if(!cins.length){ if(statusEl) statusEl.textContent = 'Enter at least one CIN first.'; return; }
+  if(statusEl) statusEl.textContent = 'Saving\u2026';
+  try{
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        report_id: 'EVALCIN-CONFIG-'+Date.now(), company_name:'EVAL_CIN_CONFIG', cin:'N/A', sector:'N/A', exchange:'N/A',
+        tier:'free', score:0, source:'evaluation_cin_config',
+        scores: { cins: cins, savedAt: new Date().toISOString(), savedBy: (CURRENT_USER&&CURRENT_USER.email)||'admin' }
+      })
+    });
+    if(!r.ok){ if(statusEl) statusEl.textContent = 'Error saving (status '+r.status+').'; return; }
+    if(statusEl) statusEl.textContent = '\u2705 Saved '+cins.length+' evaluation CIN(s) — active immediately for all merchant bankers.';
+  }catch(e){
+    if(statusEl) statusEl.textContent = 'Error: '+e.message;
+  }
+}
+
+/* FIX-AUG13-D: TIER-AWARE LIMITS — confirmed real numbers, from the actual
+   pitch deck + founder confirmation:
+   Tier 1 (Elite, ₹1,50,000/mo)        = Unlimited Normal CINs
+   Tier 2 (Growth, ₹75,000/mo)         = 5 Normal CINs
+   Tier 3 (SME Specialist, ₹50,000/mo) = 2 Normal CINs
+   Tier 4 (Emerging, ₹25,000/mo)       = 0 — pay per report, no free allowance
+   Tier names are stored on the account as the SHORT form ('Tier 1'..'Tier 4');
+   parseTierNumber() extracts this from whatever fuller string may be present
+   (e.g. "Tier 3 — SME Specialist") so lookups are robust either way. */
+var TIER_BASE_LIMITS = { 1: Infinity, 2: 5, 3: 2, 4: 0 };
+var TIER_NAMES = { 1: 'Elite', 2: 'Growth', 3: 'SME Specialist', 4: 'Emerging' };
+var TIER_PRICES = { 1: 150000, 2: 75000, 3: 50000, 4: 25000 };
+function parseTierNumber(tierStr){
+  var m = String(tierStr||'').match(/tier\s*(\d)/i);
+  var n = m ? parseInt(m[1],10) : 3; // default to Tier 3 if unset/unrecognized — matches every account seen in the real data so far
+  return TIER_BASE_LIMITS.hasOwnProperty(n) ? n : 3;
+}
+
 async function checkCinTrialAndRecord(cin){
   cin = String(cin||'').trim().toUpperCase();
   if(!cin) return {allowed:true}; // let the normal "CIN required" validation handle this
   if(!CURRENT_USER || !CURRENT_USER.email) return {allowed:true}; // not logged in — other gates handle this
   var email = CURRENT_USER.email.toLowerCase();
   if(email===ADMIN_EMAIL || CURRENT_USER.plan==='admin') return {allowed:true}; // admin never limited
-  /* FIX-AUG12-I: CONFIRMED via live diagnostic — the GET request correctly
-     found the user's account row, but the PATCH right after it (same
-     filter, same row) matched ZERO rows. This is the classic signature of
-     Row Level Security allowing SELECT/INSERT for the anon key but not
-     UPDATE — a common, sensible default. No amount of fixing the filter
-     syntax would help; UPDATE simply isn't permitted.
-     Redesigned entirely around INSERT + SELECT (both confirmed working),
-     never UPDATE: each CIN usage is its own new row (report_id =
-     TRIAL-{email}-{cin}, globally unique per user+CIN pair), and "how many
-     companies has this user used" is answered by COUNTING matching rows,
-     not by mutating a single row's array field. */
   var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
-  try{
-    var acctReportId = 'USER-'+emailSafe;
-    var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
-      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
-    });
-    if(!acctR.ok){ console.error('checkCinTrialAndRecord: account GET failed, status', acctR.status, '— failing open'); return {allowed:true}; }
-    var acctRows = await acctR.json();
-    if(!acctRows || !acctRows[0]){
-      console.error('checkCinTrialAndRecord: NO Supabase account record found for', email, '— re-approve them from the admin panel.');
-      return {allowed:true}; // fail open — can't enforce a limit we have no record to check against
-    }
-    var s = acctRows[0].scores || {};
-    var creditR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.credit_grant&report_id=like.'+encodeURIComponent('CREDIT-'+emailSafe+'-')+'*&select=score', {
-      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
-    });
-    var creditBalance = 0;
-    if(creditR.ok){
-      var creditRows = await creditR.json();
-      creditBalance = (creditRows||[]).reduce(function(sum,row){return sum+(parseInt(row.score,10)||0);}, 0);
-    }
-    var trialLimit = parseInt(s.trialLimit, 10);
-    if(isNaN(trialLimit)) trialLimit = 3;
-    var limit = trialLimit + creditBalance;
 
-    // Check if THIS exact CIN was already used (its own row exists) — free re-run if so
-    var thisCinReportId = 'TRIAL-'+emailSafe+'-'+cin.replace(/[^a-z0-9]/gi,'-');
-    var cinR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.trial_usage&report_id=eq.'+encodeURIComponent(thisCinReportId), {
+  try{
+    // Evaluation CINs are always free, for everyone, no tracking needed
+    var evalList = await getEvaluationCinList();
+    if(evalList.indexOf(cin) !== -1){
+      console.log('checkCinTrialAndRecord:', cin, 'is an evaluation CIN — free, unlimited, allowed');
+      return {allowed:true};
+    }
+
+    // Look up this user's tier
+    var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent('USER-'+emailSafe), {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var acctRows = acctR.ok ? await acctR.json() : [];
+    var acctScores = (acctRows && acctRows[0] && acctRows[0].scores) || {};
+    var tierNum = parseTierNumber(acctScores.tier);
+    var baseLimit = TIER_BASE_LIMITS[tierNum];
+
+    // Tier 1 — genuinely unlimited, skip tracking entirely
+    if(baseLimit === Infinity){
+      console.log('checkCinTrialAndRecord:', email, 'is on Tier 1 (Elite) — unlimited, allowed');
+      return {allowed:true};
+    }
+
+    var cinSafe = cin.replace(/[^a-z0-9]/gi,'-');
+    var thisCinReportId = 'NORMALCIN-'+emailSafe+'-'+cinSafe;
+    var cinR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.normal_cin_usage&report_id=eq.'+encodeURIComponent(thisCinReportId), {
       headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
     });
     var cinRows = cinR.ok ? await cinR.json() : [];
-    if(cinRows && cinRows[0]){ console.log('checkCinTrialAndRecord: CIN already in trial history — free re-run, allowed'); return {allowed:true}; }
+    if(cinRows && cinRows[0]){ console.log('checkCinTrialAndRecord: Normal CIN', cin, 'already used before — free re-run, allowed'); return {allowed:true}; }
 
-    // Count ALL companies this user has used so far
-    var allR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.trial_usage&report_id=like.'+encodeURIComponent('TRIAL-'+emailSafe+'-')+'*&select=report_id', {
+    // Tier 4 — zero included allowance, every NEW normal CIN needs a different message
+    // than "quota used" since there was never a free quota to begin with
+    if(baseLimit === 0){
+      console.log('checkCinTrialAndRecord:', email, 'is on Tier 4 (Emerging) — no included companies, pay-per-report required');
+      return {
+        allowed:false,
+        message:'Your Tier 4 (Emerging) plan doesn\u2019t include free companies beyond the '+evalList.length+' evaluation companies \u2014 each additional report is billed per use. Contact the ipowork admin for per-report pricing.'
+      };
+    }
+
+    var allR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.normal_cin_usage&report_id=like.'+encodeURIComponent('NORMALCIN-'+emailSafe+'-')+'*&select=report_id', {
       headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
     });
     var usedCount = 0;
     if(allR.ok){ var allRows = await allR.json(); usedCount = Array.isArray(allRows) ? allRows.length : 0; }
     else { console.error('checkCinTrialAndRecord: usage-count GET failed, status', allR.status, '— failing open'); return {allowed:true}; }
 
-    console.log('checkCinTrialAndRecord:', email, '| CIN:', cin, '| companies used so far:', usedCount, '| limit:', limit, '(trial', trialLimit, '+ credits', creditBalance+')');
-    if(usedCount >= limit){
-      console.log('checkCinTrialAndRecord: LIMIT REACHED — blocking');
+    // Renewal-aware: each renewal adds another baseLimit's worth, matching whatever tier they're on
+    var renewR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.subscription_renewal&report_id=like.'+encodeURIComponent('RENEWAL-'+emailSafe+'-')+'*&select=report_id', {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var renewalCount = 0;
+    if(renewR.ok){ var renewRows = await renewR.json(); renewalCount = Array.isArray(renewRows) ? renewRows.length : 0; }
+    var normalCinLimit = baseLimit * (1 + renewalCount);
+
+    console.log('checkCinTrialAndRecord:', email, '| Tier', tierNum, '('+TIER_NAMES[tierNum]+')', '| Normal CIN:', cin, '| used:', usedCount, '/', normalCinLimit, '(renewals:', renewalCount+')');
+    if(usedCount >= normalCinLimit){
+      console.log('checkCinTrialAndRecord: SUBSCRIPTION FULLY CONSUMED — blocking');
       return {
         allowed:false,
-        message:'Trial limit reached: you\u2019ve used '+usedCount+' of '+limit+' company slots ('+(creditBalance?'':'no ')+'bonus credits applied). Contact the ipowork admin to add more credits after payment.'
+        message:'Your \u20b9'+TIER_PRICES[tierNum].toLocaleString('en-IN')+'/month Tier '+tierNum+' ('+TIER_NAMES[tierNum]+') plan includes '+normalCinLimit+' compan'+(normalCinLimit===1?'y':'ies')+' (excluding the '+evalList.length+' free evaluation companies) — you\u2019ve used all '+usedCount+'. Contact the ipowork admin to renew your subscription.'
       };
     }
 
-    // Record this CIN as used — a plain INSERT, never an update
     var insertR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
       method:'POST',
       headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
       body: JSON.stringify({
         report_id: thisCinReportId, company_name: cin, cin: cin, sector: 'N/A', exchange: 'N/A',
-        tier: 'free', score: 0, source: 'trial_usage', scores: { email: email, cin: cin, usedAt: new Date().toISOString() }
+        tier: 'free', score: 0, source: 'normal_cin_usage', scores: { email: email, cin: cin, usedAt: new Date().toISOString() }
       })
     });
     if(!insertR.ok){ console.error('checkCinTrialAndRecord: usage INSERT failed, status', insertR.status, '— this usage will not be recorded, but allowing the request through.'); }
-    else { console.log('checkCinTrialAndRecord: usage recorded for', cin); }
+    else { console.log('checkCinTrialAndRecord: normal CIN usage recorded for', cin, '(', usedCount+1, '/', normalCinLimit, ')'); }
     return {allowed:true};
   }catch(e){
+
     console.error('checkCinTrialAndRecord failed — failing open:', e);
     return {allowed:true}; // fail open — never block on a network error
   }
@@ -1709,7 +1883,7 @@ async function checkCinTrialAndRecord(cin){
 function showTrialBlockedMessage(outEl, msg){
   var html = '<div style="padding:32px;text-align:center;background:#FEF0EE;border:1.5px solid #F0A090;border-radius:12px;margin:16px 0">'
     +'<div style="font-size:32px;margin-bottom:10px">🔒</div>'
-    +'<div style="font-size:15px;font-weight:800;color:#8B2B20;margin-bottom:8px">Trial Limit Reached</div>'
+    +'<div style="font-size:15px;font-weight:800;color:#8B2B20;margin-bottom:8px">Subscription Fully Used</div>'
     +'<div style="font-size:12.5px;color:#8B2B20;max-width:480px;margin:0 auto;line-height:1.6">'+msg+'</div></div>';
   if(outEl) outEl.innerHTML = html;
 }
@@ -1764,6 +1938,135 @@ async function addCreditsToUser(){
   }
 }
 
+function parseCsvSimple(text){
+  // Handles quoted fields with embedded commas/quotes (RFC 4180-ish)
+  var rows = [];
+  var i = 0, field = '', row = [], inQuotes = false;
+  while(i < text.length){
+    var c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += c; i++; continue;
+    }
+    if(c === '"'){ inQuotes = true; i++; continue; }
+    if(c === ','){ row.push(field); field=''; i++; continue; }
+    if(c === '\r'){ i++; continue; }
+    if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; i++; continue; }
+    field += c; i++;
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(function(r){ return r.length>1 || (r[0]&&r[0].trim()); });
+}
+
+function csvEscape(v){
+  v = String(v==null?'':v);
+  if(/[",\n]/.test(v)) return '"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+
+function genToken(){
+  var arr = new Uint8Array(24);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+
+async function bulkGenerateMagicLinks(){
+  var input = document.getElementById('magiclink-csv-input');
+  var output = document.getElementById('magiclink-csv-output');
+  var statusEl = document.getElementById('magiclink-status');
+  var raw = (input?input.value:'').trim();
+  if(!raw){ if(statusEl) statusEl.textContent = 'Paste CSV data first.'; return; }
+
+  var rows = parseCsvSimple(raw);
+  if(!rows.length){ if(statusEl) statusEl.textContent = 'Could not parse any rows.'; return; }
+  var header = rows[0].map(function(h){return h.trim();});
+  var dataRows = rows.slice(1);
+  var idx = {};
+  header.forEach(function(h,i){ idx[h]=i; });
+
+  var required = ['MERCHANT_BANKER_NAME','FIRM_NAME','SEBI_MB_REG_NO','Email'];
+  var missingCols = required.filter(function(c){ return !(c in idx); });
+  if(missingCols.length){ if(statusEl) statusEl.textContent = 'Missing required columns: '+missingCols.join(', '); return; }
+
+  var results = [header.concat(['Status'])];
+  var created=0, reused=0, skipped=0, failed=0;
+
+  for(var i=0;i<dataRows.length;i++){
+    var r = dataRows[i];
+    var email = (r[idx.Email]||'').trim().toLowerCase();
+    var name = (r[idx.MERCHANT_BANKER_NAME]||'').trim();
+    var firm = (r[idx.FIRM_NAME]||'').trim();
+    if(statusEl) statusEl.textContent = 'Processing '+(i+1)+'/'+dataRows.length+'\u2026 ('+created+' created, '+reused+' reused, '+skipped+' skipped, '+failed+' failed)';
+
+    if(!email){
+      var rowOut = r.slice(); rowOut[idx.LOGIN_URL !== undefined ? idx.LOGIN_URL : rowOut.length] = '';
+      results.push(rowOut.concat(['SKIPPED — no email']));
+      skipped++;
+      continue;
+    }
+
+    try{
+      var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
+      var acctReportId = 'USER-'+emailSafe;
+      var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
+        headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+      });
+      var acctRows = acctR.ok ? await acctR.json() : [];
+      var acctExists = acctRows && acctRows[0];
+
+      if(!acctExists){
+        // Create the account on Tier 3 — SME Specialist (confirmed via master
+        // spreadsheet: all 243 rows in the current campaign are this tier).
+        // If a future bulk import needs mixed tiers, this default would need
+        // to read a Package/Tier column from the CSV instead of assuming Tier 3.
+        var createR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+          method:'POST',
+          headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+          body: JSON.stringify({
+            report_id: acctReportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector:'N/A', exchange:'N/A',
+            tier: 'free', score: 0, source: 'user_account',
+            scores: { email: email, name: name||email, password: 'ipowork2024', approved: true, plan: 'paid', tier: 'Tier 3 \u2014 SME Specialist' }
+          })
+        });
+        if(!createR.ok){ results.push(r.concat(['FAILED — account creation error '+createR.status])); failed++; continue; }
+        created++;
+      } else {
+        reused++;
+      }
+
+      var token = genToken();
+      var expiresAt = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+      var linkR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+        method:'POST',
+        headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+        body: JSON.stringify({
+          report_id: 'MAGICLINK-'+emailSafe+'-'+Date.now(), company_name:'MAGIC_LINK', cin:'N/A', sector:'N/A', exchange:'N/A',
+          tier: 'free', score: 0, source: 'magic_link',
+          scores: { email: email, token: token, createdAt: new Date().toISOString(), expiresAt: expiresAt }
+        })
+      });
+      if(!linkR.ok){ results.push(r.concat(['FAILED — token creation error '+linkR.status])); failed++; continue; }
+
+      var loginUrl = 'https://ipowork.com/aira.html?login_token='+token;
+      var rowOut = r.slice();
+      while(rowOut.length < header.length) rowOut.push('');
+      if(idx.LOGIN_URL !== undefined) rowOut[idx.LOGIN_URL] = loginUrl;
+      results.push(rowOut.concat(['OK']));
+    }catch(e){
+      results.push(r.concat(['FAILED — '+e.message]));
+      failed++;
+    }
+  }
+
+  var csvOut = results.map(function(row){ return row.map(csvEscape).join(','); }).join('\n');
+  if(output){ output.value = csvOut; output.style.display = 'block'; }
+  var linksGenerated = dataRows.length - skipped - failed;
+  if(statusEl) statusEl.textContent = '\u2705 Done \u2014 '+created+' accounts created, '+reused+' reused, '+linksGenerated+' links generated, '+skipped+' skipped (no email), '+failed+' failed.';
+}
+
 async function syncAllLocalUsersToSupabase(){
   var statusEl = document.getElementById('sync-status');
   if(statusEl) statusEl.textContent = 'Checking\u2026';
@@ -1786,7 +2089,7 @@ async function syncAllLocalUsersToSupabase(){
         headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
         body: JSON.stringify({
           report_id: reportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector: 'N/A', exchange: 'N/A', tier: 'free', score: 0, source: 'user_account',
-          scores: { email: email, name: u.name||email, password: u.password||'ipowork2024', approved: !!u.approved, plan: u.plan||'paid', trialCins: [], creditBalance: 0, trialLimit: 3 }
+          scores: { email: email, name: u.name||email, password: u.password||'ipowork2024', approved: !!u.approved, plan: u.plan||'paid', tier: u.tier||'Tier 3 \u2014 SME Specialist' }
         })
       });
       if(createR.ok){ created++; } else { failed++; console.error('syncAllLocalUsersToSupabase: failed to create record for', email, 'status', createR.status); }
@@ -1795,9 +2098,10 @@ async function syncAllLocalUsersToSupabase(){
   if(statusEl) statusEl.textContent = '\u2705 Done — created '+created+', already synced '+alreadySynced+(failed?', failed '+failed:'')+'. Default trial: 3 companies (adjust individually with Add Credits if needed).';
 }
 
-async function addApprovedUser(email, name, password, plan, trialLimit){
+async function addApprovedUser(email, name, password, plan, tierNum){
   email = email.trim().toLowerCase();
-  trialLimit = parseInt(trialLimit, 10) || 3; // default 3 if not specified (backward compatible)
+  tierNum = parseInt(tierNum, 10);
+  if(!TIER_BASE_LIMITS.hasOwnProperty(tierNum)) tierNum = 3; // default Tier 3 if not specified
   IPOWORK_USERS[email] = {
     name: name||email,
     password: password||'ipowork2024',
@@ -1838,7 +2142,7 @@ async function addApprovedUser(email, name, password, plan, trialLimit){
         tier: 'free',
         score: 0,
         source: 'user_account',
-        scores: { email: email, name: name||email, password: password||'ipowork2024', approved: true, plan: plan||'paid', trialCins: [], creditBalance: 0, trialLimit: trialLimit }
+        scores: { email: email, name: name||email, password: password||'ipowork2024', approved: true, plan: plan||'paid', tier: 'Tier '+tierNum+' — '+TIER_NAMES[tierNum] }
       })
     });
     if(syncR.ok){ supabaseSynced = true; }
@@ -1950,17 +2254,18 @@ async function addUserFromForm(){
   var name  = (document.getElementById('new-user-name')||{}).value||'';
   var pw    = (document.getElementById('new-user-pw')||{}).value||'ipowork2024';
   var plan  = (document.getElementById('new-user-plan')||{}).value||'paid';
-  var trialLimit = parseInt((document.getElementById('new-user-trial-limit')||{}).value||'3', 10) || 3;
+  var tierNum = parseInt((document.getElementById('new-user-tier')||{}).value||'3', 10) || 3;
   if(!email || !email.includes('@')){ alert('Valid email required.'); return; }
-  var synced = await addApprovedUser(email.trim(), name.trim(), pw.trim(), plan, trialLimit);
+  var synced = await addApprovedUser(email.trim(), name.trim(), pw.trim(), plan, tierNum);
   // Clear form
   ['new-user-email','new-user-name','new-user-pw'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value='';
   });
+  var tierDesc = tierNum===1?'unlimited companies':tierNum===4?'pay-per-report (no included companies)':(TIER_BASE_LIMITS[tierNum]+' companies');
   if(synced){
-    alert('✅ User '+email+' approved with a trial of '+trialLimit+' compan'+(trialLimit===1?'y':'ies')+'! Synced to Supabase — works from any device.');
+    alert('✅ User '+email+' approved on Tier '+tierNum+' ('+TIER_NAMES[tierNum]+') — '+tierDesc+'. Synced to Supabase, works from any device.');
   } else {
-    alert('⚠️ User '+email+' approved locally, but the Supabase sync FAILED — their trial limit will NOT be enforced until this is fixed. Check the browser console for the error, or try the "Sync All Local Users to Supabase" button.');
+    alert('⚠️ User '+email+' approved locally, but the Supabase sync FAILED — their subscription tier will NOT be enforced until this is fixed. Check the browser console for the error, or try the "Sync All Local Users to Supabase" button.');
   }
 }
 
@@ -5143,9 +5448,55 @@ function renderValuationReport(result, cname, sector, out, tier){
   if(out && result && result._report) out.innerHTML = result._report;
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+/* FIX-AUG13-A: MAGIC-LINK AUTO-LOGIN — for mail-merge campaigns where the
+   email itself should log the recipient in directly on click, rather than
+   showing them a login screen they'd have to fill in manually. Same
+   insert-only Supabase pattern as the trial/credit system (RLS blocks
+   UPDATE for the anon key, confirmed earlier) — tokens are looked up via
+   SELECT, never written via PATCH. Tokens are generated in bulk by the
+   admin tool below and expire 30 days after issue. */
+async function tryMagicLinkLogin(){
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('login_token');
+  if(!token) return false;
+  try{
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.magic_link&scores->>token=eq.'+encodeURIComponent(token), {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    if(!r.ok){ console.error('Magic link: lookup failed, status', r.status); return false; }
+    var rows = await r.json();
+    if(!rows || !rows[0]){ console.warn('Magic link: token not found — showing normal login'); return false; }
+    var s = rows[0].scores || {};
+    var expiresAt = s.expiresAt ? new Date(s.expiresAt).getTime() : 0;
+    if(!expiresAt || Date.now() > expiresAt){ console.warn('Magic link: token expired — showing normal login'); return false; }
+    var email = String(s.email||'').toLowerCase();
+    if(!email) return false;
+
+    var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
+    var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent('USER-'+emailSafe), {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var acctRows = acctR.ok ? await acctR.json() : [];
+    var u = (acctRows && acctRows[0] && acctRows[0].scores) || null;
+    if(!u || !u.approved){ console.warn('Magic link: account not found or not approved for', email); return false; }
+
+    CURRENT_USER = {email: email, name: u.name||email, plan: u.plan||'paid', free: u.free||false};
+    SESS.email = email; SESS.name = u.name||''; SESS.plan = u.plan||'paid';
+    IPOWORK_USERS[email] = u;
+    try{ localStorage.setItem('ipowork_session', JSON.stringify({email: email, token: btoa(email+(u.password||'')), ts: Date.now()})); }catch(e){}
+    if(u.plan==='admin'||email===ADMIN_EMAIL){ ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true; }
+    console.log('Magic link: logged in as', email);
+    return true;
+  }catch(e){
+    console.error('Magic link login error — showing normal login:', e);
+    return false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded',async function(){
   if(typeof loadSavedUsers==='function') loadSavedUsers();
-  restoreSession();
+  var magicOk = await tryMagicLinkLogin();
+  if(!magicOk) restoreSession();
   if(typeof updateUserUI==='function') updateUserUI();
   if(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL)){
     ADMIN_UNLOCKED=true;window.ADMIN_UNLOCKED=true;
