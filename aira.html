@@ -930,6 +930,31 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   </div>
   <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Click "Load Current List" to see what's active right now before editing. Saving replaces the active list for everyone immediately.</div>
 
+  <!-- FIX-AUG13-E: for sending one email/WhatsApp at a time (not a bulk
+       blast), the 243-row bulk tool is overkill for a single send. This
+       generates one person's link on demand — look them up, get their
+       link, paste and send, done. -->
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">👤 Get One Person's Login Link</div>
+  <div style="padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px;margin-bottom:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+      <input id="single-link-email" type="email" placeholder="user@email.com" style="flex:2;min-width:180px;padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px"/>
+      <input id="single-link-name" type="text" placeholder="Name (if new — optional if already approved)" style="flex:2;min-width:180px;padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px"/>
+      <select id="single-link-tier" style="padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px">
+        <option value="3" selected>Tier 3 — SME Specialist</option>
+        <option value="4">Tier 4 — Emerging</option>
+        <option value="2">Tier 2 — Growth</option>
+        <option value="1">Tier 1 — Elite</option>
+      </select>
+    </div>
+    <button onclick="getSingleLoginLink()" style="padding:8px 16px;background:#0D5C6B;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔗 Get Their Link</button>
+    <span id="single-link-status" style="font-size:11px;color:#6B8A94;margin-left:8px"></span>
+    <div id="single-link-result" style="display:none;margin-top:10px;padding:10px 12px;background:#fff;border:1.5px solid #1A9E6B;border-radius:8px;">
+      <input id="single-link-output" readonly style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #D8EDF0;border-radius:6px;font-size:11px;font-family:monospace;background:#F8FAFA" onclick="this.select()"/>
+      <div style="font-size:10px;color:#6B8A96;margin-top:4px">Click the link above to select it, then copy and paste into your email or WhatsApp message.</div>
+    </div>
+  </div>
+  <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">If the person isn't approved yet, this creates their account on the selected tier automatically. If they already exist, tier selection is ignored — their existing tier is used.</div>
+
   <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">🔗 Bulk Generate Magic Login Links</div>
   <div style="padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px;margin-bottom:8px">
     <p style="margin:0 0 8px;font-size:11px;color:#6B8A94;">Paste CSV with header row: <code style="font-size:10px;">Sr_No,MERCHANT_BANKER_NAME,FIRM_NAME,SEBI_MB_REG_NO,Email,Phone,LOGIN_URL,ACTIVATION_DATE</code></p>
@@ -974,7 +999,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG13-D';
+var IPOWORK_BUILD='AUG13-E';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1971,6 +1996,58 @@ function genToken(){
   var arr = new Uint8Array(24);
   crypto.getRandomValues(arr);
   return Array.from(arr).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+
+async function getSingleLoginLink(){
+  var emailEl = document.getElementById('single-link-email');
+  var nameEl = document.getElementById('single-link-name');
+  var tierEl = document.getElementById('single-link-tier');
+  var statusEl = document.getElementById('single-link-status');
+  var resultBox = document.getElementById('single-link-result');
+  var outputEl = document.getElementById('single-link-output');
+
+  var email = (emailEl?emailEl.value:'').trim().toLowerCase();
+  var name = (nameEl?nameEl.value:'').trim();
+  var tierNum = parseInt((tierEl?tierEl.value:'3'), 10) || 3;
+  if(!email || !email.includes('@')){ if(statusEl) statusEl.textContent='Enter a valid email.'; return; }
+  if(resultBox) resultBox.style.display = 'none';
+  if(statusEl) statusEl.textContent = 'Checking account\u2026';
+
+  var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
+  try{
+    var acctReportId = 'USER-'+emailSafe;
+    var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var acctRows = acctR.ok ? await acctR.json() : [];
+
+    if(!acctRows || !acctRows[0]){
+      if(statusEl) statusEl.textContent = 'New person \u2014 creating account on Tier '+tierNum+'\u2026';
+      var synced = await addApprovedUser(email, name||email, 'ipowork2024', 'paid', tierNum);
+      if(!synced){ if(statusEl) statusEl.textContent = 'Account creation failed \u2014 check console for details.'; return; }
+    }
+
+    if(statusEl) statusEl.textContent = 'Generating link\u2026';
+    var token = genToken();
+    var expiresAt = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+    var linkR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        report_id: 'MAGICLINK-'+emailSafe+'-'+Date.now(), company_name:'MAGIC_LINK', cin:'N/A', sector:'N/A', exchange:'N/A',
+        tier: 'free', score: 0, source: 'magic_link',
+        scores: { email: email, token: token, createdAt: new Date().toISOString(), expiresAt: expiresAt }
+      })
+    });
+    if(!linkR.ok){ if(statusEl) statusEl.textContent = 'Error generating link (status '+linkR.status+').'; return; }
+
+    var loginUrl = 'https://ipowork.com/aira.html?login_token='+token;
+    if(outputEl) outputEl.value = loginUrl;
+    if(resultBox) resultBox.style.display = 'block';
+    if(statusEl) statusEl.textContent = '\u2705 Ready \u2014 expires in 30 days.';
+  }catch(e){
+    if(statusEl) statusEl.textContent = 'Error: '+e.message;
+  }
 }
 
 async function bulkGenerateMagicLinks(){
