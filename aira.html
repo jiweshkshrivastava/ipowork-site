@@ -224,19 +224,31 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
      on mobile"), and .rp-wrap (main content). This mirrors the same
      stack-and-scroll pattern already written above, just correctly
      targeted this time. */
+  /* FIX-AUG13-L: CONFIRMED via live phone screenshot — the FIX-AUG13-K
+     values above (max-height:170px + overflow-y:hidden) were actively
+     CLIPPING modules, not just compressing them. Since each category
+     group (IPO Readiness, Clean & Compliance, Valuation, etc.) stacks as
+     its own row rather than merging into one continuous strip, the
+     combined height of all groups exceeds 170px — and overflow:hidden
+     silently hid everything past that point (Mainboard, CA/CS Bundle,
+     Deep Research, and everything in Valuation were all invisible and
+     unreachable). Changed to overflow-y:auto with a taller cap so the
+     sidebar becomes internally scrollable instead of clipping — every
+     module stays reachable, even if it takes a small scroll to find. */
   .pg{flex-direction:column !important}
   .lp{width:100% !important;min-width:100% !important;height:auto !important;
-      max-height:170px !important;position:relative !important;top:auto !important;
-      overflow-y:hidden !important;overflow-x:auto !important;
+      max-height:38vh !important;position:relative !important;top:auto !important;
+      overflow-y:auto !important;overflow-x:hidden !important;
+      -webkit-overflow-scrolling:touch !important;
       border-right:none !important;border-bottom:1px solid var(--bd,#E2E8EA) !important;
       padding:10px !important}
   .lp .nav-brand{padding:0 8px 8px !important}
-  .tab-group-body{flex-direction:row !important;overflow-x:auto !important;
-      -webkit-overflow-scrolling:touch !important;gap:6px !important;
-      padding-bottom:4px !important}
+  .tab-group-body{flex-direction:row !important;flex-wrap:wrap !important;
+      gap:6px !important;padding-bottom:4px !important}
   .tab-group-body .tg-tab{flex-shrink:0 !important;white-space:nowrap !important;
       font-size:11px !important;padding:8px 10px !important}
-  .lp .tab-group-header{white-space:nowrap !important;flex-shrink:0 !important}
+  .lp .tab-group-header{white-space:nowrap !important;flex-shrink:0 !important;
+      margin-top:6px !important}
   .rp-wrap{width:100% !important;min-width:0 !important;overflow-x:hidden !important}
 }
 @media(max-width:480px){
@@ -1022,7 +1034,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG13-J';
+var IPOWORK_BUILD='AUG13-K';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
