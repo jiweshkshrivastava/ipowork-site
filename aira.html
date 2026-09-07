@@ -1034,7 +1034,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='AUG13-K';
+var IPOWORK_BUILD='AUG13-M';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -5590,10 +5590,26 @@ async function tryMagicLinkLogin(){
   var params = new URLSearchParams(window.location.search);
   var token = params.get('login_token');
   if(!token) return false;
+  /* FIX-AUG13-M: CONFIRMED root cause of "blank white screen" on iOS when
+     opened via an in-app browser (WhatsApp/Gmail webview) — neither fetch
+     call here had any timeout. In-app browsers commonly apply stricter
+     network/tracking-prevention policies than full Safari, which can cause
+     a cross-origin request to hang indefinitely rather than fail cleanly.
+     Since DOMContentLoaded does `await tryMagicLinkLogin()` before running
+     anything else, a hanging fetch here blocked the ENTIRE page from ever
+     finishing initialization — nothing after it would run, producing
+     exactly a blank screen. Same AbortController timeout pattern used
+     elsewhere in this codebase, applied here for the first time. */
   try{
-    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.magic_link&scores->>token=eq.'+encodeURIComponent(token), {
-      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
-    });
+    var ctrl1 = new AbortController();
+    var tid1 = setTimeout(function(){ ctrl1.abort(); }, 6000);
+    var r;
+    try{
+      r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.magic_link&scores->>token=eq.'+encodeURIComponent(token), {
+        headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL },
+        signal: ctrl1.signal
+      });
+    } finally { clearTimeout(tid1); }
     if(!r.ok){ console.error('Magic link: lookup failed, status', r.status); return false; }
     var rows = await r.json();
     if(!rows || !rows[0]){ console.warn('Magic link: token not found — showing normal login'); return false; }
@@ -5604,9 +5620,15 @@ async function tryMagicLinkLogin(){
     if(!email) return false;
 
     var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
-    var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent('USER-'+emailSafe), {
-      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
-    });
+    var ctrl2 = new AbortController();
+    var tid2 = setTimeout(function(){ ctrl2.abort(); }, 6000);
+    var acctR;
+    try{
+      acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent('USER-'+emailSafe), {
+        headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL },
+        signal: ctrl2.signal
+      });
+    } finally { clearTimeout(tid2); }
     var acctRows = acctR.ok ? await acctR.json() : [];
     var u = (acctRows && acctRows[0] && acctRows[0].scores) || null;
     if(!u || !u.approved){ console.warn('Magic link: account not found or not approved for', email); return false; }
@@ -5619,7 +5641,7 @@ async function tryMagicLinkLogin(){
     console.log('Magic link: logged in as', email);
     return true;
   }catch(e){
-    console.error('Magic link login error — showing normal login:', e);
+    console.error('Magic link login error (or timeout) — showing normal login:', e);
     return false;
   }
 }
