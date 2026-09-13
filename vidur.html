@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIDUR — Venture Intelligence · ipowork</title>
+<style>
+:root{
+  --bg:#FAFAF8;--surface:#FFFFFF;--card:#F7F3EE;
+  --tl:#0D5C6B;--tld:#08404D;--tll:#1A7D90;
+  --sf:#E88A2E;--go:#C9932A;
+  --navy:#0A1A2E;--green:#1A9E6B;--red:#C0392B;--amberbg:#FDF3E7;
+  --ink:#1A2530;--mut:#5C6B78;--bd:#E4E0D8;
+  --sh:0 1px 3px rgba(10,26,46,.06);
+  --shl:0 8px 28px rgba(10,26,46,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Georgia,'Times New Roman',serif;background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+.sans{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+a{color:var(--tl)}
+
+/* ── Topbar ── */
+.topbar{position:sticky;top:0;background:rgba(250,250,248,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd);padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;z-index:50;box-shadow:var(--sh)}
+.brand{font-family:-apple-system,sans-serif;font-weight:700;font-size:19px;color:var(--navy);text-decoration:none;letter-spacing:-.3px}
+.brand span{color:var(--sf)}
+.topnav{display:flex;gap:18px;font-family:-apple-system,sans-serif;font-size:13px}
+.topnav a{color:var(--mut);text-decoration:none}
+.topnav a:hover{color:var(--tl)}
+
+/* ── Hero ── */
+.hero{position:relative;max-width:1080px;margin:0 auto;padding:56px 28px 34px;overflow:hidden}
+.ghost-q{position:absolute;right:-10px;top:-40px;font-size:340px;font-weight:800;color:var(--tl);opacity:.05;font-family:Georgia,serif;pointer-events:none;user-select:none;line-height:1}
+.eyebrow{font-family:-apple-system,sans-serif;font-size:11px;letter-spacing:2.6px;text-transform:uppercase;color:var(--tl);margin-bottom:14px}
+.hero h1{font-size:44px;line-height:1.12;letter-spacing:-.5px;color:var(--navy);max-width:720px}
+.hero h1 em{font-style:normal;color:var(--sf)}
+.hero .sub{margin-top:16px;font-size:17px;color:var(--mut);max-width:640px}
+.tagline{margin-top:18px;font-family:-apple-system,sans-serif;font-size:12px;letter-spacing:2.2px}
+.tagline .t1{color:var(--tl)}
+.tagline .t2{color:var(--sf);font-weight:700;font-family:Georgia,serif;letter-spacing:1.4px}
+
+/* ── Layout ── */
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 80px}
+.panel{background:var(--surface);border:1px solid var(--bd);border-radius:12px;padding:28px;box-shadow:var(--sh);margin-top:22px}
+.panel h2{font-size:21px;color:var(--navy);margin-bottom:4px}
+.panel .hint{font-family:-apple-system,sans-serif;font-size:12.5px;color:var(--mut);margin-bottom:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.field label{display:block;font-family:-apple-system,sans-serif;font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;font-family:-apple-system,sans-serif;font-size:14px;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:#FFFDFA;color:var(--ink);outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(13,92,107,.10)}
+.field textarea{min-height:130px;resize:vertical;line-height:1.5}
+.paste-note{font-family:-apple-system,sans-serif;font-size:11.5px;color:var(--mut);margin-top:4px}
+.mt14{margin-top:14px}.mt22{margin-top:22px}
+
+/* Stage pills */
+.stagepills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{font-family:-apple-system,sans-serif;font-size:13px;padding:8px 16px;border:1px solid var(--bd);border-radius:999px;background:#fff;cursor:pointer;color:var(--mut)}
+.pill.on{background:var(--tl);border-color:var(--tl);color:#fff;font-weight:600}
+
+/* Run button */
+.runbar{display:flex;align-items:center;gap:16px;margin-top:26px;flex-wrap:wrap}
+.btn{font-family:-apple-system,sans-serif;font-size:15px;font-weight:600;padding:13px 30px;border-radius:9px;border:none;cursor:pointer}
+.btn-run{background:var(--sf);color:#fff;box-shadow:0 3px 10px rgba(232,138,46,.35)}
+.btn-run:hover{background:#D67B21}
+.btn-run:disabled{background:#D8CFC4;cursor:not-allowed;box-shadow:none}
+.btn-ghost{background:transparent;border:1px solid var(--bd);color:var(--mut)}
+.modewrap{font-family:-apple-system,sans-serif;font-size:13px;color:var(--mut);display:flex;align-items:center;gap:8px}
+
+/* Progress */
+.prog{display:none;margin-top:20px}
+.prog .steps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.pstep.skip{opacity:.45}
+.pstep{font-family:-apple-system,sans-serif;font-size:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--bd);background:#fff;color:var(--mut)}
+.pstep.run{border-color:var(--sf);color:var(--sf);background:var(--amberbg)}
+.pstep.done{border-color:var(--green);color:var(--green);background:#EDF8F2}
+.pstep.err{border-color:var(--red);color:var(--red)}
+.errbox{display:none;margin-top:14px;font-family:-apple-system,sans-serif;font-size:13px;color:var(--red);background:#FBEEEC;border:1px solid #EFC7C0;border-radius:8px;padding:12px 14px}
+
+/* ── Report ── */
+#report{display:none}
+.verdict{position:relative;overflow:hidden;background:var(--navy);color:#fff;border-radius:14px;padding:38px 34px;margin-top:28px}
+.verdict .ghost-q{color:#fff;opacity:.05;font-size:300px;top:-60px}
+.v-eyebrow{font-family:-apple-system,sans-serif;font-size:10.5px;letter-spacing:2.4px;text-transform:uppercase;color:#9DCDD8;margin-bottom:10px}
+.v-flex{display:flex;gap:36px;align-items:center;flex-wrap:wrap}
+.dial{width:170px;height:170px;flex-shrink:0}
+.v-main h2{font-size:30px;line-height:1.15;margin-bottom:8px}
+.v-main .v-tag{display:inline-block;font-family:-apple-system,sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:5px 14px;border-radius:999px;margin-bottom:12px}
+.v-main p{color:#C9D4DE;font-size:15px;max-width:560px}
+.routing{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.14);font-family:-apple-system,sans-serif;font-size:13.5px;color:#9DCDD8}
+.routing b{color:#fff}
+
+/* Pillar cards */
+.pillars{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+.pcard{background:var(--surface);border:1px solid var(--bd);border-radius:11px;padding:20px 22px;box-shadow:var(--sh)}
+.pcard .phead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.pcard h3{font-size:16.5px;color:var(--navy)}
+.pscore{font-family:-apple-system,sans-serif;font-weight:800;font-size:22px}
+.pweight{font-family:-apple-system,sans-serif;font-size:11px;color:var(--mut)}
+.pbar{height:5px;background:#EEE9E1;border-radius:99px;margin:10px 0 12px;overflow:hidden}
+.pbar i{display:block;height:100%;border-radius:99px}
+.pcard ul{list-style:none;font-family:-apple-system,sans-serif;font-size:13px;color:#40505E}
+.pcard li{padding:3px 0 3px 16px;position:relative}
+.pcard li:before{content:'·';position:absolute;left:4px;color:var(--tl);font-weight:800}
+.pcard li.neg:before{content:'×';color:var(--red)}
+
+/* Sections */
+.sect{background:var(--surface);border:1px solid var(--bd);border-radius:12px;padding:26px 28px;box-shadow:var(--sh);margin-top:22px}
+.sect h2{font-size:20px;color:var(--navy);margin-bottom:14px}
+.sect h2 .cnt{font-family:-apple-system,sans-serif;font-size:12px;font-weight:700;color:#fff;background:var(--tl);border-radius:999px;padding:2px 10px;vertical-align:3px;margin-left:8px}
+
+/* Red flags */
+.flag{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #F0ECE4;font-family:-apple-system,sans-serif;font-size:13.5px}
+.flag:last-child{border-bottom:none}
+.sev{flex-shrink:0;font-size:10px;font-weight:800;letter-spacing:.8px;padding:3px 9px;border-radius:5px;margin-top:1px}
+.sev.C{background:#FBEEEC;color:var(--red);border:1px solid #EFC7C0}
+.sev.H{background:var(--amberbg);color:#B5690F;border:1px solid #F0D5B4}
+.sev.W{background:#F0F4F6;color:var(--mut);border:1px solid var(--bd)}
+
+/* Vanity table */
+table.vanity{width:100%;border-collapse:collapse;font-family:-apple-system,sans-serif;font-size:13.5px}
+table.vanity th{text-align:left;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--mut);border-bottom:2px solid var(--bd);padding:8px 10px}
+table.vanity td{padding:9px 10px;border-bottom:1px solid #F0ECE4;vertical-align:top}
+table.vanity td.claim{color:var(--mut)}
+table.vanity td.real{font-weight:700;color:var(--navy)}
+
+/* Question bank */
+.qb .qcat{font-family:-apple-system,sans-serif;font-size:11.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--tl);margin:16px 0 6px;font-weight:700}
+.qb ol{padding-left:20px;font-family:-apple-system,sans-serif;font-size:13.5px;color:#33424F}
+.qb li{padding:3px 0}
+
+/* Export bar */
+.exportbar{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap}
+
+@media(max-width:760px){
+  .grid2,.grid3,.pillars{grid-template-columns:1fr}
+  .hero h1{font-size:32px}
+  .prog .steps{grid-template-columns:1fr 1fr}
+  .ghost-q{font-size:200px}
+}
+@media print{
+  .topbar,.panel,.exportbar,.prog{display:none !important}
+  body{background:#fff}
+  .verdict{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="index.html">ipow<span>o</span>rk</a>
+  <div class="topnav">
+    <a href="aira.html">AIRA Score</a>
+    <a href="risk-desk.html">Risk Desk</a>
+    <a href="report-viewer.html">Reports</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="ghost-q">?</div>
+  <div class="eyebrow">VIDUR · Venture Intelligence &amp; Due-diligence Underwriting Report</div>
+  <h1>Every startup tells a story.<br>VIDUR checks <em>the arithmetic.</em></h1>
+  <p class="sub">A stage-aware, ten-pillar assessment for early-stage companies seeking capital — founder forensics, traction integrity, recomputed unit economics, and 70+ kill-criteria. Nothing left out.</p>
+  <div class="tagline sans"><span class="t1">UNBIASED INTELLIGENCE.</span> <span class="t2">DECISIVE CAPITAL.</span></div>
+</div>
+
+<div class="wrap">
+
+<!-- ═══ INTAKE ═══ -->
+<div class="panel" id="intake">
+  <h2>Startup intake</h2>
+  <div class="hint">Fill what you have. VIDUR flags every field it cannot verify — gaps become diligence questions, not silent assumptions.</div>
+
+  <div class="grid3">
+    <div class="field"><label>Company name *</label><input id="f-name" placeholder="e.g. Acme Fintech Pvt Ltd"></div>
+    <div class="field"><label>CIN (if incorporated)</label><input id="f-cin" placeholder="U-XXXXX..."></div>
+    <div class="field"><label>Sector *</label><input id="f-sector" placeholder="e.g. Fintech — lending"></div>
+  </div>
+  <div class="grid3 mt14">
+    <div class="field"><label>Raising (₹ Cr)</label><input id="f-ask" placeholder="e.g. 8"></div>
+    <div class="field"><label>Pre-money valuation asked (₹ Cr)</label><input id="f-val" placeholder="e.g. 40"></div>
+    <div class="field"><label>Monthly net burn (₹ L)</label><input id="f-burn" placeholder="e.g. 35"></div>
+  </div>
+  <div class="grid3 mt14">
+    <div class="field"><label>Annual revenue / ARR (₹ Cr)</label><input id="f-rev" placeholder="e.g. 2.4"></div>
+    <div class="field"><label>Runway (months)</label><input id="f-runway" placeholder="e.g. 7"></div>
+    <div class="field"><label>Team size</label><input id="f-team" placeholder="e.g. 22"></div>
+  </div>
+
+  <div class="field mt22">
+    <label>Funding stage *</label>
+    <div class="stagepills" id="stagepills">
+      <div class="pill on" data-stage="preseed">Pre-Seed</div>
+      <div class="pill" data-stage="seed">Seed</div>
+      <div class="pill" data-stage="seriesa">Series A+</div>
+    </div>
+  </div>
+
+  <div class="grid2 mt22">
+    <div class="field">
+      <label>Pitch deck content</label>
+      <textarea id="f-deck" placeholder="Paste the full text of the pitch deck — problem, solution, market, team, traction, ask..."></textarea>
+      <div class="paste-note">Copy-paste all slide text. Screenshots → paste the text they contain.</div>
+    </div>
+    <div class="field">
+      <label>Financials / MIS</label>
+      <textarea id="f-fin" placeholder="Revenue by month, gross margin, CAC, burn, bank balance, audited numbers if any..."></textarea>
+      <div class="paste-note">Raw numbers preferred. VIDUR recomputes — it doesn't trust labels.</div>
+    </div>
+  </div>
+  <div class="grid2 mt14">
+    <div class="field">
+      <label>Cap table &amp; founders</label>
+      <textarea id="f-cap" placeholder="Shareholding %, ESOP pool, founder backgrounds, prior ventures, vesting, advisors, existing investors..."></textarea>
+    </div>
+    <div class="field">
+      <label>Anything else the founder claims</label>
+      <textarea id="f-other" placeholder="Partnerships, LOIs, pilots, awards, press, regulatory approvals, IP filings..."></textarea>
+    </div>
+  </div>
+
+  <div class="runbar">
+    <button class="btn btn-run" id="btn-run" onclick="runVIDUR()">Run VIDUR assessment</button>
+    <label class="modewrap"><input type="checkbox" id="deep-mode"> Deep mode (slower, stronger model)</label>
+  </div>
+
+  <div class="prog" id="prog">
+    <div class="steps">
+      <div class="pstep" id="s0">0 · MCA verification (Probe42)</div>
+      <div class="pstep" id="s1">1 · Founders · Market · Product</div>
+      <div class="pstep" id="s2">2 · Traction · Unit Economics · Financials</div>
+      <div class="pstep" id="s3">3 · Legal · Cap Table · Sector · Fundability</div>
+      <div class="pstep" id="s4">4 · Verdict · Red Flags · Question Bank</div>
+    </div>
+  </div>
+  <div class="errbox" id="errbox"></div>
+</div>
+
+<!-- ═══ REPORT ═══ -->
+<div id="report"></div>
+
+</div>
+
+<script>
+/* ═══════════ VIDUR ENGINE v1.0 ═══════════ */
+var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
+
+/* Stage-aware weight matrix — deterministic, applied in JS. */
+var WEIGHTS = {
+  preseed:{founders:30,market:15,product:12,traction:8, uniteco:5, findisc:5, legal:8,captable:10,sector:4,fundability:3},
+  seed:   {founders:22,market:12,product:12,traction:14,uniteco:10,findisc:8, legal:7,captable:8, sector:4,fundability:3},
+  seriesa:{founders:15,market:8, product:10,traction:15,uniteco:15,findisc:12,legal:8,captable:8, sector:4,fundability:5}
+};
+var PILLAR_META = [
+  ['founders','Founder &amp; Team Forensics'],
+  ['market','Problem &amp; Market Reality'],
+  ['product','Product &amp; Moat'],
+  ['traction','Traction Integrity'],
+  ['uniteco','Unit Economics'],
+  ['findisc','Financial Discipline'],
+  ['legal','Legal &amp; Compliance'],
+  ['captable','Cap Table &amp; Governance'],
+  ['sector','Sector &amp; Regulatory Risk'],
+  ['fundability','Fundability &amp; Exit Path']
+];
+var STAGE_LABEL = {preseed:'Pre-Seed',seed:'Seed',seriesa:'Series A+'};
+var curStage = 'preseed';
+
+document.querySelectorAll('#stagepills .pill').forEach(function(p){
+  p.onclick = function(){
+    document.querySelectorAll('#stagepills .pill').forEach(function(x){x.classList.remove('on');});
+    p.classList.add('on');
+    curStage = p.getAttribute('data-stage');
+  };
+});
+
+async function workerPost(payload){
+  var ctrl = new AbortController();
+  var tid = setTimeout(function(){ctrl.abort();}, 90000);
+  try{
+    var resp = await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:ctrl.signal});
+    clearTimeout(tid);
+    var text = await resp.text();
+    try{ return JSON.parse(text); }
+    catch(e){ throw new Error('HTTP '+resp.status+': '+text.substring(0,180)); }
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError') throw new Error('Request timed out (90s). Retry, or check worker.');
+    throw e;
+  }
+}
+
+function modelName(){ return document.getElementById('deep-mode').checked ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001'; }
+
+async function callClaude(prompt, maxTok){
+  var data = await workerPost({
+    type:'vidur',
+    model: modelName(),
+    max_tokens: maxTok || 2600,
+    messages:[{role:'user',content:prompt}]
+  });
+  if(data.error) throw new Error(data.error);
+  var txt = (data.content||[]).map(function(c){return c.text||'';}).join('');
+  if(!txt) throw new Error('Empty model response');
+  return txt;
+}
+
+function parseJSON(txt){
+  txt = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
+  var a = txt.indexOf('{'), b = txt.lastIndexOf('}');
+  if(a===-1||b===-1) throw new Error('No JSON found in model output');
+  return JSON.parse(txt.substring(a,b+1));
+}
+
+async function callWithRetry(prompt, maxTok){
+  try{ return parseJSON(await callClaude(prompt,maxTok)); }
+  catch(e){ return parseJSON(await callClaude(prompt,maxTok)); }
+}
+
+function v(id){ return (document.getElementById(id).value||'').trim(); }
+
+/* ═══ Probe42 MCA verification ═══ */
+function fmtCr(x){ return (x==null||x==='')?'n/a':('₹'+x+' Cr'); }
+function buildProbeBlock(p){
+  var lines = [];
+  lines.push('COMPANY (MCA): '+(p.company_name||'?')+' | CIN: '+(p.cin||'')+' | STATUS: '+(p.status||'?')+' | INCORPORATED: '+(p.date_of_incorporation||'?'));
+  lines.push('COMPLIANCE: '+(p.active_compliance||'?')+' | LAST FILING: '+(p.last_filing_date||'?')+' | LAST AGM: '+(p.last_agm_date||'?')+' | CIRP: '+(p.cirp_status||'None'));
+  lines.push('PAID-UP CAPITAL: '+(p.paid_up_capital||'?')+' | STATE: '+(p.registered_state||'?')+' | TYPE: '+(p.company_type||'?'));
+  if(p.revenue_fy24!=null||p.revenue_fy23!=null){
+    lines.push('MCA FINANCIALS — Revenue: '+(p.fy24_year||'FY24')+' '+fmtCr(p.revenue_fy24)+', '+(p.fy23_year||'FY23')+' '+fmtCr(p.revenue_fy23)+', '+(p.fy22_year||'FY22')+' '+fmtCr(p.revenue_fy22));
+    lines.push('MCA FINANCIALS — PAT: '+fmtCr(p.pat_fy24)+' / '+fmtCr(p.pat_fy23)+' / '+fmtCr(p.pat_fy22)+' | Net worth: '+fmtCr(p.net_worth)+' | Total debt: '+fmtCr(p.total_debt)+' | Auditor: '+(p.auditor||'?'));
+  }
+  var dirs = p.directors||[];
+  if(dirs.length){
+    lines.push('DIRECTORS ON RECORD ('+dirs.length+'):');
+    dirs.forEach(function(d){
+      lines.push('  - '+(d.name||'?')+' | DIN '+(d.din||'?')+' | '+(d.designation||'Director')+' | appointed '+(d.appointed||'?')+(d.cessation?(' | CEASED '+d.cessation):''));
+    });
+  }
+  var ch = (p.charges||[]).filter(function(c){return (c.status||'').toLowerCase()!=='satisfied';});
+  lines.push('OPEN CHARGES: '+ch.length+' | SUM OF CHARGES: '+(p.sum_of_charges!=null?fmtCr(p.sum_of_charges):'n/a'));
+  ch.slice(0,10).forEach(function(c){ lines.push('  - '+(c.charge_holder||'?')+' | amount '+(c.amount!=null?c.amount:'?')+' | created '+(c.date_of_creation||'?')); });
+  if(p.related_party_transactions && p.related_party_transactions.length) lines.push('RELATED PARTY TRANSACTIONS ON RECORD: '+p.related_party_transactions.length);
+  if(p.credit_ratings && p.credit_ratings.length) lines.push('CREDIT RATINGS ON RECORD: '+JSON.stringify(p.credit_ratings).substring(0,400));
+  return lines.join('\n');
+}
+
+async function fetchProbe42(cin){
+  var data = await workerPost({type:'probe42_raw', cin:cin});
+  if(data.error) throw new Error(data.error);
+  if(!data.company_name || data.company_name==='NOT FOUND') throw new Error('CIN not found in MCA records');
+  return data;
+}
+
+function buildContext(){
+  return [
+    'COMPANY: '+(v('f-name')||'(not given)'),
+    'CIN: '+(v('f-cin')||'not provided'),
+    'SECTOR: '+(v('f-sector')||'(not given)'),
+    'STAGE: '+STAGE_LABEL[curStage],
+    'RAISING: ₹'+(v('f-ask')||'?')+' Cr at pre-money ₹'+(v('f-val')||'?')+' Cr',
+    'REVENUE/ARR: ₹'+(v('f-rev')||'?')+' Cr | MONTHLY BURN: ₹'+(v('f-burn')||'?')+' L | RUNWAY: '+(v('f-runway')||'?')+' months | TEAM: '+(v('f-team')||'?'),
+    '', '--- PITCH DECK TEXT ---', v('f-deck')||'(none provided)',
+    '', '--- FINANCIALS / MIS ---', v('f-fin')||'(none provided)',
+    '', '--- CAP TABLE &amp; FOUNDERS ---', v('f-cap')||'(none provided)',
+    '', '--- OTHER CLAIMS ---', v('f-other')||'(none provided)'
+  ].join('\n');
+}
+
+var PILLAR_RULES = 'Score each pillar 0-100. Be a sceptical Indian institutional diligence analyst, not a cheerleader. Anything unverifiable from the provided material scores conservatively and generates a flag. Flags: sev "C" (critical / potential kill-criterion: fraud indicators, fake traction, founder integrity issues, regulatory show-stoppers, <3mo runway with no bridge, broken cap table >30% dead equity, revenue misrepresentation), "H" (high risk), "W" (watch). Respond with PURE JSON only — no markdown, no preamble, no trailing text.';
+
+function pillarSchema(keys){
+  return '{'+keys.map(function(k){return '"'+k+'":{"score":0,"positives":["..."],"negatives":["..."],"flags":[{"sev":"C|H|W","text":"..."}]}';}).join(',')+'}';
+}
+
+async function runVIDUR(){
+  var err = document.getElementById('errbox');
+  err.style.display='none';
+  if(!v('f-name')||!v('f-sector')){ err.textContent='Company name and sector are required.'; err.style.display='block'; return; }
+  var btn = document.getElementById('btn-run');
+  btn.disabled = true; btn.textContent = 'Running…';
+  document.getElementById('prog').style.display='block';
+  ['s0','s1','s2','s3','s4'].forEach(function(s){document.getElementById(s).className='pstep';});
+  var CTX = buildContext();
+  var R = {};
+  R._probe = null;
+  try{
+    /* Step 0 — Probe42 MCA verification (only if CIN provided) */
+    var cin = v('f-cin');
+    if(cin && cin.length >= 15){
+      setStep('s0','run');
+      try{
+        var pdata = await fetchProbe42(cin);
+        R._probe = { verified:true, company_name:pdata.company_name, status:pdata.status,
+          compliance:pdata.active_compliance, directors:(pdata.directors||[]).length,
+          open_charges:(pdata.charges||[]).filter(function(c){return (c.status||'').toLowerCase()!=='satisfied';}).length };
+        CTX += '\n\n--- MCA-VERIFIED RECORD (Probe42 — GROUND TRUTH; any discrepancy vs founder claims above is a HIGH or CRITICAL flag) ---\n' + buildProbeBlock(pdata);
+        setStep('s0','done');
+      }catch(pe){
+        setStep('s0','err');
+        CTX += '\n\n--- MCA VERIFICATION ATTEMPTED BUT FAILED ('+pe.message+') — treat all incorporation, director and charge claims as UNVERIFIED ---';
+      }
+    } else {
+      document.getElementById('s0').className='pstep skip';
+      CTX += '\n\n--- NO CIN PROVIDED — company existence, directors and charges are UNVERIFIED; flag accordingly ---';
+    }
+
+    /* Call 1 — Founders, Market, Product */
+    setStep('s1','run');
+    var p1 = 'You are VIDUR, ipowork\'s venture diligence engine.\n'+PILLAR_RULES+
+      '\n\nPILLARS:\n1. founders — Founder &amp; Team Forensics: backgrounds, prior ventures &amp; their outcomes, integrity signals, full-time commitment, founder-market fit, key-person risk, team completeness.\n'+
+      '2. market — Problem &amp; Market Reality: is the problem real &amp; painful, bottom-up TAM sanity (reject top-down x% of $XB claims), timing, competition density, India-specific dynamics.\n'+
+      '3. product — Product &amp; Moat: defensibility, IP ownership &amp; assignment to the company, tech risk, switching costs, replicability by incumbents.\n\n'+
+      'STARTUP MATERIAL:\n'+CTX+'\n\nJSON SCHEMA (exact keys):\n'+pillarSchema(['founders','market','product']);
+    Object.assign(R, await callWithRetry(p1));
+    setStep('s1','done'); setStep('s2','run');
+
+    /* Call 2 — Traction, Unit Economics, Financial Discipline + Anti-Vanity */
+    var p2 = 'You are VIDUR, ipowork\'s venture diligence engine.\n'+PILLAR_RULES+
+      '\n\nPILLARS:\n1. traction — Traction Integrity: distinguish real revenue from GMV/bookings/LOIs/pilots; cohort retention; customer concentration; growth quality vs paid-growth sugar-high.\n'+
+      '2. uniteco — Unit Economics: contribution margin, CAC (paid vs blended), LTV assumptions realism, payback period, burn multiple (net burn ÷ net new ARR).\n'+
+      '3. findisc — Financial Discipline: runway honesty, burn trend, MIS quality, audited vs claimed numbers, bank balance vs statements, salary discipline.\n\n'+
+      'ADDITIONALLY: an anti-vanity recomputation table. For every claimed metric you can recompute from raw numbers, show claimed vs recomputed with a one-line note. If numbers are missing, state what raw data is needed.\n\n'+
+      'STARTUP MATERIAL:\n'+CTX+'\n\nJSON SCHEMA (exact keys):\n{'+
+      '"traction":{"score":0,"positives":[],"negatives":[],"flags":[]},'+
+      '"uniteco":{"score":0,"positives":[],"negatives":[],"flags":[]},'+
+      '"findisc":{"score":0,"positives":[],"negatives":[],"flags":[]},'+
+      '"vanity":[{"metric":"...","claimed":"...","recomputed":"...","note":"..."}]}';
+    Object.assign(R, await callWithRetry(p2));
+    setStep('s2','done'); setStep('s3','run');
+
+    /* Call 3 — Legal, Cap Table, Sector, Fundability */
+    var p3 = 'You are VIDUR, ipowork\'s venture diligence engine.\n'+PILLAR_RULES+
+      '\n\nPILLARS:\n1. legal — Legal &amp; Compliance (India): incorporation &amp; ROC filing hygiene, GST, DPIIT recognition, FEMA/FDI route for the sector, sectoral licences (RBI/SEBI/IRDAI/FSSAI etc.), related-party transactions, litigation, employment &amp; ESOP scheme validity, IP assignment deeds.\n'+
+      '2. captable — Cap Table &amp; Governance: founder holding at this stage, dead equity, vesting in place, ESOP pool size, investor rights stack sanity, board composition, any pledge/encumbrance.\n'+
+      '3. sector — Sector &amp; Regulatory Risk: sector-specific regulatory trajectory in India, platform-dependency risk, policy overhang.\n'+
+      '4. fundability — Fundability &amp; Exit Path: which investor class realistically funds this next round at this valuation, valuation ask vs stage benchmarks, path to Series A/B or SME-IPO/strategic exit.\n\n'+
+      'STARTUP MATERIAL:\n'+CTX+'\n\nJSON SCHEMA (exact keys):\n'+pillarSchema(['legal','captable','sector','fundability']);
+    Object.assign(R, await callWithRetry(p3));
+    setStep('s3','done'); setStep('s4','run');
+
+    /* Composite — computed HERE, in JS, never by the model */
+    var W = WEIGHTS[curStage];
+    var composite = 0, criticals = [], allFlags = [];
+    PILLAR_META.forEach(function(pm){
+      var k = pm[0], d = R[k]||{score:0,flags:[]};
+      var sc = Math.max(0, Math.min(100, Number(d.score)||0));
+      d.score = sc;
+      composite += sc * W[k] / 100;
+      (d.flags||[]).forEach(function(f){
+        f.pillar = pm[1]; allFlags.push(f);
+        if(f.sev==='C') criticals.push(f);
+      });
+    });
+    composite = Math.round(composite*10)/10;
+    var capped = false;
+    if(criticals.length && composite > 49){ composite = 49; capped = true; }
+    R._composite = composite; R._criticals = criticals; R._allFlags = allFlags; R._capped = capped;
+
+    /* Call 4 — Verdict narrative + Question Bank */
+    var pillarBrief = PILLAR_META.map(function(pm){
+      var d=R[pm[0]]||{}; return pm[1]+': '+d.score+'/100. Issues: '+((d.negatives||[]).slice(0,3).join('; ')||'none noted');
+    }).join('\n');
+    var p4 = 'You are VIDUR, ipowork\'s venture diligence engine. The weighted composite score is '+composite+'/100 (stage: '+STAGE_LABEL[curStage]+(capped?'; score CAPPED at 49 due to critical flags':'')+').\n'+
+      'PILLAR RESULTS:\n'+pillarBrief+'\n\nCRITICAL FLAGS: '+(criticals.map(function(f){return f.text;}).join(' | ')||'none')+
+      '\n\nSTARTUP MATERIAL:\n'+CTX.substring(0,4000)+
+      '\n\nProduce PURE JSON only:\n{"summary":"3-4 sentence institutional verdict paragraph — direct, specific to this company, no hedging filler",'+
+      '"questions":[{"cat":"Category name","items":["specific diligence question","..."]}] (5-7 categories, 4-6 sharp questions each, targeting every unverifiable claim and every gap in the material),'+
+      '"term_cautions":["specific term-sheet protection this deal warrants","..."] (4-6 items)}';
+    var vd = await callWithRetry(p4, 3000);
+    R._verdict = vd;
+    setStep('s4','done');
+
+    renderReport(R);
+  }catch(e){
+    err.textContent = 'VIDUR error: '+e.message;
+    err.style.display='block';
+    ['s1','s2','s3','s4'].forEach(function(s){
+      var el=document.getElementById(s);
+      if(el.classList.contains('run')) el.className='pstep err';
+    });
+  }
+  btn.disabled=false; btn.textContent='Run VIDUR assessment';
+}
+
+function setStep(id, cls){ document.getElementById(id).className = 'pstep '+cls; }
+
+/* ═══ RENDER ═══ */
+function esc(s){ return String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function verdictBand(score, hasCrit){
+  if(hasCrit || score < 55) return {tag:'Improvement Required', col:'#E07B6B', route:'<b>Not routed to capital.</b> A remediation roadmap is issued instead. Re-assessment available after the flagged items are cured — protecting both the founder\'s credibility and our investor network\'s trust.'};
+  if(score < 70) return {tag:'Watch', col:'#E8B44E', route:'<b>Conditional pipeline.</b> 90-day improvement plan on the weakest pillars, then re-score. Not yet circulated to the investor network.'};
+  if(score < 80) return {tag:'Fundable with Conditions', col:'#9DCDD8', route:'<b>Routed to angel syndicates &amp; micro-VCs</b> in the ipowork network, with the question bank and term cautions attached. ipowork earns only from distribution — never from the issuer\'s advisory mandate.'};
+  return {tag:'Investment Grade', col:'#5BC48F', route:'<b>Routed to AIF &amp; Family Office distribution</b> — the top tier of the ipowork capital network. Full VIDUR report travels with the introduction. ipowork earns only from distribution — never from the issuer\'s advisory mandate.'};
+}
+
+function dialSVG(score, col){
+  var r=70, c=2*Math.PI*r, frac=Math.max(0,Math.min(1,score/100));
+  return '<svg class="dial" viewBox="0 0 170 170">'+
+    '<circle cx="85" cy="85" r="'+r+'" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="11"/>'+
+    '<circle cx="85" cy="85" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+(c*frac)+' '+c+'" transform="rotate(-90 85 85)"/>'+
+    '<text x="85" y="80" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="38" font-weight="800" fill="#fff">'+score+'</text>'+
+    '<text x="85" y="104" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" letter-spacing="2" fill="#9DCDD8">VIDUR / 100</text></svg>';
+}
+
+function scoreCol(s){ return s>=80?'#1A9E6B':s>=70?'#0D5C6B':s>=55?'#C9932A':'#C0392B'; }
+
+function renderReport(R){
+  var W = WEIGHTS[curStage];
+  var band = verdictBand(R._composite, R._criticals.length>0);
+  var name = esc(v('f-name'));
+  var h = '';
+
+  h += '<div class="verdict"><div class="ghost-q">?</div>'+
+    '<div class="v-eyebrow">VIDUR Verdict · '+esc(STAGE_LABEL[curStage])+' · '+new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})+
+    (R._probe&&R._probe.verified?' · <span style="color:#5BC48F">✓ MCA-VERIFIED (PROBE42)</span>':' · <span style="color:#E8B44E">UNVERIFIED — NO MCA RECORD PULLED</span>')+'</div>'+
+    '<div class="v-flex">'+dialSVG(R._composite, band.col)+
+    '<div class="v-main"><span class="v-tag" style="background:'+band.col+';color:#0A1A2E">'+band.tag+'</span>'+
+    '<h2>'+name+'</h2>'+
+    '<p>'+esc((R._verdict&&R._verdict.summary)||'')+'</p>'+
+    (R._capped?'<p style="margin-top:10px;color:#E07B6B;font-family:-apple-system,sans-serif;font-size:13px">⚠ Composite capped at 49 — critical flags override the weighted score.</p>':'')+
+    '</div></div>'+
+    '<div class="routing">Capital routing — '+band.route+'</div></div>';
+
+  /* Pillars */
+  h += '<div class="pillars">';
+  PILLAR_META.forEach(function(pm){
+    var k=pm[0], d=R[k]||{}, sc=d.score||0, col=scoreCol(sc);
+    h += '<div class="pcard"><div class="phead"><h3>'+pm[1]+'</h3><div><span class="pscore" style="color:'+col+'">'+sc+'</span> <span class="pweight">wt '+W[k]+'%</span></div></div>'+
+      '<div class="pbar"><i style="width:'+sc+'%;background:'+col+'"></i></div><ul>';
+    (d.positives||[]).slice(0,4).forEach(function(x){h+='<li>'+esc(x)+'</li>';});
+    (d.negatives||[]).slice(0,4).forEach(function(x){h+='<li class="neg">'+esc(x)+'</li>';});
+    h += '</ul></div>';
+  });
+  h += '</div>';
+
+  /* Red Flag Radar */
+  var order={C:0,H:1,W:2};
+  var flags=(R._allFlags||[]).slice().sort(function(a,b){return (order[a.sev]||3)-(order[b.sev]||3);});
+  h += '<div class="sect"><h2>Red Flag Radar<span class="cnt">'+flags.length+'</span></h2>';
+  if(!flags.length) h += '<div style="font-family:-apple-system,sans-serif;font-size:13.5px;color:var(--mut)">No flags raised — unusual. Verify the completeness of the material provided.</div>';
+  flags.forEach(function(f){
+    var lab=f.sev==='C'?'CRITICAL':f.sev==='H'?'HIGH':'WATCH';
+    h += '<div class="flag"><span class="sev '+esc(f.sev)+'">'+lab+'</span><div>'+esc(f.text)+' <span style="color:var(--mut)">— '+esc(f.pillar)+'</span></div></div>';
+  });
+  h += '</div>';
+
+  /* Anti-Vanity Engine */
+  var van = R.vanity||[];
+  h += '<div class="sect"><h2>Anti-Vanity Engine</h2>';
+  if(van.length){
+    h += '<table class="vanity"><tr><th>Metric</th><th>As claimed</th><th>As recomputed</th><th>Note</th></tr>';
+    van.forEach(function(x){ h += '<tr><td>'+esc(x.metric)+'</td><td class="claim">'+esc(x.claimed)+'</td><td class="real">'+esc(x.recomputed)+'</td><td>'+esc(x.note)+'</td></tr>'; });
+    h += '</table>';
+  } else {
+    h += '<div style="font-family:-apple-system,sans-serif;font-size:13.5px;color:var(--mut)">Insufficient raw numbers to recompute metrics — that itself is a diligence finding. See the Question Bank.</div>';
+  }
+  h += '</div>';
+
+  /* Question Bank */
+  var qs = (R._verdict&&R._verdict.questions)||[];
+  h += '<div class="sect qb"><h2>Founder Question Bank<span class="cnt">'+qs.reduce(function(n,c){return n+((c.items||[]).length);},0)+'</span></h2>'+
+       '<div style="font-family:-apple-system,sans-serif;font-size:12.5px;color:var(--mut)">Every question maps to a claim VIDUR could not verify. Send before the next founder call.</div>';
+  qs.forEach(function(c){
+    h += '<div class="qcat">'+esc(c.cat)+'</div><ol>';
+    (c.items||[]).forEach(function(q){h+='<li>'+esc(q)+'</li>';});
+    h += '</ol>';
+  });
+  h += '</div>';
+
+  /* Term cautions */
+  var tc = (R._verdict&&R._verdict.term_cautions)||[];
+  if(tc.length){
+    h += '<div class="sect"><h2>Term-Sheet Cautions</h2><ul style="list-style:none;font-family:-apple-system,sans-serif;font-size:13.5px;color:#33424F">';
+    tc.forEach(function(t){h+='<li style="padding:5px 0 5px 18px;position:relative"><span style="position:absolute;left:0;color:var(--sf);font-weight:800">▸</span>'+esc(t)+'</li>';});
+    h += '</ul></div>';
+  }
+
+  h += '<div class="exportbar">'+
+    '<button class="btn btn-run" onclick="window.print()">Export PDF</button>'+
+    '<button class="btn btn-ghost" onclick="exportJSON()">Export JSON (report-viewer)</button>'+
+    '<button class="btn btn-ghost" onclick="document.getElementById(\'report\').style.display=\'none\';window.scrollTo(0,0)">New assessment</button></div>';
+
+  var rep = document.getElementById('report');
+  window._lastVIDUR = R;
+  rep.innerHTML = h;
+  rep.style.display = 'block';
+  rep.scrollIntoView({behavior:'smooth'});
+}
+
+function exportJSON(){
+  var R = window._lastVIDUR; if(!R) return;
+  var out = {
+    product:'VIDUR', version:'1.0', company:v('f-name'), cin:v('f-cin'), sector:v('f-sector'),
+    stage:curStage, date:new Date().toISOString(),
+    composite:R._composite, capped:R._capped, probe42:R._probe,
+    pillars:{}, flags:R._allFlags, vanity:R.vanity||[], verdict:R._verdict
+  };
+  PILLAR_META.forEach(function(pm){ out.pillars[pm[0]] = R[pm[0]]; });
+  var blob = new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'VIDUR_'+(v('f-name')||'report').replace(/[^a-z0-9]/gi,'_')+'.json';
+  a.click();
+}
+</script>
+</body>
+</html>
