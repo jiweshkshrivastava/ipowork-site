@@ -50,6 +50,12 @@ a{color:var(--tl)}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--tl);box-shadow:0 0 0 3px rgba(13,92,107,.10)}
 .field textarea{min-height:130px;resize:vertical;line-height:1.5}
 .paste-note{font-family:-apple-system,sans-serif;font-size:11.5px;color:var(--mut);margin-top:4px}
+.filein{width:100%;font-family:-apple-system,sans-serif;font-size:12.5px;padding:8px 10px;border:1.5px dashed var(--bd);border-radius:8px;background:#FFFDFA;color:var(--mut);margin-bottom:6px;cursor:pointer}
+.filein:hover{border-color:var(--tl)}
+.upload-status{font-family:-apple-system,sans-serif;font-size:11.5px;margin-bottom:6px;min-height:14px}
+.upload-status.ok{color:var(--green)}
+.upload-status.err{color:var(--red)}
+.upload-status.busy{color:var(--sf)}
 .mt14{margin-top:14px}.mt22{margin-top:22px}
 
 /* Stage pills */
@@ -198,13 +204,17 @@ table.vanity td.real{font-weight:700;color:var(--navy)}
   <div class="grid2 mt22">
     <div class="field">
       <label>Pitch deck content</label>
-      <textarea id="f-deck" placeholder="Paste the full text of the pitch deck — problem, solution, market, team, traction, ask..."></textarea>
-      <div class="paste-note">Copy-paste all slide text. Screenshots → paste the text they contain.</div>
+      <input type="file" id="f-deck-file" accept=".pdf" class="filein" onchange="handleFileUpload(this,'f-deck','pdf')">
+      <div class="upload-status" id="f-deck-status"></div>
+      <textarea id="f-deck" placeholder="Upload a PDF above, or paste the full text of the pitch deck — problem, solution, market, team, traction, ask..."></textarea>
+      <div class="paste-note">Upload the deck PDF directly, or copy-paste slide text. Screenshots → paste the text they contain.</div>
     </div>
     <div class="field">
       <label>Financials / MIS</label>
-      <textarea id="f-fin" placeholder="Revenue by month, gross margin, CAC, burn, bank balance, audited numbers if any..."></textarea>
-      <div class="paste-note">Raw numbers preferred. VIDUR recomputes — it doesn't trust labels.</div>
+      <input type="file" id="f-fin-file" accept=".pdf,.xlsx,.xls,.csv" class="filein" onchange="handleFileUpload(this,'f-fin','auto')">
+      <div class="upload-status" id="f-fin-status"></div>
+      <textarea id="f-fin" placeholder="Upload a PDF/Excel/CSV above, or paste revenue by month, gross margin, CAC, burn, bank balance, audited numbers if any..."></textarea>
+      <div class="paste-note">Upload the MIS file directly (PDF, Excel, or CSV), or paste raw numbers. VIDUR recomputes — it doesn't trust labels.</div>
     </div>
   </div>
   <div class="grid2 mt14">
@@ -240,7 +250,11 @@ table.vanity td.real{font-weight:700;color:var(--navy)}
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
 /* ═══════════ VIDUR ENGINE v1.0 ═══════════ */
 var WORKER = 'https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 
@@ -305,10 +319,13 @@ async function callClaude(prompt, maxTok){
 }
 
 function parseJSON(txt){
-  txt = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
-  var a = txt.indexOf('{'), b = txt.lastIndexOf('}');
-  if(a===-1||b===-1) throw new Error('No JSON found in model output');
-  return JSON.parse(txt.substring(a,b+1));
+  var cleaned = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
+  var a = cleaned.indexOf('{'), b = cleaned.lastIndexOf('}');
+  if(a===-1||b===-1){
+    var preview = txt.length>300 ? txt.substring(0,300)+'…' : txt;
+    throw new Error('No JSON found in model output. Raw response was: "'+preview+'"');
+  }
+  return JSON.parse(cleaned.substring(a,b+1));
 }
 
 async function callWithRetry(prompt, maxTok){
@@ -317,6 +334,80 @@ async function callWithRetry(prompt, maxTok){
 }
 
 function v(id){ return (document.getElementById(id).value||'').trim(); }
+
+/* ═══ File upload handling — extracts text client-side, feeds existing textareas ═══ */
+async function extractPDFText(file){
+  var buf = await file.arrayBuffer();
+  var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  var pages = [];
+  for(var i=1; i<=pdf.numPages; i++){
+    var page = await pdf.getPage(i);
+    var content = await page.getTextContent();
+    var pageText = content.items.map(function(it){ return it.str; }).join(' ');
+    pages.push('--- Page '+i+' ---\n'+pageText);
+  }
+  return pages.join('\n\n');
+}
+
+function extractSpreadsheetText(file){
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var wb = XLSX.read(e.target.result, {type:'binary'});
+        var out = [];
+        wb.SheetNames.forEach(function(name){
+          var sheet = wb.Sheets[name];
+          var csv = XLSX.utils.sheet_to_csv(sheet);
+          out.push('--- Sheet: '+name+' ---\n'+csv);
+        });
+        resolve(out.join('\n\n'));
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = function(){ reject(new Error('Could not read file')); };
+    reader.readAsBinaryString(file);
+  });
+}
+
+function extractCSVText(file){
+  return new Promise(function(resolve, reject){
+    var reader = new FileReader();
+    reader.onload = function(e){ resolve(e.target.result); };
+    reader.onerror = function(){ reject(new Error('Could not read file')); };
+    reader.readAsText(file);
+  });
+}
+
+async function handleFileUpload(inputEl, textareaId, kind){
+  var file = inputEl.files[0];
+  if(!file) return;
+  var statusEl = document.getElementById(inputEl.id.replace('-file','-status'));
+  var textarea = document.getElementById(textareaId);
+  statusEl.className = 'upload-status busy';
+  statusEl.textContent = 'Extracting text from '+file.name+'…';
+  try{
+    var ext = file.name.split('.').pop().toLowerCase();
+    var text = '';
+    if(ext === 'pdf'){
+      text = await extractPDFText(file);
+    } else if(kind === 'auto' && (ext === 'xlsx' || ext === 'xls')){
+      text = await extractSpreadsheetText(file);
+    } else if(kind === 'auto' && ext === 'csv'){
+      text = await extractCSVText(file);
+    } else {
+      throw new Error('Unsupported file type: .'+ext);
+    }
+    if(!text || !text.trim()){
+      throw new Error('No text could be extracted — the file may be a scanned image PDF without a text layer.');
+    }
+    textarea.value = text.trim();
+    statusEl.className = 'upload-status ok';
+    statusEl.textContent = '✓ Extracted '+text.trim().length+' characters from '+file.name+' — review and edit below if needed.';
+  }catch(err){
+    statusEl.className = 'upload-status err';
+    statusEl.textContent = '✗ '+err.message+' — you can paste text directly into the box below instead.';
+  }
+}
 
 /* ═══ Probe42 MCA verification ═══ */
 function fmtCr(x){ return (x==null||x==='')?'n/a':('₹'+x+' Cr'); }
