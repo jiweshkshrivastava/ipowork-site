@@ -318,6 +318,35 @@ async function callClaude(prompt, maxTok){
   return txt;
 }
 
+/* Repairs a common LLM-JSON issue: literal newlines/tabs/control chars left
+   unescaped inside quoted string values, which JSON.parse() correctly
+   rejects. Walks the string tracking whether we're inside a quoted value
+   (toggling on unescaped double-quotes) and escapes control chars only
+   while inside one — structural whitespace between tokens is untouched. */
+function sanitizeJSONControlChars(s){
+  var out = '', inStr = false, esc = false;
+  for(var i=0; i<s.length; i++){
+    var c = s[i], code = s.charCodeAt(i);
+    if(inStr){
+      if(esc){ out += c; esc = false; continue; }
+      if(c === '\\'){ out += c; esc = true; continue; }
+      if(c === '"'){ inStr = false; out += c; continue; }
+      if(code < 0x20){
+        if(c === '\n') out += '\\n';
+        else if(c === '\r') out += '\\r';
+        else if(c === '\t') out += '\\t';
+        else out += ' ';
+        continue;
+      }
+      out += c;
+    } else {
+      if(c === '"'){ inStr = true; }
+      out += c;
+    }
+  }
+  return out;
+}
+
 function parseJSON(txt){
   var cleaned = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
   var a = cleaned.indexOf('{'), b = cleaned.lastIndexOf('}');
@@ -325,7 +354,17 @@ function parseJSON(txt){
     var preview = txt.length>300 ? txt.substring(0,300)+'…' : txt;
     throw new Error('No JSON found in model output. Raw response was: "'+preview+'"');
   }
-  return JSON.parse(cleaned.substring(a,b+1));
+  var slice = cleaned.substring(a,b+1);
+  try{
+    return JSON.parse(slice);
+  }catch(e1){
+    try{
+      return JSON.parse(sanitizeJSONControlChars(slice));
+    }catch(e2){
+      var preview2 = slice.length>300 ? slice.substring(0,300)+'…' : slice;
+      throw new Error('Model returned malformed JSON ('+e2.message+'). Raw content was: "'+preview2+'"');
+    }
+  }
 }
 
 async function callWithRetry(prompt, maxTok){
