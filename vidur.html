@@ -379,13 +379,17 @@ async function extractPDFText(file){
   var buf = await file.arrayBuffer();
   var pdf = await pdfjsLib.getDocument({data: buf}).promise;
   var pages = [];
+  var realContentLength = 0;
+  var blankPageCount = 0;
   for(var i=1; i<=pdf.numPages; i++){
     var page = await pdf.getPage(i);
     var content = await page.getTextContent();
-    var pageText = content.items.map(function(it){ return it.str; }).join(' ');
+    var pageText = content.items.map(function(it){ return it.str; }).join(' ').trim();
+    realContentLength += pageText.length;
+    if(!pageText) blankPageCount++;
     pages.push('--- Page '+i+' ---\n'+pageText);
   }
-  return pages.join('\n\n');
+  return { text: pages.join('\n\n'), realContentLength: realContentLength, totalPages: pdf.numPages, blankPageCount: blankPageCount };
 }
 
 function extractSpreadsheetText(file){
@@ -426,22 +430,34 @@ async function handleFileUpload(inputEl, textareaId, kind){
   statusEl.textContent = 'Extracting text from '+file.name+'…';
   try{
     var ext = file.name.split('.').pop().toLowerCase();
-    var text = '';
     if(ext === 'pdf'){
-      text = await extractPDFText(file);
+      var result = await extractPDFText(file);
+      textarea.value = result.text.trim();
+      if(result.realContentLength === 0){
+        statusEl.className = 'upload-status err';
+        statusEl.textContent = '⚠ '+file.name+' has '+result.totalPages+' page(s) but NO extractable text was found on any of them — this PDF likely has slides exported as flattened images (common from Canva/Figma/Keynote), which this tool cannot read text from. Re-export the deck with selectable text, or paste the deck content directly into the box below.';
+      } else if(result.blankPageCount > 0){
+        statusEl.className = 'upload-status ok';
+        statusEl.textContent = '⚠ Extracted text from '+(result.totalPages-result.blankPageCount)+' of '+result.totalPages+' pages ('+result.blankPageCount+' page(s) had no extractable text — likely image-only slides). Review below; add missing content manually if needed.';
+      } else {
+        statusEl.className = 'upload-status ok';
+        statusEl.textContent = '✓ Extracted '+result.realContentLength+' characters of real content across all '+result.totalPages+' pages of '+file.name+' — review and edit below if needed.';
+      }
     } else if(kind === 'auto' && (ext === 'xlsx' || ext === 'xls')){
-      text = await extractSpreadsheetText(file);
+      var text = await extractSpreadsheetText(file);
+      if(!text || !text.trim()) throw new Error('No data could be extracted from this spreadsheet.');
+      textarea.value = text.trim();
+      statusEl.className = 'upload-status ok';
+      statusEl.textContent = '✓ Extracted '+text.trim().length+' characters from '+file.name+' — review and edit below if needed.';
     } else if(kind === 'auto' && ext === 'csv'){
-      text = await extractCSVText(file);
+      var text2 = await extractCSVText(file);
+      if(!text2 || !text2.trim()) throw new Error('This CSV file appears to be empty.');
+      textarea.value = text2.trim();
+      statusEl.className = 'upload-status ok';
+      statusEl.textContent = '✓ Extracted '+text2.trim().length+' characters from '+file.name+' — review and edit below if needed.';
     } else {
       throw new Error('Unsupported file type: .'+ext);
     }
-    if(!text || !text.trim()){
-      throw new Error('No text could be extracted — the file may be a scanned image PDF without a text layer.');
-    }
-    textarea.value = text.trim();
-    statusEl.className = 'upload-status ok';
-    statusEl.textContent = '✓ Extracted '+text.trim().length+' characters from '+file.name+' — review and edit below if needed.';
   }catch(err){
     statusEl.className = 'upload-status err';
     statusEl.textContent = '✗ '+err.message+' — you can paste text directly into the box below instead.';
