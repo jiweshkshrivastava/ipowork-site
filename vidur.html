@@ -252,6 +252,7 @@ table.vanity td.real{font-weight:700;color:var(--navy)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -347,6 +348,53 @@ function sanitizeJSONControlChars(s){
   return out;
 }
 
+/* Repairs another common LLM-JSON issue: an unescaped double-quote left
+   inside a string value (e.g. quoting a term within a sentence), which
+   makes JSON.parse() think the string ended early — producing exactly
+   "Expected ',' or ']' after array element" errors. Uses lookahead: when
+   a '"' is hit while inside a string, check what follows after any
+   whitespace. If it's a real JSON structural character (, } ] :) this is
+   a genuine terminator. Otherwise it's very likely a quote embedded in
+   the text itself, so escape it instead of ending the string there. */
+function sanitizeUnescapedQuotes(s){
+  var out = '', inStr = false, esc = false;
+  for(var i=0; i<s.length; i++){
+    var c = s[i];
+    if(inStr){
+      if(esc){ out += c; esc = false; continue; }
+      if(c === '\\'){ out += c; esc = true; continue; }
+      if(c === '"'){
+        var j = i+1;
+        while(j<s.length && /\s/.test(s[j])) j++;
+        var next = s[j];
+        var isRealTerminator = (next===','||next==='}'||next===']'||next===':'||j>=s.length);
+        if(isRealTerminator){ inStr = false; out += c; }
+        else { out += '\\"'; }
+        continue;
+      }
+      out += c;
+    } else {
+      if(c === '"'){ inStr = true; }
+      out += c;
+    }
+  }
+  return out;
+}
+
+function extractErrorPosition(msg){
+  var m = /position (\d+)/.exec(msg);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function contextAroundPosition(s, pos, radius){
+  radius = radius || 200;
+  var start = Math.max(0, pos - radius);
+  var end = Math.min(s.length, pos + radius);
+  var prefix = start > 0 ? '…' : '';
+  var suffix = end < s.length ? '…' : '';
+  return prefix + s.substring(start, end) + suffix;
+}
+
 function parseJSON(txt){
   var cleaned = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
   var a = cleaned.indexOf('{'), b = cleaned.lastIndexOf('}');
@@ -361,8 +409,15 @@ function parseJSON(txt){
     try{
       return JSON.parse(sanitizeJSONControlChars(slice));
     }catch(e2){
-      var preview2 = slice.length>300 ? slice.substring(0,300)+'…' : slice;
-      throw new Error('Model returned malformed JSON ('+e2.message+'). Raw content was: "'+preview2+'"');
+      try{
+        return JSON.parse(sanitizeUnescapedQuotes(sanitizeJSONControlChars(slice)));
+      }catch(e3){
+        var pos = extractErrorPosition(e3.message);
+        var preview2 = pos !== null
+          ? 'Near the failure point: "'+contextAroundPosition(slice, pos)+'"'
+          : (slice.length>300 ? slice.substring(0,300)+'…' : slice);
+        throw new Error('Model returned malformed JSON ('+e3.message+'). '+preview2);
+      }
     }
   }
 }
@@ -375,21 +430,84 @@ async function callWithRetry(prompt, maxTok){
 function v(id){ return (document.getElementById(id).value||'').trim(); }
 
 /* ═══ File upload handling — extracts text client-side, feeds existing textareas ═══ */
-async function extractPDFText(file){
+async function extractPDFText(file, onProgress){
   var buf = await file.arrayBuffer();
   var pdf = await pdfjsLib.getDocument({data: buf}).promise;
-  var pages = [];
+  var pages = new Array(pdf.numPages);
   var realContentLength = 0;
-  var blankPageCount = 0;
+  var blankPageNums = [];
+
+  /* Pass 1: fast, accurate native text extraction for every page */
   for(var i=1; i<=pdf.numPages; i++){
+    if(onProgress) onProgress('Reading page '+i+' of '+pdf.numPages+'…');
     var page = await pdf.getPage(i);
     var content = await page.getTextContent();
     var pageText = content.items.map(function(it){ return it.str; }).join(' ').trim();
-    realContentLength += pageText.length;
-    if(!pageText) blankPageCount++;
-    pages.push('--- Page '+i+' ---\n'+pageText);
+    if(pageText){
+      realContentLength += pageText.length;
+      pages[i-1] = pageText;
+    } else {
+      blankPageNums.push(i);
+      pages[i-1] = ''; // filled in by OCR pass below, if it succeeds
+    }
   }
-  return { text: pages.join('\n\n'), realContentLength: realContentLength, totalPages: pdf.numPages, blankPageCount: blankPageCount };
+
+  /* Pass 2: OCR fallback, only for pages with no extractable text layer.
+     One Tesseract worker is created and reused across all blank pages in
+     this file, rather than a new worker per page, since worker startup
+     is the slow part — reusing it makes multi-page OCR much faster. */
+  var ocrPageCount = 0;
+  var ocrFailCount = 0;
+  if(blankPageNums.length > 0){
+    var worker = null;
+    try{
+      if(onProgress) onProgress('Initialising OCR engine (first run may take a moment)…');
+      worker = await Tesseract.createWorker('eng');
+      for(var bi=0; bi<blankPageNums.length; bi++){
+        var pnum = blankPageNums[bi];
+        if(onProgress) onProgress('Running OCR on page '+pnum+' — image-only page '+(bi+1)+' of '+blankPageNums.length+'…');
+        try{
+          var ocrPage = await pdf.getPage(pnum);
+          var viewport = ocrPage.getViewport({scale: 2.0}); // higher scale = better OCR accuracy
+          var canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          var ctx = canvas.getContext('2d');
+          await ocrPage.render({canvasContext: ctx, viewport: viewport}).promise;
+          var result = await worker.recognize(canvas);
+          var ocrText = (result.data.text || '').trim();
+          if(ocrText){
+            pages[pnum-1] = ocrText;
+            realContentLength += ocrText.length;
+            ocrPageCount++;
+          }
+        }catch(pageErr){
+          ocrFailCount++;
+          console.error('OCR failed for page '+pnum+':', pageErr);
+          // leave pages[pnum-1] as '' — that page's content genuinely couldn't be recovered
+        }
+      }
+    }catch(workerErr){
+      console.error('OCR engine failed to initialise:', workerErr);
+      ocrFailCount = blankPageNums.length; // none of the blank pages could be OCR'd
+    }finally{
+      if(worker){ try{ await worker.terminate(); }catch(e){} }
+    }
+  }
+
+  var out = [];
+  for(var p=1; p<=pdf.numPages; p++){
+    out.push('--- Page '+p+' ---\n'+pages[p-1]);
+  }
+  var stillBlankCount = blankPageNums.length - ocrPageCount;
+  return {
+    text: out.join('\n\n'),
+    realContentLength: realContentLength,
+    totalPages: pdf.numPages,
+    blankPageCount: stillBlankCount,
+    ocrPageCount: ocrPageCount,
+    ocrFailCount: ocrFailCount
+  };
 }
 
 function extractSpreadsheetText(file){
@@ -431,14 +549,21 @@ async function handleFileUpload(inputEl, textareaId, kind){
   try{
     var ext = file.name.split('.').pop().toLowerCase();
     if(ext === 'pdf'){
-      var result = await extractPDFText(file);
+      var result = await extractPDFText(file, function(msg){
+        statusEl.className = 'upload-status busy';
+        statusEl.textContent = msg;
+      });
       textarea.value = result.text.trim();
       if(result.realContentLength === 0){
         statusEl.className = 'upload-status err';
-        statusEl.textContent = '⚠ '+file.name+' has '+result.totalPages+' page(s) but NO extractable text was found on any of them — this PDF likely has slides exported as flattened images (common from Canva/Figma/Keynote), which this tool cannot read text from. Re-export the deck with selectable text, or paste the deck content directly into the box below.';
+        statusEl.textContent = '⚠ '+file.name+' has '+result.totalPages+' page(s) but no text could be recovered from any of them, even after OCR — the image quality may be too low, or the OCR engine failed to load. Paste the deck content directly into the box below instead.';
       } else if(result.blankPageCount > 0){
         statusEl.className = 'upload-status ok';
-        statusEl.textContent = '⚠ Extracted text from '+(result.totalPages-result.blankPageCount)+' of '+result.totalPages+' pages ('+result.blankPageCount+' page(s) had no extractable text — likely image-only slides). Review below; add missing content manually if needed.';
+        var ocrNote = result.ocrPageCount > 0 ? (' ('+result.ocrPageCount+' page(s) recovered via OCR)') : '';
+        statusEl.textContent = '⚠ Extracted text from '+(result.totalPages-result.blankPageCount)+' of '+result.totalPages+' pages'+ocrNote+' — '+result.blankPageCount+' page(s) still could not be read even after OCR. Review below; add missing content manually if needed.';
+      } else if(result.ocrPageCount > 0){
+        statusEl.className = 'upload-status ok';
+        statusEl.textContent = '✓ Extracted '+result.realContentLength+' characters across all '+result.totalPages+' pages of '+file.name+' — '+result.ocrPageCount+' image-only page(s) recovered via OCR. Review and edit below if needed.';
       } else {
         statusEl.className = 'upload-status ok';
         statusEl.textContent = '✓ Extracted '+result.realContentLength+' characters of real content across all '+result.totalPages+' pages of '+file.name+' — review and edit below if needed.';
@@ -512,7 +637,7 @@ function buildContext(){
   ].join('\n');
 }
 
-var PILLAR_RULES = 'Score each pillar 0-100. Be a sceptical Indian institutional diligence analyst, not a cheerleader. Anything unverifiable from the provided material scores conservatively and generates a flag. Flags: sev "C" (critical / potential kill-criterion: fraud indicators, fake traction, founder integrity issues, regulatory show-stoppers, <3mo runway with no bridge, broken cap table >30% dead equity, revenue misrepresentation), "H" (high risk), "W" (watch). Respond with PURE JSON only — no markdown, no preamble, no trailing text.';
+var PILLAR_RULES = 'Score each pillar 0-100. Be a sceptical Indian institutional diligence analyst, not a cheerleader. Anything unverifiable from the provided material scores conservatively and generates a flag. Flags: sev "C" (critical / potential kill-criterion: fraud indicators, fake traction, founder integrity issues, regulatory show-stoppers, <3mo runway with no bridge, broken cap table >30% dead equity, revenue misrepresentation), "H" (high risk), "W" (watch). CRITICAL JSON FORMATTING RULE: never use a double-quote character (") anywhere inside a string value — not to quote a term, a claim, or a number. Use single quotes or no quoting at all instead (e.g. write claimed revenue of Rs 60L, not claimed "revenue" of "Rs 60L"). An embedded double-quote breaks the response and the entire assessment fails. Respond with PURE JSON only — no markdown, no preamble, no trailing text.';
 
 function pillarSchema(keys){
   return '{'+keys.map(function(k){return '"'+k+'":{"score":0,"positives":["..."],"negatives":["..."],"flags":[{"sev":"C|H|W","text":"..."}]}';}).join(',')+'}';
@@ -607,6 +732,7 @@ async function runVIDUR(){
       var d=R[pm[0]]||{}; return pm[1]+': '+d.score+'/100. Issues: '+((d.negatives||[]).slice(0,3).join('; ')||'none noted');
     }).join('\n');
     var p4 = 'You are VIDUR, ipowork\'s venture diligence engine. The weighted composite score is '+composite+'/100 (stage: '+STAGE_LABEL[curStage]+(capped?'; score CAPPED at 49 due to critical flags':'')+').\n'+
+      'CRITICAL JSON FORMATTING RULE: never use a double-quote character (") anywhere inside a string value. Use single quotes or no quoting instead. An embedded double-quote breaks the response and the entire assessment fails.\n'+
       'PILLAR RESULTS:\n'+pillarBrief+'\n\nCRITICAL FLAGS: '+(criticals.map(function(f){return f.text;}).join(' | ')||'none')+
       '\n\nSTARTUP MATERIAL:\n'+CTX.substring(0,4000)+
       '\n\nProduce PURE JSON only:\n{"summary":"3-4 sentence institutional verdict paragraph — direct, specific to this company, no hedging filler",'+
