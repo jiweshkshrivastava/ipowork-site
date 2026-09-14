@@ -253,6 +253,7 @@ table.vanity td.real{font-weight:700;color:var(--navy)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsonrepair@3/lib/umd/jsonrepair.min.js"></script>
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -412,11 +413,22 @@ function parseJSON(txt){
       try{
         return JSON.parse(sanitizeUnescapedQuotes(sanitizeJSONControlChars(slice)));
       }catch(e3){
-        var pos = extractErrorPosition(e3.message);
-        var preview2 = pos !== null
-          ? 'Near the failure point: "'+contextAroundPosition(slice, pos)+'"'
-          : (slice.length>300 ? slice.substring(0,300)+'…' : slice);
-        throw new Error('Model returned malformed JSON ('+e3.message+'). '+preview2);
+        /* Final, most robust fallback: a purpose-built JSON repair library
+           that handles a much broader class of LLM-generated malformation
+           than the hand-written heuristics above — missing commas, trailing
+           commas, unquoted keys, and more — rather than adding an
+           ever-growing list of narrow, hand-rolled patches for each new
+           edge case as it's discovered. */
+        try{
+          var repaired = JSONRepair.jsonrepair(sanitizeJSONControlChars(slice));
+          return JSON.parse(repaired);
+        }catch(e4){
+          var pos = extractErrorPosition(e3.message);
+          var preview2 = pos !== null
+            ? 'Near the failure point: "'+contextAroundPosition(slice, pos)+'"'
+            : (slice.length>300 ? slice.substring(0,300)+'…' : slice);
+          throw new Error('Model returned malformed JSON ('+e3.message+'). '+preview2);
+        }
       }
     }
   }
