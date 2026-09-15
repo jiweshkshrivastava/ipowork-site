@@ -1046,7 +1046,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='SEP-D';
+var IPOWORK_BUILD='SEP-E';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1239,7 +1239,7 @@ function rejectRequest(idx){
   } catch(e){}
 }
 
-function loadAdmin(){
+async function loadAdmin(){
   var isAdm=(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL))||ADMIN_UNLOCKED;
   if(!isAdm){ return; }
 
@@ -1247,8 +1247,28 @@ function loadAdmin(){
   var infoEl=document.getElementById('admin-user-info');
   if(infoEl&&CURRENT_USER){ infoEl.innerHTML='Logged in as<br><strong>'+esc(CURRENT_USER.email)+'</strong>'; }
 
+  /* FIX-SEP2: stats and the Approved Users list previously read from
+     localStorage (aira_report_log, ipowork_approved_users) — purely local
+     to whichever browser the admin happened to be using, so numbers
+     differed between devices and never reflected real remote MB activity
+     at all. Now sourced from Supabase (report_generated, user_account),
+     consistent everywhere. The Reports History table below and Pending
+     Requests are intentionally left on the old local source for now —
+     out of scope for this specific fix. */
+  var statsEl=document.getElementById('admin-stats');
+  var uEl=document.getElementById('approved-users-list');
+  if(statsEl) statsEl.innerHTML='<div style="padding:16px;color:#9AB0B8;font-size:12px">Loading from Supabase…</div>';
+  if(uEl) uEl.innerHTML='<div style="padding:16px 18px;color:#9AB0B8;font-size:12px">Loading…</div>';
+
+  var accounts = [], reportsGen = [];
+  try{
+    accounts = await fetchAllSupaBySource('user_account');
+    reportsGen = await fetchAllSupaBySource('report_generated');
+  }catch(e){
+    console.error('loadAdmin: Supabase fetch failed, showing what we have:', e);
+  }
+
   var stored=getStoredReports();
-  var allUsers=Object.keys(IPOWORK_USERS);
   var pending=getPendingRequests();
 
   // Price map
@@ -1259,17 +1279,23 @@ function loadAdmin(){
     ddbundle:'Due Diligence',valdoc:'Valuation Doc',valintel:'Val Intelligence',
     deepresearch:'Deep Research'};
 
-  var revenue=stored.reduce(function(s,r){return s+(parseInt(PRICES[r.tier]||0,10));},0);
+  // Revenue/report counts now computed from Supabase report_generated records
+  var revenue = reportsGen.reduce(function(s,row){
+    var rt = (row.scores||{}).reportType||'';
+    return s+(parseInt(PRICES[rt]||0,10));
+  }, 0);
   var todayStr=new Date().toDateString();
-  var todayReports=stored.filter(function(r){return r.timestamp&&new Date(r.timestamp).toDateString()===todayStr;}).length;
+  var todayReports = reportsGen.filter(function(row){
+    var at = (row.scores||{}).generatedAt;
+    return at && new Date(at).toDateString()===todayStr;
+  }).length;
 
   // ── Stats cards ─────────────────────────────────────
-  var statsEl=document.getElementById('admin-stats');
   if(statsEl){
     var statData=[
       {icon:'&#8377;',val:(revenue>=100000?'₹'+(revenue/100000).toFixed(1)+'L':revenue>0?'₹'+revenue.toLocaleString('en-IN'):'₹0'),lbl:'Est. Revenue',bg:'linear-gradient(135deg,#08404D,#0D5C6B)'},
-      {icon:'&#128196;',val:stored.length,lbl:'Total Reports',bg:'linear-gradient(135deg,#1A3A5C,#1A5C8A)'},
-      {icon:'&#128101;',val:allUsers.length,lbl:'Registered Users',bg:'linear-gradient(135deg,#1A4A2A,#1A7B3A)'},
+      {icon:'&#128196;',val:reportsGen.length,lbl:'Total Reports',bg:'linear-gradient(135deg,#1A3A5C,#1A5C8A)'},
+      {icon:'&#128101;',val:accounts.length,lbl:'Registered Users',bg:'linear-gradient(135deg,#1A4A2A,#1A7B3A)'},
       {icon:'&#8987;',val:todayReports,lbl:'Reports Today',bg:todayReports>0?'linear-gradient(135deg,#5C3A1A,#B5370A)':'linear-gradient(135deg,#2C4A5C,#1A5C8A)'}
     ];
     statsEl.innerHTML=statData.map(function(s){
@@ -1280,7 +1306,7 @@ function loadAdmin(){
     }).join('');
   }
 
-  // ── Reports table ────────────────────────────────────
+  // ── Reports table (unchanged — still local; out of scope for this fix) ──
   var rEl=document.getElementById('admin-reports');
   var clearBtn=document.getElementById('btn-clear-history');
   if(rEl){
@@ -1322,7 +1348,7 @@ function loadAdmin(){
     }
   }
 
-  // ── Pending requests ─────────────────────────────────
+  // ── Pending requests (unchanged — still local) ─────────────────────────
   var reqEl=document.getElementById('access-requests-list');
   if(reqEl){
     if(!pending.length){
@@ -1343,10 +1369,9 @@ function loadAdmin(){
     }
   }
 
-  // ── Users table ──────────────────────────────────────
-  var uEl=document.getElementById('approved-users-list');
+  // ── Users table — now from Supabase, consistent across all devices ──────
   if(uEl){
-    if(!allUsers.length){
+    if(!accounts.length){
       uEl.innerHTML='<div style="padding:16px 18px;color:#9AB0B8;font-size:12px">No users registered yet.</div>';
     } else {
       var PLAN_COLORS={admin:'#08404D',paid:'#1A5C8A',trial:'#B5370A',partner:'#3B30B0',ca:'#1A4A2A',mb:'#5C3A1A'};
@@ -1358,8 +1383,9 @@ function loadAdmin(){
         +'<th style="padding:9px 12px;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Status</th>'
         +'<th style="padding:9px 12px;border-bottom:2px solid #D0E4F0;font-weight:700;color:#08404D">Action</th>'
         +'</tr></thead><tbody>';
-      allUsers.forEach(function(email,i){
-        var u=IPOWORK_USERS[email];
+      accounts.forEach(function(row,i){
+        var u=row.scores||{};
+        var email=u.email||'';
         var pc=PLAN_COLORS[u.plan]||'#6B8A94';
         utbl+='<tr style="border-bottom:1px solid #F0F5F8;background:'+(i%2?'#FAFCFD':'#fff')+'">'
           +'<td style="padding:9px 12px;font-weight:600;color:#1A2E35">'+esc(email)+'</td>'
@@ -1368,11 +1394,12 @@ function loadAdmin(){
           +'<td style="padding:9px 12px"><span style="color:'+(u.approved?'#1A6B3A':'#E67E22')+';font-weight:600;font-size:12px">'+(u.approved?'&#9989; Active':'&#9203; Pending')+'</span></td>'
           +'<td style="padding:9px 12px">'
           +(email!==ADMIN_EMAIL
-            ?'<button class="adm-rm" data-e="'+email+'" style="padding:4px 12px;background:#FFF5F0;color:#C0392B;border:1px solid #F5C6C0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Remove</button>'
+            ?'<button class="adm-rm" data-e="'+esc(email)+'" title="Removes locally only for now — does not yet delete the Supabase record, so this account will still work for the user" style="padding:4px 12px;background:#FFF5F0;color:#C0392B;border:1px solid #F5C6C0;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Remove*</button>'
             :'<span style="color:#9AB0B8;font-size:11px;font-style:italic">Owner</span>')
           +'</td></tr>';
       });
       utbl+='</tbody></table>';
+      utbl+='<div style="padding:8px 12px;font-size:10px;color:#9AB0B8">*Remove currently only affects this browser — the Supabase account record itself isn\'t deleted yet, so the user\'s login will keep working. Ask if you want this fixed properly.</div>';
       uEl.innerHTML=utbl;
     }
   }
