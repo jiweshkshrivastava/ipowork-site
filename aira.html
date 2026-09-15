@@ -1046,7 +1046,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='SEP-B';
+var IPOWORK_BUILD='SEP-D';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1986,6 +1986,43 @@ async function recordLoginEvent(email, name, firm){
     console.error('recordLoginEvent failed (non-blocking, login unaffected):', e);
   }
 }
+/* Records that a specific report type was generated for a specific CIN —
+   fire-and-forget, called alongside (not instead of) checkCinTrialAndRecord.
+   Deliberately independent of that billing/quota function: it early-exits
+   on repeat CINs and never touches evaluation CINs at all, so it can't be
+   reused here without losing exactly the repeat-report-type visibility
+   this is meant to provide. Every call here is its own row — same CIN run
+   through five different report types shows up as five entries, which is
+   the point. Never blocks or affects report generation if it fails. */
+/* Locally-scoped TIER_NAMES elsewhere isn't accessible here — this is a
+   dedicated, globally-accessible copy of the same labels for the
+   activity view specifically. */
+var REPORT_TYPE_LABELS = {free:'AIRA Score',paid:'SME Intel',mainboard:'Mainboard ICDR',
+  ca:'CA/CS Bundle',clearchit:'Clean Chit',dirscan:'Director Scan',
+  ddbundle:'Due Diligence',valdoc:'Valuation Doc',valintel:'Val Intelligence',
+  deepresearch:'Deep Research'};
+
+async function recordReportGenerated(cin, reportType){
+  try{
+    if(!CURRENT_USER || !CURRENT_USER.email) return;
+    var email = CURRENT_USER.email.toLowerCase();
+    var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
+    var cinSafe = String(cin||'').trim().toUpperCase().replace(/[^a-z0-9]/gi,'-');
+    var reportId = 'REPORTGEN-'+emailSafe+'-'+cinSafe+'-'+Date.now();
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        report_id: reportId, company_name: cin||'N/A', cin: cin||'N/A', sector: 'N/A', exchange: 'N/A',
+        tier: 'free', score: 0, source: 'report_generated',
+        scores: { email: email, cin: String(cin||'').trim().toUpperCase(), reportType: reportType||'unknown', generatedAt: new Date().toISOString() }
+      })
+    });
+    if(!r.ok){ console.error('recordReportGenerated: insert failed, status', r.status); }
+  }catch(e){
+    console.error('recordReportGenerated failed (non-blocking):', e);
+  }
+}
 function showTrialBlockedMessage(outEl, msg){
   var html = '<div style="padding:32px;text-align:center;background:#FEF0EE;border:1.5px solid #F0A090;border-radius:12px;margin:16px 0">'
     +'<div style="font-size:32px;margin-bottom:10px">🔒</div>'
@@ -2260,6 +2297,7 @@ async function loadMBActivity(){
     var accounts = await fetchAllSupaBySource('user_account');
     var logins = await fetchAllSupaBySource('login_event');
     var cinUsage = await fetchAllSupaBySource('normal_cin_usage');
+    var reportsGen = await fetchAllSupaBySource('report_generated');
 
     // Group logins per email
     var loginsByEmail = {};
@@ -2280,6 +2318,22 @@ async function loadMBActivity(){
       cinsByEmail[em].push({ cin: s.cin||'?', usedAt: s.usedAt||'' });
     });
     Object.keys(cinsByEmail).forEach(function(em){ cinsByEmail[em].sort(function(a,b){ return (b.usedAt||'').localeCompare(a.usedAt||''); }); });
+
+    // Group report-type generations per email, then per CIN within that email
+    // (one CIN can have several report types run on it, so this is a list, not a single value)
+    var reportsByEmailAndCin = {};
+    reportsGen.forEach(function(row){
+      var s = row.scores||{}; var em = String(s.email||'').toLowerCase(); var cin = String(s.cin||'').toUpperCase();
+      if(!em || !cin) return;
+      if(!reportsByEmailAndCin[em]) reportsByEmailAndCin[em] = {};
+      if(!reportsByEmailAndCin[em][cin]) reportsByEmailAndCin[em][cin] = [];
+      reportsByEmailAndCin[em][cin].push({ type: s.reportType||'unknown', at: s.generatedAt||'' });
+    });
+    Object.keys(reportsByEmailAndCin).forEach(function(em){
+      Object.keys(reportsByEmailAndCin[em]).forEach(function(cin){
+        reportsByEmailAndCin[em][cin].sort(function(a,b){ return (b.at||'').localeCompare(a.at||''); });
+      });
+    });
 
     // Build the person list from approved accounts (so "never logged in" people show up too)
     var people = accounts.map(function(row){
@@ -2306,7 +2360,24 @@ async function loadMBActivity(){
     var html = '';
     people.forEach(function(p, idx){
       var loginTimes = loginsByEmail[p.email] || [];
-      var cins = cinsByEmail[p.email] || [];
+      /* Union of both sources: normal_cin_usage covers paid/quota-counted
+         CINs (has a clean usedAt timestamp); report_generated additionally
+         covers evaluation CINs, which never create a normal_cin_usage row
+         at all since they're free and unlimited. Without this union,
+         evaluation-CIN activity — likely most of what a new MB actually
+         does while exploring the portal — would be invisible here even
+         though it's already being recorded. */
+      var cinMap = {};
+      (cinsByEmail[p.email] || []).forEach(function(c){ cinMap[c.cin] = c.usedAt; });
+      var personReports = reportsByEmailAndCin[p.email] || {};
+      Object.keys(personReports).forEach(function(cin){
+        if(!(cin in cinMap)){
+          var entries = personReports[cin];
+          cinMap[cin] = (entries[0] && entries[0].at) || ''; // most recent report-generation timestamp for this CIN
+        }
+      });
+      var cins = Object.keys(cinMap).map(function(cin){ return { cin: cin, usedAt: cinMap[cin] }; })
+        .sort(function(a,b){ return (b.usedAt||'').localeCompare(a.usedAt||''); });
       var loginCount = loginTimes.length;
       var lastLogin = loginTimes[0] ? new Date(loginTimes[0]).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
       var rowId = 'mbact-'+idx;
@@ -2330,7 +2401,13 @@ async function loadMBActivity(){
       }
       if(cins.length > 0){
         html += '<div style="font-weight:700;color:#6B8A94;margin-bottom:4px">Companies checked:</div>';
-        html += '<div style="color:#40505E">'+cins.map(function(c){ return esc(c.cin)+' — '+(c.usedAt?new Date(c.usedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'?'); }).join('<br>')+'</div>';
+        html += '<div style="color:#40505E">'+cins.map(function(c){
+          var reportsForThisCin = ((reportsByEmailAndCin[p.email]||{})[c.cin]) || [];
+          var typeLabels = reportsForThisCin.map(function(rg){ return REPORT_TYPE_LABELS[rg.type] || rg.type; });
+          var uniqueLabels = typeLabels.filter(function(v,i){ return typeLabels.indexOf(v)===i; });
+          var typesStr = uniqueLabels.length ? (' — <span style="color:#0D5C6B">'+uniqueLabels.map(esc).join(', ')+'</span>') : ' — <span style="color:#9AB0B8">report type not recorded</span>';
+          return esc(c.cin)+' ('+(c.usedAt?new Date(c.usedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'?')+')'+typesStr;
+        }).join('<br>')+'</div>';
       } else {
         html += '<div style="color:#9AB0B8">No companies checked yet.</div>';
       }
@@ -3967,6 +4044,7 @@ async function runTab(cinId, secId, excId, outId, progId, btnId, tier, customSys
   if(blockIfListed(cin, out)){ return; }
   var trialCheck1=await checkCinTrialAndRecord(cin);
   if(!trialCheck1.allowed){ showTrialBlockedMessage(out, trialCheck1.message); return; }
+  recordReportGenerated(cin, tier); // fire-and-forget — never blocks report generation
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating Report\u2026';}
   if(out)out.innerHTML='<div style="padding:20px;text-align:center;color:#6B8A94;font-size:13px">Fetching company data from Probe42\u2026</div>';
   if(prog)prog.style.display='flex';
@@ -4434,6 +4512,7 @@ async function runValuationDoc(){
   if(blockIfListed(cin, out)){ return; }
   var trialCheck2=await checkCinTrialAndRecord(cin);
   if(!trialCheck2.allowed){ showTrialBlockedMessage(out, trialCheck2.message); return; }
+  recordReportGenerated(cin, 'valdoc'); // fire-and-forget
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating\u2026';}
   if(out)out.innerHTML='<div class="status-msg">Fetching live data\u2026</div>';
   if(prog)prog.style.display='flex';
@@ -4563,6 +4642,7 @@ async function runValuationIntel(){
   if(blockIfListed(cin, out)){ return; }
   var trialCheck3=await checkCinTrialAndRecord(cin);
   if(!trialCheck3.allowed){ showTrialBlockedMessage(out, trialCheck3.message); return; }
+  recordReportGenerated(cin, 'valintel'); // fire-and-forget
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Generating Intelligence\u2026';}
   if(out)out.innerHTML='<div style="padding:20px;text-align:center;color:#6B8A94">Fetching data\u2026</div>';
   if(prog)prog.style.display='flex';
@@ -4755,6 +4835,7 @@ async function runDeepResearchFull(){
   if(blockIfListed(cin, out)){ return; }
   var trialCheck4=await checkCinTrialAndRecord(cin);
   if(!trialCheck4.allowed){ showTrialBlockedMessage(out, trialCheck4.message); return; }
+  recordReportGenerated(cin, 'deepresearch'); // fire-and-forget
   if(btn){btn.disabled=true;}
   if(out)out.innerHTML='<div style="padding:30px;text-align:center;font-family:\'Segoe UI\',Arial,sans-serif"><div class="status-msg" style="font-size:14px;font-weight:700;color:#3B30B0;margin-bottom:12px">Deep Research Engine Starting\u2026</div><div style="background:#F0EEFF;border-radius:8px;padding:2px;margin-bottom:12px"><div class="dr-progress-bar" style="background:linear-gradient(90deg,#3B30B0,#5B4ED4);height:8px;border-radius:6px;width:3%;transition:width .5s"></div></div><div id="dr-status-text" style="font-size:12px;color:#6B8A94"></div></div>';
   if(prog)prog.style.display='flex';
