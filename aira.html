@@ -1059,7 +1059,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='SEP-G';
+var IPOWORK_BUILD='SEP-H';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1412,7 +1412,7 @@ async function loadAdmin(){
           +'</td></tr>';
       });
       utbl+='</tbody></table>';
-      utbl+='<div style="padding:8px 12px;font-size:10px;color:#9AB0B8">*Remove currently only affects this browser — the Supabase account record itself isn\'t deleted yet, so the user\'s login will keep working. Ask if you want this fixed properly.</div>';
+      utbl+='<div style="padding:8px 12px;font-size:10px;color:#9AB0B8">*Remove now attempts to sync to Supabase too (marks the account inactive, blocking their login) — check the browser console or watch for an alert if it could not be confirmed.</div>';
       uEl.innerHTML=utbl;
     }
   }
@@ -2593,13 +2593,18 @@ async function addApprovedUser(email, name, password, plan, tierNum){
   // even when the Supabase record was never actually created.
   var supabaseSynced = false;
   try {
+    /* FIX-SEP4: added the same upsert resolution header used in fixUserTier
+       — without it, adding a user whose email already has a Supabase
+       record (even one created via a different, older path) would be
+       silently rejected as a duplicate key, leaving their plan/tier
+       unchanged despite the admin UI suggesting the add succeeded. */
     var syncR = await fetch('https://esqlfsjhekdspycfgnoz.supabase.co/rest/v1/reports', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc',
         'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc',
-        'Prefer': 'return=minimal'
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
       body: JSON.stringify({
         report_id: 'USER-'+email.replace(/[^a-z0-9]/gi,'-'),
@@ -5486,7 +5491,7 @@ function checkAdminPwd(pwdArg){
 }
 
 
-function removeUser(email){
+async function removeUser(email){
   if(!email||!confirm('Remove user: '+email+'?')) return;
   if(IPOWORK_USERS[email]) delete IPOWORK_USERS[email];
   try {
@@ -5494,6 +5499,46 @@ function removeUser(email){
     delete users[email];
     localStorage.setItem('ipowork_approved_users',JSON.stringify(users));
   } catch(e){}
+
+  /* FIX-SEP4: previously local-only — the Supabase record stayed
+     untouched, so the user's login kept working despite appearing
+     removed. Uses the same upsert technique confirmed working for
+     fixUserTier: marks approved:false rather than attempting to delete
+     the row (which the anon key can't do), so the existing login checks
+     (which already require approved===true) correctly block them. */
+  var emailSafe = email.toLowerCase().replace(/[^a-z0-9]/gi,'-');
+  var acctReportId = 'USER-'+emailSafe;
+  try{
+    var beforeR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var beforeRows = beforeR.ok ? await beforeR.json() : [];
+    var existing = (beforeRows && beforeRows[0] && beforeRows[0].scores) || {};
+
+    await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        report_id: acctReportId, company_name:'IPOWORK_USER_ACCOUNT', cin:'USER-ACCOUNT', sector:'N/A', exchange:'N/A',
+        tier:'free', score:0, source:'user_account',
+        scores: Object.assign({}, existing, { approved:false, removedAt: new Date().toISOString() })
+      })
+    });
+
+    var afterR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var afterRows = afterR.ok ? await afterR.json() : [];
+    if(afterRows.length === 1 && (afterRows[0].scores||{}).approved === false){
+      console.log('removeUser: confirmed removed from Supabase for', email);
+    } else {
+      console.error('removeUser: Supabase removal could not be verified for', email, '— their login may still work. Rows found:', afterRows.length);
+      alert('Removed locally, but could not confirm the Supabase record was updated for '+email+' — their login may still work. Check the browser console for details.');
+    }
+  }catch(e){
+    console.error('removeUser: Supabase sync failed:', e);
+    alert('Removed locally, but the Supabase sync failed — '+email+'\\u2019s login will likely still work. Error: '+e.message);
+  }
   loadAdmin();
 }
 
