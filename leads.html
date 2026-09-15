@@ -109,13 +109,53 @@ var STAGE_COLORS = {'New':'#6B7E85','Contacted':'#0D5C6B','Qualified':'#1A7D90',
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function qs(name){ return new URLSearchParams(window.location.search).get(name); }
 
+/* FIX: leads are append-only, same pattern as login_event/report_generated
+   elsewhere in this system. The original attempt used an upsert (same
+   report_id, resolution=merge-duplicates) to modify the lead in place —
+   already confirmed today, against this same Supabase instance, that this
+   gets rejected for existing records ("jprcapital" case). So every stage
+   change is instead its own new row (source:'lead_update', keyed by the
+   same leadId), and fetchLeads merges them: the original 'lead' row plus
+   all its 'lead_update' rows, taking the most recent field values and
+   concatenating activity logs, rather than trying to overwrite anything. */
 async function fetchLeads(){
-  var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.lead&select=report_id,scores', {
+  var r1 = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.lead&select=report_id,scores', {
     headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
   });
-  if(!r.ok) throw new Error('status '+r.status);
-  var rows = await r.json();
-  return rows.map(function(row){ return Object.assign({report_id: row.report_id}, row.scores); });
+  if(!r1.ok) throw new Error('status '+r1.status);
+  var originals = await r1.json();
+
+  var r2 = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.lead_update&select=report_id,scores', {
+    headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+  });
+  var updates = r2.ok ? await r2.json() : [];
+
+  var byLeadId = {};
+  originals.forEach(function(row){
+    var s = row.scores||{};
+    if(s.leadId) byLeadId[s.leadId] = Object.assign({report_id: row.report_id}, s);
+  });
+  // Group updates per lead, sorted oldest-to-newest so later ones correctly override earlier field values
+  var updatesByLead = {};
+  updates.forEach(function(row){
+    var s = row.scores||{};
+    if(!s.leadId) return;
+    if(!updatesByLead[s.leadId]) updatesByLead[s.leadId] = [];
+    updatesByLead[s.leadId].push(s);
+  });
+  Object.keys(updatesByLead).forEach(function(leadId){
+    var base = byLeadId[leadId];
+    if(!base) return; // update for a lead whose original row wasn't found — skip
+    var evts = updatesByLead[leadId].sort(function(a,b){ return (a.at||'').localeCompare(b.at||''); });
+    var mergedActivity = (base.activity||[]).slice();
+    evts.forEach(function(evt){
+      base.stage = evt.stage; // most recent update's stage wins
+      if(evt.note) mergedActivity.unshift({ text: evt.note, at: evt.at });
+    });
+    base.activity = mergedActivity;
+  });
+
+  return Object.keys(byLeadId).map(function(id){ return byLeadId[id]; });
 }
 
 async function submitLead(lead){
@@ -133,16 +173,15 @@ async function submitLead(lead){
   return leadId;
 }
 
-async function updateLeadStage(reportId, currentLead, newStage, note){
-  var activity = (currentLead.activity||[]).slice();
-  activity.unshift({ text: note || ('Stage changed to '+newStage), at: new Date().toISOString() });
+async function updateLeadStage(leadId, newStage, note){
+  var updateReportId = 'LEADUPD-'+leadId.replace(/[^a-z0-9]/gi,'-')+'-'+Date.now();
   var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
     method:'POST',
-    headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' },
+    headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
     body: JSON.stringify({
-      report_id: reportId, company_name: currentLead.company||'N/A', cin:'LEAD', sector: currentLead.category||'N/A', exchange:'N/A',
-      tier:'free', score:0, source:'lead',
-      scores: Object.assign({}, currentLead, { stage:newStage, activity:activity, updatedAt:new Date().toISOString() })
+      report_id: updateReportId, company_name:'LEAD_UPDATE', cin:'LEAD', sector:'N/A', exchange:'N/A',
+      tier:'free', score:0, source:'lead_update',
+      scores: { leadId: leadId, stage: newStage, note: note||('Stage changed to '+newStage), at: new Date().toISOString() }
     })
   });
   return r.ok;
@@ -374,20 +413,12 @@ function openLeadModal(leadId){
 }
 
 async function handleStageUpdate(leadId){
-  var l = ALL_LEADS.find(function(x){return x.leadId===leadId;});
   var newStage = document.getElementById('modal-stage').value;
   var note = document.getElementById('modal-note').value.trim();
   var statusEl = document.getElementById('modal-status');
   statusEl.className='status-msg busy'; statusEl.textContent='Saving…';
-  var reportRow = null;
   try{
-    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.lead&select=report_id,scores', {
-      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
-    });
-    var rows = await r.json();
-    reportRow = rows.find(function(row){ return row.scores && row.scores.leadId===leadId; });
-    if(!reportRow) throw new Error('Could not find the underlying record.');
-    var ok = await updateLeadStage(reportRow.report_id, l, newStage, note);
+    var ok = await updateLeadStage(leadId, newStage, note);
     if(ok){
       statusEl.className='status-msg ok'; statusEl.textContent='✓ Saved.';
       await loadAllLeadsForAdmin();
@@ -397,6 +428,7 @@ async function handleStageUpdate(leadId){
     }
   }catch(e){
     statusEl.className='status-msg err'; statusEl.textContent='Save failed — '+e.message;
+
   }
 }
 
