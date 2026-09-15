@@ -1059,7 +1059,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='SEP-F';
+var IPOWORK_BUILD='SEP-G';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1900,10 +1900,18 @@ async function fixUserTier(){
     var existing = beforeRows[0].scores || {};
     var oldTier = existing.tier || '(none)';
 
-    statusEl.textContent = 'Attempting fix ('+oldTier+' → '+tierLabel+')…';
+    statusEl.textContent = 'Attempting fix ('+oldTier+' → '+tierLabel+') via upsert…';
+    /* FIX-SEP3: plain INSERT with a conflicting report_id was just confirmed
+       (by a real user seeing "record still shows (none)") to be silently
+       rejected by Supabase as a duplicate key. PostgREST supports a
+       specific upsert mode via this Prefer header — resolution=merge-
+       duplicates — which updates the existing row on a primary/unique key
+       conflict instead of rejecting the insert. This is a genuinely
+       different mechanism than the plain POST tried before, not the same
+       thing retried. */
     await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
       method:'POST',
-      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({
         report_id: acctReportId, company_name:'IPOWORK_USER_ACCOUNT', cin:'USER-ACCOUNT', sector:'N/A', exchange:'N/A',
         tier:'free', score:0, source:'user_account',
@@ -1923,7 +1931,7 @@ async function fixUserTier(){
     } else if(afterRows.length === 1 && (afterRows[0].scores||{}).tier === tierLabel){
       statusEl.textContent = '✅ Confirmed — '+email+' is now '+tierLabel+' (was '+oldTier+'). Verified by re-reading the record back, not just assumed.';
     } else if(afterRows.length === 1){
-      statusEl.textContent = '✗ The record still shows "'+((afterRows[0].scores||{}).tier||'(none)')+'" — the insert did not take effect, likely rejected as a duplicate key by Supabase. This account tier could not be changed this way.';
+      statusEl.textContent = '✗ Still shows "'+((afterRows[0].scores||{}).tier||'(none)')+'" — even the upsert attempt was rejected. This means the anon key genuinely cannot modify this record via the API. Last resort: open the Supabase dashboard directly → Table Editor → reports table → find report_id = '+acctReportId+' → edit the scores column\'s tier and plan fields by hand.';
     } else {
       statusEl.textContent = '✗ Could not re-fetch the record to verify — check manually in Supabase.';
     }
