@@ -953,6 +953,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   </div>
   <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Each renewal adds 2 more Normal CIN slots on top of what they've already used — e.g. renewed once takes someone from 2/2 to 2/4 (2 more usable). Confirm payment before clicking.</div>
 
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">🔧 Fix User Plan/Tier</div>
+  <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px">
+    <input id="fixtier-email" type="email" placeholder="user@email.com" style="flex:2;min-width:180px;padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px"/>
+    <select id="fixtier-select" style="padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px">
+      <option value="3" selected>Tier 3 — SME Specialist</option>
+      <option value="4">Tier 4 — Emerging</option>
+      <option value="2">Tier 2 — Growth</option>
+      <option value="1">Tier 1 — Elite</option>
+    </select>
+    <button onclick="fixUserTier()" style="padding:8px 16px;background:#B5370A;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔧 Fix Tier</button>
+  </div>
+  <div id="fixtier-status" style="font-size:11px;color:#6B8A94;margin-bottom:18px"></div>
+
   <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">🆓 Free Evaluation Companies (Same for Every MB)</div>
   <div style="padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px;margin-bottom:8px">
     <p style="margin:0 0 8px;font-size:11px;color:#6B8A94;">One CIN per line. These are always free for every merchant banker and never count toward their 2-company subscription limit.</p>
@@ -1046,7 +1059,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='SEP-E';
+var IPOWORK_BUILD='SEP-F';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1852,6 +1865,70 @@ async function renewSubscription(){
     if(emailEl) emailEl.value = '';
   }catch(e){
     if(statusEl) statusEl.textContent = 'Error: '+e.message;
+  }
+}
+
+/* Fixes a user's plan/tier when it's wrong (e.g. an account created via an
+   older code path that defaulted to 'trial' instead of the intended paid
+   tier). Supabase's anon key only supports INSERT+SELECT, not UPDATE — so
+   this attempts an insert with the SAME report_id as the existing record,
+   then immediately re-fetches to check what actually happened, rather
+   than assume success. Three honest outcomes are possible: the value
+   changed (worked), the value didn't change (insert was likely rejected
+   as a duplicate key), or multiple rows now exist for that report_id
+   (a real problem needing manual attention) — all three are reported
+   plainly rather than guessed at. */
+async function fixUserTier(){
+  var emailEl = document.getElementById('fixtier-email');
+  var statusEl = document.getElementById('fixtier-status');
+  var tierSelect = document.getElementById('fixtier-select');
+  var email = (emailEl?emailEl.value:'').trim().toLowerCase();
+  if(!email || !email.includes('@')){ statusEl.textContent='Enter a valid email.'; return; }
+  var tierNum = tierSelect.value;
+  var tierLabels = {'1':'Tier 1 — Elite','2':'Tier 2 — Growth','3':'Tier 3 — SME Specialist','4':'Tier 4 — Emerging'};
+  var tierLabel = tierLabels[tierNum];
+  statusEl.textContent = 'Checking current account…';
+  var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
+  var acctReportId = 'USER-'+emailSafe;
+
+  try{
+    var beforeR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var beforeRows = beforeR.ok ? await beforeR.json() : [];
+    if(!beforeRows || !beforeRows[0]){ statusEl.textContent='No account found for that email.'; return; }
+    var existing = beforeRows[0].scores || {};
+    var oldTier = existing.tier || '(none)';
+
+    statusEl.textContent = 'Attempting fix ('+oldTier+' → '+tierLabel+')…';
+    await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        report_id: acctReportId, company_name:'IPOWORK_USER_ACCOUNT', cin:'USER-ACCOUNT', sector:'N/A', exchange:'N/A',
+        tier:'free', score:0, source:'user_account',
+        scores: Object.assign({}, existing, { plan:'paid', tier: tierLabel })
+      })
+    });
+
+    // Re-fetch to honestly verify what actually happened, rather than assume the insert worked
+    statusEl.textContent = 'Verifying…';
+    var afterR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+    });
+    var afterRows = afterR.ok ? await afterR.json() : [];
+
+    if(afterRows.length > 1){
+      statusEl.textContent = '⚠ '+afterRows.length+' rows now exist for this account — the insert created a duplicate rather than replacing the record. This needs manual attention in Supabase directly; the app may behave unpredictably for this user until resolved.';
+    } else if(afterRows.length === 1 && (afterRows[0].scores||{}).tier === tierLabel){
+      statusEl.textContent = '✅ Confirmed — '+email+' is now '+tierLabel+' (was '+oldTier+'). Verified by re-reading the record back, not just assumed.';
+    } else if(afterRows.length === 1){
+      statusEl.textContent = '✗ The record still shows "'+((afterRows[0].scores||{}).tier||'(none)')+'" — the insert did not take effect, likely rejected as a duplicate key by Supabase. This account tier could not be changed this way.';
+    } else {
+      statusEl.textContent = '✗ Could not re-fetch the record to verify — check manually in Supabase.';
+    }
+  }catch(e){
+    statusEl.textContent = 'Error: '+e.message;
   }
 }
 
