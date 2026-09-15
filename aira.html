@@ -1002,6 +1002,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   </div>
   <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Each link is unique per person and expires 30 days after generation. Rows with no email are skipped (flagged in the output). Safe to re-run — existing accounts are reused, not duplicated; a fresh token is generated each run.</div>
 
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">📊 Merchant Banker Activity</div>
+  <div style="padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px;margin-bottom:8px">
+    <p style="margin:0 0 8px;font-size:11px;color:#6B8A94;">See who has actually logged in (via magic link or password) and which companies each person has checked.</p>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <input id="mb-activity-search" type="email" placeholder="Filter by email (optional — leave blank for everyone)" style="flex:2;min-width:220px;padding:8px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px"/>
+      <button onclick="loadMBActivity()" style="padding:8px 16px;background:#0D5C6B;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">📊 Load Activity</button>
+      <span id="mb-activity-status" style="font-size:11px;color:#6B8A94"></span>
+    </div>
+    <div id="mb-activity-results" style="display:none;max-height:480px;overflow-y:auto;border:1px solid #E0EEF0;border-radius:8px;background:#fff"></div>
+  </div>
+  <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">"Never logged in" means their account exists (approved, link sent) but they haven't clicked through yet — worth a follow-up nudge. Click a row to expand full login timestamps and every company they've checked.</div>
+
   <!-- Add User form -->
   <div style="background:#F0F9FB;border:1px solid #D8EDF0;border-radius:12px;padding:18px">
     <div style="font-size:12px;font-weight:700;color:#0D5C6B;margin-bottom:12px">➕ Add / Approve New User</div>
@@ -1034,7 +1046,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='SEP-A';
+var IPOWORK_BUILD='SEP-B';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1647,6 +1659,7 @@ async function gateLogin(){
       ts: Date.now()
     }));
   } catch(e){}
+  recordLoginEvent(email, u.name||'', u.firm||''); // fire-and-forget — never blocks or breaks login if this fails
 
   closeAccessGate();
   updateUserUI();
@@ -1947,6 +1960,32 @@ async function checkCinTrialAndRecord(cin){
     return {allowed:true}; // fail open — never block on a network error
   }
 }
+/* Records a login event — fire-and-forget by design. Called without await
+   from both the magic-link and password login paths. Each login is its
+   own row (same append-only pattern as normal_cin_usage/subscription_renewal,
+   since the Supabase anon key only supports INSERT+SELECT, not UPDATE) —
+   this gives a full login history per person, not just a single
+   "last login" field. Any failure here is silently logged and never
+   surfaces to the user or affects the login itself. */
+async function recordLoginEvent(email, name, firm){
+  try{
+    var emailSafe = String(email).toLowerCase().replace(/[^a-z0-9]/gi,'-');
+    var ts = new Date().toISOString();
+    var reportId = 'LOGIN-'+emailSafe+'-'+Date.now();
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({
+        report_id: reportId, company_name: 'N/A', cin: 'N/A', sector: 'N/A', exchange: 'N/A',
+        tier: 'free', score: 0, source: 'login_event',
+        scores: { email: String(email).toLowerCase(), name: name||'', firm: firm||'', loggedInAt: ts }
+      })
+    });
+    if(!r.ok){ console.error('recordLoginEvent: insert failed, status', r.status, '— login itself is unaffected.'); }
+  }catch(e){
+    console.error('recordLoginEvent failed (non-blocking, login unaffected):', e);
+  }
+}
 function showTrialBlockedMessage(outEl, msg){
   var html = '<div style="padding:32px;text-align:center;background:#FEF0EE;border:1.5px solid #F0A090;border-radius:12px;margin:16px 0">'
     +'<div style="font-size:32px;margin-bottom:10px">🔒</div>'
@@ -2196,6 +2235,115 @@ async function bulkGenerateMagicLinks(){
   if(output){ output.value = csvOut; output.style.display = 'block'; }
   var linksGenerated = dataRows.length - skipped - failed;
   if(statusEl) statusEl.textContent = '\u2705 Done \u2014 '+created+' accounts created, '+reused+' reused, '+linksGenerated+' links generated, '+skipped+' skipped (no email), '+failed+' failed.';
+}
+
+async function fetchAllSupaBySource(sourceName){
+  var ctrl = new AbortController();
+  var tid = setTimeout(function(){ ctrl.abort(); }, 15000);
+  try{
+    var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.'+encodeURIComponent(sourceName)+'&select=report_id,scores', {
+      headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL },
+      signal: ctrl.signal
+    });
+    if(!r.ok) throw new Error('status '+r.status);
+    return await r.json();
+  } finally { clearTimeout(tid); }
+}
+
+async function loadMBActivity(){
+  var statusEl = document.getElementById('mb-activity-status');
+  var resultsEl = document.getElementById('mb-activity-results');
+  var filterEmail = (document.getElementById('mb-activity-search').value||'').trim().toLowerCase();
+  statusEl.textContent = 'Loading…';
+  resultsEl.style.display = 'none';
+  try{
+    var accounts = await fetchAllSupaBySource('user_account');
+    var logins = await fetchAllSupaBySource('login_event');
+    var cinUsage = await fetchAllSupaBySource('normal_cin_usage');
+
+    // Group logins per email
+    var loginsByEmail = {};
+    logins.forEach(function(row){
+      var s = row.scores||{}; var em = String(s.email||'').toLowerCase();
+      if(!em) return;
+      if(!loginsByEmail[em]) loginsByEmail[em] = [];
+      loginsByEmail[em].push(s.loggedInAt||'');
+    });
+    Object.keys(loginsByEmail).forEach(function(em){ loginsByEmail[em].sort().reverse(); });
+
+    // Group CIN usage per email
+    var cinsByEmail = {};
+    cinUsage.forEach(function(row){
+      var s = row.scores||{}; var em = String(s.email||'').toLowerCase();
+      if(!em) return;
+      if(!cinsByEmail[em]) cinsByEmail[em] = [];
+      cinsByEmail[em].push({ cin: s.cin||'?', usedAt: s.usedAt||'' });
+    });
+    Object.keys(cinsByEmail).forEach(function(em){ cinsByEmail[em].sort(function(a,b){ return (b.usedAt||'').localeCompare(a.usedAt||''); }); });
+
+    // Build the person list from approved accounts (so "never logged in" people show up too)
+    var people = accounts.map(function(row){
+      var s = row.scores||{};
+      return { email: String(s.email||'').toLowerCase(), name: s.name||'', firm: s.firm||'' };
+    }).filter(function(p){ return p.email; });
+
+    if(filterEmail){ people = people.filter(function(p){ return p.email.indexOf(filterEmail) !== -1; }); }
+
+    // Sort: most recently active first, "never logged in" last
+    people.sort(function(a,b){
+      var la = (loginsByEmail[a.email]||[])[0] || '';
+      var lb = (loginsByEmail[b.email]||[])[0] || '';
+      return lb.localeCompare(la);
+    });
+
+    if(!people.length){
+      resultsEl.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:#9AB0B8">No matching accounts found.</div>';
+      resultsEl.style.display = 'block';
+      statusEl.textContent = '';
+      return;
+    }
+
+    var html = '';
+    people.forEach(function(p, idx){
+      var loginTimes = loginsByEmail[p.email] || [];
+      var cins = cinsByEmail[p.email] || [];
+      var loginCount = loginTimes.length;
+      var lastLogin = loginTimes[0] ? new Date(loginTimes[0]).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
+      var rowId = 'mbact-'+idx;
+
+      html += '<div style="border-bottom:1px solid #F0F5F5">';
+      html += '<div onclick="var d=document.getElementById(\''+rowId+'\');d.style.display=d.style.display===\'none\'?\'block\':\'none\'" style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">';
+      html += '<div><div style="font-size:12.5px;font-weight:700;color:#1A2E35">'+esc(p.name||p.email)+'</div>';
+      html += '<div style="font-size:10.5px;color:#9AB0B8">'+esc(p.email)+(p.firm?(' · '+esc(p.firm)):'')+'</div></div>';
+      if(loginCount > 0){
+        html += '<div style="text-align:right"><span style="font-size:11px;font-weight:700;color:#1A9E6B">'+loginCount+' login'+(loginCount===1?'':'s')+'</span>';
+        html += '<div style="font-size:10px;color:#9AB0B8">Last: '+lastLogin+' · '+cins.length+' compan'+(cins.length===1?'y':'ies')+' checked</div></div>';
+      } else {
+        html += '<div style="text-align:right"><span style="font-size:11px;font-weight:700;color:#E8956B">Never logged in</span></div>';
+      }
+      html += '</div>';
+
+      html += '<div id="'+rowId+'" style="display:none;padding:10px 14px 14px;background:#FAFCFC;font-size:11px">';
+      if(loginCount > 0){
+        html += '<div style="font-weight:700;color:#6B8A94;margin-bottom:4px">Login history:</div>';
+        html += '<div style="margin-bottom:10px;color:#40505E">'+loginTimes.slice(0,20).map(function(t){ return t ? new Date(t).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '(no timestamp)'; }).join('<br>')+(loginTimes.length>20?'<br>… and '+(loginTimes.length-20)+' more':'')+'</div>';
+      }
+      if(cins.length > 0){
+        html += '<div style="font-weight:700;color:#6B8A94;margin-bottom:4px">Companies checked:</div>';
+        html += '<div style="color:#40505E">'+cins.map(function(c){ return esc(c.cin)+' — '+(c.usedAt?new Date(c.usedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'?'); }).join('<br>')+'</div>';
+      } else {
+        html += '<div style="color:#9AB0B8">No companies checked yet.</div>';
+      }
+      html += '</div></div>';
+    });
+
+    resultsEl.innerHTML = html;
+    resultsEl.style.display = 'block';
+    statusEl.textContent = people.length+' account(s) shown.';
+  }catch(e){
+    console.error('loadMBActivity failed:', e);
+    statusEl.textContent = 'Failed to load — '+e.message;
+  }
 }
 
 async function syncAllLocalUsersToSupabase(){
@@ -5639,6 +5787,7 @@ async function tryMagicLinkLogin(){
     try{ localStorage.setItem('ipowork_session', JSON.stringify({email: email, token: btoa(email+(u.password||'')), ts: Date.now()})); }catch(e){}
     if(u.plan==='admin'||email===ADMIN_EMAIL){ ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true; }
     console.log('Magic link: logged in as', email);
+    recordLoginEvent(email, u.name||'', u.firm||''); // fire-and-forget — never blocks or breaks login if this fails
     return true;
   }catch(e){
     console.error('Magic link login error (or timeout) — showing normal login:', e);
