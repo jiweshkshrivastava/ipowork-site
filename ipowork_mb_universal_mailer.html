@@ -130,6 +130,9 @@ name,email,firm,login_url"></textarea>
     <div class="recipient-tools"><button class="secondary" onclick="selectAllPeople()" id="select-all-btn">Select All</button><button class="secondary" onclick="unselectAllPeople()" id="unselect-all-btn">Unselect All</button><button class="secondary" onclick="selectUnsentPeople()" id="select-unsent-btn">Select Unsent</button><button class="secondary" onclick="sendSelectedEmails()" id="send-selected-btn" disabled>Send Selected</button></div>
     <div id="send-status" class="status"></div>
     <div id="send-summary" class="status"></div>
+    <div id="send-diagnostic-note" class="status" style="margin-top:6px;color:#9a4d00">
+      If emails fail, the exact Gmail API error will now appear in the final alert and browser console.
+    </div>
 
     <div style="font-size:12px;font-weight:700;color:#08404D;margin:14px 0 4px">2. Select a Person</div>
     <div id="person-list"></div>
@@ -385,7 +388,9 @@ async function sendAllEmails(){
       SENT_TRACKER[p.email]={status:'sent',at:new Date().toISOString()};
 if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(p.email, "sent", "Gmail API success"); ok++;
     }catch(e){SENT_TRACKER[p.email]={status:'failed',at:new Date().toISOString(),error:e.message};
-if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(p.email, "failed", "Gmail API failure");fail++;}
+if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(p.email, "failed", e && e.message ? e.message : String(e));
+      console.error("IPOWORK Gmail send failed for", p.email, e);
+      fail++;}
     saveSentTracker(); renderPersonList();
     document.getElementById('send-summary').textContent='Sent: '+ok+' | Failed: '+fail+' | Remaining: '+(pending.length-i-1);
     await sleep(350);
@@ -399,12 +404,53 @@ async function sendSelectedEmails(){
   if(!selected.length){alert('Select at least one recipient.');return;}
   if(!confirm('Send '+selected.length+' selected email(s) from the signed-in Gmail account?'))return;
   var btn=document.getElementById('send-selected-btn');btn.disabled=true;
-  var ok=0,fail=0;
+  var ok=0,fail=0,errors=[];
   for(var i=0;i<selected.length;i++){
-    var p=selected[i];document.getElementById('send-status').textContent='Sending '+(i+1)+' of '+selected.length+': '+p.email;
-    try{var subject=UNIVERSAL_MODE?document.getElementById('universal-subject').value:EMAIL_SUBJECT;var r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{Authorization:'Bearer '+GOOGLE_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({raw:b64url(makeMime(p.email,subject,personalizedHtml(p)))})});if(!r.ok)throw new Error((await r.text()).slice(0,220));SENT_TRACKER[p.email]={status:'sent',at:new Date().toISOString()};ok++;}catch(e){SENT_TRACKER[p.email]={status:'failed',at:new Date().toISOString(),error:e.message};fail++;}saveSentTracker();renderPersonList();document.getElementById('send-summary').textContent='Sent: '+ok+' | Failed: '+fail;await sleep(350);
+    var p=selected[i];
+    document.getElementById('send-status').textContent='Sending '+(i+1)+' of '+selected.length+': '+p.email;
+    try{
+      var subject=UNIVERSAL_MODE
+        ? (document.getElementById('universal-subject').value || EMAIL_SUBJECT)
+        : getEmailSubject();
+      var raw=b64url(makeMime(p.email,subject,personalizedHtml(p)));
+      var r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+GOOGLE_TOKEN,
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({raw:raw})
+      });
+      if(!r.ok){
+        var txt=await r.text();
+        var msg='HTTP '+r.status+' — '+txt.slice(0,500);
+        throw new Error(msg);
+      }
+      SENT_TRACKER[p.email]={status:'sent',at:new Date().toISOString()};
+      if(window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(p.email,'sent','Gmail API success');
+      ok++;
+    }catch(e){
+      var errorText=e && e.message ? e.message : String(e);
+      SENT_TRACKER[p.email]={
+        status:'failed',
+        at:new Date().toISOString(),
+        error:errorText
+      };
+      if(window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(p.email,'failed',errorText);
+      errors.push(p.email+': '+errorText);
+      fail++;
+    }
+    saveSentTracker();
+    renderPersonList();
+    document.getElementById('send-summary').textContent='Sent: '+ok+' | Failed: '+fail;
+    await sleep(350);
   }
-  document.getElementById('send-status').textContent='Completed.';updateSendButtons();
+  document.getElementById('send-status').textContent='Completed.';
+  btn.disabled=false;
+  if(fail){
+    var detail='Sent: '+ok+' | Failed: '+fail+'\n\nFirst errors:\n'+errors.slice(0,5).join('\n');
+    alert(detail);
+  }
 }
 
 function copyWaMessage(){
