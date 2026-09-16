@@ -20,7 +20,7 @@
   button.secondary { background:#fff; color:#0D5C6B; border:1.5px solid #D8EDF0; }
   button:disabled { opacity:.4; cursor:not-allowed; }
   #person-list { max-height:340px; overflow-y:auto; border:1px solid #E0EEF0; border-radius:6px; margin-top:8px; }
-  .person-row { padding:8px 10px; font-size:12px; border-bottom:1px solid #F0F5F5; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+  .person-row { padding:8px 10px; gap:8px; font-size:12px; border-bottom:1px solid #F0F5F5; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
   .person-row:hover { background:#F8FAFA; }
   .person-row.active { background:#E3F3EE; font-weight:700; }
   .person-row .sent-badge { font-size:10px; color:#1A9E6B; }
@@ -242,21 +242,35 @@ function loadPeople(){
   if(!raw){ statusEl.textContent = 'Paste CSV data first.'; return; }
   var rows = parseCsvSimple(raw);
   if(rows.length < 2){ statusEl.textContent = 'No data rows found.'; return; }
-  var header = rows[0].map(function(h){ return h.trim(); });
+  var header = rows[0].map(function(h){ return String(h||'').replace(/^\uFEFF/,'').trim(); });
   var idx = {};
-  header.forEach(function(h,i){ idx[h] = i; });
-  var required = ['MERCHANT_BANKER_NAME','FIRM_NAME','SEBI_MB_REG_NO','Email','LOGIN_URL'];
-  var missing = required.filter(function(c){ return !(c in idx); });
-  if(missing.length){ statusEl.textContent = 'Missing columns: '+missing.join(', '); return; }
+  header.forEach(function(h,i){ idx[h] = i; idx[h.toUpperCase()] = i; });
+  function findCol(names){
+    for(var j=0;j<names.length;j++){
+      var key=names[j].toUpperCase();
+      if(Object.prototype.hasOwnProperty.call(idx,key)) return idx[key];
+    }
+    return -1;
+  }
+  var nameCol = findCol(['MERCHANT_BANKER_NAME','MERCHANT BANKER NAME','NAME','FULL_NAME','FULL NAME','CONTACT_NAME','CONTACT NAME']);
+  var firmCol = findCol(['FIRM_NAME','FIRM NAME','COMPANY','COMPANY_NAME','COMPANY NAME','ORGANISATION','ORGANIZATION']);
+  var sebiCol = findCol(['SEBI_MB_REG_NO','SEBI MB REG NO','SEBI_REG_NO','SEBI REG NO','SEBI REGISTRATION NO']);
+  var emailCol = findCol(['EMAIL','EMAIL ID','EMAIL_ID','E-MAIL','E MAIL']);
+  var linkCol = findCol(['LOGIN_URL','LOGIN URL','LOGINURL','MAGIC_LINK','MAGIC LINK','MAGIC_LINK_URL']);
+  var missing = [];
+  if(nameCol<0) missing.push('Name');
+  if(emailCol<0) missing.push('Email');
+  if(linkCol<0) missing.push('LOGIN_URL / MAGIC_LINK');
+  if(missing.length){ statusEl.textContent = 'Missing columns: '+missing.join(', ')+' . Found: '+header.join(', '); return; }
 
   PEOPLE = rows.slice(1).map(function(r){
     return {
       selected:true,
-      name: (r[idx.MERCHANT_BANKER_NAME]||'').trim(),
-      firm: (r[idx.FIRM_NAME]||'').trim(),
-      sebi: (r[idx.SEBI_MB_REG_NO]||'').trim(),
-      email: (r[idx.Email]||'').trim(),
-      loginUrl: (r[idx.LOGIN_URL]||'').trim()
+      name: (r[nameCol]||'').trim(),
+      firm: firmCol>=0 ? (r[firmCol]||'').trim() : '',
+      sebi: sebiCol>=0 ? (r[sebiCol]||'').trim() : '',
+      email: (r[emailCol]||'').trim(),
+      loginUrl: (r[linkCol]||'').trim()
     };
   }).filter(function(p){ return p.email && p.loginUrl && !/^https:\/\/ipowork\.com\/login$/.test(p.loginUrl); });
 
@@ -271,7 +285,7 @@ function renderPersonList(){
     var sent = SENT_TRACKER[p.email];
     var sentStatus = sent && sent.status ? sent.status : (sent ? 'manual' : '');
     return '<div class="person-row'+(i===CURRENT_INDEX?' active':'')+'" onclick="selectPerson('+i+')">' + '<input type="checkbox" '+(p.selected?'checked':'')+' onclick="event.stopPropagation()" onchange="togglePerson('+i+',this.checked)" style="margin-right:7px">'
-      +'<span>'+esc(p.name)+' <span style="color:#9AB0B8">('+esc(p.firm.slice(0,28))+(p.firm.length>28?'…':'')+')</span></span>'
+      +'<span style="flex:1;min-width:0;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>'+esc(p.name||'Name not provided')+'</strong>'+(p.firm?' <span style="color:#9AB0B8">('+esc(p.firm.slice(0,28))+(p.firm.length>28?'…':'')+')</span>':'')+'<br><span style="color:#789098;font-size:11px">'+esc(p.email)+'</span></span>'
       +(sent?'<span class="sent-badge">'+(sentStatus==='failed'?'✕ failed':sentStatus==='sent'?'✓ sent':'✓ marked')+'</span>':'')
       +'</div>';
   }).join('');
@@ -369,9 +383,9 @@ async function sendAllEmails(){
       var r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{Authorization:'Bearer '+GOOGLE_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({raw:raw})});
       if(!r.ok){var txt=await r.text();throw new Error(r.status+' '+txt.slice(0,180));}
       SENT_TRACKER[p.email]={status:'sent',at:new Date().toISOString()};
-if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(email, "sent", "Gmail API success"); ok++;
+if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(p.email, "sent", "Gmail API success"); ok++;
     }catch(e){SENT_TRACKER[p.email]={status:'failed',at:new Date().toISOString(),error:e.message};
-if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(email, "failed", "Gmail API failure");fail++;}
+if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(p.email, "failed", "Gmail API failure");fail++;}
     saveSentTracker(); renderPersonList();
     document.getElementById('send-summary').textContent='Sent: '+ok+' | Failed: '+fail+' | Remaining: '+(pending.length-i-1);
     await sleep(350);
