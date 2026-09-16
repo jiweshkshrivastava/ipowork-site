@@ -83,7 +83,40 @@ name,email,firm,login_url"></textarea>
       </div>
     </div>
 
-    <div class="edit-box" style="margin-top:14px">
+    
+<div class="edit-box" style="margin-top:14px">
+  <label for="campaign-name" style="display:block;font-weight:700;margin-bottom:6px">
+    Campaign Name
+  </label>
+  <input id="campaign-name" type="text"
+         value="Merchant Banker Campaign"
+         placeholder="e.g. Investors Sept 2026 / Associates"
+         style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px">
+  <div style="font-size:12px;color:#666;margin-top:5px">
+    Sent and failed records are saved separately by campaign in this browser.
+  </div>
+</div>
+<div class="edit-box" style="margin-top:14px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+    <strong>Campaign History</strong>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" id="export-campaign-history"
+              style="padding:7px 10px;border:1px solid #bbb;border-radius:7px;cursor:pointer">
+        Export CSV
+      </button>
+      <button type="button" id="clear-campaign-history"
+              style="padding:7px 10px;border:1px solid #bbb;border-radius:7px;cursor:pointer">
+        Clear History
+      </button>
+    </div>
+  </div>
+  <div id="campaign-history-summary" style="font-size:13px;color:#555;margin-top:8px">
+    No campaign history yet.
+  </div>
+  <div id="campaign-history-table" style="margin-top:8px;overflow:auto"></div>
+</div>
+
+<div class="edit-box" style="margin-top:14px">
       <label for="email-subject" style="display:block;font-size:12px;font-weight:700;color:#08404D;margin-bottom:6px">Email Subject — editable before sending</label>
       <input id="email-subject" type="text" value="ipowork AI — Merchant Banker Access" placeholder="Enter email subject" style="width:100%;padding:10px;border:1px solid #d7e4e7;border-radius:8px;font-size:13px">
       <div class="small" style="margin-top:6px;color:#6B8A94">This subject will be used in the actual Gmail email sent by the API.</div>
@@ -335,8 +368,10 @@ async function sendAllEmails(){
       var raw=b64url(makeMime(p.email,subject,personalizedHtml(p)));
       var r=await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{Authorization:'Bearer '+GOOGLE_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({raw:raw})});
       if(!r.ok){var txt=await r.text();throw new Error(r.status+' '+txt.slice(0,180));}
-      SENT_TRACKER[p.email]={status:'sent',at:new Date().toISOString()}; ok++;
-    }catch(e){SENT_TRACKER[p.email]={status:'failed',at:new Date().toISOString(),error:e.message};fail++;}
+      SENT_TRACKER[p.email]={status:'sent',at:new Date().toISOString()};
+if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(email, "sent", "Gmail API success"); ok++;
+    }catch(e){SENT_TRACKER[p.email]={status:'failed',at:new Date().toISOString(),error:e.message};
+if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(email, "failed", "Gmail API failure");fail++;}
     saveSentTracker(); renderPersonList();
     document.getElementById('send-summary').textContent='Sent: '+ok+' | Failed: '+fail+' | Remaining: '+(pending.length-i-1);
     await sleep(350);
@@ -370,6 +405,106 @@ function copyWaMessage(){
 document.getElementById('mailer-mode').onchange=function(){UNIVERSAL_MODE=this.value==='universal';document.getElementById('universal-options').style.display=UNIVERSAL_MODE?'block':'none';};document.getElementById('campaign-type').onchange=function(){document.getElementById('custom-campaign').style.display=this.value==='Custom'?'block':'none';};
 loadSentTracker();
 document.getElementById('google-client-id').value=GOOGLE_CLIENT_ID;
+
+
+/* IPOWORK permanent browser campaign history */
+(function(){
+  var HISTORY_KEY = "ipowork_campaign_history_v1";
+
+  function readHistory(){
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
+    catch(e){ return []; }
+  }
+  function writeHistory(rows){
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(rows)); }
+    catch(e){ console.warn("Could not save campaign history", e); }
+  }
+  function campaignName(){
+    var el = document.getElementById("campaign-name");
+    return el && el.value.trim() ? el.value.trim() : "Unnamed Campaign";
+  }
+  function subjectName(){
+    var el = document.getElementById("email-subject");
+    return el && el.value.trim() ? el.value.trim() :
+      (typeof getEmailSubject === "function" ? getEmailSubject() : "IPOWORK Email");
+  }
+  window.ipoworkRecordCampaign = function(email, status, detail){
+    var rows = readHistory();
+    rows.push({
+      campaign: campaignName(),
+      email: email || "",
+      subject: subjectName(),
+      status: status || "unknown",
+      detail: detail || "",
+      time: new Date().toISOString()
+    });
+    writeHistory(rows);
+    renderHistory();
+  };
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function renderHistory(){
+    var rows = readHistory();
+    var summary = document.getElementById("campaign-history-summary");
+    var table = document.getElementById("campaign-history-table");
+    if(!summary || !table) return;
+    var campaigns = {};
+    rows.forEach(function(r){
+      campaigns[r.campaign] = (campaigns[r.campaign] || 0) + 1;
+    });
+    summary.textContent = rows.length
+      ? rows.length + " total records across " + Object.keys(campaigns).length + " campaign(s)."
+      : "No campaign history yet.";
+    if(!rows.length){ table.innerHTML = ""; return; }
+    var recent = rows.slice(-200).reverse();
+    var out = '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>' +
+      '<th style="text-align:left;border-bottom:1px solid #ccc;padding:6px">Campaign</th>' +
+      '<th style="text-align:left;border-bottom:1px solid #ccc;padding:6px">Email</th>' +
+      '<th style="text-align:left;border-bottom:1px solid #ccc;padding:6px">Status</th>' +
+      '<th style="text-align:left;border-bottom:1px solid #ccc;padding:6px">Date</th></tr></thead><tbody>';
+    recent.forEach(function(r){
+      out += '<tr><td style="padding:6px;border-bottom:1px solid #eee">' + escapeHtml(r.campaign) +
+        '</td><td style="padding:6px;border-bottom:1px solid #eee">' + escapeHtml(r.email) +
+        '</td><td style="padding:6px;border-bottom:1px solid #eee">' + escapeHtml(r.status) +
+        '</td><td style="padding:6px;border-bottom:1px solid #eee">' + escapeHtml(new Date(r.time).toLocaleString()) +
+        '</td></tr>';
+    });
+    table.innerHTML = out + "</tbody></table>";
+  }
+  function exportCsv(){
+    var rows = readHistory();
+    if(!rows.length){ alert("No campaign history to export."); return; }
+    var cols = ["campaign","email","subject","status","detail","time"];
+    var csv = [cols.join(",")].concat(rows.map(function(r){
+      return cols.map(function(k){
+        return '"' + String(r[k] == null ? "" : r[k]).replace(/"/g,'""') + '"';
+      }).join(",");
+    })).join("\r\n");
+    var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "ipowork_campaign_history.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+  document.addEventListener("click", function(e){
+    if(e.target && e.target.id === "export-campaign-history") exportCsv();
+    if(e.target && e.target.id === "clear-campaign-history"){
+      if(confirm("Clear all campaign history saved in this browser?")){
+        writeHistory([]);
+        renderHistory();
+      }
+    }
+  });
+  renderHistory();
+})();
+
 </script>
 </body>
 </html>
