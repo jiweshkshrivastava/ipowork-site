@@ -1072,7 +1072,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='SEP-I';
+var IPOWORK_BUILD='SEP-J';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -2423,26 +2423,43 @@ async function bulkGenerateInvestorLinks(){
 
   var rows = parseCsvSimple(raw);
   if(!rows.length){ if(statusEl) statusEl.textContent = 'Could not parse any rows.'; return; }
-  var header = rows[0].map(function(h){return h.trim();});
-  var dataRows = rows.slice(1);
+  /* FIX-SEP-INV2: was requiring exact column names (INVESTOR_NAME, FIRM_NAME,
+     Email) — real-world investor sheets use natural variants like
+     "Investor Name " (trailing space), "Firm Name ", "Email ID". This now
+     matches flexibly, same approach the mailer tool's own CSV loader
+     already uses, rather than forcing the user's data into rigid headers. */
+  var header = rows[0].map(function(h){ return String(h||'').replace(/^\uFEFF/,'').trim(); });
   var idx = {};
-  header.forEach(function(h,i){ idx[h]=i; });
-
-  var required = ['INVESTOR_NAME','FIRM_NAME','Email'];
-  var missingCols = required.filter(function(c){ return !(c in idx); });
-  if(missingCols.length){ if(statusEl) statusEl.textContent = 'Missing required columns: '+missingCols.join(', '); return; }
+  header.forEach(function(h,i){ idx[h] = i; idx[h.toUpperCase()] = i; });
+  function findCol(names){
+    for(var j=0;j<names.length;j++){
+      var key=names[j].toUpperCase();
+      if(Object.prototype.hasOwnProperty.call(idx,key)) return idx[key];
+    }
+    return -1;
+  }
+  var nameCol = findCol(['INVESTOR_NAME','INVESTOR NAME','NAME','FULL_NAME','FULL NAME','CONTACT_NAME','CONTACT NAME']);
+  var firmCol = findCol(['FIRM_NAME','FIRM NAME','COMPANY','COMPANY_NAME','COMPANY NAME','ORGANISATION','ORGANIZATION']);
+  var emailCol = findCol(['EMAIL','EMAIL ID','EMAIL_ID','E-MAIL','E MAIL']);
+  var loginUrlCol = findCol(['LOGIN_URL','LOGIN URL','LOGINURL']);
+  var dataRows = rows.slice(1);
+  var missing = [];
+  if(nameCol<0) missing.push('Investor Name');
+  if(firmCol<0) missing.push('Firm Name');
+  if(emailCol<0) missing.push('Email');
+  if(missing.length){ if(statusEl) statusEl.textContent = 'Missing required columns: '+missing.join(', ')+'. Found: '+header.join(', '); return; }
 
   var results = [header.concat(['Status'])];
   var created=0, reused=0, skipped=0, failed=0;
 
   for(var i=0;i<dataRows.length;i++){
     var r = dataRows[i];
-    var email = (r[idx.Email]||'').trim().toLowerCase();
-    var name = (r[idx.INVESTOR_NAME]||'').trim();
+    var email = (r[emailCol]||'').trim().toLowerCase();
+    var name = (r[nameCol]||'').trim();
     if(statusEl) statusEl.textContent = 'Processing '+(i+1)+'/'+dataRows.length+'\u2026 ('+created+' created, '+reused+' reused, '+skipped+' skipped, '+failed+' failed)';
 
     if(!email){
-      var rowOut = r.slice(); rowOut[idx.LOGIN_URL !== undefined ? idx.LOGIN_URL : rowOut.length] = '';
+      var rowOut = r.slice(); rowOut[loginUrlCol !== -1 ? loginUrlCol : rowOut.length] = '';
       results.push(rowOut.concat(['SKIPPED — no email']));
       skipped++;
       continue;
@@ -2489,7 +2506,7 @@ async function bulkGenerateInvestorLinks(){
       var loginUrl = MAGIC_LINK_BASE_URL+'?login_token='+token;
       var rowOut = r.slice();
       while(rowOut.length < header.length) rowOut.push('');
-      if(idx.LOGIN_URL !== undefined) rowOut[idx.LOGIN_URL] = loginUrl;
+      if(loginUrlCol !== -1) rowOut[loginUrlCol] = loginUrl;
       results.push(rowOut.concat(['OK']));
     }catch(e){
       results.push(r.concat(['FAILED — '+e.message]));
