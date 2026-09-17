@@ -236,7 +236,95 @@ function unselectAllPeople(){ PEOPLE.forEach(function(p){p.selected=false;}); re
 function selectUnsentPeople(){ PEOPLE.forEach(function(p){p.selected=!(SENT_TRACKER[p.email]&&SENT_TRACKER[p.email].status==='sent');}); renderPersonList(); updateSendButtons(); }
 function updateSendButtons(){ document.getElementById('send-selected-btn').disabled=!GOOGLE_TOKEN||!PEOPLE.some(function(p){return p.selected;}); document.getElementById('send-all-btn').disabled=!GOOGLE_TOKEN||!PEOPLE.length; }
 function campaignName(){var v=document.getElementById('campaign-type').value;return v==='Custom'?(document.getElementById('custom-campaign').value.trim()||'Custom'):v;}
-function parseUniversal(text){var lines=text.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);if(!lines.length)return [];var out=[];var first=lines[0].toLowerCase();if(first.includes('email')&&(first.includes(',')||first.includes('\t'))){var delim=first.includes('\t')?'\t':',';var h=lines.shift().split(delim).map(function(x){return x.trim().toLowerCase();});lines.forEach(function(line){var v=line.split(delim);var o={};h.forEach(function(k,i){o[k]=(v[i]||'').trim();});if(o.email)out.push({name:o.name||o.full_name||'',firm:o.firm||o.company||'',email:o.email,loginUrl:o.login_url||o.loginurl||o.magic_link||'',selected:true});});}else{text.split(/[\s,;]+/).forEach(function(e){e=e.trim();if(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))out.push({name:'',firm:'',email:e,loginUrl:'',selected:true});});}return out;}
+function parseUniversal(text){
+  /* FIX-SEP-UNIV: previously only parsed structured data if line 1
+     literally contained the word "email" - any headerless paste
+     (like the raw AIF sheet: Sr_No,Name,Firm,Email,Phone[,Status])
+     fell into a blob-wide email-regex scan that kept only the emails
+     and silently discarded every name and firm. Now detects the
+     delimiter, detects whether row 1 is actually a header (a header
+     row won't contain an email-shaped cell; a data row will), and
+     for headerless data still splits each row into cells so name/firm
+     survive instead of being thrown away. */
+  var rawLines = text.split(/\r?\n/).map(function(x){ return x.replace(/^\uFEFF/,'').trim(); }).filter(Boolean);
+  if(!rawLines.length) return [];
+  var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var phoneLikeRe = /^[+\-\s\d()]+$/;
+
+  var firstLine = rawLines[0];
+  var tabCount = (firstLine.match(/\t/g)||[]).length;
+  var commaCount = (firstLine.match(/,/g)||[]).length;
+  var delim = tabCount > commaCount ? '\t' : ',';
+
+  var rows = rawLines.map(function(line){ return line.split(delim).map(function(c){ return c.trim(); }); });
+  var maxCols = Math.max.apply(null, rows.map(function(r){ return r.length; }));
+
+  var out = [];
+
+  if(maxCols <= 1){
+    // No real column structure at all - plain list of emails, one per line (or space/semicolon separated)
+    text.split(/[\s,;]+/).forEach(function(e){
+      e = e.trim();
+      if(emailRe.test(e)) out.push({name:'', firm:'', email:e, loginUrl:'', selected:true});
+    });
+    return out;
+  }
+
+  var firstRowHasEmail = rows[0].some(function(c){ return emailRe.test(c); });
+
+  if(!firstRowHasEmail){
+    // Row 1 is a header - map its cells to fields using flexible aliases
+    var header = rows[0].map(function(h){ return h.toLowerCase(); });
+    function findCol(aliases){
+      for(var i=0;i<header.length;i++){ if(aliases.indexOf(header[i])!==-1) return i; }
+      return -1;
+    }
+    var nameCol = findCol(['name','investor_name','investor name','full_name','full name','contact','contact_name','contact name']);
+    var firmCol = findCol(['firm','firm_name','firm name','company','company_name','company name','organisation','organization']);
+    var emailCol = findCol(['email','email_id','email id','e-mail','e mail']);
+    var loginCol = findCol(['login_url','login url','loginurl','magic_link','magic link']);
+    if(emailCol===-1) return out; // genuinely can't find an email column - nothing to load
+    rows.slice(1).forEach(function(r){
+      var email = (r[emailCol]||'').trim();
+      if(!emailRe.test(email)) return;
+      out.push({
+        name: nameCol!==-1 ? (r[nameCol]||'').trim() : '',
+        firm: firmCol!==-1 ? (r[firmCol]||'').trim() : '',
+        email: email,
+        loginUrl: loginCol!==-1 ? (r[loginCol]||'').trim() : '',
+        selected: true
+      });
+    });
+    return out;
+  }
+
+  // Headerless data (row 1 already looks like a data row): find the email
+  // cell per row, then take name/firm from the remaining text-looking cells
+  // rather than discarding them.
+  rows.forEach(function(r){
+    var emailIdx = -1;
+    for(var i=0;i<r.length;i++){ if(emailRe.test(r[i])){ emailIdx = i; break; } }
+    if(emailIdx===-1) return;
+    var candidates = [];
+    for(var j=0;j<r.length;j++){
+      if(j===emailIdx) continue;
+      var cell = r[j];
+      if(!cell) continue;
+      if(/^\d+$/.test(cell)) continue;       // serial number
+      if(phoneLikeRe.test(cell)) continue;   // phone number
+      candidates.push(cell);
+    }
+    out.push({
+      name: candidates[0] || '',
+      firm: candidates[1] || '',
+      email: r[emailIdx],
+      loginUrl: '',
+      selected: true
+    });
+  });
+  return out;
+}
+
 function loadUniversalRecipients(){var a=parseUniversal(document.getElementById('universal-input').value);var n=0;a.forEach(function(p){if(!PEOPLE.some(function(x){return x.email.toLowerCase()===p.email.toLowerCase();})){PEOPLE.push(p);n++;}});UNIVERSAL_MODE=true;document.getElementById('universal-status').textContent='Added '+n+' recipient(s). Total: '+PEOPLE.length;renderPersonList();if(PEOPLE.length)selectPerson(0);updateSendButtons();}
 function universalPersonalizedHtml(p){var link=p.loginUrl?'<p><a href="'+esc(p.loginUrl)+'">Open your IPOwork Magic Link</a></p>':'';return document.getElementById('universal-body').value.replace(/\{\{NAME\}\}/g,esc(p.name||'there')).replace(/\{\{EMAIL\}\}/g,esc(p.email)).replace(/\{\{FIRM\}\}/g,esc(p.firm||'your organisation')).replace(/\{\{MAGIC_LINK\}\}/g,esc(p.loginUrl)).replace(/\{\{MAGIC_LINK_BLOCK\}\}/g,link).replace(/\{\{CAMPAIGN\}\}/g,esc(campaignName())).replace(/\n/g,'<br>');}
 function loadPeople(){
