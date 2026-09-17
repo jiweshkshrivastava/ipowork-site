@@ -1015,6 +1015,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
   </div>
   <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Each link is unique per person and expires 30 days after generation. Rows with no email are skipped (flagged in the output). Safe to re-run — existing accounts are reused, not duplicated; a fresh token is generated each run.</div>
 
+  <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">🔗 Bulk Generate Investor/AIF Magic Login Links</div>
+  <div style="padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px;margin-bottom:8px">
+    <p style="margin:0 0 8px;font-size:11px;color:#6B8A94;">Paste CSV with header row: <code style="font-size:10px;">Sr_No,INVESTOR_NAME,FIRM_NAME,Email,Phone,LOGIN_URL</code></p>
+    <p style="margin:0 0 8px;font-size:10.5px;color:#B5370A;">⚠ These accounts are restricted to 4 preset showcase companies only — not the standard MB tier system. Use this for investor previews, not merchant bankers.</p>
+    <textarea id="investorlink-csv-input" rows="6" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:11px;font-family:monospace;margin-bottom:8px" placeholder="Paste CSV rows here..."></textarea>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button onclick="bulkGenerateInvestorLinks()" style="padding:8px 16px;background:#5B6FEC;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔗 Generate Investor Links</button>
+      <span id="investorlink-status" style="font-size:11px;color:#6B8A94"></span>
+    </div>
+    <textarea id="investorlink-csv-output" rows="6" style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:11px;font-family:monospace;margin-top:8px;display:none" readonly placeholder="Output CSV with real login links will appear here..."></textarea>
+  </div>
+  <div style="font-size:10.5px;color:#9AB0B8;margin-bottom:18px">Same link mechanics as the MB tool above, but accounts are created with an "investor" plan capped at 4 specific CINs (set in INVESTOR_SHOWCASE_CINS in the code) — not the general subscription/quota system.</div>
+
   <div style="font-size:13px;font-weight:700;color:#08404D;margin-bottom:8px">📊 Merchant Banker Activity</div>
   <div style="padding:14px;background:#F8FAFA;border:1px solid #E0EEF0;border-radius:10px;margin-bottom:8px">
     <p style="margin:0 0 8px;font-size:11px;color:#6B8A94;">See who has actually logged in (via magic link or password) and which companies each person has checked.</p>
@@ -1059,7 +1072,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 <script>
 
 /* BUILD STAMP — bump on every release; renders in report footer so any PDF self-identifies its engine build */
-var IPOWORK_BUILD='SEP-H';
+var IPOWORK_BUILD='SEP-I';
 console.log('ipowork build '+IPOWORK_BUILD+' loaded - switchTier:', typeof switchTier);
 
 /* FIX-AUG12-A: LISTED-COMPANY GUARDRAIL — IPO readiness reports only make
@@ -1113,6 +1126,7 @@ var ADMIN_UNLOCKED = false;
 var CURRENT_USER = null;
 var ADMIN_PWD = 'ipowork@admin';
 var ADMIN_EMAIL = 'jiweshkshrivastava@gmail.com';
+var INVESTOR_SHOWCASE_CINS = ['U72100MH2006PLC367638','U24231GJ1998PLC034615','U72200TN1996PTC179090','U67120MH1992PLC069769']; // first 4 of the existing MB evaluation CINs, reused per instruction
 
 
 
@@ -1990,6 +2004,14 @@ async function checkCinTrialAndRecord(cin){
   if(email===ADMIN_EMAIL || CURRENT_USER.plan==='admin') return {allowed:true}; // admin never limited
   var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
 
+  // Investor plan: restricted to exactly 4 preset showcase CINs, not the general MB evaluation list
+  if(CURRENT_USER.plan==='investor'){
+    if(INVESTOR_SHOWCASE_CINS.indexOf(cin) !== -1){
+      return {allowed:true};
+    }
+    return {allowed:false, message:'This preview account is limited to the '+INVESTOR_SHOWCASE_CINS.length+' showcase companies. Contact ipowork for full access.'};
+  }
+
   try{
     // Evaluation CINs are always free, for everyone, no tracking needed
     var evalList = await getEvaluationCinList();
@@ -2384,6 +2406,101 @@ async function bulkGenerateMagicLinks(){
   if(output){ output.value = csvOut; output.style.display = 'block'; }
   var linksGenerated = dataRows.length - skipped - failed;
   if(statusEl) statusEl.textContent = '\u2705 Done \u2014 '+created+' accounts created, '+reused+' reused, '+linksGenerated+' links generated, '+skipped+' skipped (no email), '+failed+' failed.';
+}
+
+/* Investor/AIF version of bulkGenerateMagicLinks — same link mechanics,
+   but creates accounts with plan:'investor' (capped to 4 preset CINs via
+   checkCinTrialAndRecord) instead of plan:'paid' on the standard tier
+   system. Kept as a separate function rather than parameterising the MB
+   one, since the CSV columns and account shape genuinely differ
+   (no SEBI_MB_REG_NO, no tier). */
+async function bulkGenerateInvestorLinks(){
+  var input = document.getElementById('investorlink-csv-input');
+  var output = document.getElementById('investorlink-csv-output');
+  var statusEl = document.getElementById('investorlink-status');
+  var raw = (input?input.value:'').trim();
+  if(!raw){ if(statusEl) statusEl.textContent = 'Paste CSV data first.'; return; }
+
+  var rows = parseCsvSimple(raw);
+  if(!rows.length){ if(statusEl) statusEl.textContent = 'Could not parse any rows.'; return; }
+  var header = rows[0].map(function(h){return h.trim();});
+  var dataRows = rows.slice(1);
+  var idx = {};
+  header.forEach(function(h,i){ idx[h]=i; });
+
+  var required = ['INVESTOR_NAME','FIRM_NAME','Email'];
+  var missingCols = required.filter(function(c){ return !(c in idx); });
+  if(missingCols.length){ if(statusEl) statusEl.textContent = 'Missing required columns: '+missingCols.join(', '); return; }
+
+  var results = [header.concat(['Status'])];
+  var created=0, reused=0, skipped=0, failed=0;
+
+  for(var i=0;i<dataRows.length;i++){
+    var r = dataRows[i];
+    var email = (r[idx.Email]||'').trim().toLowerCase();
+    var name = (r[idx.INVESTOR_NAME]||'').trim();
+    if(statusEl) statusEl.textContent = 'Processing '+(i+1)+'/'+dataRows.length+'\u2026 ('+created+' created, '+reused+' reused, '+skipped+' skipped, '+failed+' failed)';
+
+    if(!email){
+      var rowOut = r.slice(); rowOut[idx.LOGIN_URL !== undefined ? idx.LOGIN_URL : rowOut.length] = '';
+      results.push(rowOut.concat(['SKIPPED — no email']));
+      skipped++;
+      continue;
+    }
+
+    try{
+      var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
+      var acctReportId = 'USER-'+emailSafe;
+      var acctR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.user_account&report_id=eq.'+encodeURIComponent(acctReportId), {
+        headers: { 'apikey': SUPA_KEY_TRIAL, 'Authorization': 'Bearer '+SUPA_KEY_TRIAL }
+      });
+      var acctRows = acctR.ok ? await acctR.json() : [];
+      var acctExists = acctRows && acctRows[0];
+
+      if(!acctExists){
+        var createR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+          method:'POST',
+          headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+          body: JSON.stringify({
+            report_id: acctReportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector:'N/A', exchange:'N/A',
+            tier: 'free', score: 0, source: 'user_account',
+            scores: { email: email, name: name||email, password: 'ipowork2024', approved: true, plan: 'investor' }
+          })
+        });
+        if(!createR.ok){ results.push(r.concat(['FAILED — account creation error '+createR.status])); failed++; continue; }
+        created++;
+      } else {
+        reused++;
+      }
+
+      var token = genToken();
+      var expiresAt = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+      var linkR = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+        method:'POST',
+        headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+        body: JSON.stringify({
+          report_id: 'MAGICLINK-'+emailSafe+'-'+Date.now(), company_name:'MAGIC_LINK', cin:'N/A', sector:'N/A', exchange:'N/A',
+          tier: 'free', score: 0, source: 'magic_link',
+          scores: { email: email, token: token, createdAt: new Date().toISOString(), expiresAt: expiresAt }
+        })
+      });
+      if(!linkR.ok){ results.push(r.concat(['FAILED — token creation error '+linkR.status])); failed++; continue; }
+
+      var loginUrl = MAGIC_LINK_BASE_URL+'?login_token='+token;
+      var rowOut = r.slice();
+      while(rowOut.length < header.length) rowOut.push('');
+      if(idx.LOGIN_URL !== undefined) rowOut[idx.LOGIN_URL] = loginUrl;
+      results.push(rowOut.concat(['OK']));
+    }catch(e){
+      results.push(r.concat(['FAILED — '+e.message]));
+      failed++;
+    }
+  }
+
+  var csvOut2 = results.map(function(row){ return row.map(csvEscape).join(','); }).join('\n');
+  if(output){ output.value = csvOut2; output.style.display = 'block'; }
+  var linksGenerated2 = dataRows.length - skipped - failed;
+  if(statusEl) statusEl.textContent = '\u2705 Done \u2014 '+created+' accounts created, '+reused+' reused, '+linksGenerated2+' links generated, '+skipped+' skipped (no email), '+failed+' failed.';
 }
 
 async function fetchAllSupaBySource(sourceName){

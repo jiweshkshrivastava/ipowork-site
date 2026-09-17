@@ -462,7 +462,26 @@ function copyWaMessage(){
   setTimeout(function(){ statusEl.textContent = ''; }, 2000);
 }
 
-document.getElementById('mailer-mode').onchange=function(){UNIVERSAL_MODE=this.value==='universal';document.getElementById('universal-options').style.display=UNIVERSAL_MODE?'block':'none';};document.getElementById('campaign-type').onchange=function(){document.getElementById('custom-campaign').style.display=this.value==='Custom'?'block':'none';};
+var INVESTOR_SUBJECT = 'ipowork — Curated Pre-IPO, PE & IPO Deal Access';
+var INVESTOR_BODY = 'Dear {{NAME}},<br><br>'+
+  'ipowork is India\u2019s AI-powered capital markets intelligence platform, opening a curated window for AIFs, family offices, and institutional investors seeking <b>pre-IPO, private equity, and IPO-stage opportunities</b> \u2014 backed by real diligence, not decks.<br><br>'+
+  'Every company on our platform is scored against 70+ kill-criteria \u2014 founder forensics, MCA-verified financials, recomputed unit economics, and regulatory red flags \u2014 before it ever reaches an investor\u2019s desk.<br><br>'+
+  '<b>What your preview access includes:</b><br>'+
+  '&bull; 4 live showcase companies \u2014 real AI-scored diligence reports, not samples<br>'+
+  '&bull; Pre-IPO, PE, and IPO-stage deal intelligence<br>'+
+  '&bull; Collective investment support \u2014 co-invest or syndicate with other AIFs on larger opportunities through ipowork\u2019s network<br><br>'+
+  '{{MAGIC_LINK_BLOCK}}<br>'+
+  'Happy to set up a short call if useful to discuss deal flow matching your mandate specifically.<br><br>'+
+  'Best regards,<br>Team ipowork';
+
+document.getElementById('mailer-mode').onchange=function(){UNIVERSAL_MODE=this.value==='universal';document.getElementById('universal-options').style.display=UNIVERSAL_MODE?'block':'none';};
+document.getElementById('campaign-type').onchange=function(){
+  document.getElementById('custom-campaign').style.display=this.value==='Custom'?'block':'none';
+  if(this.value==='Investors'){
+    document.getElementById('universal-subject').value = INVESTOR_SUBJECT;
+    document.getElementById('universal-body').value = INVESTOR_BODY;
+  }
+};
 loadSentTracker();
 document.getElementById('google-client-id').value=GOOGLE_CLIENT_ID;
 
@@ -488,18 +507,47 @@ document.getElementById('google-client-id').value=GOOGLE_CLIENT_ID;
     return el && el.value.trim() ? el.value.trim() :
       (typeof getEmailSubject === "function" ? getEmailSubject() : "IPOWORK Email");
   }
+  var SUPA_URL_TRIAL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
+  var SUPA_KEY_TRIAL = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+
+  /* FIX-SEP-MAILER: campaign history was previously local-only — invisible
+     from any other device or browser, same issue already fixed for the
+     admin dashboard earlier. Every send event now also writes to the same
+     Supabase instance aira.html uses (source:'mailer_send_history'),
+     append-only per event (not an update-in-place, since that mechanism
+     is already confirmed broken against this database). Fire-and-forget
+     and never awaited, so a slow/failed write can never delay or break
+     the actual email-sending loop — local history remains the fallback
+     if this fails, exactly as it worked before this change. */
+  function recordCampaignToSupabase(email, status, detail, campaign, subject){
+    try{
+      var recId = 'MAILERSEND-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+      fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+        method:'POST',
+        headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+        body: JSON.stringify({
+          report_id: recId, company_name:'MAILER_SEND', cin:'N/A', sector:'N/A', exchange:'N/A',
+          tier:'free', score:0, source:'mailer_send_history',
+          scores: { campaign: campaign, email: email||'', subject: subject||'', status: status||'unknown', detail: detail||'', at: new Date().toISOString() }
+        })
+      }).catch(function(e){ console.error('Campaign history Supabase write failed (local history still saved):', e); });
+    }catch(e){ console.error('Campaign history Supabase write failed (local history still saved):', e); }
+  }
+
   window.ipoworkRecordCampaign = function(email, status, detail){
+    var camp = campaignName(), subj = subjectName();
     var rows = readHistory();
     rows.push({
-      campaign: campaignName(),
+      campaign: camp,
       email: email || "",
-      subject: subjectName(),
+      subject: subj,
       status: status || "unknown",
       detail: detail || "",
       time: new Date().toISOString()
     });
     writeHistory(rows);
     renderHistory();
+    recordCampaignToSupabase(email, status, detail, camp, subj);
   };
   function escapeHtml(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
