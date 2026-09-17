@@ -396,23 +396,32 @@ function selectPerson(i){
   document.getElementById('right-panel').style.display = 'block';
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('person-title').textContent = p.name + ' — ' + p.firm;
-  document.getElementById('person-fields').innerHTML = 'Email: '+esc(p.email)+'<br>SEBI Reg: '+esc(p.sebi)+'<br>Link: '+esc(p.loginUrl);
+  document.getElementById('person-fields').innerHTML = UNIVERSAL_MODE
+    ? 'Email: '+esc(p.email)+(p.loginUrl ? '<br>Magic Link: '+esc(p.loginUrl) : '<br>Magic Link: (none — plain email)')
+    : 'Email: '+esc(p.email)+'<br>SEBI Reg: '+esc(p.sebi)+'<br>Link: '+esc(p.loginUrl);
 
-  /* FIX-AUG13-J: this mailer version uses a different merge convention than
-     the earlier template — only {{MAGIC_LINK}} is a true merge tag; the
-     greeting uses a literal bracketed placeholder "[Merchant Banker / Firm
-     Name]" instead of {{...}} syntax. Both are handled here. Using the
-     person's name for the greeting (not firm name) — the label itself
-     allows either, this is a judgment call worth confirming is what's
-     intended. */
-  var rendered = EMAIL_TEMPLATE
-    .replace(/\{\{MAGIC_LINK\}\}/g, p.loginUrl)
-    .replace(/\[Merchant Banker \/ Firm Name\]/g, p.name || p.firm || 'Merchant Banker');
+  var rendered;
+  if(UNIVERSAL_MODE){
+    rendered = universalPersonalizedHtml(p);
+  } else {
+    /* FIX-AUG13-J: this mailer version uses a different merge convention than
+       the earlier template — only {{MAGIC_LINK}} is a true merge tag; the
+       greeting uses a literal bracketed placeholder "[Merchant Banker / Firm
+       Name]" instead of {{...}} syntax. Both are handled here. Using the
+       person's name for the greeting (not firm name) — the label itself
+       allows either, this is a judgment call worth confirming is what's
+       intended. */
+    rendered = EMAIL_TEMPLATE
+      .replace(/\{\{MAGIC_LINK\}\}/g, p.loginUrl)
+      .replace(/\[Merchant Banker \/ Firm Name\]/g, p.name || p.firm || 'Merchant Banker');
+  }
 
   var iframe = document.getElementById('email-preview');
   iframe.srcdoc = rendered;
 
-  var waMsg = 'Hi '+p.name+', here\u2019s your ipowork access \u2014 tap to log in directly: '+p.loginUrl+'\n\nValid for 30 days.';
+  var waMsg = p.loginUrl
+    ? ('Hi '+p.name+', here\u2019s your ipowork access \u2014 tap to log in directly: '+p.loginUrl+'\n\nValid for 30 days.')
+    : ('Hi '+p.name+', this is ipowork reaching out regarding curated deal access. We\u2019ll follow up by email with more details.');
   document.getElementById('wa-message').value = waMsg;
 
   document.getElementById('prev-btn').disabled = (i===0);
@@ -566,19 +575,21 @@ var INVESTOR_BODY = 'Dear {{NAME}},<br><br>'+
   'Happy to set up a short call if useful to discuss deal flow matching your mandate specifically.<br><br>'+
   'Best regards,<br>Team ipowork';
 
+function applyCampaignPrefill(){
+  document.getElementById('custom-campaign').style.display=document.getElementById('campaign-type').value==='Custom'?'block':'none';
+  if(document.getElementById('campaign-type').value==='Investors'){
+    document.getElementById('universal-subject').value = INVESTOR_SUBJECT;
+    document.getElementById('universal-body').value = INVESTOR_BODY;
+  }
+}
 document.getElementById('mailer-mode').onchange=function(){
   UNIVERSAL_MODE=this.value==='universal';
   document.getElementById('universal-options').style.display=UNIVERSAL_MODE?'block':'none';
   document.getElementById('mb-subject-box').style.display=UNIVERSAL_MODE?'none':'block';
   document.getElementById('universal-subject-note').style.display=UNIVERSAL_MODE?'block':'none';
+  if(UNIVERSAL_MODE) applyCampaignPrefill();
 };
-document.getElementById('campaign-type').onchange=function(){
-  document.getElementById('custom-campaign').style.display=this.value==='Custom'?'block':'none';
-  if(this.value==='Investors'){
-    document.getElementById('universal-subject').value = INVESTOR_SUBJECT;
-    document.getElementById('universal-body').value = INVESTOR_BODY;
-  }
-};
+document.getElementById('campaign-type').onchange=applyCampaignPrefill;
 loadSentTracker();
 document.getElementById('google-client-id').value=GOOGLE_CLIENT_ID;
 
