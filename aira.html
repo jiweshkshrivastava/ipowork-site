@@ -2449,6 +2449,17 @@ async function bulkGenerateInvestorLinks(){
   if(emailCol<0) missing.push('Email');
   if(missing.length){ if(statusEl) statusEl.textContent = 'Missing required columns: '+missing.join(', ')+'. Found: '+header.join(', '); return; }
 
+  /* FIX-SEP-INV3: the raw AIF sheet never has a LOGIN_URL column, so
+     loginUrlCol was -1 and every generated link was being written to a
+     column that didn't exist in the output - silently discarded even
+     though the account and token were created successfully in Supabase.
+     Append the column here, before the header row is built, so header
+     and data rows stay aligned throughout. */
+  if(loginUrlCol === -1){
+    header.push('LOGIN_URL');
+    loginUrlCol = header.length - 1;
+  }
+
   var results = [header.concat(['Status'])];
   var created=0, reused=0, skipped=0, failed=0;
 
@@ -2506,7 +2517,7 @@ async function bulkGenerateInvestorLinks(){
       var loginUrl = MAGIC_LINK_BASE_URL+'?login_token='+token;
       var rowOut = r.slice();
       while(rowOut.length < header.length) rowOut.push('');
-      if(loginUrlCol !== -1) rowOut[loginUrlCol] = loginUrl;
+      rowOut[loginUrlCol] = loginUrl;
       results.push(rowOut.concat(['OK']));
     }catch(e){
       results.push(r.concat(['FAILED — '+e.message]));
