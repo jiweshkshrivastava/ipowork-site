@@ -2113,18 +2113,20 @@ async function checkCinTrialAndRecord(cin){
    this gives a full login history per person, not just a single
    "last login" field. Any failure here is silently logged and never
    surfaces to the user or affects the login itself. */
-async function recordLoginEvent(email, name, firm){
+async function recordLoginEvent(email, name, firm, campaign){
   try{
     var emailSafe = String(email).toLowerCase().replace(/[^a-z0-9]/gi,'-');
     var ts = new Date().toISOString();
     var reportId = 'LOGIN-'+emailSafe+'-'+Date.now();
+    var scoresObj = { email: String(email).toLowerCase(), name: name||'', firm: firm||'', loggedInAt: ts };
+    if(campaign) scoresObj.campaign = campaign;
     var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
       method:'POST',
       headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
       body: JSON.stringify({
         report_id: reportId, company_name: 'N/A', cin: 'N/A', sector: 'N/A', exchange: 'N/A',
         tier: 'free', score: 0, source: 'login_event',
-        scores: { email: String(email).toLowerCase(), name: name||'', firm: firm||'', loggedInAt: ts }
+        scores: scoresObj
       })
     });
     if(!r.ok){ console.error('recordLoginEvent: insert failed, status', r.status, '— login itself is unaffected.'); }
@@ -2604,11 +2606,15 @@ async function loadMBActivity(){
       });
     });
 
-    // Build the person list from approved accounts (so "never logged in" people show up too)
+    // Build the person list from approved accounts (so "never logged in" people show up too).
+    // FIX-SEP-MBACT: this previously included every account regardless of
+    // plan, so all ~808 investor-plan accounts were also counting toward
+    // the MB list, inflating "192 real MBs" up to roughly a thousand.
+    // Investor accounts have their own separate view above.
     var people = accounts.map(function(row){
       var s = row.scores||{};
-      return { email: String(s.email||'').toLowerCase(), name: s.name||'', firm: s.firm||'' };
-    }).filter(function(p){ return p.email; });
+      return { email: String(s.email||'').toLowerCase(), name: s.name||'', firm: s.firm||'', plan: s.plan||'' };
+    }).filter(function(p){ return p.email && p.plan!=='investor'; });
 
     if(filterEmail){ people = people.filter(function(p){ return p.email.indexOf(filterEmail) !== -1; }); }
 
@@ -2715,9 +2721,9 @@ async function loadInvestorActivity(){
       var s = row.scores||{}; var em = String(s.email||'').toLowerCase();
       if(!em) return;
       if(!loginsByEmail[em]) loginsByEmail[em] = [];
-      loginsByEmail[em].push(s.loggedInAt||'');
+      loginsByEmail[em].push({ at: s.loggedInAt||'', campaign: s.campaign||'' });
     });
-    Object.keys(loginsByEmail).forEach(function(em){ loginsByEmail[em].sort().reverse(); });
+    Object.keys(loginsByEmail).forEach(function(em){ loginsByEmail[em].sort(function(a,b){ return (b.at||'').localeCompare(a.at||''); }); });
 
     var cinsByEmail = {};
     cinUsage.forEach(function(row){
@@ -2778,7 +2784,8 @@ async function loadInvestorActivity(){
       var cins = Object.keys(cinMap).map(function(cin){ return { cin: cin, usedAt: cinMap[cin] }; })
         .sort(function(a,b){ return (b.usedAt||'').localeCompare(a.usedAt||''); });
       var loginCount = loginTimes.length;
-      var lastLogin = loginTimes[0] ? new Date(loginTimes[0]).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
+      var lastLogin = loginTimes[0] ? new Date(loginTimes[0].at).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
+      var lastCampaign = loginTimes[0] ? loginTimes[0].campaign : '';
       var rowId = 'invact-'+idx;
 
       html += '<div style="border-bottom:1px solid #F0F5F5">';
@@ -2787,6 +2794,7 @@ async function loadInvestorActivity(){
       html += '<div style="font-size:10.5px;color:#9AB0B8">'+esc(p.email)+(p.firm?(' · '+esc(p.firm)):'')+'</div></div>';
       if(loginCount > 0){
         html += '<div style="text-align:right"><span style="font-size:11px;font-weight:700;color:#1A9E6B">'+loginCount+' login'+(loginCount===1?'':'s')+'</span>';
+        if(lastCampaign) html += ' <span style="font-size:9.5px;font-weight:800;background:#FFE9D6;color:#B5540A;border-radius:8px;padding:2px 6px;margin-left:4px">'+esc(lastCampaign)+'</span>';
         html += '<div style="font-size:10px;color:#9AB0B8">Last: '+lastLogin+' · '+cins.length+' compan'+(cins.length===1?'y':'ies')+' checked</div></div>';
       } else {
         html += '<div style="text-align:right"><span style="font-size:11px;font-weight:700;color:#E8956B">Never logged in</span></div>';
@@ -2796,7 +2804,10 @@ async function loadInvestorActivity(){
       html += '<div id="'+rowId+'" style="display:none;padding:10px 14px 14px;background:#FAFCFC;font-size:11px">';
       if(loginCount > 0){
         html += '<div style="font-weight:700;color:#6B8A94;margin-bottom:4px">Login history:</div>';
-        html += '<div style="margin-bottom:10px;color:#40505E">'+loginTimes.slice(0,20).map(function(t){ return t ? new Date(t).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '(no timestamp)'; }).join('<br>')+(loginTimes.length>20?'<br>… and '+(loginTimes.length-20)+' more':'')+'</div>';
+        html += '<div style="margin-bottom:10px;color:#40505E">'+loginTimes.slice(0,20).map(function(t){
+          var when = t.at ? new Date(t.at).toLocaleString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '(no timestamp)';
+          return when + (t.campaign ? ' <span style="color:#B5540A;font-weight:700">(via '+esc(t.campaign)+')</span>' : '');
+        }).join('<br>')+(loginTimes.length>20?'<br>… and '+(loginTimes.length-20)+' more':'')+'</div>';
       }
       if(cins.length > 0){
         html += '<div style="font-weight:700;color:#6B8A94;margin-bottom:4px">Companies checked:</div>';
@@ -6312,7 +6323,7 @@ async function tryMagicLinkLogin(){
     try{ localStorage.setItem('ipowork_session', JSON.stringify({email: email, token: btoa(email+(u.password||'')), ts: Date.now()})); }catch(e){}
     if(u.plan==='admin'||email===ADMIN_EMAIL){ ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true; }
     console.log('Magic link: logged in as', email);
-    recordLoginEvent(email, u.name||'', u.firm||''); // fire-and-forget — never blocks or breaks login if this fails
+    recordLoginEvent(email, u.name||'', u.firm||'', params.get('campaign')||''); // fire-and-forget — never blocks or breaks login if this fails
     return true;
   }catch(e){
     console.error('Magic link login error (or timeout) — showing normal login:', e);
