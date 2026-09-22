@@ -678,6 +678,7 @@ window.storage = {
 })();
 
 </script>
+<script src="ipw-gate.js"></script>
 </head>
 <body>
 <div class="portal-switcher"><span class="ps-label">← <a href="index.html" class="ps-link ps-home">ipowork.com</a></span><span class="ps-label" style="margin:0 2px">·</span><a href="issuer.html" class="ps-link" style="">📊 Issuer Portal</a><a href="mb.html" class="ps-link  active" style="color:#1D9E75;border-color:#1D9E7525;background:#1D9E7508">🏦 MB Portal</a><a href="institutions.html" class="ps-link" style="">🏛️ Intelligence</a><a href="deep-research.html" class="ps-link" style="">🧠 Deep Research</a><a href="cin-finder.html" class="ps-link" style="">🔍 CIN Finder</a><a href="bulk-research.html" class="ps-link" style="">🔬 Bulk Pipeline</a><a href="ca-cs.html" class="ps-link" style="">⚖️ CA/CS Professionals Hub</a></div>
@@ -1348,6 +1349,8 @@ window.storage = {
           <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:4px">🎉 Free Registration</div>
           <div style="font-size:12px;color:var(--muted)">Register free. Browse deal flow previews. Choose your subscription plan from inside your dashboard after verification.</div>
         </div>
+        <div class="field"><label class="lbl">Create Password</label><input class="inp" id="r-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters, a letter and a number"/></div>
+        <div class="field"><label class="lbl">Confirm Password</label><input class="inp" id="r-pass2" type="password" autocomplete="new-password"/></div>
         <div class="err" id="re0"></div>
         <button class="btn btn-cyan" style="width:100%" onclick="regNext(0)">Continue →</button>
       </div>
@@ -1356,7 +1359,7 @@ window.storage = {
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">Verify Email</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">OTP sent to <span id="otp-email-show" style="color:#fff"></span></div>
         <div class="otp-wrap" id="otp-email-inputs"></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">Beta OTP: <span style="font-family:monospace;color:var(--cyan);font-weight:700">1234</span> (all users)</div>
+        
         <div class="err" id="re1"></div>
         <button class="btn btn-cyan" style="width:100%;margin-top:16px" onclick="verifyEmailOTP()">Verify Email →</button>
         <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="regBack(1)">← Back</button>
@@ -1366,7 +1369,7 @@ window.storage = {
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">Verify Mobile</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">OTP sent to <span id="otp-mobile-show" style="color:#fff"></span></div>
         <div class="otp-wrap" id="otp-mobile-inputs"></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center">Beta OTP: <span style="font-family:monospace;color:var(--cyan);font-weight:700">1234</span> (all users)</div>
+        
         <div class="err" id="re2"></div>
         <button class="btn btn-cyan" style="width:100%;margin-top:16px" onclick="verifyMobileOTP()">Verify Mobile →</button>
         <button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="regBack(2)">← Back</button>
@@ -1414,14 +1417,15 @@ window.storage = {
     <div class="modal-body">
       <div class="step-screen active" id="ls0">
         <div class="field"><label class="lbl">Work Email</label><input class="inp" id="l-email" type="email" placeholder="you@mbfirm.com"/></div>
-        <div class="field"><label class="lbl">Mobile Number</label><input class="inp" id="l-mobile" type="tel" placeholder="+91 98765 43210"/></div>
+        <div class="field"><label class="lbl">Password</label><input class="inp" id="l-password" type="password" autocomplete="current-password" placeholder="Your ipowork password"/></div>
         <div class="err" id="le0"></div>
-        <button class="btn btn-cyan" style="width:100%;margin-top:8px" onclick="doLogin()">Send OTP →</button>
+        <button class="btn btn-cyan" style="width:100%;margin-top:8px" onclick="doLogin()">Log In →</button>
+        <div style="text-align:center;margin-top:10px;font-size:12px"><a href="debt-board.html" style="color:var(--cyan)">Forgot password?</a></div>
         <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted)">New MB? <span style="color:var(--cyan);cursor:pointer" onclick="closeModal('login');showUpgradeContact()">Apply for access →</span></div>
       </div>
       <div class="step-screen" id="ls1">
         <div style="font-size:12px;font-weight:700;margin-bottom:6px">Enter OTP</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Beta OTP: <span style="font-family:monospace;color:var(--cyan);font-weight:700">1234</span> (all users)</div>
+        
         <div class="otp-wrap" id="login-otp-inputs"></div>
         <div class="err" id="le1"></div>
         <button class="btn btn-cyan" style="width:100%;margin-top:16px" onclick="verifyLoginOTP()">Log In →</button>
@@ -1719,15 +1723,7 @@ var SEBI_MERCHANT_BANKERS = [
 
 
 // Demo account with password login (bypasses OTP)
-var DEMO_ACCOUNTS = {
-  'jiweshkshrivastava@gmail.com': {
-    password: 'ipowork@2007',
-    name: 'Jiwesh Shrivastava',
-    firm: 'ipowork Admin',
-    regId: 'ADMIN',
-    plan: 'admin'
-  }
-};
+var DEMO_ACCOUNTS = {}; /* removed: passwords never live in page code. Sign-in is via Supabase (ipw-gate.js). */
 
 function tryDemoLogin(email, password) {
   var acc = DEMO_ACCOUNTS[email.toLowerCase().trim()];
@@ -5630,5 +5626,65 @@ async function crmMatchInvestors(dealId){
 }
 </script>
 
+
+<script>
+/* ═══ Secure MB sign-in (Supabase). Replaces the demo OTP / password flow. ═══ */
+(function(){
+  var MB_ROLES=['merchant_banker'];
+  var origOpenPortal=window.openPortal;
+  function hydrate(p){
+    SESS.name=p.full_name||p.email; SESS.email=p.email; SESS.firm=p.org||''; SESS.regId=p.reg_no||''; SESS.loggedIn=true; SESS.demo=false;
+    try{ localStorage.setItem('ipowork_user',JSON.stringify({name:SESS.name,email:SESS.email,firm:SESS.firm,regId:SESS.regId,loggedIn:true})); }catch(e){}
+  }
+  function err(id,m){ var e=document.getElementById(id); if(e){ e.textContent=m; e.classList.add('show'); } }
+  /* never trust a stored "logged in" flag: only a verified Supabase session counts */
+  SESS.loggedIn=false;
+  window.openPortal=function(){
+    if(!IPWGate.ok){ closeModal('register'); openModal('login'); return; }
+    origOpenPortal();
+  };
+  window.tryDemoLogin=function(){ return false; };
+  window.doLogin=async function(){
+    var email=document.getElementById('l-email').value.trim(), pwd=(document.getElementById('l-password')||{}).value||'';
+    if(!email||!pwd) return err('le0','Please enter email and password');
+    var r=await IPWGate.signIn(email,pwd,MB_ROLES);
+    if(!r.ok) return err('le0',r.error);
+    hydrate(r.profile); closeModal('login'); origOpenPortal();
+    if(typeof loadAIRALeads==='function') loadAIRALeads().then(function(){ if(P.view==='deals'||P.view==='hot-leads') renderMain(); });
+  };
+  window.verifyLoginOTP=window.doLogin;
+  window.regNext=function(step){
+    hideRE('re0');
+    var firmRaw=document.getElementById('r-firm').value.trim(), firm=firmRaw.split('|||')[0];
+    var person=document.getElementById('r-person').value.trim(), email=document.getElementById('r-email').value.trim();
+    var mobile=document.getElementById('r-mobile').value.trim(), sebi=document.getElementById('r-sebi').value.trim();
+    var p1=document.getElementById('r-pass').value, p2=document.getElementById('r-pass2').value;
+    if(!firm||!person||!email||!mobile||!sebi) return showRE('re0','Please fill all required fields');
+    if(!(p1.length>=8&&/[A-Za-z]/.test(p1)&&/\d/.test(p1))) return showRE('re0','Password needs at least 8 characters, with a letter and a number');
+    if(p1!==p2) return showRE('re0','The two passwords do not match');
+    REG={firm:firm,person:person,name:person,email:email,mobile:mobile,sebi:sebi,regId:sebi,sector:(document.getElementById('r-sector')||{}).value||'',password:p1};
+    showRS(3);
+  };
+  window.completeRegistration=async function(){
+    var checks=document.querySelectorAll('#agr-checks input[type=checkbox]');
+    if(!Array.from(checks).every(function(c){ return c.checked; })) return showRE('re3','Please accept all terms');
+    var c=await IPWGate.getClient();
+    if(!c) return showRE('re3','Sign-up service did not load. Please refresh and try again.');
+    var r=await c.auth.signUp({email:REG.email,password:REG.password,options:{emailRedirectTo:location.origin+'/debt-board.html',data:{portal_role:'merchant_banker',full_name:REG.person,org:REG.firm,org_type:'Merchant banker',reg_no:REG.sebi,phone:REG.mobile}}});
+    REG.password=null;
+    if(r.error) return showRE('re3',r.error.message);
+    document.getElementById('ok-title').textContent='Application received, '+REG.person;
+    document.getElementById('ok-msg').textContent='Confirm your email using the link we sent to '+REG.email+'. We then verify your SEBI registration and email you when your MB access is switched on, usually within one working day.';
+    var b=document.querySelector('#rs4 button'); if(b){ b.textContent='Close'; b.onclick=function(){ closeModal('register'); }; }
+    showRS(4);
+    try{ fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'send_email',to:'jiweshkshrivastava@gmail.com',subject:'New MB Portal registration: '+REG.firm,
+      html:'<p><b>'+REG.person+'</b> ('+REG.email+', '+REG.mobile+') from <b>'+REG.firm+'</b>, SEBI '+REG.sebi+', applied for MB access.</p><p>Approve in the Debt Board Admin tab: https://www.ipowork.com/debt-board.html</p>'})}).catch(function(){}); }catch(e){}
+  };
+  window.signOut=async function(){ await IPWGate.signOut(); location.reload(); };
+  /* restore a real session on page load */
+  function boot(){ IPWGate.check(MB_ROLES).then(function(r){ if(r.ok){ hydrate(r.profile); } }); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})();
+</script>
 </body>
 </html>

@@ -258,6 +258,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
 }
 
 </style>
+<script src="ipw-gate.js"></script>
 </head>
 <body>
 
@@ -268,7 +269,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
       <div style="font-size:32px;margin-bottom:8px">&#128272;</div>
       <div style="font-family:var(--serif);font-size:18px;font-weight:900;color:var(--tld)">Admin Access</div>
     </div>
-    <input id="admin-pwd-input" type="password" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')checkAdminPwd()"
+    <div style="font-size:12px;color:var(--mu);text-align:center;margin:-10px 0 14px">Sign in with your ipowork admin account</div>
+    <input id="admin-email-input" type="email" autocomplete="email" placeholder="Admin email" value="jiweshkshrivastava@gmail.com"
+      style="width:100%;padding:11px 14px;border:1.5px solid var(--bd);border-radius:9px;font-size:14px;color:var(--sl);outline:none;margin-bottom:10px;box-sizing:border-box"/>
+    <input id="admin-pwd-input" type="password" autocomplete="current-password" placeholder="Password" onkeydown="if(event.key==='Enter')checkAdminPwd()"
       style="width:100%;padding:11px 14px;border:1.5px solid var(--bd);border-radius:9px;font-size:14px;color:var(--sl);outline:none;margin-bottom:10px;box-sizing:border-box"/>
     <div id="admin-pwd-err" style="font-size:11px;color:var(--er);min-height:16px;margin-bottom:8px"></div>
     <button onclick="checkAdminPwd()" style="width:100%;padding:12px;background:var(--tl);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">Enter Dashboard</button>
@@ -1136,7 +1140,7 @@ function _guardCompanyChange(cname){
 }
 var ADMIN_UNLOCKED = false;
 var CURRENT_USER = null;
-var ADMIN_PWD = 'ipowork@admin';
+var ADMIN_PWD = null; /* removed: admin signs in with the ipowork admin account (Supabase) */
 var ADMIN_EMAIL = 'jiweshkshrivastava@gmail.com';
 var INVESTOR_SHOWCASE_CINS = ['U72100MH2006PLC367638','U24231GJ1998PLC034615','U72200TN1996PTC179090','U67120MH1992PLC069769']; // first 4 of the existing MB evaluation CINs, reused per instruction
 
@@ -1145,7 +1149,7 @@ var INVESTOR_SHOWCASE_CINS = ['U72100MH2006PLC367638','U24231GJ1998PLC034615','U
 function handleAdminClick(){
   try {
     var cu=window.CURRENT_USER;
-    var isAdmin=window.ADMIN_UNLOCKED||(cu&&(cu.plan==='admin'||cu.email===ADMIN_EMAIL));
+    var isAdmin=window.__IPW_ADMIN===true;
     if(isAdmin){
       var t=document.getElementById('tab-admin');
       if(t){t.style.display='';t.style.opacity='1';}
@@ -1279,7 +1283,7 @@ function rejectRequest(idx){
 }
 
 async function loadAdmin(){
-  var isAdm=(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL))||ADMIN_UNLOCKED;
+  var isAdm=window.__IPW_ADMIN===true;
   if(!isAdm){ return; }
 
   // Show admin user info
@@ -1511,7 +1515,7 @@ var SESS = {name:'', email:'', org:'', role:'', plan:'free'};
 var IPOWORK_USERS = {
   'jiweshkshrivastava@gmail.com': {
     name: 'Jiwesh Shrivastava',
-    password: 'ipowork@2007',
+    password: null, /* removed: admin signs in via Supabase */
     approved: true,
     plan: 'admin',
     free: true
@@ -1715,7 +1719,7 @@ async function gateLogin(){
   CURRENT_USER = {email: email, name: u.name, plan: u.plan, free: u.free};
   SESS.email = email; SESS.name = u.name; SESS.plan = u.plan;
   // Set ADMIN_UNLOCKED if admin
-  if(u.plan === 'admin'){ ADMIN_UNLOCKED = true; window.ADMIN_UNLOCKED = true; }
+  /* admin access now requires the Supabase admin sign-in */
 
   // Save session
   try {
@@ -1756,7 +1760,7 @@ function updateUserUI(){
   if(!userEl) return;
   if(CURRENT_USER){
     var isAdmin = IPOWORK_USERS[CURRENT_USER.email] && IPOWORK_USERS[CURRENT_USER.email].plan === 'admin';
-    if(isAdmin){ ADMIN_UNLOCKED = true; window.ADMIN_UNLOCKED = true; }
+    isAdmin = window.__IPW_ADMIN===true;
     // Show/hide admin tab based on role
     var adminTab = document.getElementById('tab-admin');
     var adminContent = document.getElementById('content-admin');
@@ -3371,16 +3375,8 @@ function switchTier(t){
   // Block admin access for non-admins (unless ADMIN_UNLOCKED via password)
   if(t==='admin'){
     var u = CURRENT_USER && IPOWORK_USERS[CURRENT_USER.email];
-    var isAdm = (u && (u.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL)) || ADMIN_UNLOCKED;
-    if(!isAdm){
-      if(!isLoggedIn()){
-        showAccessGate(function(){ switchTier('admin'); });
-      } else {
-        openAdminAuth();
-      }
-      return;
-    }
-    ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true;
+    var isAdm = window.__IPW_ADMIN===true;
+    if(!isAdm){ openAdminAuth(); return; }
     // Show admin tab in sidebar when accessing admin
     var aTab = document.getElementById('tab-admin');
     if(aTab) aTab.style.display = '';
@@ -5726,10 +5722,10 @@ function restoreSession(){
     if(!u || !u.approved) return;
     var tokenOk = sess.token === btoa(sess.email + u.password);
     var ageOk = sess.ts && (Date.now() - sess.ts) < 30*24*60*60*1000;
-    if(tokenOk || ageOk){
+    if(tokenOk && ageOk && sess.email!==ADMIN_EMAIL){
       CURRENT_USER = {email:sess.email, name:u.name||sess.email, plan:u.plan||'paid', free:u.free||false};
       SESS.email = sess.email; SESS.name = u.name||''; SESS.plan = u.plan||'paid';
-      if(u.plan==='admin'||sess.email===ADMIN_EMAIL){ ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true; }
+
     }
   } catch(e){ console.warn('Session restore error:', e); }
 }
@@ -5773,19 +5769,25 @@ function closeAdminAuth(){
   if(gate) gate.style.display = 'none';
 }
 
-function checkAdminPwd(pwdArg){
-  var p = pwdArg || (document.getElementById('admin-pwd-input')||{}).value || '';
-  var adminUser = IPOWORK_USERS[ADMIN_EMAIL] || {};
-  var validPwd = (p===ADMIN_PWD) || (p==='ipowork@2007') || (adminUser.password && p===adminUser.password);
-  if(validPwd){
-    ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true;
-    closeAdminAuth();
-    var t = document.getElementById('tab-admin');
-    if(t){ t.style.display='inline-flex'; t.style.opacity='1'; }
-    switchTier('admin'); loadAdmin();
-  } else {
-    alert('Incorrect password.');
-  }
+async function checkAdminPwd(pwdArg){
+  var em=((document.getElementById('admin-email-input')||{}).value||ADMIN_EMAIL).trim();
+  var p=pwdArg||(document.getElementById('admin-pwd-input')||{}).value||'';
+  var er=document.getElementById('admin-pwd-err');
+  if(!p){ if(er) er.textContent='Enter your password.'; return; }
+  if(er) er.textContent='Signing in…';
+  var r=await IPWGate.signIn(em,p,['admin']);
+  if(!r.ok){ if(er) er.textContent=r.error; var pi=document.getElementById('admin-pwd-input'); if(pi) pi.value=''; return; }
+  if(er) er.textContent='';
+  ipwUnlockAdmin(r.profile, true);
+}
+function ipwUnlockAdmin(profile, open){
+  window.__IPW_ADMIN=true; ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true;
+  CURRENT_USER={email:profile.email,name:profile.full_name||profile.email,plan:'admin',free:true};
+  try{ SESS.email=profile.email; SESS.name=CURRENT_USER.name; SESS.plan='admin'; }catch(e){}
+  closeAdminAuth();
+  var t=document.getElementById('tab-admin'); if(t){ t.style.display='inline-flex'; t.style.opacity='1'; }
+  if(typeof updateUserUI==='function') updateUserUI();
+  if(open){ switchTier('admin'); loadAdmin(); }
 }
 
 
@@ -6321,7 +6323,7 @@ async function tryMagicLinkLogin(){
     SESS.email = email; SESS.name = u.name||''; SESS.plan = u.plan||'paid';
     IPOWORK_USERS[email] = u;
     try{ localStorage.setItem('ipowork_session', JSON.stringify({email: email, token: btoa(email+(u.password||'')), ts: Date.now()})); }catch(e){}
-    if(u.plan==='admin'||email===ADMIN_EMAIL){ ADMIN_UNLOCKED=true; window.ADMIN_UNLOCKED=true; }
+
     console.log('Magic link: logged in as', email);
     recordLoginEvent(email, u.name||'', u.firm||'', params.get('campaign')||''); // fire-and-forget — never blocks or breaks login if this fails
     return true;
@@ -6336,10 +6338,7 @@ document.addEventListener('DOMContentLoaded',async function(){
   var magicOk = await tryMagicLinkLogin();
   if(!magicOk) restoreSession();
   if(typeof updateUserUI==='function') updateUserUI();
-  if(CURRENT_USER&&(CURRENT_USER.plan==='admin'||CURRENT_USER.email===ADMIN_EMAIL)){
-    ADMIN_UNLOCKED=true;window.ADMIN_UNLOCKED=true;
-    var at=document.getElementById('tab-admin');if(at)at.style.display='';
-  }
+  /* admin tab appears only after a verified Supabase admin session (see ipw admin boot below) */
   if(typeof switchTier==='function') switchTier('paid');
 
   // Expose all functions globally
@@ -6414,6 +6413,12 @@ document.addEventListener('DOMContentLoaded',async function(){
   console.log('ipowork build '+IPOWORK_BUILD+' loaded - all functions exposed');
 });
 
+</script>
+<script>
+/* Restore a verified Supabase admin session, if any. Nothing else grants admin. */
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){ if(window.IPWGate) IPWGate.check(['admin']).then(function(r){ if(r.ok) ipwUnlockAdmin(r.profile,false); }); },0);
+});
 </script>
 </body>
 </html>

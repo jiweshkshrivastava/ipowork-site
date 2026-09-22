@@ -529,6 +529,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 }
 
 </style>
+<script src="ipw-gate.js"></script>
 </head>
 <body>
 <div style="background:#08404D;padding:7px 18px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;position:fixed;top:0;left:0;right:0;z-index:200;box-shadow:0 1px 8px rgba(0,0,0,.2)">
@@ -1380,18 +1381,7 @@ initSide();
 \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 
 function drGateLogin(){
-  var email = (document.getElementById('dr-gate-email')||{}).value||'';
-  var pw    = (document.getElementById('dr-gate-pw')||{}).value||'';
-  var err   = document.getElementById('dr-gate-err');
-  email = email.trim().toLowerCase();
-  var u = IPOWORK_USERS[email];
-  if(!u){ if(err) err.textContent='Email not registered.'; return; }
-  if(u.password !== pw){ if(err) err.textContent='Incorrect password.'; return; }
-  CURRENT_USER = {email:email, name:u.name||email, plan:u.plan||'paid'};
-  try{ localStorage.setItem('ipowork_session', JSON.stringify({email:email,token:btoa(email+pw),ts:Date.now()})); }catch(e){}
-  var gate = document.getElementById('dr-access-gate');
-  if(gate) gate.style.display='none';
-  startResearch();
+  return drSupabaseLogin('dr-gate-email','dr-gate-pw','dr-gate-err',function(){ startResearch(); });
 }
 
 
@@ -1931,7 +1921,7 @@ document.addEventListener('DOMContentLoaded',function(){
 var IPOWORK_USERS = {
   'jiweshkshrivastava@gmail.com': {
     name: 'Jiwesh Shrivastava',
-    password: 'ipowork@2007',
+    password: null, /* removed: sign-in is via Supabase (ipw-gate.js) */
     approved: true,
     plan: 'admin',
     free: true
@@ -1951,9 +1941,6 @@ var CURRENT_USER = null;
         u = u || extra[sess.email];
         if(u && u.approved){
           CURRENT_USER = {email: sess.email, name: u.name||sess.email, plan: u.plan||'paid'};
-        } else if(sess.email) {
-          // Accept any saved session even if user not in local IPOWORK_USERS
-          CURRENT_USER = {email: sess.email, name: sess.email.split('@')[0], plan: 'paid'};
         }
       }
     }
@@ -1963,7 +1950,24 @@ var CURRENT_USER = null;
   } catch(e){}
 })();
 
-function drIsLoggedIn(){ return true; }
+/* Set to true to require a verified ipowork account before running research
+   (each run uses Claude and Probe42 credits). Allowed roles are in DR_ROLES. */
+var DR_REQUIRE_LOGIN = false;
+var DR_ROLES = ['merchant_banker','institution','fund_manager','ca_cs'];
+function drIsLoggedIn(){ return !DR_REQUIRE_LOGIN || !!(window.IPWGate && IPWGate.ok); }
+async function drSupabaseLogin(emailId,pwId,errId,after){
+  var email=((document.getElementById(emailId)||{}).value||'').trim().toLowerCase();
+  var pw=(document.getElementById(pwId)||{}).value||'';
+  var er=document.getElementById(errId);
+  if(!email||!pw){ if(er) er.textContent='Enter your email and password.'; return; }
+  if(er) er.textContent='Signing in…';
+  var r=await IPWGate.signIn(email,pw,DR_ROLES);
+  if(!r.ok){ if(er) er.textContent=r.error; return; }
+  if(er) er.textContent='';
+  CURRENT_USER={email:r.profile.email,name:r.profile.full_name||r.profile.email,plan:r.profile.role==='admin'?'admin':'paid'};
+  drCloseGate(); if(typeof updateUserBadge==='function') updateUserBadge();
+  if(after) after();
+}
 
 
 function drShowGate(){
@@ -2026,30 +2030,12 @@ function drSubmitRequest(){
 }
 
 function drLogin(){
-  var email = (document.getElementById('dr-gate-email')||{}).value||'';
-  var pw    = (document.getElementById('dr-gate-pw')||{}).value||'';
-  var errEl = document.getElementById('dr-gate-error');
-  email = email.trim().toLowerCase();
-
-  var u = IPOWORK_USERS[email];
-  if(!u){ if(errEl) errEl.textContent='❌ Email not registered. Contact partners@ipowork.com'; return; }
-  if(!u.approved){ if(errEl) errEl.textContent='⏳ Account pending approval. Contact partners@ipowork.com'; return; }
-  if(u.password !== pw){ if(errEl) errEl.textContent='❌ Incorrect password.'; return; }
-
-  CURRENT_USER = {email: email, name: u.name, plan: u.plan};
-  try {
-    localStorage.setItem('ipowork_session', JSON.stringify({
-      email: email, token: btoa(email + u.password), ts: Date.now()
-    }));
-  } catch(e){}
-  drCloseGate();
-  updateUserBadge();
-  // Auto-start if user clicked Run button before login
-  if(window._pendingStart){ window._pendingStart=false; startResearch(); }
+  return drSupabaseLogin('dr-gate-email','dr-gate-pw','dr-gate-error',function(){ if(window._pendingStart){ window._pendingStart=false; startResearch(); } });
 }
 
 function drLogout(){
   CURRENT_USER = null;
+  if(window.IPWGate) IPWGate.signOut();
   try{ localStorage.removeItem('ipowork_session'); }catch(e){}
   location.reload();
 }
@@ -2071,7 +2057,7 @@ document.addEventListener('DOMContentLoaded', function(){ updateUserBadge(); });
 
 <script>
   // Auto-start removed
-/script>
+</script>
 
 <!-- IPOWORK DEEP RESEARCH ACCESS GATE -->
 <div id="dr-access-gate" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;background:rgba(8,64,77,.95);overflow-y:auto;padding:30px 16px;box-sizing:border-box">
@@ -2135,4 +2121,11 @@ document.addEventListener('DOMContentLoaded', function(){ updateUserBadge(); });
 <div id="src-bar" style="display:none"></div>
 <div id="dr-gate-err" style="color:#E74C3C;font-size:12px;margin-bottom:8px"></div>
 
+<script>
+/* restore a verified ipowork session (replaces the old localStorage-only session) */
+document.addEventListener('DOMContentLoaded',function(){
+  if(!window.IPWGate) return;
+  IPWGate.check(DR_ROLES).then(function(r){ if(r.ok){ CURRENT_USER={email:r.profile.email,name:r.profile.full_name||r.profile.email,plan:r.profile.role==='admin'?'admin':'paid'}; if(typeof updateUserBadge==='function') updateUserBadge(); } });
+});
+</script>
 </body></html>
