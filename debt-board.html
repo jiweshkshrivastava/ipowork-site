@@ -738,6 +738,7 @@ var TABS=[
   {id:'mine',label:'My activity',onlyFor:['institution','merchant_banker','fund_manager','issuer','ca_cs']},
   {id:'plans',label:'Plans',hideFor:['admin']},
   {id:'distdesk',label:'Distribution desk',onlyFor:['admin']},
+  {id:'book',label:'Investor book',onlyFor:['admin']},
   {id:'admin',label:'Admin',onlyFor:['admin']}
 ];
 function distributeLabel(){ var r=role(); return r==='merchant_banker'?'Distribute a deal':r==='fund_manager'?'Distribute product or deal':r==='issuer'?'Raise capital':r==='ca_cs'?'Refer a client':'Distribute'; }
@@ -755,7 +756,7 @@ function showTab(id){ S.tab=id; S.i360Only=null; renderTabs(); renderPanel(); }
 function renderPanel(){
   var t=TABS.filter(function(x){return x.id===S.tab;})[0], P=$('panels');
   if(t.need&&!can(t.need)){ P.innerHTML=gate(t.id); return; }
-  ({distdesk:pDistribute_admin,capital:pCapital,market:pMarket,radar:pRadar,refin:pRefin,signals:pSignals,i360:pI360,match:pMatch,partners:pPartners,arranger:pArranger,heatmap:pHeat,readiness:pReady,distribute:pDistribute,mine:pMine,plans:pPlans,admin:pAdmin})[t.id](P);
+  ({book:pBook,distdesk:pDistribute_admin,capital:pCapital,market:pMarket,radar:pRadar,refin:pRefin,signals:pSignals,i360:pI360,match:pMatch,partners:pPartners,arranger:pArranger,heatmap:pHeat,readiness:pReady,distribute:pDistribute,mine:pMine,plans:pPlans,admin:pAdmin})[t.id](P);
 }
 function renderAll(){ renderHero(); renderAuthArea(); renderBanner(); renderPortals(); renderTabs(); renderPanel(); runFinder(); }
 
@@ -1260,6 +1261,136 @@ function pPlans(P){
 
 /* ═════════════ admin ═════════════ */
 /* ═══════════════════════════════════════════════════════════════
+   INVESTOR BOOK (admin)
+   Investors from ipowork's own network, added here with the mandate
+   captured when they were spoken to. The Distribution desk matches
+   deals against these as well as against platform sign-ups.
+   ═══════════════════════════════════════════════════════════════ */
+var INV_TYPES=['AIF: Category I','AIF: Category II','AIF: Category III','PMS','Family office','NBFC / HFC','Debt fund / AMC','Bank','Insurance / pension','Corporate treasury','HNI','Other institution'];
+var MSTATUS=[['none','No mandate yet'],['requested','Mandate requested'],['received','Mandate received'],['declined','Declined']];
+function mstLabel(s){ var x=MSTATUS.filter(function(m){return m[0]===s;})[0]; return x?x[1]:s; }
+function mstCls(s){ return s==='received'?'r-aaa':s==='requested'?'w-3m':s==='declined'?'r-b':'plain'; }
+
+async function loadBook(){
+  var r=await sb.from('db_investors').select('*').order('org');
+  S.book=r.data||[];
+  if(r.error) toast('Investor book not loaded: '+r.error.message);
+  return S.book;
+}
+async function pBook(P){
+  P.innerHTML='<div class="empty">Loading the investor book</div>';
+  await loadBook();
+  var f=S.bf||{q:'',st:'',ty:''};
+  var counts={}; (S.book||[]).forEach(function(i){ counts[i.mandate_status]=(counts[i.mandate_status]||0)+1; });
+  P.innerHTML='<h3 class="sec-h" style="font-size:22px">Investor book</h3>'
+   +'<p class="panel-intro" style="margin-top:4px">Your own network, with the mandate you captured. Investors here are matched by the Distribution desk exactly like platform sign-ups, so you only ever send a deal against a mandate.</p>'
+   +'<div class="grid g4" style="margin-bottom:14px">'+MSTATUS.map(function(m){ return '<div class="card"><div class="small">'+esc(m[1])+'</div><b style="font-family:var(--serif);font-size:26px;color:var(--teal)">'+(counts[m[0]]||0)+'</b></div>'; }).join('')+'</div>'
+   +'<div class="filters"><input class="inp search" id="bk-q" placeholder="Search name, firm or email" value="'+esc(f.q)+'"/>'
+   +sel('bk-st','All mandate states',MSTATUS.map(function(m){return m[0];}),f.st,mstLabel)
+   +sel('bk-ty','All investor types',INV_TYPES,f.ty)
+   +'<button class="btn btn-p btn-sm" onclick="bookEdit(null)">+ Add investor</button>'
+   +'<button class="btn btn-o btn-sm" onclick="bookImport()">Import list</button>'
+   +'<span class="count" id="bk-n"></span></div><div id="bk-grid"></div>';
+  ['bk-q','bk-st','bk-ty'].forEach(function(id){ $(id).addEventListener('input',drawBook); });
+  drawBook();
+}
+function bookFiltered(){
+  var f=S.bf={q:($('bk-q').value||'').toLowerCase(),st:$('bk-st').value,ty:$('bk-ty').value};
+  return (S.book||[]).filter(function(i){
+    return (!f.q||((i.org||'')+' '+(i.name||'')+' '+(i.email||'')).toLowerCase().indexOf(f.q)>=0)
+      &&(!f.st||i.mandate_status===f.st)&&(!f.ty||i.org_type===f.ty);
+  });
+}
+function drawBook(){
+  var l=bookFiltered();
+  $('bk-n').textContent=l.length+' of '+(S.book||[]).length;
+  $('bk-grid').innerHTML=l.length?table(
+    ['Firm','Contact','Type','Mandate','Accepts','Ticket (₹ Cr)','Status',''],
+    l.map(function(i){
+      var m=i.mandate||{};
+      var acc=(m.verticals&&m.verticals.length)?m.verticals.map(cmLabel).join(', '):'—';
+      return [i.org, (i.name||'')+(i.email?'\n'+i.email:''), i.org_type||'', {html:badge(i.mandate_status).html.replace(badge(i.mandate_status).html,'<span class="badge '+mstCls(i.mandate_status)+'">'+esc(mstLabel(i.mandate_status))+'</span>')},
+        acc+(m.sectors&&m.sectors.length?' · '+m.sectors.join(', '):''),
+        (m.ticket_min||'—')+(m.ticket_max?'–'+m.ticket_max:''),
+        i.notes||'',
+        {html:'<button class="btn btn-o btn-sm" onclick="bookEdit('+i.id+')">Edit</button>'}];
+    })):'<div class="empty">No investors yet. Use <b>+ Add investor</b>, or <b>Import list</b> to paste your contacts.</div>';
+}
+function bookEdit(id){
+  var i=(S.book||[]).filter(function(x){return x.id===id;})[0]||{mandate:{}};
+  var m=i.mandate||{};
+  var ratings=uniq(PUBLIC.deals.map(function(d){return d.rating;}).concat(['A','A−','BBB+','BBB','Unrated'])).sort(function(a,b){return rk(a)-rk(b);});
+  $('det-title').textContent=id?'Edit investor':'Add investor';
+  $('det-sub').textContent='Kept private to ipowork. Never shown to arrangers or other investors.';
+  $('det-body').innerHTML='<div class="two">'
+   +'<div class="fld"><label class="f" for="bk-org">Firm</label><input class="inp" id="bk-org" value="'+esc(i.org||'')+'"/></div>'
+   +'<div class="fld"><label class="f" for="bk-type">Type</label><select class="inp" id="bk-type">'+opt(INV_TYPES,i.org_type)+'</select></div>'
+   +'<div class="fld"><label class="f" for="bk-name">Contact name</label><input class="inp" id="bk-name" value="'+esc(i.name||'')+'"/></div>'
+   +'<div class="fld"><label class="f" for="bk-email">Email</label><input class="inp" id="bk-email" type="email" value="'+esc(i.email||'')+'"/></div>'
+   +'<div class="fld"><label class="f" for="bk-phone">Mobile</label><input class="inp" id="bk-phone" value="'+esc(i.phone||'')+'"/></div>'
+   +'<div class="fld"><label class="f" for="bk-city">City</label><input class="inp" id="bk-city" value="'+esc(i.city||'')+'"/></div></div>'
+   +'<div class="sect"><h5>Mandate</h5>'
+   +'<div class="fld"><label class="f">Accepts</label>'+chips('bv',CM_ROWS,m.verticals)+'</div>'
+   +'<div class="fld"><label class="f">Sectors</label>'+chips('bs',uniq(PUBLIC.deals.map(function(d){return d.sector;}).concat(SECTORS)),m.sectors)+'</div>'
+   +'<div class="fld"><label class="f">Ratings (debt)</label>'+chips('br',ratings,m.ratings)+'</div>'
+   +'<div class="two"><div class="fld"><label class="f" for="bk-min">Minimum ticket (₹ Cr)</label><input class="inp" id="bk-min" type="number" value="'+esc(m.ticket_min||'')+'"/></div>'
+   +'<div class="fld"><label class="f" for="bk-max">Maximum ticket (₹ Cr)</label><input class="inp" id="bk-max" type="number" value="'+esc(m.ticket_max||'')+'"/></div></div>'
+   +'<div class="two"><div class="fld"><label class="f" for="bk-geo">Geography</label><input class="inp" id="bk-geo" value="'+esc(m.geography||'')+'"/></div>'
+   +'<div class="fld"><label class="f" for="bk-st2">Mandate status</label><select class="inp" id="bk-st2">'+MSTATUS.map(function(s){return '<option value="'+s[0]+'"'+(s[0]===(i.mandate_status||'none')?' selected':'')+'>'+esc(s[1])+'</option>';}).join('')+'</select></div></div>'
+   +'<div class="fld"><label class="f" for="bk-notes">Notes (what they told you)</label><textarea class="inp" id="bk-notes">'+esc(i.notes||'')+'</textarea></div></div>'
+   +'<div class="actions"><button class="btn btn-p" id="bk-save">Save</button>'
+   +(i.email?'<button class="btn btn-o" onclick="bookAskMandate('+(id||0)+')">Email a mandate request</button>':'')
+   +(id?'<button class="btn btn-g" onclick="bookDelete('+id+')">Delete</button>':'')+'</div>';
+  $('bk-save').onclick=async function(){
+    var rec={org:$('bk-org').value.trim(),org_type:$('bk-type').value,name:$('bk-name').value.trim(),
+      email:$('bk-email').value.trim().toLowerCase()||null,phone:$('bk-phone').value.trim(),city:$('bk-city').value.trim(),
+      mandate:{verticals:picked('bv'),sectors:picked('bs'),ratings:picked('br'),ticket_min:$('bk-min').value,ticket_max:$('bk-max').value,geography:$('bk-geo').value},
+      mandate_status:$('bk-st2').value,notes:$('bk-notes').value,updated_at:new Date().toISOString()};
+    if(!rec.org) return toast('Enter the firm name.');
+    var r=id?await sb.from('db_investors').update(rec).eq('id',id):await sb.from('db_investors').insert(rec);
+    if(r.error) return toast('Not saved: '+r.error.message);
+    closeOv('det-ov'); toast('Investor saved.'); pBook($('panels'));
+  };
+  openOv('det-ov');
+}
+async function bookDelete(id){
+  var i=(S.book||[]).filter(function(x){return x.id===id;})[0]||{};
+  if(!confirm('Delete '+(i.org||'this investor')+' from the book?')) return;
+  var r=await sb.from('db_investors').delete().eq('id',id);
+  if(r.error) return toast('Not deleted: '+r.error.message);
+  closeOv('det-ov'); toast('Removed.'); pBook($('panels'));
+}
+function bookAskMandate(id){
+  var i=(S.book||[]).filter(function(x){return x.id===id;})[0]; if(!i||!i.email) return;
+  var sub='Your investment mandate for ipowork deal flow';
+  var body='Dear '+(i.name||'Sir/Madam')+',\n\nSo that we send you only opportunities that fit '+(i.org||'your firm')+', could you confirm your mandate:\n\n'
+    +'• What you invest in (debt, private credit, pre-IPO, PE, block, preferential)\n• Sectors\n• Ticket size (minimum and maximum, ₹ Cr)\n• Rating and tenor preferences for debt\n• Geography\n\nYou can also set it yourself here: '+location.origin+location.pathname+'\n\n'
+    +'We send opportunities only against a stated mandate. This is information, not an offer; any transaction completes through the relevant SEBI-registered intermediary.\n\nipowork';
+  window.open('mailto:'+encodeURIComponent(i.email)+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body));
+  sb.from('db_investors').update({mandate_status:'requested',updated_at:new Date().toISOString()}).eq('id',id).then(function(){ pBook($('panels')); });
+}
+function bookImport(){
+  $('det-title').textContent='Import investors';
+  $('det-sub').textContent='One per line: Firm, Contact name, Email, Mobile, Type';
+  $('det-body').innerHTML='<div class="fld"><textarea class="inp" id="bk-imp" style="min-height:200px" placeholder="ABC Capital AIF, Ravi Kumar, ravi@abc.com, 9876543210, AIF: Category II&#10;Sharma Family Office, Anita Sharma, anita@sfo.in, 9876500000, Family office"></textarea></div>'
+   +'<p class="small" style="margin-bottom:12px">Everything comes in with <b>no mandate yet</b>. Capture each mandate as you speak to them; only those marked <b>mandate received</b> are matched by the Distribution desk.</p>'
+   +'<button class="btn btn-p" id="bk-imp-go">Import</button>';
+  $('bk-imp-go').onclick=async function(){
+    var lines=($('bk-imp').value||'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    if(!lines.length) return toast('Paste at least one line.');
+    var rows=lines.map(function(l){
+      var p=l.split(',').map(function(x){return x.trim();});
+      return {org:p[0]||'',name:p[1]||'',email:(p[2]||'').toLowerCase()||null,phone:p[3]||'',org_type:p[4]||'Other institution',mandate:{},mandate_status:'none'};
+    }).filter(function(r){ return r.org; });
+    var r=await sb.from('db_investors').upsert(rows,{onConflict:'email',ignoreDuplicates:true});
+    if(r.error) return toast('Import failed: '+r.error.message);
+    closeOv('det-ov'); toast(rows.length+' investors imported.'); pBook($('panels'));
+  };
+  openOv('det-ov');
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
    ADMIN DISTRIBUTION DESK
    Pick a live opportunity or a tracked deal, see the opted-in
    investors whose mandate fits, contact them and log what was sent.
@@ -1289,11 +1420,12 @@ async function pDistribute_admin(P){
   var q=await Promise.all([
     sb.from('db_mandates').select('user_id,payload,updated_at'),
     sb.from('db_profiles').select('id,email,full_name,org,org_type,role,status'),
-    sb.from('db_distribution_log').select('*').order('created_at',{ascending:false}).limit(500)
+    sb.from('db_distribution_log').select('*').order('created_at',{ascending:false}).limit(500),
+    sb.from('db_investors').select('*')
   ]);
-  var mandates=q[0].data||[], profiles=q[1].data||[], log=q[2].data||[];
+  var mandates=q[0].data||[], profiles=q[1].data||[], log=q[2].data||[], book=q[3].data||[];
   var byId={}; profiles.forEach(function(p){ byId[p.id]=p; });
-  S.distData={mandates:mandates,byId:byId,log:log};
+  S.distData={mandates:mandates,byId:byId,log:log,book:book};
   var targets=distTargets();
   var cur=S.distTarget||(targets[0]&&targets[0].id)||'';
   P.innerHTML='<h3 class="sec-h" style="font-size:22px">Distribution desk</h3>'
@@ -1314,14 +1446,21 @@ function drawDist(){
   var sentTo={}; D.log.filter(function(l){ return l.deal_id===t.id; }).forEach(function(l){ sentTo[l.user_id||l.email]=l; });
   var rows=D.mandates.map(function(m){
     var p=D.byId[m.user_id]||{};
-    return {m:m,p:p,fits:mandateFits(m,t)};
-  }).filter(function(r){ return r.p.status==='approved'&&['institution','fund_manager'].indexOf(r.p.role)>=0&&(!onlyFit||r.fits); })
-   .sort(function(a,b){ return (b.fits-a.fits); });
+    return {key:p.id,name:p.full_name,org:p.org,type:p.org_type||ROLE_LABEL[p.role],email:p.email,phone:p.phone,
+            pay:m.payload||{},src:'Platform',ok:p.status==='approved'&&['institution','fund_manager'].indexOf(p.role)>=0,
+            fits:mandateFits(m,t)};
+  }).filter(function(r){ return r.ok; });
+  (D.book||[]).forEach(function(i){
+    if(i.mandate_status!=='received') return;          /* only distribute against a captured mandate */
+    rows.push({key:'inv-'+i.id,name:i.name,org:i.org,type:i.org_type,email:i.email,phone:i.phone,
+               pay:i.mandate||{},src:'Investor book',ok:true,fits:mandateFits({payload:i.mandate||{}},t)});
+  });
+  rows=rows.filter(function(r){ return !onlyFit||r.fits; }).sort(function(a,b){ return (b.fits-a.fits); });
   if(!rows.length){
-    var total=D.mandates.length;
+    var total=D.mandates.length+((D.book||[]).filter(function(i){return i.mandate_status==='received';}).length);
     $('dz-out').innerHTML='<div class="empty">'+(onlyFit&&total
       ? 'None of the '+total+' opted-in investors accept this type of deal ('+esc(cmLabel(t.vertical))+(t.sector?', '+esc(t.sector):'')+'). <button class="link" onclick="document.getElementById(\'dz-only\').value=\'all\';drawDist()">Show all opted-in investors anyway</button>'
-      : 'No investor has saved a mandate yet. They appear here once they fill in Capital match.')+'</div>';
+      : 'No mandate on file yet. Add investors and their mandate in <button class="link" onclick="showTab(\'book\')">Investor book</button>, or wait for institutions to set one in Capital match.')+'</div>';
     $('dz-log').innerHTML=''; return;
   }
   var h='<div style="display:flex;gap:8px;align-items:center;margin:14px 0 8px;flex-wrap:wrap">'
@@ -1333,14 +1472,14 @@ function drawDist(){
     +'<button class="btn btn-p btn-sm" onclick="distLogSent()">Log as sent</button></div>';
   h+='<div class="tscroll"><table class="t"><thead><tr><th></th><th>Investor</th><th>Type</th><th>Ticket (₹ Cr)</th><th>Accepts</th><th>Contact</th><th>Already sent</th></tr></thead><tbody>'
    +rows.map(function(r){
-     var p=r.p, pay=r.m.payload||{};
-     var already=sentTo[p.id];
-     return '<tr><td><input type="checkbox" class="dz-pick" value="'+esc(p.id)+'" data-email="'+esc(p.email)+'" data-org="'+esc(p.org||'')+'"'+(already?'':' checked')+'/></td>'
-      +'<td>'+esc(p.full_name||'')+'<div class="small">'+esc(p.org||'')+'</div></td>'
-      +'<td>'+esc(p.org_type||ROLE_LABEL[p.role])+'</td>'
+     var pay=r.pay||{};
+     var already=sentTo[r.key]||sentTo[r.email];
+     return '<tr><td><input type="checkbox" class="dz-pick" value="'+esc(r.key)+'" data-email="'+esc(r.email||'')+'" data-org="'+esc(r.org||'')+'"'+(already?'':' checked')+'/></td>'
+      +'<td>'+esc(r.name||'')+'<div class="small">'+esc(r.org||'')+' · '+esc(r.src)+'</div></td>'
+      +'<td>'+esc(r.type||'')+'</td>'
       +'<td class="num">'+esc((pay.ticket_min||'—')+(pay.ticket_max?'–'+pay.ticket_max:''))+'</td>'
       +'<td style="white-space:normal;min-width:180px" class="small">'+esc(((pay.verticals&&pay.verticals.length?pay.verticals:['debt']).map(cmLabel).join(', ')))+(pay.sectors&&pay.sectors.length?'<br>'+esc(pay.sectors.join(', ')):'')+'</td>'
-      +'<td class="small">'+esc(p.email)+(p.phone?'<br>'+esc(p.phone):'')+'</td>'
+      +'<td class="small">'+esc(r.email||'—')+(r.phone?'<br>'+esc(r.phone):'')+'</td>'
       +'<td>'+(already?badge(already.status).html+'<div class="small">'+fdate(already.created_at)+'</div>':'<span class="small">—</span>')+(r.fits?'':'<div class="small" style="color:var(--amber)">outside mandate</div>')+'</td></tr>';
    }).join('')+'</tbody></table></div>';
   $('dz-out').innerHTML=h;
@@ -1372,7 +1511,7 @@ async function distLogSent(){
   var t=distTargets().filter(function(x){ return x.id===S.distTarget; })[0]||{};
   var picks=distPicked();
   if(!picks.length) return toast('Select at least one investor.');
-  var rows=picks.map(function(x){ return {deal_id:t.id,deal_name:t.name,user_id:x.id,email:x.email,org:x.org,channel:'email',status:'sent'}; });
+  var rows=picks.map(function(x){ return {deal_id:t.id,deal_name:t.name,user_id:(String(x.id).indexOf('inv-')===0?null:x.id),email:x.email,org:x.org,channel:'email',status:'sent'}; });
   var r=await sb.from('db_distribution_log').insert(rows);
   if(r.error) return toast('Not logged: '+r.error.message);
   toast(rows.length+' recorded as sent.');
