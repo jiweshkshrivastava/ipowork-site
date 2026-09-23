@@ -1062,7 +1062,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--sl);font-size:14px
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
       <input id="new-user-email" type="email" placeholder="Email address *" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
       <input id="new-user-name" type="text" placeholder="Full Name" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
-      <input id="new-user-pw" type="text" placeholder="Password (default: ipowork2024)" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
+      <input id="new-user-pw" type="hidden" value="" placeholder=" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none;width:100%;box-sizing:border-box"/>
       <select id="new-user-plan" style="padding:9px 12px;border:1.5px solid #D8EDF0;border-radius:8px;font-size:12px;outline:none">
         <option value="paid">Paid User</option>
         <option value="trial">Trial (7 days)</option>
@@ -2305,7 +2305,7 @@ async function getSingleLoginLink(){
 
     if(!acctRows || !acctRows[0]){
       if(statusEl) statusEl.textContent = 'New person \u2014 creating account on Tier '+tierNum+'\u2026';
-      var synced = await addApprovedUser(email, name||email, 'ipowork2024', 'paid', tierNum);
+      var synced = await addApprovedUser(email, name||email, null, 'paid', tierNum);
       if(!synced){ if(statusEl) statusEl.textContent = 'Account creation failed \u2014 check console for details.'; return; }
     }
 
@@ -2387,7 +2387,7 @@ async function bulkGenerateMagicLinks(){
           body: JSON.stringify({
             report_id: acctReportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector:'N/A', exchange:'N/A',
             tier: 'free', score: 0, source: 'user_account',
-            scores: { email: email, name: name||email, password: 'ipowork2024', approved: true, plan: 'paid', tier: 'Tier 3 \u2014 SME Specialist' }
+            scores: { email: email, name: name||email, /* password removed: sign-in is via ipowork accounts */ approved: true, plan: 'paid', tier: 'Tier 3 \u2014 SME Specialist' }
           })
         });
         if(!createR.ok){ results.push(r.concat(['FAILED — account creation error '+createR.status])); failed++; continue; }
@@ -2510,7 +2510,7 @@ async function bulkGenerateInvestorLinks(){
           body: JSON.stringify({
             report_id: acctReportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector:'N/A', exchange:'N/A',
             tier: 'free', score: 0, source: 'user_account',
-            scores: { email: email, name: name||email, password: 'ipowork2024', approved: true, plan: 'investor' }
+            scores: { email: email, name: name||email, /* password removed: sign-in is via ipowork accounts */ approved: true, plan: 'investor' }
           })
         });
         if(!createR.ok){ results.push(r.concat(['FAILED — account creation error '+createR.status])); failed++; continue; }
@@ -2859,7 +2859,7 @@ async function syncAllLocalUsersToSupabase(){
         headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=representation' },
         body: JSON.stringify({
           report_id: reportId, company_name: 'IPOWORK_USER_ACCOUNT', cin: 'USER-ACCOUNT', sector: 'N/A', exchange: 'N/A', tier: 'free', score: 0, source: 'user_account',
-          scores: { email: email, name: u.name||email, password: u.password||'ipowork2024', approved: !!u.approved, plan: u.plan||'paid', tier: u.tier||'Tier 3 \u2014 SME Specialist' }
+          scores: { email: email, name: u.name||email, /* password removed: sign-in is via ipowork accounts */ approved: !!u.approved, plan: u.plan||'paid', tier: u.tier||'Tier 3 \u2014 SME Specialist' }
         })
       });
       if(createR.ok){ created++; } else { failed++; console.error('syncAllLocalUsersToSupabase: failed to create record for', email, 'status', createR.status); }
@@ -2869,12 +2869,13 @@ async function syncAllLocalUsersToSupabase(){
 }
 
 async function addApprovedUser(email, name, password, plan, tierNum){
+  password = null; /* accounts are created by the user on debt-board.html; ipowork never stores their password */
   email = email.trim().toLowerCase();
   tierNum = parseInt(tierNum, 10);
   if(!TIER_BASE_LIMITS.hasOwnProperty(tierNum)) tierNum = 3; // default Tier 3 if not specified
   IPOWORK_USERS[email] = {
     name: name||email,
-    password: password||'ipowork2024',
+    /* password removed: sign-in is via ipowork accounts */
     approved: true,
     plan: plan||'paid',
     free: false,
@@ -2917,7 +2918,7 @@ async function addApprovedUser(email, name, password, plan, tierNum){
         tier: 'free',
         score: 0,
         source: 'user_account',
-        scores: { email: email, name: name||email, password: password||'ipowork2024', approved: true, plan: plan||'paid', tier: 'Tier '+tierNum+' — '+TIER_NAMES[tierNum] }
+        scores: { email: email, name: name||email, /* password removed: sign-in is via ipowork accounts */ approved: true, plan: plan||'paid', tier: 'Tier '+tierNum+' — '+TIER_NAMES[tierNum] }
       })
     });
     if(syncR.ok){ supabaseSynced = true; }
@@ -2984,13 +2985,13 @@ async function approveRequest(i){
     var reqs = JSON.parse(localStorage.getItem('ipowork_access_requests')||'[]');
     var r = reqs[i];
     if(!r) return;
-    var defaultPw = 'ipowork2024';
+    var defaultPw = null;   /* users set their own password when they create an ipowork account */
     var synced = await addApprovedUser(r.email, r.name, defaultPw, 'paid', 3);
     reqs.splice(i, 1);
     localStorage.setItem('ipowork_access_requests', JSON.stringify(reqs));
     renderAccessRequests();
     if(synced){
-      alert('✅ '+r.name+' approved!\nCredentials: '+r.email+' / '+defaultPw+'\nPlease share these with the user.\nTrial: 3 companies (synced to Supabase — works from any device).');
+      alert('✅ '+r.name+' approved!\nAsk them to create their free account at ipowork.com/debt-board.html with '+r.email+' and their own password.\nTrial: 3 companies (synced to Supabase — works from any device).');
     } else {
       alert('⚠️ '+r.name+' approved locally, but the Supabase sync FAILED — their trial limit will NOT be enforced. Credentials: '+r.email+' / '+defaultPw+'. Try "Sync All Local Users to Supabase" or check the console for the error.');
     }
@@ -3027,11 +3028,11 @@ function renderApprovedUsers(){
 async function addUserFromForm(){
   var email = (document.getElementById('new-user-email')||{}).value||'';
   var name  = (document.getElementById('new-user-name')||{}).value||'';
-  var pw    = (document.getElementById('new-user-pw')||{}).value||'ipowork2024';
+  var pw    = null;   /* users set their own password on debt-board.html */
   var plan  = (document.getElementById('new-user-plan')||{}).value||'paid';
   var tierNum = parseInt((document.getElementById('new-user-tier')||{}).value||'3', 10) || 3;
   if(!email || !email.includes('@')){ alert('Valid email required.'); return; }
-  var synced = await addApprovedUser(email.trim(), name.trim(), pw.trim(), plan, tierNum);
+  var synced = await addApprovedUser(email.trim(), name.trim(), pw, plan, tierNum);
   // Clear form
   ['new-user-email','new-user-name','new-user-pw'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.value='';
@@ -6322,7 +6323,7 @@ async function tryMagicLinkLogin(){
     CURRENT_USER = {email: email, name: u.name||email, plan: u.plan||'paid', free: u.free||false};
     SESS.email = email; SESS.name = u.name||''; SESS.plan = u.plan||'paid';
     IPOWORK_USERS[email] = u;
-    try{ localStorage.setItem('ipowork_session', JSON.stringify({email: email, token: btoa(email+(u.password||'')), ts: Date.now()})); }catch(e){}
+    /* magic-link access lasts for this page only — no stored login token */
 
     console.log('Magic link: logged in as', email);
     recordLoginEvent(email, u.name||'', u.firm||'', params.get('campaign')||''); // fire-and-forget — never blocks or breaks login if this fails
@@ -6419,6 +6420,78 @@ document.addEventListener('DOMContentLoaded',async function(){
 document.addEventListener('DOMContentLoaded',function(){
   setTimeout(function(){ if(window.IPWGate) IPWGate.check(['admin']).then(function(r){ if(r.ok) ipwUnlockAdmin(r.profile,false); }); },0);
 });
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   AIRA SIGN-IN — real ipowork accounts (Supabase), replacing the
+   old list of accounts that stored passwords in plain text in a
+   publicly readable table, all sharing one default password.
+   Accounts are the same ones used by the Debt Board and MB Portal.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  var AIRA_ROLES=['issuer','merchant_banker','institution','fund_manager','ca_cs'];
+  function planFor(p){ return p.role==='admin'?'admin':p.role==='issuer'?'paid':'paid'; }
+  function applyUser(p){
+    CURRENT_USER={email:p.email,name:p.full_name||p.email,plan:planFor(p),free:false,role:p.role,firm:p.org||''};
+    try{ SESS.email=p.email; SESS.name=CURRENT_USER.name; SESS.plan=CURRENT_USER.plan; }catch(e){}
+    IPOWORK_USERS[p.email]={name:CURRENT_USER.name,approved:true,plan:CURRENT_USER.plan,free:false,firm:p.org||''};
+  }
+
+  window.gateLogin=async function(){
+    var email=((document.getElementById('gate-email')||{}).value||'').trim().toLowerCase();
+    var pw=(document.getElementById('gate-password')||{}).value||'';
+    var errEl=document.getElementById('gate-error');
+    function fail(m){ if(errEl) errEl.textContent=m; }
+    if(!email||!pw) return fail('Please enter email and password.');
+    if(errEl) errEl.textContent='Signing in…';
+    var r=await IPWGate.signIn(email,pw,AIRA_ROLES);
+    if(!r.ok) return fail(r.error);
+    if(errEl) errEl.textContent='';
+    applyUser(r.profile);
+    try{ localStorage.removeItem('ipowork_session'); }catch(e){}
+    if(typeof recordLoginEvent==='function') recordLoginEvent(email,CURRENT_USER.name,CURRENT_USER.firm);
+    closeAccessGate();
+    updateUserUI();
+    if(r.profile.role==='admin'&&typeof ipwUnlockAdmin==='function'){ ipwUnlockAdmin(r.profile,false); }
+    if(_loginCallback){ var cb=_loginCallback; _loginCallback=null; cb(); }
+    else switchTier(r.profile.role==='admin'?'admin':'paid');
+  };
+
+  window.gateLogout=async function(){
+    CURRENT_USER=null;
+    try{ SESS.email=''; SESS.name=''; SESS.plan='free'; }catch(e){}
+    try{ localStorage.removeItem('ipowork_session'); }catch(e){}
+    if(window.IPWGate) await IPWGate.signOut();
+    location.reload();
+  };
+
+  /* a stored session is no longer trusted on its own: the Supabase session decides */
+  window.restoreSession=function(){ try{ localStorage.removeItem('ipowork_session'); }catch(e){} };
+
+  /* new accounts and password resets happen on the Debt Board */
+  window.airaSignupLinks=function(){
+    var gate=document.getElementById('access-gate'); if(!gate) return;
+    if(document.getElementById('aira-acct-links')) return;
+    var err=document.getElementById('gate-error'); if(!err) return;
+    var d=document.createElement('div');
+    d.id='aira-acct-links';
+    d.style.cssText='display:flex;justify-content:space-between;gap:10px;margin-top:12px;font-size:12px';
+    d.innerHTML='<a href="debt-board.html" style="color:#1A7D90">Create a free account</a><a href="debt-board.html" style="color:#1A7D90">Forgot password?</a>';
+    err.parentNode.insertBefore(d,err.nextSibling);
+  };
+
+  document.addEventListener('DOMContentLoaded',function(){
+    airaSignupLinks();
+    setTimeout(function(){
+      if(!window.IPWGate) return;
+      IPWGate.check(AIRA_ROLES.concat(['admin'])).then(function(r){
+        if(!r.ok||!r.profile) return;
+        applyUser(r.profile);
+        if(typeof updateUserUI==='function') updateUserUI();
+      });
+    },300);
+  });
+})();
 </script>
 </body>
 </html>
