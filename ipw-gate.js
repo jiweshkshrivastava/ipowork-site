@@ -60,6 +60,31 @@
   };
   G.signOut=async function(){ var c=await client(); if(c) await c.auth.signOut(); G.ok=false; G.profile=null; try{ localStorage.removeItem('ipowork_user'); localStorage.removeItem('user'); }catch(e){} };
   G.token=function(){ return G.session?G.session.access_token:null; };
+  /* restore the session on load so Worker calls are authenticated straight away */
+  (async function(){ try{ var c=await client(); if(!c) return; var s=(await c.auth.getSession()).data.session; if(s) G.session=s; }catch(e){} })();
+
+  /* ── attach the ipowork session to Cloudflare Worker calls ──
+     The Worker now refuses expensive work from anonymous callers, so every
+     request from a signed-in user carries their access token automatically. */
+  var WORKER_HOSTS=['workers.dev','api.ipowork.com'];
+  (function(){
+    if(window.__ipwFetchPatched) return; window.__ipwFetchPatched=true;
+    var orig=window.fetch;
+    window.fetch=function(input,init){
+      try{
+        var url=typeof input==='string'?input:(input&&input.url)||'';
+        var isWorker=WORKER_HOSTS.some(function(h){ return url.indexOf(h)>=0; });
+        if(isWorker&&G.session&&G.session.access_token){
+          init=init||{};
+          var h=new Headers((init.headers)||(typeof input!=='string'&&input.headers)||{});
+          if(!h.has('Authorization')) h.set('Authorization','Bearer '+G.session.access_token);
+          init.headers=h;
+          if(typeof input!=='string') return orig(new Request(input,{headers:h}),init);
+        }
+      }catch(e){}
+      return orig(input,init);
+    };
+  })();
 
   /* ── automatic full-page gate ── */
   var rolesAttr=me&&me.getAttribute('data-roles');
