@@ -3675,6 +3675,7 @@ function crmKanbanCard(d, col){
     var last = d.activities[d.activities.length-1];
     h += '<div style="font-size:13px;color:var(--dim);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+actIcon(last.type)+' '+escHtml(last.text.slice(0,40))+'</div>';
   }
+  h += mbCardFooter(d);
   h += '</div>';
   return h;
 }
@@ -3683,24 +3684,25 @@ function crmKanbanCard(d, col){
 function crmList(deals){
   if(!deals.length) return '<div style="text-align:center;padding:40px;color:var(--muted)">No deals match your filters.</div>';
   var h = '<div style="background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden">';
-  h += '<div style="display:grid;grid-template-columns:2fr 1fr 90px 80px 100px 120px 80px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border2);font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">';
-  ['Company','Sector','Issue','Score','Stage','MB','Actions'].forEach(function(col){
+  h += '<div style="display:grid;grid-template-columns:2fr 1fr 90px 120px 130px 110px 130px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border2);font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">';
+  ['Company','Sector','Issue','Progress','Issuer','Stage','Actions'].forEach(function(col){
     h += '<div>'+col+'</div>';
   });
   h += '</div>';
   deals.forEach(function(d, i){
     var stage = CRM_STAGES.find(function(s){ return s.id===d.stage; }) || CRM_STAGES[0];
     var scoreCol = d.airaScore>=78?'var(--green)':d.airaScore>=65?'var(--gold)':'var(--red)';
-    h += '<div data-dealid="'+d.id+'" style="display:grid;grid-template-columns:2fr 1fr 90px 80px 100px 120px 80px;gap:0;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.03);align-items:center'+(i%2===0?';background:rgba(255,255,255,.01)':'')+'">';
+    h += '<div data-dealid="'+d.id+'" style="display:grid;grid-template-columns:2fr 1fr 90px 120px 130px 110px 130px;gap:0;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.03);align-items:center'+(i%2===0?';background:rgba(255,255,255,.01)':'')+'">';
     h += '<div>';
     h += '<div style="font-size:13px;font-weight:700;color:var(--tld)">'+escHtml(d.company)+'</div>';
     if(d.contact) h += '<div style="font-size:13px;color:var(--dim)">'+escHtml(d.contact)+'</div>';
     h += '</div>';
     h += '<div style="font-size:12px;color:var(--muted)">'+escHtml(d.sector)+'</div>';
     h += '<div style="font-size:13px;color:var(--text)">₹'+d.value+' Cr</div>';
-    h += '<div style="font-size:13px;font-weight:800;color:'+scoreCol+'">'+(d.airaScore||'—')+'</div>';
+    h += '<div>'+mbProgressBar(d)+'</div>';
+    h += '<div>'+mbIssuerCell(d)+'</div>';
     h += '<div><span style="font-size:12px;font-weight:700;background:'+stage.col+'18;color:'+stage.col+';border-radius:99px;padding:3px 8px">'+stage.icon+' '+stage.label+'</span></div>';
-    h += '<div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(d.mb?'&#127970; '+escHtml(d.mb):'<span style="color:var(--dim)">Unassigned</span>')+'</div>';
+    h += '<!--mb-col-removed--><div style="display:none">'+(d.mb?'&#127970; '+escHtml(d.mb):'<span style="color:var(--dim)">Unassigned</span>')+'</div>';
     h += '<div style="display:flex;gap:4px">';
     h += '<button data-dealid="'+d.id+'" onclick="crmOpenDeal(this.dataset.dealid)" style="padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:none;color:var(--muted);font-size:12px;cursor:pointer">Open</button>';
     h += '<button data-dealid="'+d.id+'" title="IPO checklist for this issuer" onclick="event.stopPropagation();mbOpenForDeal(this.dataset.dealid,\'checklist\')" style="padding:3px 7px;border-radius:5px;border:1px solid var(--border2);background:none;color:var(--muted);font-size:12px;cursor:pointer">&#9745;</button>';
@@ -3746,6 +3748,8 @@ function crmDealHTML(d){
   if(d.airaScore){ h += '<div style="text-align:center;padding:0 12px"><div style="font-family:var(--serif);font-size:28px;font-weight:900;color:'+scoreCol+'">'+d.airaScore+'</div><div style="font-size:12px;color:var(--muted)">AIRA</div></div>'; }
   h += '<button onclick="crmCloseModal()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px">&#x2715;</button>';
   h += '</div>';
+
+  h += mbAccessPanel(d.id);
 
   /* Stage selector */
   h += '<div style="padding:16px 24px;border-bottom:1px solid var(--border2)">';
@@ -3835,7 +3839,6 @@ function crmDealHTML(d){
   h += '<button onclick="navigate(\'investors\')" style="padding:8px 14px;background:rgba(13,92,107,.08);border:1.5px solid var(--border2);color:var(--teal);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Open Directory →</button>';
   h += '<button onclick="navigate(\'copilot\')" style="padding:8px 14px;background:rgba(232,138,46,.08);border:1.5px solid rgba(232,138,46,.2);color:var(--amber);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">AI Copilot →</button>';
   h += '</div></div>';
-  h += mbAccessPanel(d.id);
   h += '<div id="crm-match-box-'+d.id+'" style="display:none;background:var(--bg);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-top:8px"></div>';
   h += '</div>';
 
@@ -6011,6 +6014,81 @@ async function crmMatchInvestors(dealId){
     }
     if(changed) await crmSave();
   };
+})();
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   CRM look and feel: progress, issuer status and quick actions on
+   every deal, in both the Kanban and the List view.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  window.MB_ACCESS={};   /* dealId → {status, email} */
+
+  window.mbLoadAccessMap=async function(){
+    try{
+      var c=(window.IPWGate&&IPWGate.getClient)?await IPWGate.getClient():null;
+      if(!c||!IPWGate.ok) return;
+      var r=await c.from('db_deal_access').select('deal_id,issuer_email,status');
+      MB_ACCESS={};
+      (r.data||[]).forEach(function(a){
+        var cur=MB_ACCESS[a.deal_id];
+        if(!cur||a.status==='approved') MB_ACCESS[a.deal_id]={status:a.status,email:a.issuer_email};
+      });
+    }catch(e){}
+  };
+
+  window.mbProgressBar=function(d){
+    var pct=Number(d.clPct||0);
+    var col=pct>=70?'#10B981':pct>=30?'#C8961E':'#5A8AA4';
+    return '<div style="font-size:11px;color:var(--muted);margin-bottom:3px">'+pct+'% checklist</div>'
+      +'<div style="height:5px;border-radius:3px;background:rgba(125,150,165,.18);overflow:hidden"><i style="display:block;height:100%;width:'+pct+'%;background:'+col+'"></i></div>';
+  };
+  window.mbIssuerCell=function(d){
+    var a=MB_ACCESS[d.id];
+    if(a&&a.status==='approved') return '<span title="'+escHtml(a.email)+'" style="font-size:11px;font-weight:700;color:#10B981">&#9679; Issuer linked</span>';
+    if(a&&a.status==='invited')  return '<span title="'+escHtml(a.email)+'" style="font-size:11px;font-weight:700;color:#C8961E">&#9679; Invited</span>';
+    return '<button data-dealid="'+d.id+'" onclick="event.stopPropagation();mbQuickInvite(this.dataset.dealid)" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px dashed var(--border2);background:none;color:var(--cyan);cursor:pointer">+ Invite issuer</button>';
+  };
+  function btn(dealid,title,icon,colour,fn){
+    return '<button data-dealid="'+dealid+'" title="'+title+'" onclick="event.stopPropagation();'+fn+'(this.dataset.dealid)" '
+      +'style="padding:3px 7px;border-radius:6px;border:1px solid '+(colour||'var(--border2)')+';background:none;color:'+(colour||'var(--muted)')+';font-size:12px;cursor:pointer">'+icon+'</button>';
+  }
+  window.mbCardFooter=function(d){
+    var a=MB_ACCESS[d.id];
+    var h='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border2)">';
+    h+=mbProgressBar(d);
+    h+='<div style="display:flex;gap:4px;align-items:center;margin-top:7px">';
+    h+=btn(d.id,'IPO checklist for this issuer','&#9745;','','mbOpenChecklist');
+    h+=btn(d.id,'DRHP repository for this issuer','&#128194;','','mbOpenRepo');
+    h+=btn(d.id,'Invite or manage the issuer','&#128101;',(a&&a.status==='approved')?'#10B981':(a?'#C8961E':''),'mbQuickInvite');
+    h+='<span style="flex:1"></span>';
+    h+=btn(d.id,'Delete this deal','&#128465;','rgba(239,68,68,.55)','crmDeleteDeal');
+    h+='</div></div>';
+    return h;
+  };
+  window.mbOpenChecklist=function(id){ mbOpenForDeal(id,'checklist'); };
+  window.mbOpenRepo=function(id){ mbOpenForDeal(id,'drhp-repo'); };
+  window.mbQuickInvite=function(id){
+    crmOpenDeal(id);
+    setTimeout(function(){
+      var el=document.getElementById('mbx-access');
+      if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); var i=document.getElementById('mbx-email'); if(i) i.focus(); }
+    },350);
+  };
+
+  /* keep the access map fresh */
+  var origRender=window.renderMain;
+  window.renderMain=function(){
+    var out=origRender.apply(this,arguments);
+    if(P&&P.view==='crm'&&!MB_ACCESS.__loaded){
+      MB_ACCESS.__loaded=true;
+      mbLoadAccessMap().then(function(){ if(P.view==='crm') origRender.apply(window,[]); });
+    }
+    return out;
+  };
+  var origSet=window.mbSetAccess, origInvite=window.mbInviteIssuer;
+  window.mbSetAccess=async function(){ var r=await origSet.apply(this,arguments); await mbLoadAccessMap(); return r; };
+  window.mbInviteIssuer=async function(){ var r=await origInvite.apply(this,arguments); await mbLoadAccessMap(); return r; };
 })();
 </script>
 </body>
