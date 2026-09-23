@@ -1420,6 +1420,7 @@ window.storage = {
         <div class="field"><label class="lbl">Password</label><input class="inp" id="l-password" type="password" autocomplete="current-password" placeholder="Your ipowork password"/></div>
         <div class="err" id="le0"></div>
         <button class="btn btn-cyan" style="width:100%;margin-top:8px" onclick="doLogin()">Log In →</button>
+        <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--muted)">Issuers: sign in with the email your merchant banker invited.</div>
         <div style="text-align:center;margin-top:10px;font-size:12px"><a href="debt-board.html" style="color:var(--cyan)">Forgot password?</a></div>
         <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted)">New MB? <span style="color:var(--cyan);cursor:pointer" onclick="closeModal('login');showUpgradeContact()">Apply for access →</span></div>
       </div>
@@ -3834,6 +3835,7 @@ function crmDealHTML(d){
   h += '<button onclick="navigate(\'investors\')" style="padding:8px 14px;background:rgba(13,92,107,.08);border:1.5px solid var(--border2);color:var(--teal);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Open Directory →</button>';
   h += '<button onclick="navigate(\'copilot\')" style="padding:8px 14px;background:rgba(232,138,46,.08);border:1.5px solid rgba(232,138,46,.2);color:var(--amber);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">AI Copilot →</button>';
   h += '</div></div>';
+  h += mbAccessPanel(d.id);
   h += '<div id="crm-match-box-'+d.id+'" style="display:none;background:var(--bg);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-top:8px"></div>';
   h += '</div>';
 
@@ -5711,16 +5713,22 @@ async function crmMatchInvestors(dealId){
   function lsKey(deal,kind){ return 'mbws:'+((window.SESS&&SESS.email)||'anon')+':'+kind+':'+deal; }
 
   /* read one workspace record; falls back to this browser if offline */
+  function ownerId(){ return (window.mbxOwnerId&&mbxOwnerId())||null; }
   async function wsGet(deal,kind,dflt){
     try{
       var c=await client();
       if(c&&ready()){
-        var r=await c.from('db_mb_state').select('payload').eq('deal_id',deal).eq('kind',kind).maybeSingle();
+        var q=c.from('db_mb_state').select('payload').eq('deal_id',deal).eq('kind',kind);
+        if(ownerId()) q=q.eq('user_id',ownerId());
+        var r=await q.maybeSingle();
         if(!r.error&&r.data) return r.data.payload;
         if(!r.error) return dflt;
       }
     }catch(e){ console.warn('workspace read failed',e); }
-    try{ var v=localStorage.getItem(lsKey(deal,kind)); if(v) return JSON.parse(v); }catch(e){}
+    try{
+      var v=localStorage.getItem(lsKey(deal,kind));
+      if(v){ mbWarn('Showing the copy saved on this device. Sign in again to load the latest shared version.'); return JSON.parse(v); }
+    }catch(e){}
     return dflt;
   }
   async function wsSet(deal,kind,payload){
@@ -5728,8 +5736,9 @@ async function crmMatchInvestors(dealId){
     try{
       var c=await client();
       if(c&&ready()){
-        var u=(await c.auth.getUser()).data.user;
-        var r=await c.from('db_mb_state').upsert({user_id:u.id,deal_id:deal,kind:kind,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id,deal_id,kind'});
+        var u={id:(window.IPWGate&&IPWGate.profile&&IPWGate.profile.id)||(((await c.auth.getUser()).data||{}).user||{}).id};
+        var owner=ownerId()||u.id;
+        var r=await c.from('db_mb_state').upsert({user_id:owner,deal_id:deal,kind:kind,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id,deal_id,kind'});
         if(r.error) throw r.error;
         return true;
       }
@@ -5786,12 +5795,24 @@ async function crmMatchInvestors(dealId){
   };
 
   /* ── IPO checklist: per banker, per deal ── */
-  window.clSave=async function(){ if(!CL_DEAL) return; await wsSet(CL_DEAL,'checklist',CL_STATE||{}); };
+  window.clSave=async function(){
+    if(!CL_DEAL) return;
+    await wsSet(CL_DEAL,'checklist',CL_STATE||{});
+    try{
+      var s=clStats(), pct=Math.round(s.received/s.total*100);
+      if(window.mbSyncProgress) await mbSyncProgress(CL_DEAL,pct);
+    }catch(e){}
+  };
   window.clLoad=async function(dealId){
     CL_STATE={}; CL_LOADED=false;
     if(!dealId){ CL_LOADED=true; return; }
     CL_STATE=await wsGet(dealId,'checklist',{})||{};
     CL_LOADED=true;
+    /* the issuer may have moved things on: bring the CRM stage up to date on open */
+    try{
+      var s=clStats(), pct=Math.round(s.received/s.total*100);
+      if(window.mbSyncProgress) await mbSyncProgress(dealId,pct);
+    }catch(e){}
   };
 
   /* ── DRHP repository: per banker, per deal ── */
@@ -5812,13 +5833,184 @@ async function crmMatchInvestors(dealId){
   document.addEventListener('DOMContentLoaded',function(){
     setTimeout(function(){
       if(!window.IPWGate) return;
-      IPWGate.check(['merchant_banker']).then(function(r){
+      IPWGate.check(['merchant_banker','issuer']).then(function(r){
         if(!r.ok) return;
+        if(r.profile&&r.profile.role==='issuer'){ if(window.MBX) MBX.mode='issuer'; if(window.mbxLoadAccess) mbxLoadAccess(); return; }
         CRM.loaded=false; CL_LOADED=false; DRHP_LOADED=false;
         crmLoad().then(function(){ if(P&&P.view==='crm') renderMain(); });
       });
     },400);
   });
+})();
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SHARED DEAL WORKSPACE — merchant banker + issuer on one page
+   The banker invites the issuer to a deal by email and approves them.
+   The approved issuer signs in to the same portal and sees only the
+   IPO checklist and DRHP repository of that deal, and works on the
+   very same records as the banker. Checklist progress drives the
+   CRM stage.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  var ISSUER_VIEWS=['checklist','drhp-repo'];
+  window.MBX={mode:'mb', access:[], deal:null, owner:null};
+
+  function client(){ return (window.IPWGate&&IPWGate.getClient)?IPWGate.getClient():Promise.resolve(null); }
+  function esc(s){ return (window.escHtml?escHtml(s):String(s==null?'':s)); }
+
+  /* ── banker side: invitations on a deal ── */
+  window.mbAccessList=async function(dealId){
+    var c=await client(); if(!c) return [];
+    var r=await c.from('db_deal_access').select('*').eq('deal_id',dealId).order('created_at',{ascending:false});
+    return r.data||[];
+  };
+  window.mbInviteIssuer=async function(dealId){
+    var el=document.getElementById('mbx-email'); if(!el) return;
+    var email=(el.value||'').trim().toLowerCase();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return mbWarn('Enter a valid issuer email.');
+    var c=await client(); if(!c) return mbWarn('Not connected.');
+    var u={id:(window.IPWGate&&IPWGate.profile&&IPWGate.profile.id)||(((await c.auth.getUser()).data||{}).user||{}).id};
+    var d=(CRM.deals||[]).filter(function(x){ return x.id===dealId; })[0]||{};
+    var r=await c.from('db_deal_access').upsert({owner_id:u.id,deal_id:dealId,company:d.company||'',issuer_email:email,status:'invited'},{onConflict:'owner_id,deal_id,issuer_email'});
+    if(r.error) return mbWarn('Invite failed: '+r.error.message);
+    el.value=''; mbWarn('Invited '+email+'. Approve them once they have an ipowork issuer account.');
+    mbRenderAccess(dealId);
+  };
+  window.mbSetAccess=async function(dealId,id,status){
+    var c=await client(); if(!c) return;
+    var patch={status:status}; if(status==='approved') patch.approved_at=new Date().toISOString();
+    var r=await c.from('db_deal_access').update(patch).eq('id',id);
+    if(r.error) return mbWarn('Update failed: '+r.error.message);
+    mbWarn(status==='approved'?'Issuer approved — they can now open this checklist and repository.':'Access revoked.');
+    mbRenderAccess(dealId);
+  };
+  window.mbRenderAccess=async function(dealId){
+    var box=document.getElementById('mbx-access'); if(!box) return;
+    var rows=await mbAccessList(dealId);
+    var h='';
+    if(!rows.length) h+='<div style="font-size:12px;color:var(--muted)">No issuer invited yet. Invite the company\'s contact so they can upload documents against this checklist.</div>';
+    rows.forEach(function(a){
+      var col=a.status==='approved'?'#10B981':a.status==='revoked'?'#EF4444':'#C8961E';
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border2);font-size:13px">';
+      h+='<span style="flex:1;color:var(--text)">'+esc(a.issuer_email)+'</span>';
+      h+='<span style="font-size:12px;font-weight:700;color:'+col+'">'+esc(a.status)+'</span>';
+      if(a.status!=='approved') h+='<button onclick="mbSetAccess(\''+dealId+'\','+a.id+',\'approved\')" style="padding:3px 9px;border-radius:6px;border:1px solid rgba(16,185,129,.35);background:none;color:#10B981;font-size:12px;cursor:pointer">Approve</button>';
+      if(a.status==='approved') h+='<button onclick="mbSetAccess(\''+dealId+'\','+a.id+',\'revoked\')" style="padding:3px 9px;border-radius:6px;border:1px solid rgba(239,68,68,.35);background:none;color:#EF4444;font-size:12px;cursor:pointer">Revoke</button>';
+      h+='</div>';
+    });
+    box.innerHTML=h;
+  };
+  window.mbAccessPanel=function(dealId){
+    setTimeout(function(){ mbRenderAccess(dealId); },60);
+    return '<div style="margin:16px 24px;padding:14px;border:1px solid var(--border2);border-radius:12px;background:var(--card)">'
+      +'<div style="font-size:13px;font-weight:800;color:var(--tld);margin-bottom:8px">&#128101; Issuer access to this deal</div>'
+      +'<div style="display:flex;gap:8px;margin-bottom:10px"><input id="mbx-email" class="inp" style="flex:1" placeholder="issuer contact email"/>'
+      +'<button onclick="mbInviteIssuer(\''+dealId+'\')" class="btn btn-outline btn-sm">Invite</button></div>'
+      +'<div id="mbx-access"></div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-top:8px">An approved issuer sees only this deal\'s checklist and repository, never your CRM or other deals.</div></div>';
+  };
+
+  /* ── issuer side ── */
+  window.mbxLoadAccess=async function(){
+    var c=await client(); if(!c) return [];
+    try{ await c.rpc('db_claim_deal_access'); }catch(e){}
+    var r=await c.from('db_deal_access').select('*').eq('status','approved');
+    MBX.access=r.data||[];
+    return MBX.access;
+  };
+  window.mbxOpenDeal=async function(dealId,view){
+    var a=MBX.access.filter(function(x){ return x.deal_id===dealId; })[0]; if(!a) return;
+    MBX.deal=dealId; MBX.owner=a.owner_id;
+    if(view==='drhp-repo'){ await window.drhpSelectDeal(dealId); }
+    else { await window.clSelectDeal(dealId); }
+  };
+  function issuerBar(){
+    if(MBX.mode!=='issuer') return '';
+    var opts=MBX.access.map(function(a){
+      return '<option value="'+a.deal_id+'"'+((MBX.deal===a.deal_id)?' selected':'')+'>'+esc(a.company||a.deal_id)+'</option>'; }).join('');
+    return '<div style="margin:0 0 14px;padding:10px 14px;border:1px solid rgba(29,158,117,.3);background:rgba(29,158,117,.06);border-radius:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +'<span style="font-size:13px;font-weight:700;color:var(--cyan)">Issuer view</span>'
+      +'<select onchange="mbxOpenDeal(this.value,P.view)" class="inp" style="width:auto">'+opts+'</select>'
+      +'<span style="font-size:12px;color:var(--muted)">You and your merchant banker see the same checklist and repository.</span></div>';
+  }
+  /* wrap the two shared views so the issuer gets the deal bar */
+  ['renderChecklist','renderDRHPRepo'].forEach(function(fn){
+    var orig=window[fn];
+    window[fn]=function(){ var out=orig.apply(this,arguments); return (MBX.mode==='issuer')?out.replace('<div class="portal-pad">','<div class="portal-pad">'+issuerBar()):out; };
+  });
+
+  /* restrict the sidebar and views when an issuer is signed in */
+  var origSidebar=window.renderSidebar, origNav=window.pNav;
+  window.renderSidebar=function(){
+    if(MBX.mode!=='issuer') return origSidebar.apply(this,arguments);
+    var html='<div style="padding:12px 20px 8px;font-size:12px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.8px">Issuer tools</div>';
+    [['checklist','&#9745; IPO Checklist'],['drhp-repo','&#128228; DRHP Repository']].forEach(function(it){
+      html+='<div class="nav-item'+(P.view===it[0]?' active':'')+'" onclick="pNav(\''+it[0]+'\')"><span>'+it[1]+'</span></div>';
+    });
+    html+='<div style="padding:14px;margin-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">'+esc(SESS.email||'')+'</div>';
+    document.getElementById('portal-sidebar').innerHTML=html;
+  };
+  window.pNav=function(v){
+    if(MBX.mode==='issuer'&&ISSUER_VIEWS.indexOf(v)<0) v='checklist';
+    return origNav.apply(this,[v]);
+  };
+
+  /* sign-in: merchant banker, or an issuer with approved access */
+  window.doLogin=async function(){
+    var email=(document.getElementById('l-email')||{}).value.trim(), pwd=(document.getElementById('l-password')||{}).value||'';
+    var err=document.getElementById('le0');
+    function fail(m){ if(err){ err.textContent=m; err.classList.add('show'); } }
+    if(!email||!pwd) return fail('Please enter email and password');
+    var r=await IPWGate.signIn(email,pwd,['merchant_banker','issuer']);
+    if(!r.ok) return fail(r.error);
+    SESS.name=r.profile.full_name||r.profile.email; SESS.email=r.profile.email;
+    SESS.firm=r.profile.org||''; SESS.regId=r.profile.reg_no||''; SESS.loggedIn=true; SESS.demo=false;
+    try{ localStorage.setItem('ipowork_user',JSON.stringify({name:SESS.name,email:SESS.email,firm:SESS.firm,regId:SESS.regId,loggedIn:true})); }catch(e){}
+    if(r.profile.role==='issuer'){
+      MBX.mode='issuer';
+      var acc=await mbxLoadAccess();
+      if(!acc.length) return fail('No deal has been shared with you yet. Ask your merchant banker to invite and approve this email.');
+      closeModal('login');
+      document.getElementById('portal-overlay').classList.add('open');
+      document.getElementById('portal-user-name').textContent=SESS.firm||SESS.name;
+      P.view='checklist'; renderSidebar();
+      await mbxOpenDeal(acc[0].deal_id,'checklist');
+      return;
+    }
+    MBX.mode='mb';
+    closeModal('login');
+    if(typeof openPortal==='function') openPortal();
+    if(typeof loadAIRALeads==='function') loadAIRALeads().then(function(){ if(P.view==='deals'||P.view==='hot-leads') renderMain(); });
+  };
+  window.verifyLoginOTP=window.doLogin;
+
+  /* issuer writes to the banker's record, not their own */
+  var wsOwner=function(){ return MBX.mode==='issuer'?MBX.owner:null; };
+  window.mbxOwnerId=wsOwner;
+
+  /* ── checklist progress drives the CRM stage ── */
+  var STAGE_BY_PCT=[[100,'filed'],[70,'mandated'],[30,'engaged'],[1,'qualified']];
+  window.mbSyncProgress=async function(dealId,pct){
+    if(MBX.mode==='issuer') return;
+    var d=(CRM.deals||[]).filter(function(x){ return x.id===dealId; })[0]; if(!d) return;
+    var changed=false;
+    if(d.clPct!==pct){ d.clPct=pct; changed=true; }
+    if(['listed','on-hold'].indexOf(d.stage)<0){
+      var order=CRM_STAGES.map(function(s){ return s.id; });
+      for(var i=0;i<STAGE_BY_PCT.length;i++){
+        if(pct>=STAGE_BY_PCT[i][0]){
+          var want=STAGE_BY_PCT[i][1];
+          if(order.indexOf(want)>order.indexOf(d.stage)){
+            d.stage=want; changed=true;
+            mbWarn(d.company+' moved to '+(CRM_STAGES.filter(function(s){return s.id===want;})[0]||{}).label+' ('+pct+'% of checklist received).');
+          }
+          break;
+        }
+      }
+    }
+    if(changed) await crmSave();
+  };
 })();
 </script>
 </body>
