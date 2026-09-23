@@ -737,6 +737,7 @@ var TABS=[
   {id:'readiness',label:'Debt readiness',hideFor:['institution','merchant_banker','fund_manager']},
   {id:'mine',label:'My activity',onlyFor:['institution','merchant_banker','fund_manager','issuer','ca_cs']},
   {id:'plans',label:'Plans',hideFor:['admin']},
+  {id:'distdesk',label:'Distribution desk',onlyFor:['admin']},
   {id:'admin',label:'Admin',onlyFor:['admin']}
 ];
 function distributeLabel(){ var r=role(); return r==='merchant_banker'?'Distribute a deal':r==='fund_manager'?'Distribute product or deal':r==='issuer'?'Raise capital':r==='ca_cs'?'Refer a client':'Distribute'; }
@@ -754,7 +755,7 @@ function showTab(id){ S.tab=id; S.i360Only=null; renderTabs(); renderPanel(); }
 function renderPanel(){
   var t=TABS.filter(function(x){return x.id===S.tab;})[0], P=$('panels');
   if(t.need&&!can(t.need)){ P.innerHTML=gate(t.id); return; }
-  ({capital:pCapital,market:pMarket,radar:pRadar,refin:pRefin,signals:pSignals,i360:pI360,match:pMatch,partners:pPartners,arranger:pArranger,heatmap:pHeat,readiness:pReady,distribute:pDistribute,mine:pMine,plans:pPlans,admin:pAdmin})[t.id](P);
+  ({distdesk:pDistribute_admin,capital:pCapital,market:pMarket,radar:pRadar,refin:pRefin,signals:pSignals,i360:pI360,match:pMatch,partners:pPartners,arranger:pArranger,heatmap:pHeat,readiness:pReady,distribute:pDistribute,mine:pMine,plans:pPlans,admin:pAdmin})[t.id](P);
 }
 function renderAll(){ renderHero(); renderAuthArea(); renderBanner(); renderPortals(); renderTabs(); renderPanel(); runFinder(); }
 
@@ -1258,6 +1259,131 @@ function pPlans(P){
 }
 
 /* ═════════════ admin ═════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN DISTRIBUTION DESK
+   Pick a live opportunity or a tracked deal, see the opted-in
+   investors whose mandate fits, contact them and log what was sent.
+   Arrangers still see counts only; names stay with ipowork.
+   ═══════════════════════════════════════════════════════════════ */
+function distTargets(){
+  var out=(S.opps||[]).map(function(o){
+    return {id:'OPP-'+o.id, name:o.display_name, vertical:matchKey(o.vertical,o.subtype), sector:o.sector||'', size:o.size_cr||0, rating:(o.payload||{}).rating||'', label:VERT[o.vertical].label+(o.subtype?' · '+o.subtype:'')};
+  });
+  PUBLIC.deals.forEach(function(d){
+    out.push({id:d.id, name:d.co, vertical:'debt', sector:d.sector, size:d.size, rating:d.rating, label:'Debt · '+d.type});
+  });
+  return out;
+}
+function mandateFits(m, t){
+  var p=m.payload||{};
+  var vs=(p.verticals&&p.verticals.length)?p.verticals:['debt'];
+  if(vs.indexOf(t.vertical)<0) return false;
+  if(p.sectors&&p.sectors.length&&t.sector&&p.sectors.indexOf(t.sector)<0) return false;
+  if(t.vertical==='debt'&&p.ratings&&p.ratings.length&&t.rating&&p.ratings.indexOf(t.rating)<0) return false;
+  var mn=parseFloat(p.ticket_min)||0;
+  if(t.size&&mn&&mn>t.size) return false;
+  return true;
+}
+async function pDistribute_admin(P){
+  P.innerHTML='<div class="empty">Loading the distribution desk</div>';
+  var q=await Promise.all([
+    sb.from('db_mandates').select('user_id,payload,updated_at'),
+    sb.from('db_profiles').select('id,email,full_name,org,org_type,role,status'),
+    sb.from('db_distribution_log').select('*').order('created_at',{ascending:false}).limit(500)
+  ]);
+  var mandates=q[0].data||[], profiles=q[1].data||[], log=q[2].data||[];
+  var byId={}; profiles.forEach(function(p){ byId[p.id]=p; });
+  S.distData={mandates:mandates,byId:byId,log:log};
+  var targets=distTargets();
+  var cur=S.distTarget||(targets[0]&&targets[0].id)||'';
+  P.innerHTML='<h3 class="sec-h" style="font-size:22px">Distribution desk</h3>'
+   +'<p class="panel-intro" style="margin-top:4px">Send a live opportunity to the AIFs, family offices and other institutions whose mandate fits it. Only investors who opted in appear here.</p>'
+   +'<div class="card" style="margin-bottom:14px"><div class="two"><div class="fld"><label class="f" for="dz-deal">Opportunity or tracked deal</label><select class="inp" id="dz-deal">'
+   +targets.map(function(t){ return '<option value="'+esc(t.id)+'"'+(t.id===cur?' selected':'')+'>'+esc(t.name+' — '+t.label+(t.size?', '+cr(t.size):''))+'</option>'; }).join('')
+   +'</select></div><div class="fld"><label class="f" for="dz-only">Show</label><select class="inp" id="dz-only"><option value="fit">Investors whose mandate fits</option><option value="all">All opted-in investors</option></select></div></div>'
+   +'<div id="dz-out"></div></div><div id="dz-log"></div>';
+  $('dz-deal').onchange=function(){ S.distTarget=this.value; drawDist(); };
+  $('dz-only').onchange=drawDist;
+  S.distTarget=cur; drawDist();
+}
+function drawDist(){
+  var t=distTargets().filter(function(x){ return x.id===S.distTarget; })[0];
+  var D=S.distData||{mandates:[],byId:{},log:[]};
+  if(!t){ $('dz-out').innerHTML='<div class="empty">Publish an opportunity first, or pick a tracked deal.</div>'; return; }
+  var onlyFit=$('dz-only').value==='fit';
+  var sentTo={}; D.log.filter(function(l){ return l.deal_id===t.id; }).forEach(function(l){ sentTo[l.user_id||l.email]=l; });
+  var rows=D.mandates.map(function(m){
+    var p=D.byId[m.user_id]||{};
+    return {m:m,p:p,fits:mandateFits(m,t)};
+  }).filter(function(r){ return r.p.status==='approved'&&['institution','fund_manager'].indexOf(r.p.role)>=0&&(!onlyFit||r.fits); })
+   .sort(function(a,b){ return (b.fits-a.fits); });
+  if(!rows.length){
+    var total=D.mandates.length;
+    $('dz-out').innerHTML='<div class="empty">'+(onlyFit&&total
+      ? 'None of the '+total+' opted-in investors accept this type of deal ('+esc(cmLabel(t.vertical))+(t.sector?', '+esc(t.sector):'')+'). <button class="link" onclick="document.getElementById(\'dz-only\').value=\'all\';drawDist()">Show all opted-in investors anyway</button>'
+      : 'No investor has saved a mandate yet. They appear here once they fill in Capital match.')+'</div>';
+    $('dz-log').innerHTML=''; return;
+  }
+  var h='<div style="display:flex;gap:8px;align-items:center;margin:14px 0 8px;flex-wrap:wrap">'
+    +'<b style="font-family:var(--serif);font-size:20px;color:var(--teal)">'+rows.filter(function(r){return r.fits;}).length+'</b><span class="small">investors fit '+esc(t.name)+'</span>'
+    +'<span style="flex:1"></span>'
+    +'<button class="btn btn-o btn-sm" onclick="distSelectAll(true)">Select all</button>'
+    +'<button class="btn btn-o btn-sm" onclick="distCopyEmails()">Copy emails</button>'
+    +'<button class="btn btn-a btn-sm" onclick="distMail()">Open mail draft</button>'
+    +'<button class="btn btn-p btn-sm" onclick="distLogSent()">Log as sent</button></div>';
+  h+='<div class="tscroll"><table class="t"><thead><tr><th></th><th>Investor</th><th>Type</th><th>Ticket (₹ Cr)</th><th>Accepts</th><th>Contact</th><th>Already sent</th></tr></thead><tbody>'
+   +rows.map(function(r){
+     var p=r.p, pay=r.m.payload||{};
+     var already=sentTo[p.id];
+     return '<tr><td><input type="checkbox" class="dz-pick" value="'+esc(p.id)+'" data-email="'+esc(p.email)+'" data-org="'+esc(p.org||'')+'"'+(already?'':' checked')+'/></td>'
+      +'<td>'+esc(p.full_name||'')+'<div class="small">'+esc(p.org||'')+'</div></td>'
+      +'<td>'+esc(p.org_type||ROLE_LABEL[p.role])+'</td>'
+      +'<td class="num">'+esc((pay.ticket_min||'—')+(pay.ticket_max?'–'+pay.ticket_max:''))+'</td>'
+      +'<td style="white-space:normal;min-width:180px" class="small">'+esc(((pay.verticals&&pay.verticals.length?pay.verticals:['debt']).map(cmLabel).join(', ')))+(pay.sectors&&pay.sectors.length?'<br>'+esc(pay.sectors.join(', ')):'')+'</td>'
+      +'<td class="small">'+esc(p.email)+(p.phone?'<br>'+esc(p.phone):'')+'</td>'
+      +'<td>'+(already?badge(already.status).html+'<div class="small">'+fdate(already.created_at)+'</div>':'<span class="small">—</span>')+(r.fits?'':'<div class="small" style="color:var(--amber)">outside mandate</div>')+'</td></tr>';
+   }).join('')+'</tbody></table></div>';
+  $('dz-out').innerHTML=h;
+  var lg=D.log.filter(function(l){ return l.deal_id===t.id; });
+  $('dz-log').innerHTML=lg.length?'<h3 class="sec-h" style="font-size:19px;margin-top:22px">Sent for this deal</h3>'
+    +table(['Date','Investor','Channel','Status','Notes'],lg.map(function(l){
+      return [fdate(l.created_at), (l.org||'')+' · '+(l.email||''), l.channel, {html:'<select class="inp" style="width:auto" aria-label="Status" onchange="distSetStatus('+l.id+',this.value)">'+['sent','opened','interested','declined','closed'].map(function(s){return '<option'+(s===l.status?' selected':'')+'>'+s+'</option>';}).join('')+'</select>'}, l.notes||''];
+    })):'';
+}
+function distPicked(){ return Array.prototype.slice.call(document.querySelectorAll('.dz-pick:checked')).map(function(i){ return {id:i.value,email:i.dataset.email,org:i.dataset.org}; }); }
+function distSelectAll(v){ document.querySelectorAll('.dz-pick').forEach(function(i){ i.checked=v; }); }
+function distCopyEmails(){
+  var e=distPicked().map(function(x){ return x.email; }).filter(Boolean);
+  if(!e.length) return toast('Select at least one investor.');
+  navigator.clipboard.writeText(e.join(', ')).then(function(){ toast(e.length+' email addresses copied.'); },function(){ toast('Could not copy. Select the addresses in the table instead.'); });
+}
+function distMail(){
+  var t=distTargets().filter(function(x){ return x.id===S.distTarget; })[0]||{};
+  var e=distPicked().map(function(x){ return x.email; }).filter(Boolean);
+  if(!e.length) return toast('Select at least one investor.');
+  var sub='Opportunity: '+t.name+(t.size?' — '+cr(t.size):'');
+  var body='Dear investor,\n\nAn opportunity on the ipowork Capital Distribution Board matches your mandate:\n\n'
+    +t.name+'\n'+t.label+(t.size?'\nSize: '+cr(t.size):'')+(t.sector?'\nSector: '+t.sector:'')+(t.rating?'\nRating: '+t.rating:'')
+    +'\n\nSign in to see the full details and request the information memorandum or teaser:\n'+location.origin+location.pathname
+    +'\n\nThis is information, not an offer. Any transaction completes through the relevant SEBI-registered intermediary.\n\nipowork';
+  window.open('mailto:?bcc='+encodeURIComponent(e.join(','))+'&subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body));
+}
+async function distLogSent(){
+  var t=distTargets().filter(function(x){ return x.id===S.distTarget; })[0]||{};
+  var picks=distPicked();
+  if(!picks.length) return toast('Select at least one investor.');
+  var rows=picks.map(function(x){ return {deal_id:t.id,deal_name:t.name,user_id:x.id,email:x.email,org:x.org,channel:'email',status:'sent'}; });
+  var r=await sb.from('db_distribution_log').insert(rows);
+  if(r.error) return toast('Not logged: '+r.error.message);
+  toast(rows.length+' recorded as sent.');
+  pDistribute_admin($('panels'));
+}
+async function distSetStatus(id,st){
+  var r=await sb.from('db_distribution_log').update({status:st}).eq('id',id);
+  toast(r.error?'Not updated: '+r.error.message:'Marked '+st+'.');
+}
+
+
 async function pAdmin(P){
   P.innerHTML='<div class="empty">Loading</div>';
   var q=await Promise.all([sb.from('db_profiles').select('*').order('created_at',{ascending:false}),sb.from('db_submissions').select('*').order('created_at',{ascending:false}),sb.from('db_im_requests').select('*').order('created_at',{ascending:false}).limit(1000),sb.from('db_deal_events').select('deal_id,kind').limit(50000),sb.from('db_opportunities').select('*').order('created_at',{ascending:false}),sb.from('db_opportunity_private').select('*')]);
