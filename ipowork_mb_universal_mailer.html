@@ -58,16 +58,19 @@
     <div class="mailer-mode" style="border:2px solid #E88A2E;">
       <div style="font-size:12px;font-weight:700;color:#08404D;margin-bottom:6px">2. Who are you sending to? (choose one)</div>
       <select id="mailer-mode" style="width:100%;padding:8px;border:1px solid #d7e4e7;border-radius:8px;font-size:12px">
-        <option value="mb">Merchant Bankers ONLY — original tool, needs a pre-made LOGIN_URL column</option>
-        <option value="universal">Investors / AIFs / Associates / NBFC / Anyone else — flexible, magic link optional</option>
+        <option value="mb">MB Onboarding — original merchant banker mailer (uses the CSV box in step 1)</option>
+        <option value="u:MB Mandate">MB Mandate — ask merchant bankers for a mandate to raise funds together</option>
+        <option value="u:AIF Mandate">AIF Mandate — ask Cat-2/3 AIFs for a fundraising mandate + soft commitment</option>
+        <option value="u:Investors">Investor Onboarding — Investors / AIFs preview access</option>
+        <option value="universal">Other — Associates / NBFC / Miscellaneous / Custom</option>
       </select>
-      <div style="font-size:10.5px;color:#B5370A;margin-top:5px">👆 For investor/AIF outreach, pick the second option — it reveals a different input box below.</div>
+      <div style="font-size:10.5px;color:#B5370A;margin-top:5px">👆 Pick the mailer here. Every option except MB Onboarding uses the recipient box that appears just below — paste the magic-link generator output there.</div>
       <div id="universal-options" style="display:none;margin-top:8px">
         <select id="campaign-type" style="width:100%;padding:8px;border:1px solid #d7e4e7;border-radius:8px;font-size:12px">
           <option>Investors</option><option>MB Mandate</option><option>AIF Mandate</option><option>Associates / Partners</option><option>NBFC</option><option>Miscellaneous</option><option>Custom</option>
         </select>
         <input id="custom-campaign" placeholder="Custom campaign name" style="display:none;width:100%;margin-top:7px;padding:8px;border:1px solid #d7e4e7;border-radius:8px">
-        <div class="small" style="margin-top:7px">Paste email IDs, or CSV with columns: name,email,firm,login_url. Magic link is optional.</div>
+        <div class="small" style="margin-top:7px">Paste the magic-link generator output here (keep its LOGIN_URL column) — that is what logs people in automatically and tracks their clicks. A plain list of emails also works, but without login or tracking.</div>
         <textarea id="universal-input" rows="5" placeholder="rahul@example.com
 meera@example.com
 OR
@@ -617,17 +620,30 @@ function applyCampaignPrefill(){
     var mt=MANDATE_TEMPLATES[document.getElementById('campaign-type').value];
     document.getElementById('universal-subject').value = mt.subject;
     document.getElementById('universal-body').value = mt.body;
+  } else {
+    /* Associates / NBFC / Misc / Custom have no template: clear out any previous mailer's
+       email so it can't be sent to the wrong audience by accident */
+    var sb=document.getElementById('universal-subject'), bd=document.getElementById('universal-body');
+    var isTpl = bd.value===INVESTOR_BODY || Object.keys(MANDATE_TEMPLATES).some(function(k){return bd.value===MANDATE_TEMPLATES[k].body;});
+    if(isTpl){ sb.value=sb.defaultValue; bd.value=bd.defaultValue; }
   }
 }
 document.getElementById('mailer-mode').onchange=function(){
-  UNIVERSAL_MODE=this.value==='universal';
+  UNIVERSAL_MODE=this.value!=='mb';
+  if(this.value.indexOf('u:')===0) document.getElementById('campaign-type').value=this.value.slice(2);
+  else if(this.value==='universal' && ['MB Mandate','AIF Mandate','Investors'].indexOf(document.getElementById('campaign-type').value)>-1) document.getElementById('campaign-type').value='Associates / Partners';
   document.getElementById('universal-options').style.display=UNIVERSAL_MODE?'block':'none';
   document.getElementById('mb-subject-box').style.display=UNIVERSAL_MODE?'none':'block';
   document.getElementById('universal-subject-note').style.display=UNIVERSAL_MODE?'block':'none';
   if(UNIVERSAL_MODE) applyCampaignPrefill(); else { autoCampaignName(); renderPersonList(); }
 };
 (function(){var el=document.getElementById('campaign-name'); if(el) el.addEventListener('input',function(){el.dataset.touched='1';});})();
-document.getElementById('campaign-type').onchange=applyCampaignPrefill;
+document.getElementById('campaign-type').onchange=function(){
+  /* keep the top dropdown in step with this one */
+  var mm=document.getElementById('mailer-mode'), want='u:'+this.value;
+  mm.value = [].some.call(mm.options,function(o){return o.value===want;}) ? want : 'universal';
+  applyCampaignPrefill();
+};
 loadSentTracker();
 document.getElementById('google-client-id').value=GOOGLE_CLIENT_ID;
 
