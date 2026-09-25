@@ -100,6 +100,17 @@ name,email,firm,login_url"></textarea>
     Sent and failed records are saved separately by campaign in this browser.
   </div>
 </div>
+<div class="edit-box" style="margin-top:14px;border:1px solid #f1c8c8">
+  <strong>&#128683; Bounced / Do-not-send list</strong> <span id="bounce-count" style="color:#B42318;font-size:12px"></span>
+  <div style="font-size:12px;color:#52676e;margin:6px 0;line-height:1.5">In Gmail, search <code>from:mailer-daemon</code>, press <b>Ctrl+A</b> on the results page and <b>Ctrl+C</b>, then paste below (repeat for each page). The addresses in the &ldquo;wasn&rsquo;t delivered to&rdquo; lines are picked up automatically and blocked from <b>every future send, in every mailer</b>. You can also paste a plain list of addresses.</div>
+  <textarea id="bounce-input" rows="4" style="width:100%;box-sizing:border-box;font-size:12px" placeholder="Paste Gmail bounce results or a list of addresses here..."></textarea>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+    <button type="button" onclick="addBouncesFromText()" style="padding:7px 10px;border:1px solid #B42318;color:#B42318;background:#fff;border-radius:7px;cursor:pointer;font-weight:700">Extract &amp; block addresses</button>
+    <button type="button" onclick="downloadBounced()" style="padding:7px 10px;border:1px solid #bbb;border-radius:7px;cursor:pointer">Download list</button>
+    <button type="button" onclick="unblockAddress()" style="padding:7px 10px;border:1px solid #bbb;border-radius:7px;cursor:pointer">Unblock an address</button>
+  </div>
+  <div id="bounce-status" class="status" style="line-height:1.5"></div>
+</div>
 <div class="edit-box" style="margin-top:14px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
     <strong>Campaign History</strong>
@@ -135,6 +146,7 @@ name,email,firm,login_url"></textarea>
     <div id="gmail-status" class="status"></div>
     <button onclick="sendAllEmails()" style="margin-top:8px;width:100%;background:#0f7a50" id="send-all-btn" disabled>Send All Personalized Emails</button>
     <div class="recipient-tools"><button class="secondary" onclick="selectAllPeople()" id="select-all-btn">Select All</button><button class="secondary" onclick="unselectAllPeople()" id="unselect-all-btn">Unselect All</button><button class="secondary" onclick="selectUnsentPeople()" id="select-unsent-btn">Select Unsent</button><button class="secondary" onclick="sendSelectedEmails()" id="send-selected-btn" disabled>Send Selected</button></div>
+    <div id="domain-check-status" class="status" style="line-height:1.5"></div>
     <div id="send-status" class="status"></div>
     <div id="send-summary" class="status"></div>
     <div id="send-diagnostic-note" class="status" style="margin-top:6px;color:#9a4d00">
@@ -224,6 +236,108 @@ function autoCampaignName(){
   if(!el || el.dataset.touched==='1') return;
   el.value=mailerKey()+' \u2013 '+new Date().toLocaleString('en-IN',{month:'short',year:'numeric'});
 }
+
+/* ================= DELIVERABILITY: bounce list + domain check ================= */
+var BOUNCED = (function(){ try{ return JSON.parse(localStorage.getItem('ipowork_bounced_v1')||'{}')||{}; }catch(e){ return {}; } })();
+function saveBounced(){ try{ localStorage.setItem('ipowork_bounced_v1', JSON.stringify(BOUNCED)); }catch(e){} }
+function isBounced(email){ return !!BOUNCED[String(email||'').trim().toLowerCase()]; }
+function domainOf(email){ return String(email||'').trim().toLowerCase().split('@')[1]||''; }
+var DOMAIN_STATUS = (function(){ try{ return JSON.parse(localStorage.getItem('ipowork_domain_check_v1')||'{}')||{}; }catch(e){ return {}; } })();
+function saveDomainStatus(){ try{ localStorage.setItem('ipowork_domain_check_v1', JSON.stringify(DOMAIN_STATUS)); }catch(e){} }
+var DOMAIN_CHECK_RUNNING = false;
+function blockReason(p){
+  if(isBounced(p.email)) return 'bounced';
+  var d = DOMAIN_STATUS[domainOf(p.email)];
+  if(d && d.s==='bad') return 'bad-domain';
+  return '';
+}
+async function dohQuery(name, type){
+  var urls = ['https://dns.google/resolve?name='+encodeURIComponent(name)+'&type='+type,
+              'https://cloudflare-dns.com/dns-query?name='+encodeURIComponent(name)+'&type='+type];
+  for(var i=0;i<urls.length;i++){
+    try{ var r = await fetch(urls[i], {headers:{accept:'application/dns-json'}}); if(!r.ok) continue; return await r.json(); }catch(e){}
+  }
+  return null;
+}
+/* 'ok' = can receive mail, 'bad' = domain doesn't exist / refuses all mail, 'unknown' = lookup failed (still sent) */
+async function checkOneDomain(d){
+  var mx = await dohQuery(d,'MX'); if(!mx) return 'unknown';
+  if(mx.Status===3) return 'bad';                 // NXDOMAIN: domain does not exist
+  if(mx.Status!==0) return 'unknown';             // DNS server trouble: don't block
+  var recs = (mx.Answer||[]).filter(function(a){ return a.type===15; });
+  if(recs.length) return recs.every(function(a){ return /^0\s+\.?$/.test(String(a.data).trim()); }) ? 'bad' : 'ok'; // "null MX" = accepts no mail
+  var a = await dohQuery(d,'A');                  // no MX: mail falls back to the A record
+  if(a && (a.Answer||[]).some(function(x){ return x.type===1; })) return 'ok';
+  var aaaa = await dohQuery(d,'AAAA');
+  if(aaaa && (aaaa.Answer||[]).some(function(x){ return x.type===28; })) return 'ok';
+  return (a && aaaa) ? 'bad' : 'unknown';
+}
+function domainCheckEl(){ return document.getElementById('domain-check-status'); }
+async function runDomainCheck(){
+  var el = domainCheckEl(); if(!PEOPLE.length || !el) return;
+  var now = Date.now(), TTL = 14*24*3600*1000;
+  var todo = [];
+  PEOPLE.forEach(function(p){ var d=domainOf(p.email); if(d && todo.indexOf(d)===-1 && !(DOMAIN_STATUS[d] && DOMAIN_STATUS[d].s!=='unknown' && now-DOMAIN_STATUS[d].t<TTL)) todo.push(d); });
+  DOMAIN_CHECK_RUNNING = true; updateSendButtons();
+  var done = 0, next = 0;
+  async function worker(){
+    while(next < todo.length){
+      var d = todo[next++];
+      DOMAIN_STATUS[d] = {s: await checkOneDomain(d), t: Date.now()};
+      done++;
+      if(done%5===0 || done===todo.length) el.innerHTML = '&#128269; Checking email domains&hellip; '+done+' of '+todo.length+' &mdash; sending is paused until this finishes.';
+    }
+  }
+  if(todo.length){ el.innerHTML = '&#128269; Checking email domains&hellip; 0 of '+todo.length; await Promise.all([1,2,3,4,5,6,7,8].map(worker)); saveDomainStatus(); }
+  DOMAIN_CHECK_RUNNING = false;
+  var bad=0, unk=0, bounced=0;
+  PEOPLE.forEach(function(p){
+    var r = blockReason(p);
+    if(r){ p.selected=false; if(r==='bounced') bounced++; else bad++; }
+    else if((DOMAIN_STATUS[domainOf(p.email)]||{}).s==='unknown') unk++;
+  });
+  var blocked = bad+bounced;
+  el.innerHTML = (blocked
+      ? '<b style="color:#B42318">&#9940; '+blocked+' of '+PEOPLE.length+' excluded from sending</b> &mdash; '+bad+' on email domains that don&rsquo;t exist or can&rsquo;t receive mail, '+bounced+' on the bounced list. <a href="#" onclick="downloadExcluded();return false">Download excluded list</a>'
+      : '<b style="color:#0f7a50">&#10003; All '+PEOPLE.length+' email domains can receive mail.</b>')
+    + (unk ? '<br><span style="color:#8a6d1f">'+unk+' address(es) couldn&rsquo;t be checked (DNS lookup failed) &mdash; they will still be sent.</span>' : '')
+    + '<br><span style="color:#789098">This catches made-up or cut-off domains. It can&rsquo;t detect a missing person at a real company &mdash; add those from the bounce emails below.</span>';
+  renderPersonList();
+}
+function downloadExcluded(){
+  var rows = [['email','name','firm','reason']].concat(PEOPLE.filter(blockReason).map(function(p){ return [p.email,p.name||'',p.firm||'',blockReason(p)==='bounced'?'bounced (address not found)':'domain cannot receive email']; }));
+  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ipowork_excluded_addresses.csv'; a.click();
+}
+var OWN_DOMAINS = /(^|\.)(ipowork\.com|capnexus\.[a-z.]+|google\.com|googlemail\.com)$/i;
+function addBouncesFromText(){
+  var text = document.getElementById('bounce-input').value;
+  var found = (text.match(/[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g)||[]).map(function(e){ return e.replace(/[.'-]+$/,'').toLowerCase(); });
+  var added=[], skipped=0;
+  found.forEach(function(e){
+    if(/^(mailer-daemon|postmaster|no-?reply|noreply)@/.test(e) || OWN_DOMAINS.test(domainOf(e))){ skipped++; return; }
+    if(!BOUNCED[e]){ BOUNCED[e]=new Date().toISOString(); added.push(e); }
+  });
+  saveBounced();
+  var n=0; PEOPLE.forEach(function(p){ if(isBounced(p.email) && p.selected){ p.selected=false; n++; } });
+  document.getElementById('bounce-input').value='';
+  document.getElementById('bounce-status').innerHTML = added.length
+    ? '<b style="color:#B42318">&#9940; Blocked '+added.length+' new address(es).</b>'+(n?' '+n+' of them were in the loaded list and have been unselected.':'')+'<details style="margin-top:4px"><summary style="cursor:pointer">Show addresses</summary><div style="font-size:11px;color:#52676e;max-height:140px;overflow:auto">'+added.map(esc).join('<br>')+'</div></details>'
+    : (found.length ? 'No new addresses &mdash; everything found was already blocked'+(skipped?' or was your own / Gmail system address':'')+'.' : 'No email addresses found in the pasted text.');
+  updateBounceCount(); renderPersonList();
+}
+function unblockAddress(){
+  var e = prompt('Address to unblock (e.g. a typo that has been fixed):'); if(!e) return;
+  e=e.trim().toLowerCase();
+  if(!BOUNCED[e]){ alert(e+' is not on the bounced list.'); return; }
+  delete BOUNCED[e]; saveBounced(); updateBounceCount(); renderPersonList();
+  document.getElementById('bounce-status').textContent='Unblocked '+e+'.';
+}
+function downloadBounced(){
+  var csv='email,blocked_at\n'+Object.keys(BOUNCED).map(function(e){ return e+','+BOUNCED[e]; }).join('\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='ipowork_bounced_list.csv'; a.click();
+}
+function updateBounceCount(){ var el=document.getElementById('bounce-count'); if(el) el.textContent='('+Object.keys(BOUNCED).length+' blocked)'; }
 function saveSentTracker(){
   try{ localStorage.setItem('mb_sender_sent_tracker', JSON.stringify(SENT_TRACKER)); }catch(e){}
 }
@@ -255,10 +369,10 @@ function parseCsvSimple(text){
 }
 
 function togglePerson(i,checked){ if(PEOPLE[i]){PEOPLE[i].selected=checked; updateSendButtons();} }
-function selectAllPeople(){ PEOPLE.forEach(function(p){p.selected=true;}); renderPersonList(); updateSendButtons(); }
+function selectAllPeople(){ PEOPLE.forEach(function(p){p.selected=!blockReason(p);}); renderPersonList(); updateSendButtons(); }
 function unselectAllPeople(){ PEOPLE.forEach(function(p){p.selected=false;}); renderPersonList(); updateSendButtons(); }
-function selectUnsentPeople(){ PEOPLE.forEach(function(p){p.selected=!(SENT_TRACKER[trackerKey(p.email)]&&SENT_TRACKER[trackerKey(p.email)].status==='sent');}); renderPersonList(); updateSendButtons(); }
-function updateSendButtons(){ document.getElementById('send-selected-btn').disabled=!GOOGLE_TOKEN||!PEOPLE.some(function(p){return p.selected;}); document.getElementById('send-all-btn').disabled=!GOOGLE_TOKEN||!PEOPLE.length; }
+function selectUnsentPeople(){ PEOPLE.forEach(function(p){p.selected=!blockReason(p) && !(SENT_TRACKER[trackerKey(p.email)]&&SENT_TRACKER[trackerKey(p.email)].status==='sent');}); renderPersonList(); updateSendButtons(); }
+function updateSendButtons(){ document.getElementById('send-selected-btn').disabled=DOMAIN_CHECK_RUNNING||!GOOGLE_TOKEN||!PEOPLE.some(function(p){return p.selected;}); document.getElementById('send-all-btn').disabled=DOMAIN_CHECK_RUNNING||!GOOGLE_TOKEN||!PEOPLE.length; }
 function campaignName(){var v=document.getElementById('campaign-type').value;return v==='Custom'?(document.getElementById('custom-campaign').value.trim()||'Custom'):v;}
 function parseUniversal(text){
   /* FIX-SEP-UNIV: previously only parsed structured data if line 1
@@ -350,7 +464,7 @@ function parseUniversal(text){
   return out;
 }
 
-function loadUniversalRecipients(){UNIVERSAL_MODE = document.getElementById('mailer-mode').value!=='mb';var a=parseUniversal(document.getElementById('universal-input').value);var n=0,upd=0;a.forEach(function(p){var ex=PEOPLE.filter(function(x){return x.email.toLowerCase()===p.email.toLowerCase();})[0];if(!ex){PEOPLE.push(p);n++;}else{if(p.loginUrl&&ex.loginUrl!==p.loginUrl){ex.loginUrl=p.loginUrl;upd++;}if(p.name&&!ex.name)ex.name=p.name;if(p.firm&&!ex.firm)ex.firm=p.firm;}});UNIVERSAL_MODE=true;var noLink=PEOPLE.filter(function(x){return !x.loginUrl;}).length;document.getElementById('universal-status').innerHTML='Added '+n+' recipient(s)'+(upd?', updated login link for '+upd:'')+'. Total: '+PEOPLE.length+(noLink?'<br><b style="color:#B5370A">\u26A0 '+noLink+' recipient(s) have NO magic link \u2014 they will not be logged in automatically and their clicks will not be tracked. Paste the generator output (with its LOGIN_URL column) to fix.</b>':'<br><b style="color:#0f7a50">\u2713 Every recipient has a magic link \u2014 auto-login and tracking are on.</b>');renderPersonList();if(PEOPLE.length)selectPerson(0);updateSendButtons();}
+function loadUniversalRecipients(){setTimeout(runDomainCheck,0);UNIVERSAL_MODE = document.getElementById('mailer-mode').value!=='mb';var a=parseUniversal(document.getElementById('universal-input').value);var n=0,upd=0;a.forEach(function(p){var ex=PEOPLE.filter(function(x){return x.email.toLowerCase()===p.email.toLowerCase();})[0];if(!ex){PEOPLE.push(p);n++;}else{if(p.loginUrl&&ex.loginUrl!==p.loginUrl){ex.loginUrl=p.loginUrl;upd++;}if(p.name&&!ex.name)ex.name=p.name;if(p.firm&&!ex.firm)ex.firm=p.firm;}});UNIVERSAL_MODE=true;var noLink=PEOPLE.filter(function(x){return !x.loginUrl;}).length;document.getElementById('universal-status').innerHTML='Added '+n+' recipient(s)'+(upd?', updated login link for '+upd:'')+'. Total: '+PEOPLE.length+(noLink?'<br><b style="color:#B5370A">\u26A0 '+noLink+' recipient(s) have NO magic link \u2014 they will not be logged in automatically and their clicks will not be tracked. Paste the generator output (with its LOGIN_URL column) to fix.</b>':'<br><b style="color:#0f7a50">\u2713 Every recipient has a magic link \u2014 auto-login and tracking are on.</b>');renderPersonList();if(PEOPLE.length)selectPerson(0);updateSendButtons();}
 function universalPersonalizedHtml(p){
   var link = p.loginUrl
     ? '<table role="presentation" align="center" style="margin:22px auto 0"><tr><td style="background:#e88a2e;border-radius:8px"><a href="'+esc(p.loginUrl)+'" style="display:inline-block;padding:15px 30px;color:#fff;text-decoration:none;font-size:14px;font-weight:800;letter-spacing:.1px">LOGIN NOW &amp; VIEW YOUR DEALS</a></td></tr></table>'
@@ -400,6 +514,7 @@ function loadPeople(){
   statusEl.textContent = '✅ Loaded '+PEOPLE.length+' people with real links (rows without a real link were skipped).';
   renderPersonList();
   if(PEOPLE.length){ selectPerson(0); }
+  runDomainCheck();
 }
 
 function renderPersonList(){
@@ -409,6 +524,7 @@ function renderPersonList(){
     var sentStatus = sent && sent.status ? sent.status : (sent ? 'manual' : '');
     return '<div class="person-row'+(i===CURRENT_INDEX?' active':'')+'" onclick="selectPerson('+i+')">' + '<input type="checkbox" '+(p.selected?'checked':'')+' onclick="event.stopPropagation()" onchange="togglePerson('+i+',this.checked)" style="margin-right:7px">'
       +'<span style="flex:1;min-width:0;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>'+esc(p.name||'Name not provided')+'</strong>'+(p.firm?' <span style="color:#9AB0B8">('+esc(p.firm.slice(0,28))+(p.firm.length>28?'…':'')+')</span>':'')+'<br><span style="color:#789098;font-size:11px">'+esc(p.email)+'</span></span>'
+      +(blockReason(p)?'<span class="sent-badge" style="background:#fde8e8;color:#B42318">'+(blockReason(p)==='bounced'?'\u26D4 bounced':'\u26D4 bad domain')+'</span>':'')
       +(sent?'<span class="sent-badge">'+(sentStatus==='failed'?'✕ failed':sentStatus==='sent'?'✓ sent':'✓ marked')+'</span>':'')
       +'</div>';
   }).join('');
@@ -510,9 +626,11 @@ function sleep(ms){return new Promise(function(resolve){setTimeout(resolve,ms);}
 async function sendAllEmails(){
   if(!GOOGLE_TOKEN){alert('Connect Gmail first.');return;}
   if(!PEOPLE.length){alert('Load people first.');return;}
-  if(!confirm('Send personalized Magic Link emails to all unsent people?')) return;
+  if(DOMAIN_CHECK_RUNNING){alert('Email domains are still being checked — wait for it to finish.');return;}
+  var pending=PEOPLE.filter(function(p){return !blockReason(p) && !(SENT_TRACKER[trackerKey(p.email)] && SENT_TRACKER[trackerKey(p.email)].status==='sent');});
+  var nBlocked=PEOPLE.filter(blockReason).length;
+  if(!confirm('Send '+pending.length+' personalized email(s) to all unsent people?'+(nBlocked?'\n\n'+nBlocked+' address(es) are excluded (bounced or undeliverable domain).':''))) return;
   var btn=document.getElementById('send-all-btn'); btn.disabled=true;
-  var pending=PEOPLE.filter(function(p){return !(SENT_TRACKER[trackerKey(p.email)] && SENT_TRACKER[trackerKey(p.email)].status==='sent');});
   var ok=0,fail=0;
   for(var i=0;i<pending.length;i++){
     var p=pending[i];
@@ -537,9 +655,11 @@ if (window.ipoworkRecordCampaign) window.ipoworkRecordCampaign(p.email, "failed"
 
 async function sendSelectedEmails(){
   if(!GOOGLE_TOKEN){alert('Connect Gmail first.');return;}
-  var selected=PEOPLE.filter(function(p){return p.selected;});
-  if(!selected.length){alert('Select at least one recipient.');return;}
-  if(!confirm('Send '+selected.length+' selected email(s) from the signed-in Gmail account?'))return;
+  if(DOMAIN_CHECK_RUNNING){alert('Email domains are still being checked — wait for it to finish.');return;}
+  var nSkip=PEOPLE.filter(function(p){return p.selected && blockReason(p);}).length;
+  var selected=PEOPLE.filter(function(p){return p.selected && !blockReason(p);});
+  if(!selected.length){alert('Select at least one recipient.'+(nSkip?' ('+nSkip+' selected address(es) are blocked as bounced/undeliverable.)':''));return;}
+  if(!confirm('Send '+selected.length+' selected email(s) from the signed-in Gmail account?'+(nSkip?'\n\n'+nSkip+' blocked address(es) will be skipped.':'')))return;
   var btn=document.getElementById('send-selected-btn');btn.disabled=true;
   var ok=0,fail=0,errors=[];
   for(var i=0;i<selected.length;i++){
@@ -635,6 +755,7 @@ function applyCampaignPrefill(){
     if(isTpl){ sb.value=sb.defaultValue; bd.value=bd.defaultValue; }
   }
 }
+setTimeout(updateBounceCount,0);
 document.getElementById('mailer-mode').onchange=function(){
   UNIVERSAL_MODE=this.value!=='mb';
   if(this.value.indexOf('u:')===0) document.getElementById('campaign-type').value=this.value.slice(2);
