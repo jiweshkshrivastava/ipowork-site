@@ -350,7 +350,7 @@ function parseUniversal(text){
   return out;
 }
 
-function loadUniversalRecipients(){var a=parseUniversal(document.getElementById('universal-input').value);var n=0,upd=0;a.forEach(function(p){var ex=PEOPLE.filter(function(x){return x.email.toLowerCase()===p.email.toLowerCase();})[0];if(!ex){PEOPLE.push(p);n++;}else{if(p.loginUrl&&ex.loginUrl!==p.loginUrl){ex.loginUrl=p.loginUrl;upd++;}if(p.name&&!ex.name)ex.name=p.name;if(p.firm&&!ex.firm)ex.firm=p.firm;}});UNIVERSAL_MODE=true;var noLink=PEOPLE.filter(function(x){return !x.loginUrl;}).length;document.getElementById('universal-status').innerHTML='Added '+n+' recipient(s)'+(upd?', updated login link for '+upd:'')+'. Total: '+PEOPLE.length+(noLink?'<br><b style="color:#B5370A">\u26A0 '+noLink+' recipient(s) have NO magic link \u2014 they will not be logged in automatically and their clicks will not be tracked. Paste the generator output (with its LOGIN_URL column) to fix.</b>':'<br><b style="color:#0f7a50">\u2713 Every recipient has a magic link \u2014 auto-login and tracking are on.</b>');renderPersonList();if(PEOPLE.length)selectPerson(0);updateSendButtons();}
+function loadUniversalRecipients(){UNIVERSAL_MODE = document.getElementById('mailer-mode').value!=='mb';var a=parseUniversal(document.getElementById('universal-input').value);var n=0,upd=0;a.forEach(function(p){var ex=PEOPLE.filter(function(x){return x.email.toLowerCase()===p.email.toLowerCase();})[0];if(!ex){PEOPLE.push(p);n++;}else{if(p.loginUrl&&ex.loginUrl!==p.loginUrl){ex.loginUrl=p.loginUrl;upd++;}if(p.name&&!ex.name)ex.name=p.name;if(p.firm&&!ex.firm)ex.firm=p.firm;}});UNIVERSAL_MODE=true;var noLink=PEOPLE.filter(function(x){return !x.loginUrl;}).length;document.getElementById('universal-status').innerHTML='Added '+n+' recipient(s)'+(upd?', updated login link for '+upd:'')+'. Total: '+PEOPLE.length+(noLink?'<br><b style="color:#B5370A">\u26A0 '+noLink+' recipient(s) have NO magic link \u2014 they will not be logged in automatically and their clicks will not be tracked. Paste the generator output (with its LOGIN_URL column) to fix.</b>':'<br><b style="color:#0f7a50">\u2713 Every recipient has a magic link \u2014 auto-login and tracking are on.</b>');renderPersonList();if(PEOPLE.length)selectPerson(0);updateSendButtons();}
 function universalPersonalizedHtml(p){
   var link = p.loginUrl
     ? '<table role="presentation" align="center" style="margin:22px auto 0"><tr><td style="background:#e88a2e;border-radius:8px"><a href="'+esc(p.loginUrl)+'" style="display:inline-block;padding:15px 30px;color:#fff;text-decoration:none;font-size:14px;font-weight:800;letter-spacing:.1px">LOGIN NOW &amp; VIEW YOUR DEALS</a></td></tr></table>'
@@ -358,7 +358,8 @@ function universalPersonalizedHtml(p){
   return document.getElementById('universal-body').value.replace(/\{\{NAME\}\}/g,esc(p.name||'there')).replace(/\{\{EMAIL\}\}/g,esc(p.email)).replace(/\{\{FIRM\}\}/g,esc(p.firm||'your organisation')).replace(/\{\{MAGIC_LINK\}\}/g,esc(p.loginUrl)).replace(/\{\{MAGIC_LINK_BLOCK\}\}/g,link).replace(/\{\{CAMPAIGN\}\}/g,esc(campaignName())).replace(/\{\{MANDATE_LINK\}\}/g,esc(mandateTaggedLink(p.loginUrl)||((typeof MANDATE_TEMPLATES!=='undefined'&&MANDATE_TEMPLATES[campaignName()])?MANDATE_TEMPLATES[campaignName()].fallback:'https://www.ipowork.com'))).replace(/\n/g,'<br>');
 }
 function loadPeople(){
-  UNIVERSAL_MODE=false;
+  /* The mailer is decided ONLY by the "Who are you sending to?" dropdown, never by which box you loaded from */
+  UNIVERSAL_MODE = document.getElementById('mailer-mode').value!=='mb';
   var raw = document.getElementById('csv-input').value.trim();
   var statusEl = document.getElementById('load-status');
   if(!raw){ statusEl.textContent = 'Paste CSV data first.'; return; }
@@ -423,9 +424,9 @@ function selectPerson(i){
   document.getElementById('right-panel').style.display = 'block';
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('person-title').textContent = p.name + ' — ' + p.firm;
-  document.getElementById('person-fields').innerHTML = UNIVERSAL_MODE
-    ? 'Email: '+esc(p.email)+(p.loginUrl ? '<br>Magic Link: '+esc(p.loginUrl) : '<br>Magic Link: (none — plain email)')
-    : 'Email: '+esc(p.email)+'<br>SEBI Reg: '+esc(p.sebi)+'<br>Link: '+esc(p.loginUrl);
+  document.getElementById('person-fields').innerHTML = '<b style="color:#B5540A">Mailer: '+esc(mailerKey())+'</b><br>' + (UNIVERSAL_MODE
+    ? 'Email: '+esc(p.email)+(p.sebi?'<br>SEBI Reg: '+esc(p.sebi):'')+(p.loginUrl ? '<br>Magic Link: '+esc(mandateTaggedLink(p.loginUrl)) : '<br>Magic Link: (none — plain email, no auto-login or tracking)')
+    : 'Email: '+esc(p.email)+'<br>SEBI Reg: '+esc(p.sebi)+'<br>Link: '+esc(p.loginUrl));
 
   var rendered;
   if(UNIVERSAL_MODE){
@@ -446,7 +447,13 @@ function selectPerson(i){
   var iframe = document.getElementById('email-preview');
   iframe.srcdoc = rendered;
 
-  var waMsg = p.loginUrl
+  var mk = mailerKey(), tl = mandateTaggedLink(p.loginUrl);
+  var waMsg = (mk==='MB Mandate' || mk==='AIF Mandate')
+    ? ('Hi '+(p.name||'there')+', Jiwesh from ipowork here. We\u2019d like a mandate and your authorisation to raise funds together '
+       +(mk==='MB Mandate' ? 'for your IPO-bound clients' : 'for '+(p.firm||'your fund'))
+       +'.\n\nBook a 20-min call: https://calendar.app.google/2ZaLj1pUGwmYxzyk8'
+       +(tl ? '\n\nYour ipowork access (logs you in directly): '+tl : ''))
+    : p.loginUrl
     ? ('Hi '+p.name+', here\u2019s your ipowork access \u2014 tap to log in directly: '+p.loginUrl+'\n\nValid for 30 days.')
     : ('Hi '+p.name+', this is ipowork reaching out regarding curated deal access. We\u2019ll follow up by email with more details.');
   document.getElementById('wa-message').value = waMsg;
@@ -636,6 +643,7 @@ document.getElementById('mailer-mode').onchange=function(){
   document.getElementById('mb-subject-box').style.display=UNIVERSAL_MODE?'none':'block';
   document.getElementById('universal-subject-note').style.display=UNIVERSAL_MODE?'block':'none';
   if(UNIVERSAL_MODE) applyCampaignPrefill(); else { autoCampaignName(); renderPersonList(); }
+  setTimeout(function(){ if(PEOPLE.length && CURRENT_INDEX>=0) selectPerson(CURRENT_INDEX); },0);
 };
 (function(){var el=document.getElementById('campaign-name'); if(el) el.addEventListener('input',function(){el.dataset.touched='1';});})();
 document.getElementById('campaign-type').onchange=function(){
@@ -643,6 +651,7 @@ document.getElementById('campaign-type').onchange=function(){
   var mm=document.getElementById('mailer-mode'), want='u:'+this.value;
   mm.value = [].some.call(mm.options,function(o){return o.value===want;}) ? want : 'universal';
   applyCampaignPrefill();
+  setTimeout(function(){ if(PEOPLE.length && CURRENT_INDEX>=0) selectPerson(CURRENT_INDEX); },0);
 };
 loadSentTracker();
 document.getElementById('google-client-id').value=GOOGLE_CLIENT_ID;
