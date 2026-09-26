@@ -4115,7 +4115,7 @@ function ipwCaptureIssuerFinancials(result, cname, sector, tier){
       headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
       body: JSON.stringify({ report_id:'AIRAFIN-'+cin+'-'+Date.now(), company_name:(payload.company_name||'N/A').slice(0,200), cin:cin,
         sector:(sector||'N/A').slice(0,100), exchange:'N/A', tier:'free', score: payload.aira_score||0, source:'aira_financials', scores: payload })
-    }).then(function(r){ if(!r.ok) console.warn('Issuer capture: not saved, status', r.status); else console.log('Issuer capture: figures saved for', cin, 'by', payload.capturedBy||'(not signed in)', payload.capturedBySite&&payload.capturedBySite!==payload.capturedBy?'(issuer sign-in: '+payload.capturedBySite+')':''); })
+    }).then(function(r){ if(!r.ok) console.warn('Issuer capture: not saved, status', r.status); else console.log('Issuer capture: figures saved for', cin, 'by', payload.capturedBy||'(not signed in)', payload.capturedBySite&&payload.capturedBySite!==payload.capturedBy?'(issuer sign-in: '+payload.capturedBySite+')':'', payload.profiles&&payload.profiles.ver?'\u2014 WITH debt & equity detail ('+payload.profiles.ver+', '+((payload.profiles.years||[]).length)+' years)':'\u2014 WITHOUT debt & equity detail (Worker older than v11.5, or data not returned)'); })
       .catch(function(e){ console.warn('Issuer capture: not saved', e); });
   }catch(e){ console.warn('Issuer capture skipped', e); }
 }
