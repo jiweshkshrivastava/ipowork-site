@@ -175,7 +175,7 @@ async function login(){
     if(!a||!a.approved||!(a.cins||[]).length) return {error:'Your access hasn\u2019t been set up yet. Request it below and we\u2019ll send your link.'};
     var user={email:a.email,name:a.name||'',firm:a.firm||'',role:a.role||'issuer',cins:a.cins.map(function(c){return String(c).toUpperCase();})};
     try{ sessionStorage.setItem('ipw_issuer', JSON.stringify(user)); }catch(e){}
-    insert({report_id:'ISSUERLOGIN-'+user.email.replace(/[^a-z0-9]/gi,'-')+'-'+Date.now(),company_name:user.firm||'N/A',cin:user.cins.join(',').slice(0,200),sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_login_event',
+    insert({report_id:'ISSUERLOGIN-'+user.email.replace(/[^a-z0-9]/gi,'-')+'-'+Date.now(),company_name:(user.firm||'N/A').slice(0,200),cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_login_event',
       scores:{email:user.email,name:user.name,firm:user.firm,role:user.role,cins:user.cins,campaign:p.get('campaign')||'',loggedInAt:new Date().toISOString()}}).catch(function(e){console.warn('login event not recorded',e);});
     history.replaceState(null,'',location.pathname+location.hash);
     return {user:user};

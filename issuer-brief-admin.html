@@ -53,11 +53,25 @@ code{background:#EEF5F6;padding:1px 5px;border-radius:4px;font-size:12px}
 
 <section>
   <h2>3 · Create access and magic links</h2>
-  <p class="hint">One line per person: <code>email,name,firm,role,cins</code>. Role is <code>issuer</code> or <code>ca_cs</code>. List several CINs separated by <code>;</code> for a group or CA/CS partner. Links last 30 days; running again for the same person gives them a fresh link and their latest company list. Issuer links are separate from MB and investor links and do not open aira.html.</p>
-  <textarea id="acc" placeholder="cfo@meridianpolymers.in,Anita Shah,Meridian Specialty Polymers,issuer,U24100GJ2011PTC000001&#10;partner@rmehta.in,R. Mehta,R. Mehta & Associates,ca_cs,U24100GJ2011PTC000001;U15400MH2009PTC000002"></textarea>
-  <div class="row"><button id="links">Create access + links</button><button id="links-dl" class="sec" disabled>Download for mailer (CSV)</button></div>
+  <p class="hint"><b>One person:</b> fill in and click Create link. <b>Many people:</b> paste a list below, in any column order, with or without a header, straight from Excel, like the mailer. Each row needs an email and at least one CIN. For a group or CA/CS partner, put several CINs in one cell (separated by <code>;</code>) or repeat the same email on several rows. Links last 30 days and open only the issuer portal.</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
+    <label>Email<br><input id="one-email" type="email" style="width:100%" placeholder="cfo@company.in"></label>
+    <label>Name<br><input id="one-name" style="width:100%" placeholder="Anita Shah"></label>
+    <label>Company / firm<br><input id="one-firm" style="width:100%" placeholder="Meridian Specialty Polymers"></label>
+    <label>CIN(s)<br><input id="one-cin" style="width:100%" placeholder="U24100GJ2011PTC000001"></label>
+    <label>Mobile (for WhatsApp)<br><input id="one-phone" style="width:100%" placeholder="98xxxxxxxx"></label>
+    <label>Role<br><select id="one-role" style="width:100%"><option value="issuer">Issuer (the company)</option><option value="ca_cs">CA / CS partner</option></select></label>
+  </div>
+  <div class="row"><button id="one-go">Create link</button><span id="one-status" class="status"></span></div>
+  <div id="one-out" style="display:none;margin-top:10px;background:#EEF5F6;border-radius:8px;padding:12px">
+    <input id="one-link" readonly style="width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px">
+    <div class="row"><button id="one-copy" class="sec">Copy link</button><a id="one-wa" target="_blank" rel="noopener"><button class="sec" type="button">Send on WhatsApp</button></a><a id="one-open" target="_blank" rel="noopener"><button class="sec" type="button">Open as them</button></a></div>
+  </div>
+  <hr style="border:0;border-top:1px solid var(--bd);margin:18px 0">
+  <textarea id="acc" placeholder="Paste a list — any of these work:&#10;name,email,company,cin&#10;Anita Shah,cfo@meridian.in,Meridian Specialty Polymers,U24100GJ2011PTC000001&#10;&#10;or straight from Excel (tab-separated), or just:  cfo@meridian.in  U24100GJ2011PTC000001"></textarea>
+  <div class="row"><label>Role for this list <select id="acc-role"><option value="issuer">Issuer (unless a row says ca_cs)</option><option value="ca_cs">CA / CS partner</option></select></label><button id="links">Create links for list</button><button id="links-dl" class="sec" disabled>Download for mailer (CSV)</button></div>
   <div id="acc-status" class="status"></div>
-  <textarea id="acc-out" readonly style="display:none;min-height:110px;margin-top:10px"></textarea>
+  <div class="scroll" id="acc-table"></div>
 </section>
 
 <section>
@@ -145,31 +159,83 @@ $('publish').onclick=async function(){
   }catch(e){ set(st,'err','Stopped after '+done+' of '+COMPUTED.length+': '+e.message+'\nRe-running is safe — the portal always shows the newest brief.'); $('publish').disabled=false; }
 };
 
-/* 3 · access + links */
-$('links').onclick=async function(){
-  var st=$('acc-status'), lines=$('acc').value.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
-  if(lines.length && /^email\s*,/i.test(lines[0])) lines.shift();
-  if(!lines.length){ set(st,'err','Paste at least one line.'); return; }
-  var out=[['name','email','firm','role','companies','login_url']], ok=0, bad=[];
-  $('links').disabled=true;
-  for(var i=0;i<lines.length;i++){
-    var c=lines[i].split(',').map(function(x){return x.trim();});
-    var email=(c[0]||'').toLowerCase(), name=c[1]||'', firm=c[2]||'', role=(c[3]||'issuer').toLowerCase(), cins=(c[4]||'').split(/[;|\s]+/).map(function(x){return x.trim().toUpperCase();}).filter(Boolean);
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !cins.length || ['issuer','ca_cs'].indexOf(role)<0){ bad.push('Line '+(i+1)+': needs email, role issuer/ca_cs and at least one CIN'); continue; }
-    set(st,'','Creating '+(i+1)+' of '+lines.length+': '+email);
-    try{
-      var t=token(), ts=Date.now();
-      await insert([
-        {report_id:'ISSUERACC-'+safe(email)+'-'+ts,company_name:firm||'N/A',cin:cins.join(',').slice(0,200),sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_account',scores:{email:email,name:name,firm:firm,role:role,cins:cins,approved:true,createdAt:new Date().toISOString()}},
-        {report_id:'ISSUERLINK-'+safe(email)+'-'+ts,company_name:'ISSUER_MAGIC_LINK',cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_magic_link',scores:{email:email,token:t,createdAt:new Date().toISOString(),expiresAt:new Date(ts+30*24*3600*1000).toISOString()}}
-      ]);
-      out.push([name,email,firm,role,cins.join(';'),PORTAL+'?login_token='+t]); ok++;
-    }catch(e){ bad.push(email+': '+e.message); }
-  }
-  LINKS_CSV=out.map(function(r){return r.map(function(x){return /[",\n]/.test(x)?'"'+String(x).replace(/"/g,'""')+'"':x;}).join(',');}).join('\n');
-  $('acc-out').style.display='block'; $('acc-out').value=LINKS_CSV; $('links-dl').disabled=!ok; $('links').disabled=false;
-  set(st, bad.length?'warn':'ok', '✓ '+ok+' link(s) ready (valid 30 days).'+(bad.length?'\nNot created:\n'+bad.join('\n'):'')+'\nPaste the CSV into the mailer as usual — the login_url column is picked up automatically.');
+/* 3 · access + links — works like the mailer: any column order, header optional, Excel tabs */
+var CIN_RE=/\b[LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}\b/g, EMAIL_RE=/[^@\s,;<>"']+@[^@\s,;<>"']+\.[a-z]{2,}/i;
+function splitLine(l){ var d = l.indexOf('\t')>-1 ? '\t' : (l.split(';').length>l.split(',').length && !CIN_RE.test(l) ? ';' : ','); CIN_RE.lastIndex=0;
+  var out=[],cur='',q=false; for(var i=0;i<l.length;i++){ var ch=l[i]; if(q){ if(ch==='"'){ if(l[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; } else if(ch==='"') q=true; else if(ch===d){ out.push(cur.trim()); cur=''; } else cur+=ch; } out.push(cur.trim()); return out; }
+function cinsIn(text){ CIN_RE.lastIndex=0; return (String(text||'').toUpperCase().match(CIN_RE)||[]); }
+function parsePeople(text, defaultRole){
+  var lines=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).filter(function(l){return l.trim();}); if(!lines.length) return {people:[],bad:[]};
+  var first=splitLine(lines[0]).map(function(h){return h.toLowerCase().replace(/[^a-z]/g,'');});
+  var hasHeader = !EMAIL_RE.test(lines[0]) && first.some(function(h){return /email|mail/.test(h);});
+  function col(names){ for(var i=0;i<first.length;i++){ if(names.indexOf(first[i])>-1) return i; } return -1; }
+  var ix = hasHeader ? {email:col(['email','emailid','emailaddress','mail']), name:col(['name','contact','contactname','fullname','merchantbankername','investorname','director','person']),
+    firm:col(['firm','firmname','company','companyname','organisation','organization']), role:col(['role','type']), cin:col(['cin','cins','companies','companycin','cinno'])} : null;
+  var byEmail={}, order=[], bad=[];
+  lines.slice(hasHeader?1:0).forEach(function(l,n){
+    var c=splitLine(l), lineNo=n+(hasHeader?2:1), email='', name='', firm='', role='', cins=[];
+    if(ix){ email=(c[ix.email]||'').trim(); name=ix.name>-1?c[ix.name]||'':''; firm=ix.firm>-1?c[ix.firm]||'':''; role=ix.role>-1?c[ix.role]||'':''; cins=cinsIn(ix.cin>-1?c[ix.cin]:l); if(!cins.length) cins=cinsIn(l); }
+    else { var m=l.match(EMAIL_RE); email=m?m[0]:''; cins=cinsIn(l);
+      var rest=c.filter(function(x){ return x && !EMAIL_RE.test(x) && !cinsIn(x).length && !/^(issuer|ca_cs|cacs|ca\/cs)$/i.test(x) && !/^[+\d\s-]{8,}$/.test(x); });
+      name=rest[0]||''; firm=rest[1]||''; role=(c.filter(function(x){return /^(issuer|ca_cs|cacs|ca\/cs)$/i.test(x);})[0]||''); }
+    email=email.toLowerCase().replace(/^mailto:/,'');
+    role=/ca/i.test(role)?'ca_cs':(/issuer/i.test(role)?'issuer':defaultRole);
+    if(!EMAIL_RE.test(email)){ bad.push({line:lineNo,text:l,why:'No valid email found'}); return; }
+    if(!cins.length){ bad.push({line:lineNo,text:l,why:'No CIN found (21 characters, e.g. U24100GJ2011PTC000001)'}); return; }
+    if(!byEmail[email]){ byEmail[email]={email:email,name:name,firm:firm,role:role,cins:[]}; order.push(email); }
+    var P=byEmail[email]; if(!P.name&&name) P.name=name; if(!P.firm&&firm) P.firm=firm; if(role==='ca_cs') P.role='ca_cs';
+    cins.forEach(function(x){ if(P.cins.indexOf(x)<0) P.cins.push(x); });
+  });
+  return {people:order.map(function(e){ var P=byEmail[e]; if(P.cins.length>1 && P.role==='issuer' && defaultRole==='issuer') P.multi=true; return P; }), bad:bad};
+}
+async function createAccess(P){
+  var t=token(), ts=Date.now();
+  await insert([
+    {report_id:'ISSUERACC-'+safe(P.email)+'-'+ts,company_name:(P.firm||'N/A').slice(0,200),cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_account',scores:{email:P.email,name:P.name,firm:P.firm,role:P.role,cins:P.cins,approved:true,createdAt:new Date().toISOString()}},
+    {report_id:'ISSUERLINK-'+safe(P.email)+'-'+ts,company_name:'ISSUER_MAGIC_LINK',cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_magic_link',scores:{email:P.email,token:t,createdAt:new Date().toISOString(),expiresAt:new Date(ts+30*24*3600*1000).toISOString()}}
+  ]);
+  return PORTAL+'?login_token='+t;
+}
+$('one-go').onclick=async function(){
+  var st=$('one-status'); $('one-out').style.display='none';
+  var P={email:$('one-email').value.trim().toLowerCase(),name:$('one-name').value.trim(),firm:$('one-firm').value.trim(),role:$('one-role').value,cins:cinsIn($('one-cin').value)};
+  if(!EMAIL_RE.test(P.email)){ set(st,'err','Enter a valid email.'); return; }
+  if(!P.cins.length){ set(st,'err','Enter at least one CIN (21 characters, e.g. U24100GJ2011PTC000001).'); return; }
+  this.disabled=true; set(st,'','Creating…');
+  try{
+    var url=await createAccess(P);
+    $('one-link').value=url; $('one-out').style.display='block';
+    var ph=$('one-phone').value.replace(/\D/g,''); if(ph.length===10) ph='91'+ph;
+    var msg='Hi '+(P.name||'')+', ipowork has prepared a free Issuer Intelligence Brief for '+(P.firm||'your company')+'. Open it here (no password): '+url+'&campaign=WHATSAPP';
+    $('one-wa').href='https://wa.me/'+(ph||'')+'?text='+encodeURIComponent(msg);
+    $('one-open').href=url+'&campaign=ADMIN-PREVIEW';
+    set(st,'ok','✓ Link ready for '+P.email+' — '+P.cins.length+' compan'+(P.cins.length>1?'ies':'y')+', valid 30 days.');
+  }catch(e){ set(st,'err','Could not create the link: '+e.message); }
+  this.disabled=false;
 };
+$('one-copy').onclick=function(){ var i=$('one-link'); i.select(); try{ navigator.clipboard.writeText(i.value); }catch(e){ document.execCommand('copy'); } set($('one-status'),'ok','✓ Copied.'); };
+$('links').onclick=async function(){
+  var st=$('acc-status'), parsed=parsePeople($('acc').value, $('acc-role').value);
+  if(!parsed.people.length){ set(st,'err', parsed.bad.length ? 'Nothing could be read. First problem — line '+parsed.bad[0].line+': '+parsed.bad[0].why+'.' : 'Paste at least one row.'); renderAcc([],parsed.bad); return; }
+  $('links').disabled=true; var done=[];
+  for(var i=0;i<parsed.people.length;i++){
+    var P=parsed.people[i]; set(st,'','Creating '+(i+1)+' of '+parsed.people.length+'…');
+    try{ P.url=await createAccess(P); P.ok=true; }catch(e){ P.ok=false; P.err=e.message; }
+    done.push(P);
+  }
+  var ok=done.filter(function(p){return p.ok;});
+  LINKS_CSV=[['name','email','firm','role','cin','login_url']].concat(ok.map(function(p){return [p.name,p.email,p.firm,p.role,p.cins.join(';'),p.url];}))
+    .map(function(r){return r.map(function(x){x=String(x||'');return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}).join(',');}).join('\n');
+  $('links-dl').disabled=!ok.length; $('links').disabled=false;
+  set(st, (done.length-ok.length||parsed.bad.length)?'warn':'ok', '✓ '+ok.length+' link(s) ready (valid 30 days).'+(done.length-ok.length?' '+(done.length-ok.length)+' failed to save.':'')+(parsed.bad.length?' '+parsed.bad.length+' row(s) skipped.':'')+' Download the CSV and load it in the mailer with "Issuer Brief".');
+  renderAcc(done,parsed.bad);
+};
+function renderAcc(done,bad){
+  $('acc-table').innerHTML=(done.length?'<table><thead><tr><th>Name</th><th>Email</th><th>Company / firm</th><th>Role</th><th>CINs</th><th>Result</th></tr></thead><tbody>'+done.map(function(p){
+    return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.email)+'</td><td>'+esc(p.firm)+'</td><td>'+esc(p.role)+'</td><td>'+esc(p.cins.join(', '))+'</td><td>'+(p.ok?'<span class="tag t-ok">✓ ready</span> <button class="sec" style="padding:3px 8px;min-height:0" data-copy="'+esc(p.url)+'">Copy link</button>':'<span class="tag t-crit">Failed</span> '+esc(p.err))+'</td></tr>'; }).join('')+'</tbody></table>':'')
+    +(bad.length?'<table><thead><tr><th>Skipped line</th><th>Why</th><th>Content</th></tr></thead><tbody>'+bad.map(function(b){return '<tr><td>'+b.line+'</td><td>'+esc(b.why)+'</td><td>'+esc(b.text.slice(0,120))+'</td></tr>';}).join('')+'</tbody></table>':'');
+}
+document.addEventListener('click',function(e){ var b=e.target.closest('[data-copy]'); if(!b) return; try{ navigator.clipboard.writeText(b.getAttribute('data-copy')); }catch(x){} b.textContent='✓ Copied'; });
 $('links-dl').onclick=function(){ download('ipowork_issuer_links.csv', LINKS_CSV); };
 
 /* 4 · activity */
