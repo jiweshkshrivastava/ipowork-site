@@ -457,7 +457,7 @@
       var Y=D[0], P=D[1]; M.roe=out.rows[4].values[Y.fy]; M.roeSharp=!!sharp[Y.fy]; if(Y.equity&&P&&P.equity) M.nwGrowth=Math.round((Y.equity-P.equity)/Math.abs(P.equity)*1000)/10;
       if(Y.shareCapital!=null&&P&&P.shareCapital!=null&&Y.shareCapital-P.shareCapital>=0.05) M.capitalAdded=Math.round((Y.shareCapital-P.shareCapital)*100)/100;
       if(Y.reserves!=null&&Y.equity) M.retained=Math.round(Y.reserves/Y.equity*100);
-    } else { if(f.net_worth!=null) M.netWorth=+f.net_worth; if(f.roe!=null) M.roe=+f.roe; }
+    } else { if(f.net_worth!=null) M.netWorth=+f.net_worth; if(f.roe!=null&&isFinite(+f.roe)) M.roe=Math.round(+f.roe*10)/10; }
     var sh=shareholding(pr.extra); out.shareholding=sh;
     if(sh){ var pro=sh.filter(function(r){return /promoter/i.test(r.category);}); if(pro.length) M.promoterPct=Math.round(pro.reduce(function(s,r){return s+r.pct;},0)*10)/10; }
     if(b&&b.valuation){ M.raise10=Math.round(b.valuation.mid*0.10); M.raise20=Math.round(b.valuation.mid*0.20); }
