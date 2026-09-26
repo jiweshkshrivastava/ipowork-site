@@ -206,6 +206,9 @@ async function login(){
   try{ var u=JSON.parse(sessionStorage.getItem('ipw_issuer')||'null'); if(u) return {user:u}; }catch(e){}
   /* Signed in elsewhere on ipowork (issuer.html / login.html)? If that email has been given
      brief access in the admin page, open the brief directly. */
+  if(!(function(){ try{ var x=JSON.parse(localStorage.getItem('ipowork_user')||'null'); return x&&x.loggedIn&&x.email; }catch(e){ return false; } })()){
+    var lc=localCins(); if(lc.length){ var u4={email:'',name:'',firm:'',role:'issuer',cins:lc,self:true}; return {user:u4}; }
+  }
   try{
     var site=JSON.parse(localStorage.getItem('ipowork_user')||'null');
     var em=site&&site.loggedIn&&String(site.email||'').trim().toLowerCase();
@@ -233,10 +236,24 @@ async function login(){
   return {};
 }
 
+function localCins(){ try{ return (JSON.parse(localStorage.getItem('ipw_my_cins')||'[]')||[]).map(function(x){return String(x.cin||'').toUpperCase();}).filter(function(c){return /^[LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/.test(c);}); }catch(e){ return []; } }
 async function airaCinsFor(email){
-  if(!email) return [];
-  try{ var rows=await get('source=eq.aira_financials&scores->>capturedBy=eq.'+encodeURIComponent(email)+'&order=created_at.desc&limit=100&select=cin');
-    var seen=[]; rows.forEach(function(r){ if(r.cin && seen.indexOf(r.cin)<0) seen.push(r.cin); }); return seen; }catch(e){ return []; }
+  /* companies run in this browser, plus any AIRA or Risk Desk run saved under this email
+     (as the AIRA account or as the issuer-page sign-in) */
+  var seen=localCins().slice();
+  if(email){
+    var q=encodeURIComponent(email);
+    try{
+      var res=await Promise.all([
+        get('source=eq.aira_financials&scores->>capturedBy=eq.'+q+'&order=created_at.desc&limit=100&select=cin'),
+        get('source=eq.aira_financials&scores->>capturedBySite=eq.'+q+'&order=created_at.desc&limit=100&select=cin'),
+        get('source=eq.risk_scan&scores->>capturedBy=eq.'+q+'&order=created_at.desc&limit=100&select=cin'),
+        get('source=eq.risk_scan&scores->>capturedBySite=eq.'+q+'&order=created_at.desc&limit=100&select=cin')
+      ].map(function(pr){ return pr.catch(function(){ return []; }); }));
+      res.forEach(function(rows){ rows.forEach(function(r){ if(r.cin && seen.indexOf(r.cin)<0) seen.push(r.cin); }); });
+    }catch(e){}
+  }
+  return seen;
 }
 async function loadBriefs(cins){
   var inList='in.('+cins.map(encodeURIComponent).join(',')+')';

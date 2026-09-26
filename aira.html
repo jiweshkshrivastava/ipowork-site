@@ -4037,6 +4037,18 @@ function downloadReport(tier){
   setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 3000);
 }
 
+/* Who ran it, and remember it in this browser: the issuer portal lists every company
+   run here, whichever account (AIRA or issuer-page sign-in) was used. */
+function ipwRunBy(){
+  var a=(typeof CURRENT_USER!=='undefined'&&CURRENT_USER&&CURRENT_USER.email)||(typeof SESS!=='undefined'&&SESS&&SESS.email)||'', site='';
+  try{ var u=JSON.parse(localStorage.getItem('ipowork_user')||'null'); site=(u&&u.email)||''; }catch(_x){}
+  a=String(a||site||'').trim().toLowerCase(); site=String(site||'').trim().toLowerCase();
+  return {by:a, site:site};
+}
+function ipwRememberCin(cin, name){
+  try{ var k='ipw_my_cins', l=JSON.parse(localStorage.getItem(k)||'[]').filter(function(x){return x&&x.cin!==cin;});
+    l.unshift({cin:cin, name:name||'', at:new Date().toISOString()}); localStorage.setItem(k, JSON.stringify(l.slice(0,50))); }catch(_x){}
+}
 /* Same MCA snapshot as a Risk Desk scan, so the issuer portal's risk profile fills in
    straight after AIRA without a second (paid) data call. Once per CIN per page session. */
 var _IPW_RISK_SAVED = {};
@@ -4044,14 +4056,14 @@ function ipwCaptureRiskSnapshot(r, cin, cname){
   try{
     cin=String(cin||r.cin||'').trim().toUpperCase();
     if(!/^[LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/.test(cin) || _IPW_RISK_SAVED[cin]) return; _IPW_RISK_SAVED[cin]=true;
-    var by=(typeof CURRENT_USER!=='undefined'&&CURRENT_USER&&CURRENT_USER.email)||(typeof SESS!=='undefined'&&SESS&&SESS.email)||'';
-    if(!by){ try{ var u=JSON.parse(localStorage.getItem('ipowork_user')||'null'); by=(u&&u.email)||''; }catch(_x){} }
+    var who=ipwRunBy(), by=who.by;
     var snap={cin:cin, company_name:r.company_name||cname||'', financials:r.financials||{}, legal:r.legal||{}, compliance:r.compliance||{}, cirp_status:r.cirp_status||null,
       directors:(r.directors||[]).map(function(d){return {name:d.name||'',designation:d.designation||'',cessation:d.cessation||null};}),
       charges:(r.charges||[]).map(function(c){return {charge_holder:c.charge_holder||'',amount:c.amount||null,status:c.status||''};}),
       related_party_transactions:(r.related_party_transactions||[]).map(function(x){return {relation:x.relation||'',nature:x.nature||''};}),
       credit_ratings:(r.credit_ratings||[]).slice(0,3), company_type:r.company_type||null, registered_state:r.registered_state||null,
-      source:'aira', capturedBy:String(by||'').trim().toLowerCase(), capturedAt:new Date().toISOString()};
+      source:'aira', capturedBy:by, capturedBySite:who.site, capturedAt:new Date().toISOString()};
+    ipwRememberCin(cin, snap.company_name);
     fetch(SUPA_URL_TRIAL+'/rest/v1/reports',{method:'POST',headers:{'apikey':SUPA_KEY_TRIAL,'Authorization':'Bearer '+SUPA_KEY_TRIAL,'Content-Type':'application/json','Prefer':'return=minimal'},
       body:JSON.stringify({report_id:'RISKSCAN-'+cin+'-'+Date.now(),company_name:(snap.company_name||'N/A').slice(0,200),cin:cin,sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'risk_scan',scores:snap})})
       .then(function(x){ if(!x.ok) console.warn('Issuer capture (risk): not saved, status',x.status); else console.log('Issuer capture (risk): saved for',cin); }).catch(function(e){ console.warn('Issuer capture (risk): not saved',e); });
@@ -4089,18 +4101,16 @@ function ipwCaptureIssuerFinancials(result, cname, sector, tier){
       directors: dirs ? dirs.map(function(d){ return {name:d.name||'', designation:d.designation||''}; }) : null,
       open_charges: charges ? charges.filter(function(c){ return String(c.status||'').toLowerCase()!=='satisfied'; }).length : null,
       capturedAt: new Date().toISOString(),
-      capturedBy: (function(){ /* who ran it — their issuer portal lists this company automatically */
-        var e = (typeof CURRENT_USER!=='undefined' && CURRENT_USER && CURRENT_USER.email) || (typeof SESS!=='undefined' && SESS && SESS.email) || '';
-        if(!e){ try{ var u=JSON.parse(localStorage.getItem('ipowork_user')||'null'); e=(u&&u.email)||''; }catch(_x){} }
-        return String(e||'').trim().toLowerCase();
-      })()
+      capturedBy: ipwRunBy().by,
+      capturedBySite: ipwRunBy().site
     };
+    ipwRememberCin(cin, payload.company_name);
     fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
       method:'POST',
       headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
       body: JSON.stringify({ report_id:'AIRAFIN-'+cin+'-'+Date.now(), company_name:(payload.company_name||'N/A').slice(0,200), cin:cin,
         sector:(sector||'N/A').slice(0,100), exchange:'N/A', tier:'free', score: payload.aira_score||0, source:'aira_financials', scores: payload })
-    }).then(function(r){ if(!r.ok) console.warn('Issuer capture: not saved, status', r.status); else console.log('Issuer capture: figures saved for', cin, 'by', payload.capturedBy||'(not signed in)'); })
+    }).then(function(r){ if(!r.ok) console.warn('Issuer capture: not saved, status', r.status); else console.log('Issuer capture: figures saved for', cin, 'by', payload.capturedBy||'(not signed in)', payload.capturedBySite&&payload.capturedBySite!==payload.capturedBy?'(issuer sign-in: '+payload.capturedBySite+')':''); })
       .catch(function(e){ console.warn('Issuer capture: not saved', e); });
   }catch(e){ console.warn('Issuer capture skipped', e); }
 }
