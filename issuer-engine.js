@@ -112,7 +112,7 @@
       {cat:'Regulatory', label:'Operating profit in each of the last 3 years', status:opEach, detail:span},
       {cat:'Regulatory', label:'Net worth ≥ ₹1 cr in each of the last 3 years', status:nw, detail:span},
       {cat:'Legal form', label:'Public limited company (only public companies can offer shares to the public)', status: flags.public_company===null?'unknown':(flags.public_company?'met':'not_met'), detail:''},
-      {cat:'Investor readiness', label:'Peer-reviewed statutory auditor', status: flags.auditor===null?'unknown':(flags.auditor?'met':'not_met'), detail:''},
+      {cat:'Investor readiness', label:'Peer-reviewed statutory auditor', status: flags.auditor===null?'unknown':(flags.auditor?'met':'not_met'), detail: flags.auditorName?('Auditor on record: '+flags.auditorName+(flags.auditor===null?' \u2014 confirm peer-review status (ICAI Peer Review Board)':'')):'', confirm: flags.auditor===null && !!flags.auditorName},
       {cat:'Investor readiness', label:'Independent directors on the board', status: flags.indep===null?'unknown':(flags.indep>0?'met':'not_met'), detail: flags.indep===null?'':(flags.indep+' at last filing')},
       {cat:'Investor readiness', label:'No delayed MCA filings in the last 3 years', status: flags.delayed===null?'unknown':(flags.delayed?'not_met':'met'), detail:''}
     ];
@@ -191,7 +191,9 @@
       'Rising inventory ties up cash and can signal slow-moving stock.', lv==='normal'?'No action needed.':'Ageing of stock by product, and whether any is slow-moving or obsolete.', m.inventory_days===null);
     // Cash flow
     lv = last.cash_from_ops!==null&&last.cash_from_ops<0?'critical':(m.ocf_to_pat!==null&&m.ocf_to_pat<50?'watch':'normal');
-    add('Cash flow', lv, 'Operating cash flow '+crore(last.cash_from_ops)+(m.ocf_to_pat!==null?' — '+m.ocf_to_pat+'% of PAT':'')+' in '+L+'.',
+    add('Cash flow', lv, (last.cash_from_ops!==null&&last.cash_from_ops<0&&last.pat!==null) ? 'Operating cash flow '+crore(last.cash_from_ops)+' against PAT of '+crore(last.pat)+' in '+L+' \u2014 profits aren\u2019t turning into cash.'
+      : (m.ocf_to_pat!==null&&m.ocf_to_pat<50&&last.pat!==null) ? 'Operating cash flow '+crore(last.cash_from_ops)+' is only '+m.ocf_to_pat+'% of PAT ('+crore(last.pat)+') in '+L+'.'
+      : 'Operating cash flow '+crore(last.cash_from_ops)+(m.ocf_to_pat!==null?' \u2014 '+m.ocf_to_pat+'% of PAT':'')+' in '+L+'.',
       'Investors check that profits turn into cash; a large gap raises earnings-quality questions.', lv==='normal'?'No action needed.':'Where cash is held up — receivables, inventory or advances — and why.', last.cash_from_ops===null);
     // Profitability
     var dPat = pct(last.pat, prev?prev.pat:null), dMar = (p&&m.ebitda_margin!==null&&p.ebitda_margin!==null)? r1(m.ebitda_margin-p.ebitda_margin):null;
@@ -280,7 +282,8 @@
     var pub = /PLC/.test(cin) ? 'Y' : (/PTC/.test(cin) ? 'N' : (/public/i.test(a.company_type||'') ? 'Y' : (/private/i.test(a.company_type||'') ? 'N' : '')));
     var common = { cin:cin, company_name:a.company_name||'', sector:a.sector||'', city:a.registered_state||'', public_company:pub,
       independent_directors: (a.independent_directors===null||a.independent_directors===undefined) ? '' : a.independent_directors,
-      aira_score: a.aira_score===null||a.aira_score===undefined ? '' : a.aira_score, filed_on: a.last_filing_date||'', op_basis:'pbt', nta_basis:'net_worth' };
+      aira_score: a.aira_score===null||a.aira_score===undefined ? '' : a.aira_score, filed_on: a.last_filing_date||'', op_basis:'pbt', nta_basis:'net_worth',
+      auditor_name: (f.auditor && typeof f.auditor==='object') ? (f.auditor.name||f.auditor.auditor_name||'') : (f.auditor||'') };
     function row(o){ return Object.assign({}, common, o); }
     if(!common.sector || /^(other|others|n\/a|na|general|manufacturing|services|trading)$/i.test(common.sector)) common.sector = E.nicSector(cin) || common.sector;
     var D = E.detailFrom(a);
@@ -492,6 +495,7 @@
       if(r.delayed_filings) meta.delayed = yes(r.delayed_filings)?true:(no(r.delayed_filings)?false:null);
       if(r.active_mandate) meta.activeMandate = yes(r.active_mandate);
       if(r.op_basis) meta.opBasis = r.op_basis;
+      if(r.auditor_name) meta.auditorName = String(r.auditor_name).trim().slice(0,120);
       if(r.nta_basis) meta.ntaBasis = r.nta_basis;
     });
     var briefs = Object.keys(byCin).map(function(cin){
@@ -504,7 +508,7 @@
       var flags = {public_company: meta.public_company===undefined?null:meta.public_company, auditor: meta.auditor===undefined?null:meta.auditor,
                    indep: meta.indep===undefined?null:meta.indep, delayed: meta.delayed===undefined?null:meta.delayed};
       var c = {aira: meta.aira===undefined?null:meta.aira, activeMandate: !!meta.activeMandate};
-      flags.opBasis = meta.opBasis||''; flags.ntaBasis = meta.ntaBasis||'';
+      flags.opBasis = meta.opBasis||''; flags.ntaBasis = meta.ntaBasis||''; flags.auditorName = meta.auditorName||'';
       var elig = eligibility(years, flags);
       var stg = stage(c, last, prev, elig);
       var prevBrief = prevBriefs[cin] || null;
