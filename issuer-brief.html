@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Issuer Intelligence — ipowork</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#EEF2F3; --paper:#FAFAF8; --card:#FFFFFF; --line:#E2E8EA; --soft:#EEF2F3;
+  --ink:#1A2E35; --ink2:#2C3E47; --muted:#5E747B;
+  --brand:#08404D; --brand2:#0D5C6B; --figure:#08404D; --tint:#EEF5F6; --on:#fff; --on2:#C9DDE1; --mint:#7FE0A8;
+  --cta:#E88A2E; --amber:#A8520A;
+  --up:#17714A; --up-bg:#E7F5EE; --up-line:#BFE3CF;
+  --down:#B42318; --down-bg:#FFF1EE; --down-line:#F2CBC4;
+  --mix:#8A5A00; --mix-bg:#FFF6E0; --mix-line:#F0DDAE;
+  --serif:'Fraunces',Georgia,'Times New Roman',serif; --sans:'Sora',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace; --px:40px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --page:#0E1517; --paper:#121C1F; --card:#18252A; --line:#2A3A40; --soft:#1D2B30; --ink:#E6EEF0; --ink2:#C3D1D5; --muted:#9AADB2;
+  --brand:#0B4F5E; --brand2:#6FB6C6; --figure:#8FD0DD; --tint:#1D2E33; --amber:#F2A65A;
+  --up:#6FD29C; --up-bg:#15302A; --up-line:#24513F; --down:#FF8A7A; --down-bg:#2C1B19; --down-line:#5A2E28; --mix:#F5C66B; --mix-bg:#30270F; --mix-line:#57461C; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --page:#0E1517; --paper:#121C1F; --card:#18252A; --line:#2A3A40; --soft:#1D2B30; --ink:#E6EEF0; --ink2:#C3D1D5; --muted:#9AADB2;
+  --brand:#0B4F5E; --brand2:#6FB6C6; --figure:#8FD0DD; --tint:#1D2E33; --amber:#F2A65A;
+  --up:#6FD29C; --up-bg:#15302A; --up-line:#24513F; --down:#FF8A7A; --down-bg:#2C1B19; --down-line:#5A2E28; --mix:#F5C66B; --mix-bg:#30270F; --mix-line:#57461C; color-scheme:dark; }
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--figure)}
+.shell{max-width:1120px;margin:0 auto;background:var(--paper);min-height:100vh;display:flex;flex-direction:column}
+.top{background:var(--brand);color:var(--on);padding:16px var(--px);display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-family:var(--serif);font-size:22px;font-weight:900;color:#fff;text-decoration:none}.logo span{color:var(--cta)}
+.plabel{font-size:11px;font-weight:700;letter-spacing:1.2px;color:var(--on2);margin-left:10px}
+.who{font-size:12.5px;color:var(--on2);text-align:right;line-height:1.45}.who b{color:#fff}
+main{padding:30px var(--px) 48px;flex:1}
+h1{font-family:var(--serif);font-size:clamp(26px,4vw,38px);line-height:1.12;margin:0 0 6px;color:var(--ink)}
+h2{font-family:var(--serif);font-size:22px;margin:0 0 12px;color:var(--ink)}
+.sub{color:var(--muted);font-size:14px;line-height:1.55;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.grid{display:grid;gap:14px}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.sec{margin-top:34px}
+.chip{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.8px;padding:2px 6px;border-radius:4px;vertical-align:middle;margin-left:6px;border:1px solid var(--line);color:var(--muted);background:var(--tint)}
+.chip.ESTIMATED{color:var(--amber);border-color:var(--mix-line);background:var(--mix-bg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 20px;border-radius:9px;font-family:inherit;font-weight:700;font-size:14px;text-decoration:none;border:0;cursor:pointer}
+.btn.p{background:var(--cta);color:#1A0F02}.btn.s{background:var(--brand);color:#fff}.btn.g{background:transparent;border:2px solid var(--mint);color:#fff}.btn.o{background:var(--card);border:1.5px solid var(--line);color:var(--ink)}
+.btn:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--cta);outline-offset:2px}
+.back{display:inline-flex;align-items:center;min-height:44px;font-weight:700;font-size:14px;text-decoration:none;color:var(--figure)}
+/* list */
+.row{display:grid;grid-template-columns:minmax(0,2.4fr) repeat(3,minmax(0,1fr)) auto;gap:14px;align-items:center;padding:16px 20px;border-top:1px solid var(--soft)}
+.row.head{border-top:0;background:var(--tint);font-size:11px;font-weight:800;letter-spacing:.7px;color:var(--muted);padding:11px 20px}
+.row .nm b{display:block;font-size:15px}.row .nm small{color:var(--muted);font-size:12.5px}
+.num{font-family:var(--mono);font-weight:700;color:var(--figure)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;padding:5px 11px;border-radius:20px;white-space:nowrap}
+.pill.up{background:var(--up-bg);color:var(--up)}.pill.down{background:var(--down-bg);color:var(--down)}.pill.mix{background:var(--mix-bg);color:var(--mix)}
+.stagepill{background:var(--tint);color:var(--figure)}
+/* brief */
+.mood{border-radius:14px;padding:22px 24px;display:flex;gap:18px;align-items:flex-start;border:1px solid}
+.mood.up{background:var(--up-bg);border-color:var(--up-line)}.mood.steady{background:var(--tint);border-color:var(--line)}.mood.steady h2{color:var(--figure)}.pill.steady{background:var(--tint);color:var(--figure)}.mood.down{background:var(--down-bg);border-color:var(--down-line)}.mood.mix{background:var(--mix-bg);border-color:var(--mix-line)}
+.mood svg{flex-shrink:0}.mood h2{margin:0 0 6px;font-size:24px}
+.mood.up h2{color:var(--up)}.mood.down h2{color:var(--down)}.mood.mix h2{color:var(--mix)}
+.mood p{margin:0;font-size:15px;line-height:1.55;color:var(--ink2)}
+.tile .lbl{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted)}
+.tile .val{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--figure);margin:6px 0 3px}
+.tile .chg{font-size:12.5px;line-height:1.4;color:var(--muted)}
+.ladder{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:14px 0 12px}
+.ladder div{font-size:11.5px;font-weight:700;text-align:center;padding:9px 4px;border-radius:8px;background:var(--soft);color:var(--muted);line-height:1.3}
+.ladder div.on{background:var(--brand);color:#fff}
+.why{margin:0;padding-left:18px;font-size:14px;line-height:1.65;color:var(--ink2)}
+.change{padding:14px 16px;border-radius:10px;border:1px solid}
+.change.up{background:var(--up-bg);border-color:var(--up-line)}.change.down{background:var(--down-bg);border-color:var(--down-line)}
+.change .t{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.change .ic{font-family:var(--mono);font-weight:800;font-size:12px}.change.up .ic{color:var(--up)}.change.down .ic{color:var(--down)}
+.change b{font-size:15px}.change .d{font-size:13.5px;color:var(--ink2);margin-top:3px}
+.change details{margin-top:6px;font-size:13px;color:var(--ink2);line-height:1.55}.change summary{cursor:pointer;font-weight:700;color:var(--figure);min-height:32px;display:flex;align-items:center}
+.small{font-size:12px;color:var(--muted)}
+.radar .card{border-width:1px}.lv{font-size:11px;font-weight:800;letter-spacing:.8px;padding:3px 8px;border-radius:5px;display:inline-block}
+.lv.normal{background:var(--up-bg);color:var(--up)}.lv.watch{background:var(--mix-bg);color:var(--mix)}.lv.critical{background:var(--down-bg);color:var(--down)}
+.radar h3{margin:8px 0 4px;font-size:15px}.radar p{margin:4px 0 0;font-size:13px;line-height:1.5;color:var(--ink2)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:11px;font-weight:800;letter-spacing:.6px;color:var(--muted);background:var(--tint);padding:11px 14px;white-space:nowrap}
+td{padding:11px 14px;border-top:1px solid var(--soft);vertical-align:top}
+td.n{font-family:var(--mono);white-space:nowrap;text-align:right}th.n{text-align:right}
+.health{min-width:640px}.health details{font-size:12px;color:var(--muted)}.health summary{cursor:pointer;font-weight:700;font-size:14px;color:var(--ink);list-style:none}
+.crit{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:12px 14px;border-radius:9px;background:var(--card);border:1px solid var(--line);line-height:1.45}
+.crit.no{background:var(--down-bg);border-color:var(--down-line)}.crit.unk{background:var(--soft)}
+.crit b{white-space:nowrap}.crit small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.proj{background:var(--mix-bg);border:1px dashed var(--mix-line);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.55;color:var(--ink2)}
+.vbar{display:flex;align-items:center;gap:10px;margin:8px 0}.vbar span.k{width:88px;font-size:12.5px;color:var(--muted);flex-shrink:0}
+.vbar i{display:block;height:20px;border-radius:4px;background:var(--brand2)}.vbar b{font-family:var(--mono);font-size:14px;white-space:nowrap}
+.soon{display:flex;flex-wrap:wrap;gap:8px}.soon span{font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:20px;border:1px dashed var(--line);color:var(--muted)}
+.privacy .card h3{margin:0 0 6px;font-size:15px}.privacy .card p{margin:0;font-size:13.5px;line-height:1.55;color:var(--ink2)}
+.cta{margin-top:38px;background:var(--brand);color:#fff;border-radius:14px;padding:24px 26px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.cta h3{margin:0 0 6px;font-family:var(--serif);font-size:21px}.cta p{margin:0;color:var(--on2);font-size:14px;line-height:1.5}
+.form{display:grid;gap:12px;max-width:560px}
+.form label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px}
+.form input,.form select{width:100%;min-height:44px;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;font:inherit;font-size:15px;background:var(--card);color:var(--ink)}
+.msg{font-size:14px;padding:12px 14px;border-radius:9px;line-height:1.5}.msg.ok{background:var(--up-bg);color:var(--up)}.msg.err{background:var(--down-bg);color:var(--down)}
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:12px;color:var(--muted)}
+.loading{padding:60px 0;text-align:center;color:var(--muted)}
+footer{padding:20px var(--px) 30px;font-size:11.5px;color:var(--muted);line-height:1.6}
+@media (max-width: 900px){
+  :root{--px:18px}
+  .g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3,.g2{grid-template-columns:minmax(0,1fr)}
+  .row{grid-template-columns:minmax(0,1fr) auto;gap:10px}.row.head{display:none}.row .hm{display:none}
+  .who{text-align:left}.mood{flex-direction:column}
+  .ladder{grid-template-columns:repeat(5,minmax(64px,1fr));overflow-x:auto}
+}
+@media (max-width: 480px){ .g4{grid-template-columns:minmax(0,1fr)} .crit{flex-direction:column;gap:4px} }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div><a class="logo" href="issuer.html">ipo<span>work</span></a><span class="plabel">ISSUER INTELLIGENCE · IPO • CAPITAL • BUSINESS • RISK</span></div>
+    <div class="who" id="who"></div>
+  </header>
+  <main id="app" aria-live="polite"><div class="loading">Loading your company intelligence…</div></main>
+  <footer>ipowork is not a SEBI-registered investment adviser, research analyst or credit rating agency. Briefs are analytical information built from public filings and market data; valuations are indicative estimates, not valuation opinions; nothing here is investment, credit or legal advice. <a href="privacy-policy.html">Privacy policy</a> · <a href="disclaimer.html">Disclaimer</a></footer>
+</div>
+<script>
+(function(){
+var SUPA_URL='https://esqlfsjhekdspycfgnoz.supabase.co', SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+var CAL='https://calendar.app.google/2ZaLj1pUGwmYxzyk8', WA='https://wa.me/918851059588';
+var STAGES={1:'Issuer Watch',2:'Capital Ready',3:'IPO Preparation',4:'IPO Ready',5:'Active Mandate'};
+var S={user:null, briefs:{}, cins:[]};
+var app=document.getElementById('app');
+
+function esc(s){return String(s===null||s===undefined?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function hdr(){return {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};}
+async function get(q){
+  var c=new AbortController(), t=setTimeout(function(){c.abort();},8000);
+  try{ var r=await fetch(SUPA_URL+'/rest/v1/reports?'+q,{headers:hdr(),signal:c.signal}); if(!r.ok) throw new Error('status '+r.status); return await r.json(); }
+  finally{ clearTimeout(t); }
+}
+async function insert(row){
+  var r=await fetch(SUPA_URL+'/rest/v1/reports',{method:'POST',headers:Object.assign({'Content-Type':'application/json','Prefer':'return=minimal'},hdr()),body:JSON.stringify(row)});
+  if(!r.ok) throw new Error('status '+r.status); return true;
+}
+function crore(x){ if(x===null||x===undefined) return '—'; var a=Math.abs(x); return (x<0?'−':'')+'₹'+(a>=100?Math.round(a).toLocaleString('en-IN'):(+a).toFixed(1))+' cr'; }
+function fmt(v,unit){ if(v===null||v===undefined) return '—'; if(unit==='cr') return crore(v); if(unit==='%') return v+'%'; if(unit==='x') return v+'×'; if(unit==='days') return v+' d'; return v; }
+function chip(t){ return t?'<span class="chip '+t+'" title="'+esc({ACTUAL:'From filed accounts',DERIVED:'Calculated from filed figures',ESTIMATED:'Uses an assumption — see method',EXTERNAL:'Market or industry data'}[t]||'')+'">'+t+'</span>':''; }
+function monthLabel(m){ if(!m) return ''; var p=m.split('-'); return new Date(+p[0],+p[1]-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'}); }
+function mood(b){
+  var sb=b.changes.filter(function(c){return c.scope==='brief';}), base=sb.length?sb:b.changes;
+  var ups=base.filter(function(c){return c.dir==='up';}).length, downs=base.length-ups;
+  var st=b.stagePrev? b.stage.n-b.stagePrev.n : 0;
+  if(st>0) return 'up'; if(st<0) return 'down';
+  if(!base.length) return 'steady';
+  if(ups && !downs) return 'up'; if(downs && !ups) return 'down';
+  if(ups>=downs+2) return 'up'; if(downs>=ups+2) return 'down';
+  return 'mix';
+}
+var MOODW={up:'A good period',down:'A tough period',mix:'A mixed period',steady:'A steady period'};
+function face(m){
+  var col=m==='up'?'var(--up)':m==='down'?'var(--down)':m==='steady'?'var(--figure)':'var(--mix)', mouth=m==='up'?'M16 29c3 4 13 4 16 0':m==='down'?'M16 33c3-4 13-4 16 0':'M16 31h16';
+  return '<svg width="46" height="46" viewBox="0 0 48 48" fill="none" stroke="'+col+'" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="21"/><circle cx="17" cy="19" r="1.6" fill="'+col+'"/><circle cx="31" cy="19" r="1.6" fill="'+col+'"/><path d="'+mouth+'"/></svg>';
+}
+
+/* ---------------- login ---------------- */
+async function login(){
+  var p=new URLSearchParams(location.search), token=p.get('login_token');
+  if(token){
+    var rows=await get('source=eq.issuer_magic_link&scores->>token=eq.'+encodeURIComponent(token)+'&select=scores');
+    var s=rows[0]&&rows[0].scores;
+    if(!s) return {error:'This link isn\u2019t valid. Request a fresh one below.'};
+    if(!s.expiresAt||Date.now()>new Date(s.expiresAt).getTime()) return {error:'This link has expired. Request a fresh one below — it takes a minute.'};
+    var acc=await get('source=eq.issuer_account&scores->>email=eq.'+encodeURIComponent(String(s.email).toLowerCase())+'&order=created_at.desc&limit=1&select=scores');
+    var a=acc[0]&&acc[0].scores;
+    if(!a||!a.approved||!(a.cins||[]).length) return {error:'Your access hasn\u2019t been set up yet. Request it below and we\u2019ll send your link.'};
+    var user={email:a.email,name:a.name||'',firm:a.firm||'',role:a.role||'issuer',cins:a.cins.map(function(c){return String(c).toUpperCase();})};
+    try{ sessionStorage.setItem('ipw_issuer', JSON.stringify(user)); }catch(e){}
+    insert({report_id:'ISSUERLOGIN-'+user.email.replace(/[^a-z0-9]/gi,'-')+'-'+Date.now(),company_name:user.firm||'N/A',cin:user.cins.join(',').slice(0,200),sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_login_event',
+      scores:{email:user.email,name:user.name,firm:user.firm,role:user.role,cins:user.cins,campaign:p.get('campaign')||'',loggedInAt:new Date().toISOString()}}).catch(function(e){console.warn('login event not recorded',e);});
+    history.replaceState(null,'',location.pathname+location.hash);
+    return {user:user};
+  }
+  try{ var u=JSON.parse(sessionStorage.getItem('ipw_issuer')||'null'); if(u) return {user:u}; }catch(e){}
+  return {};
+}
+
+async function loadBriefs(cins){
+  var rows=await get('source=eq.issuer_brief&cin=in.('+cins.map(encodeURIComponent).join(',')+')&order=created_at.desc&select=cin,scores,created_at&limit=500');
+  var out={}; rows.forEach(function(r){ if(!out[r.cin]) out[r.cin]=r.scores; }); return out;
+}
+
+/* ---------------- views ---------------- */
+function viewList(){
+  var cins=S.cins.filter(function(c){return S.briefs[c];}), missing=S.cins.filter(function(c){return !S.briefs[c];});
+  var rows=cins.map(function(c){ var b=S.briefs[c], m=mood(b);
+    return '<div class="row"><div class="nm"><b>'+esc(b.name)+'</b><small>'+esc(b.sector)+(b.city?' · '+esc(b.city):'')+'</small></div>'
+      +'<div class="hm"><span class="pill stagepill">'+b.stage.n+' · '+esc(b.stage.name)+'</span></div>'
+      +'<div class="hm"><span class="num">'+(b.aira===null?'—':b.aira)+'</span> <span class="small">AIRA</span></div>'
+      +'<div class="hm"><span class="pill '+m+'">'+MOODW[m]+'</span></div>'
+      +'<a class="btn s" href="#'+encodeURIComponent(c)+'">Open brief</a></div>'; }).join('');
+  return '<h1>Your companies</h1><p class="sub">'+cins.length+' compan'+(cins.length===1?'y':'ies')+' · latest briefs'+(missing.length?' · '+missing.length+' brief(s) being prepared':'')+'.</p>'
+    +'<div class="card sec" style="padding:0;overflow:hidden;margin-top:20px"><div class="row head"><div>COMPANY</div><div>STAGE</div><div>AIRA</div><div>THIS PERIOD</div><div></div></div>'+(rows||'<div class="row"><div>No briefs published yet.</div></div>')+'</div>'
+    + privacy() + schedule(null);
+}
+
+function viewBrief(cin){
+  var b=S.briefs[cin], multi=S.cins.length>1, m=mood(b);
+  if(!b) return '<p class="sub">Your brief for this company is being prepared.</p>';
+  var ups=b.changes.filter(function(c){return c.dir==='up';}).length, downs=b.changes.length-ups;
+  var sinceBrief=b.changes.filter(function(c){return c.scope==='brief';}), fromYear=b.changes.filter(function(c){return c.scope!=='brief';});
+  var story = sinceBrief.length ? (sinceBrief.filter(function(c){return c.dir==='up';}).length+' of '+sinceBrief.length+' change(s) since your last brief were improvements'+(b.stagePrev&&b.stagePrev.n!==b.stage.n?'; your stage moved from '+b.stagePrev.name+' to '+b.stage.name:'')+'. Details below, each with its source.')
+    : (b.stagePrev ? 'Little has changed since your last brief — no new accounts filed and no score change. Your filed figures are summarised below.' : 'This is your first brief. It compares your latest filed accounts with the year before; from next time it also shows what moved since the last brief.');
+  var val=b.valuation;
+  var tiles=[
+    ['STAGE', b.stage.n+' · '+b.stage.name, b.stagePrev&&b.stagePrev.n!==b.stage.n?'was '+b.stagePrev.name:'Why: see below','DERIVED'],
+    ['AIRA SCORE', b.aira===null?'—':b.aira+'/100', b.airaPrev!==null&&b.airaPrev!==undefined&&b.aira!==null?(b.aira>=b.airaPrev?'▲ ':'▼ ')+Math.abs(b.aira-b.airaPrev)+' since last brief':'ipowork readiness score','DERIVED'],
+    ['MAINBOARD CHECKS', b.eligibility.metCount+' of '+b.eligibility.total, 'on '+b.latestFy+' filed accounts','ACTUAL'],
+    ['INDICATIVE VALUATION', val?crore(val.low).replace(' cr','')+'–'+crore(val.high).replace('₹',''):'Not yet', val?'estimate · '+val.fy+' PAT × peer P/E':'peer set for your sector pending', val?'ESTIMATED':'']
+  ].map(function(t){ return '<div class="card tile"><div class="lbl">'+t[0]+chip(t[3])+'</div><div class="val">'+esc(t[1])+'</div><div class="chg">'+esc(t[2])+'</div></div>'; }).join('');
+  var ladder=[1,2,3,4,5].map(function(n){ return '<div class="'+(n===b.stage.n?'on':'')+'">'+n+'<br>'+STAGES[n]+'</div>'; }).join('');
+  function changeCard(c){ return '<div class="change '+c.dir+'"><div class="t"><span class="ic">'+(c.dir==='up'?'▲ BETTER':'▼ WORSE')+'</span><b>'+esc(c.title)+'</b>'+chip(c.type)+'</div><div class="d">'+esc(c.detail)+' <span class="small">· Source: '+esc(c.source)+'</span></div>'
+      +(c.whyItMatters?'<details><summary>Why it matters · what to look into</summary><div><b>Why it matters:</b> '+esc(c.whyItMatters)+'<br><b>Suggested management review:</b> '+esc(c.investigate)+'</div></details>':'')+'</div>'; }
+  var changes=(sinceBrief.length?'<h3 class="small" style="margin:0 0 8px;font-weight:800;letter-spacing:.6px">SINCE YOUR LAST BRIEF</h3>'+sinceBrief.map(changeCard).join(''):'')
+    +(fromYear.length?'<h3 class="small" style="margin:'+(sinceBrief.length?'14px':'0')+' 0 8px;font-weight:800;letter-spacing:.6px">IN YOUR LATEST FILED ACCOUNTS ('+esc(b.latestFy)+' VS PREVIOUS YEAR)</h3>'+fromYear.map(changeCard).join(''):'');
+  var order={critical:0,watch:1,normal:2};
+  var radar=b.radar.slice().sort(function(x,y){return order[x.level]-order[y.level];}).map(function(r){ return '<div class="card"><span class="lv '+r.level+'">'+({normal:'● NORMAL',watch:'▲ WATCH',critical:'■ NEEDS ATTENTION'}[r.level])+'</span><h3>'+esc(r.area)+'</h3><p>'+esc(r.whatChanged)+'</p>'
+      +(r.level!=='normal'?'<p><b>Why it matters:</b> '+esc(r.whyItMatters)+'</p><p><b>Suggested management review:</b> '+esc(r.investigate)+'</p>':'')+'</div>'; }).join('');
+  var yrs=b.years;
+  var health='<table class="health"><thead><tr><th>METRIC</th>'+yrs.map(function(y){return '<th class="n">'+y+'</th>';}).join('')+'</tr></thead><tbody>'
+    +b.health.map(function(h){ return '<tr><td><details><summary>'+esc(h.label)+chip(h.type)+'</summary>'+esc(h.method)+'</details></td>'+yrs.map(function(y){return '<td class="n">'+esc(fmt(h.values[y],h.unit))+'</td>';}).join('')+'</tr>'; }).join('')+'</tbody></table>';
+  var crit=b.eligibility.items.map(function(i){ var cls=i.status==='met'?'':i.status==='unknown'?' unk':' no';
+    return '<div class="crit'+cls+'"><span>'+esc(i.label)+'<small>'+esc(i.cat)+(i.detail?' · '+esc(i.detail):'')+'</small></span><b style="color:'+(i.status==='met'?'var(--up)':i.status==='unknown'?'var(--muted)':'var(--down)')+'">'+(i.status==='met'?'✓ Met':i.status==='unknown'?'Not available':'Not yet')+'</b></div>'; }).join('');
+  var proj=b.eligibility.projection?'<div class="proj" style="margin-top:12px"><b>Projection</b>'+chip('ESTIMATED')+' — '+esc(b.eligibility.projection.text)+'<div class="small" style="margin-top:6px">'+esc(b.eligibility.projection.method)+'</div></div>':'';
+  var valHtml = val ? '<div class="card">'+[['Low',val.low,val.multiples[0]],['Mid',val.mid,val.multiples[1]],['High',val.high,val.multiples[2]]].map(function(v){ return '<div class="vbar"><span class="k">'+v[0]+' · '+v[2]+'×</span><i style="width:'+Math.round(v[1]/val.high*60)+'%"></i><b>'+crore(v[1])+'</b></div>'; }).join('')
+      +'<p class="small" style="margin-top:10px"><b>Method:</b> '+esc(val.method)+(val.source?' Peer set: '+esc(val.source)+'.':'')+'</p></div>'
+    : '<div class="card"><p class="sub">An indicative range appears once ipowork has published a listed-peer set for your sector. It will always show the date, peer set and multiples used.</p></div>';
+  return (multi?'<a class="back" href="#">← All companies</a>':'')
+    +'<h1>'+esc(b.name)+'</h1><p class="sub">'+esc(b.sector)+(b.city?' · '+esc(b.city):'')+' · CIN '+esc(b.cin)+' · Issuer Intelligence Brief, '+esc(monthLabel(b.month))+' · latest filed accounts '+esc(b.latestFy)+'</p>'
+    +'<div class="mood '+m+' sec" style="margin-top:20px">'+face(m)+'<div><h2>'+MOODW[m]+'</h2><p>'+esc(story)+'</p></div></div>'
+    +'<div class="legend sec" style="margin-top:14px"><span>'+chip('ACTUAL')+' from filed accounts</span><span>'+chip('DERIVED')+' calculated from them</span><span>'+chip('ESTIMATED')+' uses an assumption — method shown</span></div>'
+    +'<div class="grid g4" style="margin-top:14px">'+tiles+'</div>'
+    +'<div class="sec"><h2>5 things that changed <span class="small" style="font-family:var(--sans)">· '+ups+' better · '+downs+' worse</span></h2><div class="grid" style="gap:10px">'+(changes||'<p class="sub">No changes since your last brief. Your next update comes with your '+esc(b.schedule.nextFy)+' accounts or a change in your score.</p>')+'</div></div>'
+    +'<div class="sec"><h2>Your stage: '+b.stage.n+' · '+esc(b.stage.name)+'</h2><div class="card"><div class="ladder" aria-label="Issuer stages">'+ladder+'</div><ul class="why">'+b.stage.why.map(function(w){return '<li>'+esc(w)+'</li>';}).join('')+'</ul><p class="small" style="margin-top:8px">Stages update automatically as your filings and AIRA score change.</p></div></div>'
+    +'<div class="sec radar"><h2>Business Risk Radar</h2><p class="sub" style="margin-bottom:12px">From your filed accounts, using ipowork\u2019s published thresholds. These are items for management attention, not conclusions.</p><div class="grid g4">'+radar+'</div></div>'
+    +'<div class="sec"><h2>Business Health · '+esc(yrs[0])+'–'+esc(yrs[yrs.length-1])+'</h2><p class="sub" style="margin-bottom:12px">Tap a metric to see how it\u2019s calculated. Peer comparison is coming next.</p><div class="scroll">'+health+'</div></div>'
+    +'<div class="sec"><h2>IPO eligibility countdown · '+b.eligibility.metCount+' of '+b.eligibility.total+'</h2><p class="sub" style="margin-bottom:12px">Actual status on filed accounts. '+esc(b.eligibility.source)+' For the SME platform, use the <a href="sme-ipo-eligibility-calculator.html">SME eligibility calculator</a>.</p><div class="grid g2" style="gap:10px">'+crit+'</div>'+proj+'</div>'
+    +'<div class="sec"><h2>Indicative valuation'+chip(val?'ESTIMATED':'')+'</h2>'+valHtml+'</div>'
+    +'<div class="sec"><h2>Coming to your brief</h2><div class="soon">'+(b.comingSoon||[]).map(function(s){return '<span>'+esc(s)+'</span>';}).join('')+'</div></div>'
+    + privateData(b) + privacy() + schedule(b)
+    +'<div class="cta"><div><h3>Questions about this brief?</h3><p>Book 20 minutes and we\u2019ll walk you through it.</p></div><div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn p" href="'+CAL+'" target="_blank" rel="noopener">Book a call</a><a class="btn g" href="'+WA+'?text='+encodeURIComponent('Hi ipowork, about the Issuer Intelligence Brief for '+b.name)+'" target="_blank" rel="noopener">WhatsApp us</a></div></div>';
+}
+
+function privateData(b){
+  return '<div class="sec"><h2>See your business as it is today — optional</h2><div class="card"><p class="sub" style="color:var(--ink2)">Filed accounts are up to a year old. Soon you\u2019ll be able to upload monthly sales, receivables, payables and cash flow (Excel or CSV, from Tally or any system) to get a live view: overdue customers, cash runway, margins by product and a live IPO-readiness projection.</p>'
+    +'<p class="sub" style="margin-top:8px"><b>Optional. Private. Only you decide who sees it.</b></p>'
+    +'<div style="margin-top:14px"><button class="btn s" type="button" id="wl-btn" data-cin="'+esc(b?b.cin:'')+'">Join the early-access list</button> <span id="wl-msg" class="small" role="status"></span></div></div></div>';
+}
+function privacy(){
+  return '<div class="sec privacy"><h2>Who can see my data?</h2><div class="grid g3">'
+    +'<div class="card"><h3>Public data</h3><p>MCA filings and market data that anyone can obtain. ipowork uses it to build this brief, which reaches you through your private link.</p></div>'
+    +'<div class="card"><h3>Private data</h3><p>What you choose to upload once private upload opens. It will be visible only to you, behind a secure login, and never shown to investors, merchant bankers, lenders or other companies.</p></div>'
+    +'<div class="card"><h3>Shared data</h3><p>Only what you choose to share, with the specific institution or adviser you name, when you name them.</p></div></div></div>';
+}
+function schedule(b){
+  var rows=[
+    ['Your annual accounts (MCA)','Financials, Business Health, eligibility, Risk Radar, valuation base','Once a year, when you file', b?(b.latestFy+(b.schedule.filedOn?' · filed '+b.schedule.filedOn:'')):'Per company', b?(b.schedule.nextFy+' · expected '+b.schedule.nextExpected):'After each filing'],
+    ['Your AIRA score','Stage, investor readiness','Monthly, and after new accounts', b?monthLabel(b.month):'Monthly','Next monthly brief'],
+    ['Listed-peer prices','Indicative valuation','Monthly', b&&b.valuation&&b.valuation.asOf?b.valuation.asOf:'—','Next monthly brief'],
+    ['This brief','Everything above, re-checked','Monthly', b?monthLabel(b.month):'Monthly','Next month']
+  ].map(function(r){ return '<tr><td><b>'+esc(r[0])+'</b></td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td><td>'+esc(r[4])+'</td></tr>'; }).join('');
+  return '<div class="sec"><h2>When your data changes</h2><p class="sub" style="margin-bottom:12px">Your own figures change only when you file with MCA. Your AIRA score and market data are refreshed monthly, so your brief can move even when you haven\u2019t filed anything.</p>'
+    +'<div class="scroll"><table style="min-width:720px"><thead><tr><th>DATA</th><th>WHAT IT UPDATES</th><th>HOW OFTEN</th><th>LATEST</th><th>NEXT</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+
+function viewLanding(err){
+  return (err?'<div class="msg err" style="margin-bottom:18px">'+esc(err)+'</div>':'')
+    +'<h1>Your company\u2019s intelligence profile</h1><p class="sub" style="max-width:720px">ipowork builds an Issuer Intelligence Brief for companies it tracks from public filings: your stage on the path to capital, Business Health, a Risk Radar, IPO eligibility and what changed since last time. It\u2019s free, built from public data, and sent to you through a private link.</p>'
+    +'<div class="card sec" style="margin-top:22px"><h2>Request access to your brief</h2><form class="form" id="req">'
+    +'<div><label for="r-name">Your name</label><input id="r-name" required autocomplete="name"></div>'
+    +'<div><label for="r-email">Work email</label><input id="r-email" type="email" required autocomplete="email"></div>'
+    +'<div><label for="r-phone">Mobile</label><input id="r-phone" type="tel" autocomplete="tel"></div>'
+    +'<div><label for="r-co">Company name</label><input id="r-co" required></div>'
+    +'<div><label for="r-cin">CIN (optional)</label><input id="r-cin" placeholder="e.g. U24100GJ2011PTC000001"></div>'
+    +'<div><label for="r-role">You are</label><select id="r-role"><option>Promoter / Director</option><option>CFO / Finance head</option><option>Company Secretary</option><option>CA / CS adviser to the company</option></select></div>'
+    +'<button class="btn p" type="submit">Request my brief</button><div id="r-msg" role="status"></div></form>'
+    +'<p class="small" style="margin-top:12px">We verify that you represent the company before sending a private link.</p></div>'
+    + privacy();
+}
+
+/* ---------------- actions ---------------- */
+document.addEventListener('submit', async function(e){
+  if(e.target.id!=='req') return; e.preventDefault();
+  var msg=document.getElementById('r-msg'); msg.className='msg'; msg.textContent='Sending…';
+  var v=function(id){return document.getElementById(id).value.trim();};
+  try{
+    var leadId='LEAD-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    await insert({report_id:leadId,company_name:v('r-co')||'N/A',cin:'LEAD',sector:'Issuer',exchange:'N/A',tier:'free',score:0,source:'lead',
+      scores:{leadId:leadId,category:'Issuer',company:v('r-co'),contact:v('r-name'),email:v('r-email'),phone:v('r-phone'),notes:'Issuer brief access request · '+v('r-role')+(v('r-cin')?' · CIN '+v('r-cin'):''),associateSlug:'issuer-portal',associateName:'Issuer portal (self)',stage:'New',createdAt:new Date().toISOString(),activity:[{text:'Requested Issuer Intelligence Brief access',at:new Date().toISOString()}]}});
+    msg.className='msg ok'; msg.textContent='Thank you — we\u2019ll verify and email your private link, usually within one working day.';
+    e.target.querySelector('button').disabled=true;
+  }catch(err){ msg.className='msg err'; msg.textContent='That didn\u2019t go through. Please try again, or WhatsApp +91 88510 59588.'; }
+});
+document.addEventListener('click', async function(e){
+  var b=e.target.closest('#wl-btn'); if(!b) return;
+  var m=document.getElementById('wl-msg'); b.disabled=true; m.textContent='Adding you…';
+  try{
+    var cin=b.getAttribute('data-cin'), co=S.briefs[cin]?S.briefs[cin].name:(S.user.firm||'');
+    var leadId='LEAD-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    await insert({report_id:leadId,company_name:co||'N/A',cin:'LEAD',sector:'Issuer',exchange:'N/A',tier:'free',score:0,source:'lead',
+      scores:{leadId:leadId,category:'Issuer',company:co,contact:S.user.name,email:S.user.email,notes:'Early access: private business-data upload'+(cin?' · CIN '+cin:''),associateSlug:'issuer-portal',associateName:'Issuer portal (self)',stage:'New',createdAt:new Date().toISOString(),activity:[{text:'Joined private-data early-access list',at:new Date().toISOString()}]}});
+    m.textContent='You\u2019re on the list. We\u2019ll be in touch before it opens.';
+  }catch(err){ b.disabled=false; m.textContent='Couldn\u2019t add you just now — please try again.'; }
+});
+
+function render(){
+  if(!S.user){ return; }
+  var k=decodeURIComponent(location.hash.replace('#',''));
+  if(S.cins.length===1) k=S.cins[0];
+  app.innerHTML = (k && S.briefs[k]) ? viewBrief(k) : viewList();
+}
+window.addEventListener('hashchange', function(){ render(); window.scrollTo(0,0); });
+
+(async function init(){
+  var who=document.getElementById('who');
+  try{
+    var r=await login();
+    if(!r.user){ who.textContent=''; app.innerHTML=viewLanding(r.error); return; }
+    S.user=r.user; S.cins=r.user.cins;
+    who.innerHTML='Signed in as <b>'+esc(r.user.name||r.user.email)+'</b>'+(r.user.firm?'<br>'+esc(r.user.firm):'')+(r.user.role==='ca_cs'?' · CA/CS partner':'');
+    S.briefs=await loadBriefs(S.cins);
+    render();
+  }catch(e){
+    console.error(e);
+    app.innerHTML='<div class="msg err">We couldn\u2019t load your brief just now. Please refresh, or WhatsApp +91 88510 59588.</div>';
+  }
+})();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Issuer Intelligence — Admin · ipowork</title>
+<meta name="robots" content="noindex">
+<script src="ipw-gate.js" data-roles="admin" data-title="Issuer Intelligence Admin"></script>
+<script src="issuer-engine.js"></script>
+<style>
+:root{--tl:#0D5C6B;--tld:#08404D;--sf:#E88A2E;--bd:#E2E8EA;--mu:#5E747B;--ok:#17714A;--bad:#B42318;--warn:#8A5A00;--bg:#F4F7F8}
+*{box-sizing:border-box}body{margin:0;font-family:Sora,system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:#1A2E35}
+header{background:var(--tld);color:#fff;padding:16px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header b{font-size:18px}header a{color:#C9DDE1;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+section{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:20px 22px;margin-bottom:20px}
+h2{margin:0 0 4px;font-size:18px;color:var(--tld)}.hint{font-size:13px;color:var(--mu);line-height:1.55;margin:4px 0 12px}
+textarea{width:100%;min-height:130px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;padding:10px;border:1.5px solid var(--bd);border-radius:8px}
+input,select{padding:9px 10px;border:1.5px solid var(--bd);border-radius:8px;font:inherit;font-size:14px;min-height:40px}
+button{font:inherit;font-weight:700;font-size:13px;padding:10px 16px;min-height:40px;border-radius:8px;border:0;cursor:pointer;background:var(--tl);color:#fff}
+button.sec{background:#fff;color:var(--tl);border:1.5px solid var(--tl)}button.go{background:var(--sf);color:#1A0F02}button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.status{font-size:13px;margin-top:10px;line-height:1.5;white-space:pre-wrap}.ok{color:var(--ok)}.err{color:var(--bad)}.warn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px}th{text-align:left;background:#EEF5F6;padding:8px;font-size:11px;color:var(--mu);white-space:nowrap}td{padding:8px;border-top:1px solid var(--bd);vertical-align:top}
+.scroll{overflow-x:auto}.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}
+.t-crit{background:#FFF1EE;color:var(--bad)}.t-watch{background:#FFF6E0;color:var(--warn)}.t-ok{background:#E7F5EE;color:var(--ok)}
+code{background:#EEF5F6;padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<header><b>Issuer Intelligence · Admin</b><span><a href="issuer-brief.html" target="_blank" rel="noopener">Open issuer portal ↗</a> · <a href="leads.html" target="_blank" rel="noopener">Leads ↗</a></span></header>
+<main>
+
+<section>
+  <h2>1 · Sector valuation multiples</h2>
+  <p class="hint">Listed-peer trailing P/E ranges used for the indicative valuation. One line per sector: <code>sector,low,mid,high,as_of,source</code>. Sector names must match the <code>sector</code> column in the financials. Sectors without a line get no valuation (the portal says so honestly). Saving adds a new version; the latest version is used.</p>
+  <textarea id="mult" placeholder="Specialty Chemicals,32,38,44,22 Sep 2026,ipowork listed-peer set (12 cos)"></textarea>
+  <div class="row"><button id="mult-save">Save multiples</button><span id="mult-status" class="status"></span></div>
+</section>
+
+<section>
+  <h2>2 · Load financials and publish briefs</h2>
+  <p class="hint">One row per company per financial year (at least 3 years for eligibility), amounts in ₹ crore. Columns can be in any order; blanks are fine and show as "not available". <button class="sec" id="tpl" type="button" style="padding:4px 10px;min-height:0">Download template</button></p>
+  <textarea id="fin" placeholder="Paste the financials CSV (with header row)…"></textarea>
+  <div class="row">
+    <label>Brief month <input id="month" type="month"></label>
+    <button id="compute">Compute briefs</button>
+    <button id="publish" class="go" disabled>Publish briefs</button>
+  </div>
+  <div id="fin-status" class="status"></div>
+  <div class="scroll" id="preview"></div>
+</section>
+
+<section>
+  <h2>3 · Create access and magic links</h2>
+  <p class="hint">One line per person: <code>email,name,firm,role,cins</code>. Role is <code>issuer</code> or <code>ca_cs</code>. List several CINs separated by <code>;</code> for a group or CA/CS partner. Links last 30 days; running again for the same person gives them a fresh link and their latest company list. Issuer links are separate from MB and investor links and do not open aira.html.</p>
+  <textarea id="acc" placeholder="cfo@meridianpolymers.in,Anita Shah,Meridian Specialty Polymers,issuer,U24100GJ2011PTC000001&#10;partner@rmehta.in,R. Mehta,R. Mehta & Associates,ca_cs,U24100GJ2011PTC000001;U15400MH2009PTC000002"></textarea>
+  <div class="row"><button id="links">Create access + links</button><button id="links-dl" class="sec" disabled>Download for mailer (CSV)</button></div>
+  <div id="acc-status" class="status"></div>
+  <textarea id="acc-out" readonly style="display:none;min-height:110px;margin-top:10px"></textarea>
+</section>
+
+<section>
+  <h2>4 · Issuer activity</h2>
+  <p class="hint">Who opened their brief, when, and from which campaign. Access requests and early-access sign-ups go to <a href="leads.html" target="_blank" rel="noopener">Leads</a> under the Issuer category.</p>
+  <button id="act" class="sec">Load latest activity</button>
+  <div class="scroll" id="act-out"></div>
+</section>
+
+</main>
+<script>
+(function(){
+var SUPA_URL='https://esqlfsjhekdspycfgnoz.supabase.co', SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+var PORTAL='https://ipowork.com/issuer-brief.html';
+var E=window.IPWIssuer, COMPUTED=null, LINKS_CSV='';
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s===null||s===undefined?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function hdr(x){return Object.assign({'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},x||{});}
+async function get(q){ var r=await fetch(SUPA_URL+'/rest/v1/reports?'+q,{headers:hdr()}); if(!r.ok) throw new Error('read failed ('+r.status+')'); return r.json(); }
+async function insert(rows){ var r=await fetch(SUPA_URL+'/rest/v1/reports',{method:'POST',headers:hdr({'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify(rows)}); if(!r.ok){ var t=await r.text(); throw new Error('write failed ('+r.status+') '+t.slice(0,160)); } }
+function safe(e){ return String(e).toLowerCase().replace(/[^a-z0-9]/gi,'-'); }
+function token(){ var a=new Uint8Array(24); crypto.getRandomValues(a); return Array.from(a).map(function(b){return b.toString(16).padStart(2,'0');}).join(''); }
+function set(el,cls,txt){ el.className='status '+cls; el.textContent=txt; }
+function download(name,text){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'})); a.download=name; a.click(); }
+var now=new Date(); $('month').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+
+/* 1 · multiples */
+var MULT={};
+function parseMult(text){ var o={}; text.split(/\r?\n/).forEach(function(l){ var c=l.split(',').map(function(x){return x.trim();}); if(c.length>=4 && c[0] && !/^sector$/i.test(c[0])) o[c[0].toLowerCase()]={sector:c[0],low:c[1],mid:c[2],high:c[3],asOf:c[4]||'',source:c.slice(5).join(',')||''}; }); return o; }
+async function loadMult(){
+  try{ var rows=await get('source=eq.issuer_sector_config&order=created_at.desc&limit=1&select=scores');
+    if(rows[0]){ MULT=rows[0].scores.multiples||{}; $('mult').value=Object.keys(MULT).map(function(k){var m=MULT[k];return [m.sector,m.low,m.mid,m.high,m.asOf,m.source].join(',');}).join('\n');
+      set($('mult-status'),'ok','Loaded '+Object.keys(MULT).length+' sector(s), saved '+new Date(rows[0].scores.savedAt).toLocaleString('en-IN')+'.'); } }
+  catch(e){ set($('mult-status'),'err',e.message); }
+}
+$('mult-save').onclick=async function(){
+  var m=parseMult($('mult').value);
+  try{ await insert({report_id:'ISSUERCFG-'+Date.now(),company_name:'ISSUER_SECTOR_CONFIG',cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_sector_config',scores:{multiples:m,savedAt:new Date().toISOString()}});
+    MULT=m; set($('mult-status'),'ok','Saved '+Object.keys(m).length+' sector(s). Recompute briefs to apply.'); }
+  catch(e){ set($('mult-status'),'err',e.message); }
+};
+
+/* 2 · compute + publish */
+$('tpl').onclick=function(){ download('ipowork_issuer_financials_template.csv', E.TEMPLATE_COLUMNS.join(',')+'\n'); };
+$('compute').onclick=async function(){
+  var st=$('fin-status'); $('publish').disabled=true; $('preview').innerHTML='';
+  var rows=E.parseCsv($('fin').value); if(!rows.length){ set(st,'err','Paste the financials CSV first.'); return; }
+  set(st,'','Checking previous briefs…');
+  var cins=Array.from(new Set(rows.map(function(r){return String(r.cin||'').trim().toUpperCase();}).filter(Boolean)));
+  var prev={};
+  try{
+    for(var i=0;i<cins.length;i+=80){
+      var part=cins.slice(i,i+80);
+      var got=await get('source=eq.issuer_brief&cin=in.('+part.map(encodeURIComponent).join(',')+')&order=created_at.desc&select=cin,scores');
+      got.forEach(function(g){ if(!prev[g.cin] && g.scores.month!==$('month').value) prev[g.cin]=g.scores; });
+    }
+  }catch(e){ set(st,'warn','Could not read previous briefs ('+e.message+') — computing without comparison.'); }
+  var out=E.buildBriefs(rows,{month:$('month').value,sectorMultiples:MULT,previous:prev});
+  COMPUTED=out.briefs;
+  var noVal=COMPUTED.filter(function(b){return !b.valuation;}).length, short=COMPUTED.filter(function(b){return b.years.length<3;}).length;
+  set(st, out.errors.length?'warn':'ok', COMPUTED.length+' brief(s) ready for '+$('month').value+'.'
+    +(Object.keys(prev).length?' '+Object.keys(prev).length+' compared with a previous brief.':' No previous briefs — "what changed" uses year-on-year filed figures.')
+    +(noVal?'\n'+noVal+' without a valuation (no sector multiple or PAT not positive).':'')
+    +(short?'\n'+short+' with fewer than 3 years — eligibility shows "not available".':'')
+    +(out.errors.length?'\nSkipped rows:\n'+out.errors.join('\n'):''));
+  $('preview').innerHTML='<table><thead><tr><th>Company</th><th>CIN</th><th>Years</th><th>Stage</th><th>AIRA</th><th>Checks</th><th>Radar</th><th>Valuation</th><th>Top change</th></tr></thead><tbody>'
+    +COMPUTED.map(function(b){ var c=b.radar.filter(function(r){return r.level==='critical';}).length, w=b.radar.filter(function(r){return r.level==='watch';}).length;
+      return '<tr><td>'+esc(b.name)+'</td><td>'+esc(b.cin)+'</td><td>'+esc(b.years.join(', '))+'</td><td>'+b.stage.n+' · '+esc(b.stage.name)+'</td><td>'+(b.aira===null?'—':b.aira)+'</td><td>'+b.eligibility.metCount+'/8</td>'
+        +'<td>'+(c?'<span class="tag t-crit">'+c+' red</span> ':'')+(w?'<span class="tag t-watch">'+w+' amber</span>':'')+(!c&&!w?'<span class="tag t-ok">all normal</span>':'')+'</td>'
+        +'<td>'+(b.valuation?E.crore(b.valuation.low)+'–'+E.crore(b.valuation.high):'—')+'</td><td>'+esc(b.changes[0]?b.changes[0].title:'—')+'</td></tr>'; }).join('')+'</tbody></table>';
+  $('publish').disabled=!COMPUTED.length;
+};
+$('publish').onclick=async function(){
+  if(!COMPUTED||!COMPUTED.length) return;
+  if(!confirm('Publish '+COMPUTED.length+' brief(s) for '+$('month').value+'? Issuers with access will see them straight away.')) return;
+  var st=$('fin-status'); $('publish').disabled=true; var done=0;
+  try{
+    for(var i=0;i<COMPUTED.length;i+=40){
+      var chunk=COMPUTED.slice(i,i+40).map(function(b,j){ return {report_id:'BRIEF-'+b.cin+'-'+b.month+'-'+Date.now()+'-'+(i+j),company_name:b.name,cin:b.cin,sector:b.sector||'N/A',exchange:'N/A',tier:'free',score:b.aira||0,source:'issuer_brief',scores:b}; });
+      await insert(chunk); done+=chunk.length; set(st,'',' Publishing… '+done+' of '+COMPUTED.length);
+    }
+    var check=await get('source=eq.issuer_brief&cin=in.('+COMPUTED.slice(0,50).map(function(b){return encodeURIComponent(b.cin);}).join(',')+')&order=created_at.desc&select=cin,scores->>month');
+    var seen=new Set(check.filter(function(r){return r.month===$('month').value;}).map(function(r){return r.cin;}));
+    set(st,'ok','✓ Published '+done+' brief(s). Verified in the database: '+Math.min(seen.size,50)+' of '+Math.min(COMPUTED.length,50)+' checked.');
+  }catch(e){ set(st,'err','Stopped after '+done+' of '+COMPUTED.length+': '+e.message+'\nRe-running is safe — the portal always shows the newest brief.'); $('publish').disabled=false; }
+};
+
+/* 3 · access + links */
+$('links').onclick=async function(){
+  var st=$('acc-status'), lines=$('acc').value.split(/\r?\n/).map(function(l){return l.trim();}).filter(Boolean);
+  if(lines.length && /^email\s*,/i.test(lines[0])) lines.shift();
+  if(!lines.length){ set(st,'err','Paste at least one line.'); return; }
+  var out=[['name','email','firm','role','companies','login_url']], ok=0, bad=[];
+  $('links').disabled=true;
+  for(var i=0;i<lines.length;i++){
+    var c=lines[i].split(',').map(function(x){return x.trim();});
+    var email=(c[0]||'').toLowerCase(), name=c[1]||'', firm=c[2]||'', role=(c[3]||'issuer').toLowerCase(), cins=(c[4]||'').split(/[;|\s]+/).map(function(x){return x.trim().toUpperCase();}).filter(Boolean);
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !cins.length || ['issuer','ca_cs'].indexOf(role)<0){ bad.push('Line '+(i+1)+': needs email, role issuer/ca_cs and at least one CIN'); continue; }
+    set(st,'','Creating '+(i+1)+' of '+lines.length+': '+email);
+    try{
+      var t=token(), ts=Date.now();
+      await insert([
+        {report_id:'ISSUERACC-'+safe(email)+'-'+ts,company_name:firm||'N/A',cin:cins.join(',').slice(0,200),sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_account',scores:{email:email,name:name,firm:firm,role:role,cins:cins,approved:true,createdAt:new Date().toISOString()}},
+        {report_id:'ISSUERLINK-'+safe(email)+'-'+ts,company_name:'ISSUER_MAGIC_LINK',cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_magic_link',scores:{email:email,token:t,createdAt:new Date().toISOString(),expiresAt:new Date(ts+30*24*3600*1000).toISOString()}}
+      ]);
+      out.push([name,email,firm,role,cins.join(';'),PORTAL+'?login_token='+t]); ok++;
+    }catch(e){ bad.push(email+': '+e.message); }
+  }
+  LINKS_CSV=out.map(function(r){return r.map(function(x){return /[",\n]/.test(x)?'"'+String(x).replace(/"/g,'""')+'"':x;}).join(',');}).join('\n');
+  $('acc-out').style.display='block'; $('acc-out').value=LINKS_CSV; $('links-dl').disabled=!ok; $('links').disabled=false;
+  set(st, bad.length?'warn':'ok', '✓ '+ok+' link(s) ready (valid 30 days).'+(bad.length?'\nNot created:\n'+bad.join('\n'):'')+'\nPaste the CSV into the mailer as usual — the login_url column is picked up automatically.');
+};
+$('links-dl').onclick=function(){ download('ipowork_issuer_links.csv', LINKS_CSV); };
+
+/* 4 · activity */
+$('act').onclick=async function(){
+  try{ var rows=await get('source=eq.issuer_login_event&order=created_at.desc&limit=200&select=scores,created_at');
+    $('act-out').innerHTML=rows.length?'<table><thead><tr><th>When</th><th>Who</th><th>Firm</th><th>Role</th><th>Companies</th><th>Campaign</th></tr></thead><tbody>'+rows.map(function(r){var s=r.scores||{};return '<tr><td>'+esc(new Date(r.created_at||s.loggedInAt).toLocaleString('en-IN'))+'</td><td>'+esc(s.name||'')+'<br>'+esc(s.email)+'</td><td>'+esc(s.firm)+'</td><td>'+esc(s.role)+'</td><td>'+esc((s.cins||[]).join(', '))+'</td><td>'+esc(s.campaign||'—')+'</td></tr>';}).join('')+'</tbody></table>':'<p class="hint">No issuer logins yet.</p>'; }
+  catch(e){ $('act-out').innerHTML='<p class="status err">'+esc(e.message)+'</p>'; }
+};
+loadMult();
+})();
+</script>
+</body>
+</html>

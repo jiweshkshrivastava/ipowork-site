@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ipowork — Leads</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Fraunces:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#FAFAF8; --surface:#FFFFFF; --card2:#F7F3EE;
+  --teal:#0D5C6B; --tld:#08404D; --teal2:#1A7D90;
+  --ok:#1A9E6B; --sf:#E88A2E; --go:#C9932A; --red:#C0392B; --wn:#D4860C;
+  --text:#2C3E47; --muted:#6B7E85;
+  --border:rgba(13,92,107,.15); --border2:rgba(13,92,107,.08);
+  --sh:0 2px 12px rgba(13,92,107,.08); --sh2:0 8px 32px rgba(13,92,107,.16);
+  --ra:10px; --font:'Sora',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;background:rgba(250,250,248,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--border2);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;z-index:50}
+.brand{font-weight:700;font-size:18px;color:var(--tld);text-decoration:none}
+.brand span{color:var(--sf)}
+.wrap{max-width:1200px;margin:0 auto;padding:24px}
+.wrap-narrow{max-width:640px;margin:0 auto;padding:24px}
+h1{font-family:'Fraunces',serif;font-size:26px;color:var(--tld);margin-bottom:4px}
+.sub{color:var(--muted);font-size:13.5px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--ra);padding:22px;box-shadow:var(--sh);margin-bottom:16px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;font-family:var(--font);font-size:14px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:#FFFDFA;color:var(--text);outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal)}
+.field textarea{min-height:80px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{font-family:var(--font);font-size:14px;font-weight:700;padding:11px 24px;border-radius:8px;border:none;cursor:pointer}
+.btn-primary{background:var(--sf);color:#fff}
+.btn-primary:hover{background:var(--go)}
+.btn-primary:disabled{background:#D8CFC4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted)}
+.status-msg{font-size:12.5px;margin-top:10px;padding:10px 12px;border-radius:8px;display:none}
+.status-msg.ok{display:block;background:#EDF8F2;color:var(--ok);border:1px solid #C5E8D5}
+.status-msg.err{display:block;background:#FBEEEC;color:var(--red);border:1px solid #EFC7C0}
+.status-msg.busy{display:block;background:var(--card2);color:var(--muted)}
+
+/* Lead list (associate view) */
+.lead-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border2)}
+.lead-row:last-child{border-bottom:none}
+.lead-name{font-weight:600;font-size:13.5px;color:var(--text)}
+.lead-meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+.stage-pill{font-family:var(--font);font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:99px;white-space:nowrap}
+
+/* Admin: stats bar */
+.stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-item{background:var(--surface);border:1px solid var(--border2);border-radius:var(--ra);padding:14px 16px;box-shadow:var(--sh)}
+.stat-val{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--tld)}
+.stat-lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* Admin: kanban */
+.filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-chip{font-family:var(--font);font-size:12px;font-weight:600;padding:7px 14px;border-radius:99px;border:1.5px solid var(--border);background:#fff;cursor:pointer;color:var(--muted)}
+.filter-chip.active{background:var(--teal);border-color:var(--teal);color:#fff}
+.board{display:flex;gap:14px;overflow-x:auto;padding-bottom:16px}
+.col{flex:0 0 260px;background:var(--card2);border-radius:var(--ra);padding:12px}
+.col-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding:0 4px}
+.col-title{font-size:12px;font-weight:700;color:var(--tld);text-transform:uppercase;letter-spacing:.4px}
+.col-count{font-family:var(--font);font-size:11px;font-weight:700;color:#fff;background:var(--teal);border-radius:99px;padding:1px 8px}
+.deal-card{background:#fff;border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 3px rgba(13,92,107,.06)}
+.deal-card:hover{box-shadow:var(--sh)}
+.deal-co{font-weight:700;font-size:13px;color:var(--text)}
+.deal-meta{font-size:11px;color:var(--muted);margin-top:4px}
+.cat-badge{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;margin-top:6px;text-transform:uppercase;letter-spacing:.3px}
+
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(8,64,77,.4);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;padding:26px;box-shadow:var(--sh2)}
+.modal h2{font-family:'Fraunces',serif;font-size:20px;color:var(--tld);margin-bottom:4px}
+.modal-close{float:right;cursor:pointer;font-size:20px;color:var(--muted);line-height:1}
+.activity-item{font-size:12px;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--border2)}
+
+/* PIN gate */
+.pin-gate{max-width:340px;margin:80px auto;text-align:center}
+.pin-gate input{text-align:center;font-size:20px;letter-spacing:6px}
+
+@media(max-width:640px){ .grid2{grid-template-columns:1fr} .wrap{padding:14px} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="index.html">ipow<span>o</span>rk</a>
+  <div id="topbar-right" style="font-size:12px;color:var(--muted)"></div>
+</div>
+
+<div id="app"></div>
+
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this) closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+var SUPA_URL_TRIAL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
+var SUPA_KEY_TRIAL = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+
+var CATEGORIES = ['MB','Investor','Debt Board','CA/CS','Issuer','Other'];
+var CATEGORY_COLORS = {'MB':'#0D5C6B','Investor':'#5B6FEC','Debt Board':'#E88A2E','CA/CS':'#1A9E6B','Issuer':'#A8520A','Other':'#6B7E85'};
+var STAGES = ['New','Contacted','Qualified','In Progress','Closed Won','Closed Lost'];
+var STAGE_COLORS = {'New':'#6B7E85','Contacted':'#0D5C6B','Qualified':'#1A7D90','In Progress':'#E88A2E','Closed Won':'#1A9E6B','Closed Lost':'#C0392B'};
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function qs(name){ return new URLSearchParams(window.location.search).get(name); }
+
+/* FIX: leads are append-only, same pattern as login_event/report_generated
+   elsewhere in this system. The original attempt used an upsert (same
+   report_id, resolution=merge-duplicates) to modify the lead in place —
+   already confirmed today, against this same Supabase instance, that this
+   gets rejected for existing records ("jprcapital" case). So every stage
+   change is instead its own new row (source:'lead_update', keyed by the
+   same leadId), and fetchLeads merges them: the original 'lead' row plus
+   all its 'lead_update' rows, taking the most recent field values and
+   concatenating activity logs, rather than trying to overwrite anything. */
+async function fetchLeads(){
+  var r1 = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.lead&select=report_id,scores', {
+    headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+  });
+  if(!r1.ok) throw new Error('status '+r1.status);
+  var originals = await r1.json();
+
+  var r2 = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports?source=eq.lead_update&select=report_id,scores', {
+    headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL }
+  });
+  var updates = r2.ok ? await r2.json() : [];
+
+  var byLeadId = {};
+  originals.forEach(function(row){
+    var s = row.scores||{};
+    if(s.leadId) byLeadId[s.leadId] = Object.assign({report_id: row.report_id}, s);
+  });
+  // Group updates per lead, sorted oldest-to-newest so later ones correctly override earlier field values
+  var updatesByLead = {};
+  updates.forEach(function(row){
+    var s = row.scores||{};
+    if(!s.leadId) return;
+    if(!updatesByLead[s.leadId]) updatesByLead[s.leadId] = [];
+    updatesByLead[s.leadId].push(s);
+  });
+  Object.keys(updatesByLead).forEach(function(leadId){
+    var base = byLeadId[leadId];
+    if(!base) return; // update for a lead whose original row wasn't found — skip
+    var evts = updatesByLead[leadId].sort(function(a,b){ return (a.at||'').localeCompare(b.at||''); });
+    var mergedActivity = (base.activity||[]).slice();
+    evts.forEach(function(evt){
+      base.stage = evt.stage; // most recent update's stage wins
+      if(evt.note) mergedActivity.unshift({ text: evt.note, at: evt.at });
+    });
+    base.activity = mergedActivity;
+  });
+
+  return Object.keys(byLeadId).map(function(id){ return byLeadId[id]; });
+}
+
+async function submitLead(lead){
+  var leadId = 'LEAD-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+    method:'POST',
+    headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+    body: JSON.stringify({
+      report_id: leadId, company_name: lead.company||'N/A', cin:'LEAD', sector: lead.category||'N/A', exchange:'N/A',
+      tier:'free', score:0, source:'lead',
+      scores: Object.assign({}, lead, { leadId: leadId, stage:'New', createdAt: new Date().toISOString(), activity:[{text:'Lead submitted',at:new Date().toISOString()}] })
+    })
+  });
+  if(!r.ok) throw new Error('status '+r.status);
+  return leadId;
+}
+
+async function updateLeadStage(leadId, newStage, note){
+  var updateReportId = 'LEADUPD-'+leadId.replace(/[^a-z0-9]/gi,'-')+'-'+Date.now();
+  var r = await fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+    method:'POST',
+    headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+    body: JSON.stringify({
+      report_id: updateReportId, company_name:'LEAD_UPDATE', cin:'LEAD', sector:'N/A', exchange:'N/A',
+      tier:'free', score:0, source:'lead_update',
+      scores: { leadId: leadId, stage: newStage, note: note||('Stage changed to '+newStage), at: new Date().toISOString() }
+    })
+  });
+  return r.ok;
+}
+
+/* ═══ ASSOCIATE VIEW ═══ */
+function renderAssociateView(slug, name){
+  document.getElementById('topbar-right').textContent = name ? ('Hi, '+name) : '';
+  var app = document.getElementById('app');
+  app.innerHTML =
+    '<div class="wrap-narrow">'+
+    '<h1>Submit a Lead</h1>'+
+    '<div class="sub">'+(name?esc(name)+' — ':'')+'Every lead you submit here goes straight to the ipowork team.</div>'+
+    '<div class="card">'+
+      '<div class="field"><label>Category *</label><select id="lf-cat">'+CATEGORIES.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('')+'</select></div>'+
+      '<div class="field"><label>Company / Entity Name *</label><input id="lf-company" placeholder="e.g. Acme Fintech Pvt Ltd"></div>'+
+      '<div class="grid2">'+
+        '<div class="field"><label>Contact Name</label><input id="lf-contact"></div>'+
+        '<div class="field"><label>Contact Phone</label><input id="lf-phone"></div>'+
+      '</div>'+
+      '<div class="field"><label>Contact Email</label><input id="lf-email" type="email"></div>'+
+      '<div class="grid2">'+
+        '<div class="field"><label>Approx. Size (₹ Cr)</label><input id="lf-size" type="number"></div>'+
+        '<div class="field"><label>Sector</label><input id="lf-sector"></div>'+
+      '</div>'+
+      '<div class="field"><label>Notes</label><textarea id="lf-notes" placeholder="Anything useful — how you know them, urgency, etc."></textarea></div>'+
+      '<button class="btn btn-primary" onclick="handleSubmitLead(\''+esc(slug)+'\',\''+esc(name||'')+'\')" style="width:100%">Submit Lead</button>'+
+      '<div class="status-msg" id="lf-status"></div>'+
+    '</div>'+
+    '<h1 style="font-size:19px;margin-top:32px">Your Submitted Leads</h1>'+
+    '<div class="card" id="my-leads-list" style="padding:0"><div style="padding:18px;color:var(--muted);font-size:12.5px">Loading…</div></div>'+
+    '</div>';
+  loadMyLeads(slug);
+}
+
+async function handleSubmitLead(slug, name){
+  var statusEl = document.getElementById('lf-status');
+  var company = document.getElementById('lf-company').value.trim();
+  if(!company){ statusEl.className='status-msg err'; statusEl.textContent='Company name is required.'; return; }
+  statusEl.className='status-msg busy'; statusEl.textContent='Submitting…';
+  var lead = {
+    associateSlug: slug, associateName: name,
+    category: document.getElementById('lf-cat').value,
+    company: company,
+    contact: document.getElementById('lf-contact').value.trim(),
+    phone: document.getElementById('lf-phone').value.trim(),
+    email: document.getElementById('lf-email').value.trim(),
+    size: document.getElementById('lf-size').value.trim(),
+    sector: document.getElementById('lf-sector').value.trim(),
+    notes: document.getElementById('lf-notes').value.trim()
+  };
+  try{
+    await submitLead(lead);
+    statusEl.className='status-msg ok'; statusEl.textContent='✓ Lead submitted — thank you!';
+    ['lf-company','lf-contact','lf-phone','lf-email','lf-size','lf-sector','lf-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+    loadMyLeads(slug);
+  }catch(e){
+    statusEl.className='status-msg err'; statusEl.textContent='Could not submit — '+e.message+'. Please try again.';
+  }
+}
+
+async function loadMyLeads(slug){
+  var listEl = document.getElementById('my-leads-list');
+  try{
+    var leads = await fetchLeads();
+    var mine = leads.filter(function(l){ return l.associateSlug === slug; })
+      .sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
+    if(!mine.length){ listEl.innerHTML = '<div style="padding:18px;color:var(--muted);font-size:12.5px">No leads submitted yet.</div>'; return; }
+    listEl.innerHTML = mine.map(function(l){
+      var col = STAGE_COLORS[l.stage]||'#6B7E85';
+      return '<div class="lead-row"><div><div class="lead-name">'+esc(l.company)+'</div>'+
+        '<div class="lead-meta">'+esc(l.category)+(l.createdAt?(' · '+new Date(l.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})):'')+'</div></div>'+
+        '<span class="stage-pill" style="background:'+col+'22;color:'+col+'">'+esc(l.stage||'New')+'</span></div>';
+    }).join('');
+  }catch(e){
+    listEl.innerHTML = '<div style="padding:18px;color:var(--red);font-size:12.5px">Could not load your leads — '+e.message+'</div>';
+  }
+}
+
+/* ═══ ADMIN VIEW ═══ */
+var ALL_LEADS = [];
+var activeFilter = 'All';
+
+function renderPinGate(){
+  document.getElementById('app').innerHTML =
+    '<div class="pin-gate"><h1>Admin Access</h1><div class="sub">Enter PIN to view all leads</div>'+
+    '<div class="field"><input id="admin-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"></div>'+
+    '<button class="btn btn-primary" onclick="checkAdminPin()" style="width:100%">Enter</button>'+
+    '<div class="status-msg" id="pin-status"></div></div>';
+  document.getElementById('admin-pin').focus();
+  document.getElementById('admin-pin').addEventListener('keydown', function(e){ if(e.key==='Enter') checkAdminPin(); });
+}
+
+function checkAdminPin(){
+  var pin = document.getElementById('admin-pin').value;
+  if(pin === '1234'){ renderAdminView(); }
+  else { var s=document.getElementById('pin-status'); s.className='status-msg err'; s.textContent='Incorrect PIN.'; }
+}
+
+async function renderAdminView(){
+  document.getElementById('topbar-right').textContent = 'Admin — All Leads';
+  var app = document.getElementById('app');
+  app.innerHTML = '<div class="wrap"><h1>Leads Pipeline</h1><div class="sub">All leads from every associate, in one place.</div>'+
+    '<div class="stats-bar" id="admin-stats"></div>'+
+    '<div class="filters" id="admin-filters"></div>'+
+    '<div class="board" id="admin-board"></div>'+
+    '<div class="card" style="margin-top:24px"><div style="font-size:13px;font-weight:700;color:var(--tld);margin-bottom:10px">➕ Add Lead Manually</div>'+
+      '<div class="grid2">'+
+        '<div class="field"><label>Category</label><select id="al-cat">'+CATEGORIES.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('')+'</select></div>'+
+        '<div class="field"><label>Company *</label><input id="al-company"></div>'+
+      '</div>'+
+      '<div class="grid2">'+
+        '<div class="field"><label>Contact</label><input id="al-contact"></div>'+
+        '<div class="field"><label>Phone</label><input id="al-phone"></div>'+
+      '</div>'+
+      '<div class="field"><label>Notes</label><textarea id="al-notes"></textarea></div>'+
+      '<button class="btn btn-primary" onclick="handleAdminAddLead()">Add Lead</button>'+
+      '<div class="status-msg" id="al-status"></div>'+
+    '</div>'+
+    '<div class="card" style="margin-top:16px"><div style="font-size:13px;font-weight:700;color:var(--tld);margin-bottom:10px">🔗 Generate Associate Link</div>'+
+      '<div class="grid2"><div class="field"><label>Associate Name</label><input id="assoc-name" placeholder="e.g. Rajesh Sharma"></div>'+
+      '<div class="field"><label>&nbsp;</label><button class="btn btn-primary" onclick="genAssocLink()" style="width:100%">Generate Link</button></div></div>'+
+      '<div id="assoc-link-out" style="font-size:12px;color:var(--muted)"></div>'+
+    '</div>'+
+    '</div>';
+  await loadAllLeadsForAdmin();
+}
+
+function genAssocLink(){
+  var name = document.getElementById('assoc-name').value.trim();
+  if(!name){ return; }
+  var slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  var link = window.location.origin + window.location.pathname + '?a=' + encodeURIComponent(slug) + '&name=' + encodeURIComponent(name);
+  document.getElementById('assoc-link-out').innerHTML = '<div style="margin-top:8px;padding:10px 12px;background:var(--card2);border-radius:8px;word-break:break-all;font-family:monospace;font-size:11.5px">'+esc(link)+'</div>';
+}
+
+async function handleAdminAddLead(){
+  var statusEl = document.getElementById('al-status');
+  var company = document.getElementById('al-company').value.trim();
+  if(!company){ statusEl.className='status-msg err'; statusEl.textContent='Company name required.'; return; }
+  statusEl.className='status-msg busy'; statusEl.textContent='Adding…';
+  try{
+    await submitLead({
+      associateSlug:'admin', associateName:'Jiwesh (direct)',
+      category: document.getElementById('al-cat').value, company: company,
+      contact: document.getElementById('al-contact').value.trim(),
+      phone: document.getElementById('al-phone').value.trim(),
+      notes: document.getElementById('al-notes').value.trim()
+    });
+    statusEl.className='status-msg ok'; statusEl.textContent='✓ Added.';
+    ['al-company','al-contact','al-phone','al-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+    await loadAllLeadsForAdmin();
+  }catch(e){
+    statusEl.className='status-msg err'; statusEl.textContent='Failed — '+e.message;
+  }
+}
+
+async function loadAllLeadsForAdmin(){
+  var board = document.getElementById('admin-board');
+  board.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px">Loading…</div>';
+  try{
+    ALL_LEADS = await fetchLeads();
+    renderAdminStats();
+    renderAdminFilters();
+    renderBoard();
+  }catch(e){
+    board.innerHTML = '<div style="padding:20px;color:var(--red);font-size:13px">Could not load leads — '+e.message+'</div>';
+  }
+}
+
+function renderAdminStats(){
+  var total = ALL_LEADS.length;
+  var won = ALL_LEADS.filter(function(l){return l.stage==='Closed Won';}).length;
+  var active = ALL_LEADS.filter(function(l){return l.stage && l.stage.indexOf('Closed')===-1;}).length;
+  var associates = new Set(ALL_LEADS.map(function(l){return l.associateSlug;}).filter(Boolean));
+  document.getElementById('admin-stats').innerHTML = [
+    {v:total,l:'Total Leads'}, {v:active,l:'Active'}, {v:won,l:'Closed Won'}, {v:associates.size,l:'Associates Contributing'}
+  ].map(function(s){ return '<div class="stat-item"><div class="stat-val">'+s.v+'</div><div class="stat-lbl">'+s.l+'</div></div>'; }).join('');
+}
+
+function renderAdminFilters(){
+  var cats = ['All'].concat(CATEGORIES);
+  document.getElementById('admin-filters').innerHTML = cats.map(function(c){
+    return '<button class="filter-chip'+(c===activeFilter?' active':'')+'" onclick="setFilter(\''+c+'\')">'+c+'</button>';
+  }).join('');
+}
+
+function setFilter(c){ activeFilter = c; renderAdminFilters(); renderBoard(); }
+
+function renderBoard(){
+  var filtered = activeFilter==='All' ? ALL_LEADS : ALL_LEADS.filter(function(l){return l.category===activeFilter;});
+  document.getElementById('admin-board').innerHTML = STAGES.map(function(stage){
+    var inStage = filtered.filter(function(l){return (l.stage||'New')===stage;});
+    return '<div class="col"><div class="col-head"><span class="col-title">'+stage+'</span><span class="col-count">'+inStage.length+'</span></div>'+
+      inStage.map(function(l){
+        var catColor = CATEGORY_COLORS[l.category]||'#6B7E85';
+        return '<div class="deal-card" onclick="openLeadModal(\''+esc(l.leadId)+'\')">'+
+          '<div class="deal-co">'+esc(l.company)+'</div>'+
+          '<div class="deal-meta">'+esc(l.associateName||l.associateSlug||'Unknown')+(l.size?(' · ₹'+esc(l.size)+'Cr'):'')+'</div>'+
+          '<span class="cat-badge" style="background:'+catColor+'22;color:'+catColor+'">'+esc(l.category||'Other')+'</span>'+
+          '</div>';
+      }).join('')+
+      '</div>';
+  }).join('');
+}
+
+function openLeadModal(leadId){
+  var l = ALL_LEADS.find(function(x){return x.leadId===leadId;});
+  if(!l) return;
+  var stageOpts = STAGES.map(function(s){return '<option value="'+s+'"'+(s===l.stage?' selected':'')+'>'+s+'</option>';}).join('');
+  document.getElementById('modal-content').innerHTML =
+    '<span class="modal-close" onclick="closeModal()">✕</span>'+
+    '<h2>'+esc(l.company)+'</h2>'+
+    '<div class="sub">'+esc(l.category)+' · via '+esc(l.associateName||l.associateSlug||'Unknown')+'</div>'+
+    '<div class="grid2" style="margin:16px 0">'+
+      '<div><div class="field"><label>Contact</label><div style="font-size:13px">'+esc(l.contact||'—')+'</div></div></div>'+
+      '<div><div class="field"><label>Phone</label><div style="font-size:13px">'+esc(l.phone||'—')+'</div></div></div>'+
+    '</div>'+
+    (l.email?'<div class="field"><label>Email</label><div style="font-size:13px">'+esc(l.email)+'</div></div>':'')+
+    (l.notes?'<div class="field"><label>Notes</label><div style="font-size:13px">'+esc(l.notes)+'</div></div>':'')+
+    '<div class="field"><label>Stage</label><select id="modal-stage">'+stageOpts+'</select></div>'+
+    '<div class="field"><label>Add a note (optional)</label><textarea id="modal-note" placeholder="What changed?"></textarea></div>'+
+    '<button class="btn btn-primary" onclick="handleStageUpdate(\''+esc(l.leadId)+'\')">Save</button>'+
+    '<div class="status-msg" id="modal-status"></div>'+
+    '<div style="margin-top:18px"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Activity</div>'+
+      (l.activity||[]).map(function(a){ return '<div class="activity-item">'+esc(a.text)+' — '+(a.at?new Date(a.at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'</div>'; }).join('')+
+    '</div>';
+  document.getElementById('modal-bg').className = 'modal-bg show';
+}
+
+async function handleStageUpdate(leadId){
+  var newStage = document.getElementById('modal-stage').value;
+  var note = document.getElementById('modal-note').value.trim();
+  var statusEl = document.getElementById('modal-status');
+  statusEl.className='status-msg busy'; statusEl.textContent='Saving…';
+  try{
+    var ok = await updateLeadStage(leadId, newStage, note);
+    if(ok){
+      statusEl.className='status-msg ok'; statusEl.textContent='✓ Saved.';
+      await loadAllLeadsForAdmin();
+      setTimeout(closeModal, 700);
+    } else {
+      statusEl.className='status-msg err'; statusEl.textContent='Save failed — Supabase rejected the update.';
+    }
+  }catch(e){
+    statusEl.className='status-msg err'; statusEl.textContent='Save failed — '+e.message;
+
+  }
+}
+
+function closeModal(){ document.getElementById('modal-bg').className = 'modal-bg'; }
+
+/* ═══ ROUTER ═══ */
+(function init(){
+  var slug = qs('a');
+  var name = qs('name');
+  var isAdmin = qs('admin');
+  if(slug){ renderAssociateView(slug, name); }
+  else if(isAdmin){ renderPinGate(); }
+  else {
+    document.getElementById('app').innerHTML = '<div class="wrap-narrow"><h1>ipowork Leads</h1><div class="sub">Associates: use the personal link you were given.</div><button class="btn btn-primary" onclick="window.location.href=window.location.pathname+\'?admin=1\'" style="margin-top:8px">🔐 Admin Login</button></div>';
+  }
+})();
+</script>
+</body>
+</html>
