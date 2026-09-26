@@ -2018,6 +2018,9 @@ async function checkCinTrialAndRecord(cin){
   if(!CURRENT_USER || !CURRENT_USER.email) return {allowed:true}; // not logged in — other gates handle this
   var email = CURRENT_USER.email.toLowerCase();
   if(email===ADMIN_EMAIL || CURRENT_USER.plan==='admin') return {allowed:true}; // admin never limited
+  /* ipowork Pro: this user already paid 1 credit to unlock this company — no second charge in AIRA (verified by the database) */
+  try{ if(window.IPWGate && IPWGate.session && IPWGate.getClient){ var _c=await IPWGate.getClient(); var _u=_c?await _c.rpc('pro_has_unlock',{p_cin:cin}):null;
+    if(_u && _u.data===true){ console.log('checkCinTrialAndRecord:', cin, 'unlocked in ipowork Pro \u2014 allowed, no AIRA credit used'); return {allowed:true}; } } }catch(_pe){ console.warn('Pro unlock check skipped', _pe); }
   var emailSafe = email.replace(/[^a-z0-9]/gi,'-');
 
   // Investor plan: restricted to exactly 4 preset showcase CINs, not the general MB evaluation list
@@ -4087,6 +4090,17 @@ function ipwCaptureRiskSnapshot(r, cin, cname){
       .then(function(x){ if(!x.ok) console.warn('Issuer capture (risk): not saved, status',x.status); else console.log('Issuer capture (risk): saved for',cin); }).catch(function(e){ console.warn('Issuer capture (risk): not saved',e); });
   }catch(e){ console.warn('Issuer capture (risk) skipped',e); }
 }
+
+/* Deep link from ipowork Pro / the issuer portal: aira.html?cin=<CIN> opens the SME Intel report with the CIN filled in */
+(function(){
+  try{
+    var q=new URLSearchParams(location.search).get('cin'); if(!q) return;
+    q=String(q).trim().toUpperCase(); if(!/^[LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/.test(q)) return;
+    var fill=function(){ try{ if(typeof switchTier==='function') switchTier('paid'); }catch(e){}
+      var el=document.getElementById('p-cin'); if(!el) return false; el.value=q; try{ el.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} el.scrollIntoView({block:'center'}); return true; };
+    var tries=0, t=setInterval(function(){ tries++; if(fill()||tries>40) clearInterval(t); },250);
+  }catch(e){}
+})();
 
 /* ── ISSUER INTELLIGENCE CAPTURE ──
    When an AIRA report runs for a CIN, save that company's structured figures

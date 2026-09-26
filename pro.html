@@ -77,6 +77,11 @@ tr.row{cursor:pointer}tr.row:hover td{background:#FBFDFD}
 .rt{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;padding:10px 12px;background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;font-size:13px}
 .log{font-size:12.5px;border-top:1px solid var(--soft);padding:7px 0}.log small{color:var(--muted)}
 .ans{white-space:pre-wrap;font-size:13.5px;line-height:1.6;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+.cred{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border-radius:18px;background:var(--mix-bg);border:1px solid var(--mix-line);color:var(--mix);font-weight:800;font-size:12.5px;cursor:pointer;font-family:inherit}
+.lk{color:var(--muted);font-size:12px}
+.lockcard{background:linear-gradient(135deg,#fff,#FFF7EE);border:1px dashed #E8C9A0;border-radius:12px;padding:18px}
+.lockcard ul{margin:10px 0 0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--ink2)}
+.pack{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-bottom:8px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--figure);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;display:none}
 @media (max-width:760px){
   :root{--px:14px}.desk{display:none}.g4,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}.g3,.g2{grid-template-columns:minmax(0,1fr)}
@@ -91,6 +96,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:#FBFDFD}
     <a class="logo" href="index.html">ipo<span>work</span></a><span class="desk" id="deskLabel">PRO</span>
     <span class="sp"></span>
     <select id="deskSwitch" aria-label="Switch desk" style="display:none"><option value="mb">Merchant Banker Desk</option><option value="inst">Institution Desk</option><option value="cacs">CA / CS Desk</option></select>
+    <button class="cred" id="creditBtn" type="button" title="Company credits: 1 credit unlocks 1 company">&#129689; <span id="creditN">&mdash;</span> credits</button>
     <button class="btn o" id="addBtn" type="button">+ Add company by CIN</button>
     <span class="sub" id="who"></span>
   </header>
@@ -124,7 +130,9 @@ function rec(cin){ var it=P.ws.get('rec',recKey(cin)); return it?it.data:null; }
 function myRecs(){ return P.ws.all('rec').filter(function(i){ return i.key.indexOf(S.desk+':')===0; }).map(function(i){ return i.data; }).filter(function(r){ return S.U[r.cin]; }); }
 function list(){ return Object.keys(S.U).map(function(c){ return S.U[c]; }); }
 function pct(v){ return v==null?'—':v+'%'; }
-function status(C){ var c=C.cls; return c.attention?'<span class="dot r">Attention</span>':(C.flags.length?'<span class="dot a">Watch</span>':'<span class="dot g">Normal</span>'); }
+function locked(C){ return !P.isUnlocked(C.cin); }
+function lockCell(){ return '<span class="lk" title="Unlock to see">\ud83d\udd12</span>'; }
+function status(C){ if(locked(C)) return '<span class="dot b">Locked</span>'; var c=C.cls; return c.attention?'<span class="dot r">Attention</span>':(C.flags.length?'<span class="dot a">Watch</span>':'<span class="dot g">Normal</span>'); }
 function routesChips(C){ return '<div class="chips">'+C.routes.map(function(r){ return '<span class="chip '+r.fit+'">'+esc(r.route)+'</span>'; }).join('')+'</div>'; }
 function changedList(){ var out=[]; myRecs().forEach(function(r){ var d=P.diff(r.snap,S.U[r.cin]); if(d.length) out.push({C:S.U[r.cin], d:d}); });
   P.ws.all('watch').forEach(function(w){ (w.data.cins||[]).forEach(function(c){ if(!S.U[c]||out.some(function(o){return o.C.cin===c;})) return; var d=P.diff((w.data.snaps||{})[c],S.U[c]); if(d.length) out.push({C:S.U[c],d:d}); }); });
@@ -135,9 +143,10 @@ var COLS=[['name','Company'],['sector','Sector'],['revenue','Revenue',1],['growt
 function table(rows, extra){
   if(!rows.length) return '<div class="card empty">No companies here yet.</div>';
   var k=S.sort.k, d=S.sort.d;
-  rows=rows.slice().sort(function(a,b){ var x=k==='name'||k==='sector'?(a[k]||'').localeCompare(b[k]||''):((a.m[k]==null?-1e12:a.m[k])-(b.m[k]==null?-1e12:b.m[k])); return x*d; });
+  var sv=function(C){ if(['revenue','stage'].indexOf(k)<0 && locked(C)) return -1e12; return C.m[k]==null?-1e12:C.m[k]; };
+  rows=rows.slice().sort(function(a,b){ var x=k==='name'||k==='sector'?(a[k]||'').localeCompare(b[k]||''):(sv(a)-sv(b)); return x*d; });
   return '<div class="scroll"><table><thead><tr>'+COLS.map(function(c,i){ return '<th data-sort="'+c[0]+'" class="'+(c[2]?'n ':'')+(i>1&&i<9?'':'')+(['sector','ebitdaM','roce','risk'].indexOf(c[0])>-1?'hide-m':'')+'">'+c[1]+(S.sort.k===c[0]?(S.sort.d>0?' ▲':' ▼'):'')+'</th>'; }).join('')+'<th>Status</th>'+(extra?'<th>'+extra.h+'</th>':'<th class="hide-m">Capital routes</th>')+'</tr></thead><tbody>'
-    +rows.map(function(C){ var m=C.m; return '<tr class="row" data-cin="'+C.cin+'"><td class="cn"><b>'+esc(C.name)+'</b><small>'+esc(C.cin)+(C.state?' · '+esc(C.state):'')+'</small></td><td class="hide-m">'+esc(C.sector)+'</td><td class="n">'+cr(m.revenue)+'</td><td class="n">'+pct(m.growth)+'</td><td class="n">'+cr(m.pat)+'</td><td class="n hide-m">'+pct(m.ebitdaM)+'</td><td class="n hide-m">'+pct(m.roce)+'</td><td class="n">'+(m.de==null?'—':m.de+'×')+'</td><td class="n">'+(m.aira==null?'—':m.aira)+'</td><td class="n hide-m">'+(m.risk==null?'—':m.risk)+'</td><td class="n">'+(m.stage||'—')+'</td><td>'+status(C)+'</td><td'+(extra?'':' class="hide-m"')+'>'+(extra?extra.f(C):routesChips(C))+'</td></tr>'; }).join('')+'</tbody></table></div>';
+    +rows.map(function(C){ var m=C.m, L=locked(C), g=function(v){ return L?lockCell():v; }; return '<tr class="row" data-cin="'+C.cin+'"><td class="cn"><b>'+esc(C.name)+'</b><small>'+esc(C.cin)+(C.state?' · '+esc(C.state):'')+'</small></td><td class="hide-m">'+esc(C.sector)+'</td><td class="n">'+cr(m.revenue)+'</td><td class="n">'+g(pct(m.growth))+'</td><td class="n">'+g(cr(m.pat))+'</td><td class="n hide-m">'+g(pct(m.ebitdaM))+'</td><td class="n hide-m">'+g(pct(m.roce))+'</td><td class="n">'+g(m.de==null?'—':m.de+'×')+'</td><td class="n">'+g(m.aira==null?'—':m.aira)+'</td><td class="n hide-m">'+g(m.risk==null?'—':m.risk)+'</td><td class="n">'+(m.stage||'—')+'</td><td>'+status(C)+'</td><td'+(extra?'':' class="hide-m"')+'>'+(L?'<span class="lk">\ud83d\udd12 Unlock to see routes</span>':(extra?extra.f(C):routesChips(C)))+'</td></tr>'; }).join('')+'</tbody></table></div>';
 }
 
 /* ---------- views ---------- */
@@ -209,9 +218,9 @@ function vRadarInst(){
   if(!M) return '<h1>Opportunities</h1><div class="card empty">Set your mandate first — sector, size, growth, leverage, stage and capital routes — and opportunities will be ranked with the reasons they match.<br><br><button class="btn s" data-go="mandate" type="button">Set our mandate</button></div>';
   var scored=rows.map(function(C){ return {C:C, r:P.match(C,M)}; }).filter(function(x){ return x.r&&x.r.total; }).sort(function(a,b){ return b.r.score-a.r.score; });
   var hi=scored.filter(function(x){return x.r.score>=80;});
-  return '<h1>Opportunities</h1><p class="sub">'+hi.length+' high matches of '+scored.length+'. '+esc(P.MATCH_METHOD)+'</p><div style="height:12px"></div>'
+  return '<h1>Opportunities</h1><p class="sub">'+hi.length+' high matches of '+scored.length+'. '+esc(P.MATCH_METHOD)+' Figures show once a company is unlocked.</p><div style="height:12px"></div>'
     +'<div class="grid g2">'+scored.slice(0,40).map(function(x){ var C=x.C; return '<div class="card" data-cin="'+C.cin+'" style="cursor:pointer"><div style="display:flex;justify-content:space-between;gap:10px"><div><b style="color:var(--figure)">'+esc(C.name)+'</b><div class="sub">'+esc(C.sector)+' · '+cr(C.m.revenue)+' revenue · PAT '+cr(C.m.pat)+'</div></div><span class="dot '+(x.r.score>=80?'g':x.r.score>=50?'b':'a')+'">'+x.r.score+'% · '+x.r.pass+'/'+x.r.total+'</span></div>'
-      +'<div class="chips" style="margin-top:8px">'+x.r.checks.map(function(c){ return '<span class="chip '+(c.pass?'strong':'attention')+'">'+(c.pass?'\u2713 ':'\u2717 ')+esc(c.label)+': '+esc(c.detail)+'</span>'; }).join('')+'</div></div>'; }).join('')+'</div>'+changesBlock();
+      +'<div class="chips" style="margin-top:8px">'+x.r.checks.map(function(c){ return '<span class="chip '+(c.pass?'strong':'attention')+'">'+(c.pass?'\u2713 ':'\u2717 ')+esc(c.label)+(locked(C)?'':': '+esc(c.detail))+'</span>'; }).join('')+'</div>'+(locked(C)?'<div class="lk" style="margin-top:6px">\ud83d\udd12 Unlock (1 credit) to see the figures behind each criterion</div>':'')+'</div>'; }).join('')+'</div>'+changesBlock();
 }
 function vPort(){
   var rs=myRecs(); var rows=rs.map(function(r){return S.U[r.cin];});
@@ -243,17 +252,18 @@ function vCompare(){
     +(sel.length?'<div class="scroll"><table><thead><tr><th>Parameter</th>'+sel.map(function(C){ return '<th class="n" style="white-space:normal">'+esc(C.name)+'</th>'; }).join('')+'</tr></thead><tbody>'+R.map(function(r){ return '<tr><td><b>'+r[0]+'</b></td>'+sel.map(function(C){ return '<td class="n" style="white-space:normal">'+esc(r[1](C))+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table></div>':'<div class="card empty">Add clients first.</div>');
 }
 function vAsk(){
-  return '<h1>Ask IPOWORK</h1><p class="sub">Answers come only from ipowork\u2019s company data, with the companies and figures used. Analytical information, not advice.</p><div style="height:12px"></div>'
+  return '<h1>Ask IPOWORK</h1><p class="sub">Answers come only from ipowork\u2019s data on companies you\u2019ve unlocked, with the companies and figures used. Analytical information, not advice.</p><div style="height:12px"></div>'
     +'<div class="card"><div class="chips" style="margin-bottom:10px">'+D().asks.map(function(q){ return '<button class="btn o sm" type="button" data-q="'+esc(q)+'">'+esc(q)+'</button>'; }).join('')+'</div>'
     +'<label class="sub" for="askQ">Your question</label><textarea id="askQ" rows="3" style="width:100%;font:inherit;font-size:14px;padding:10px;border:1.5px solid var(--line);border-radius:8px;margin-top:4px"></textarea>'
-    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><select id="askScope" style="min-height:38px;border:1.5px solid var(--line);border-radius:8px;padding:0 10px;font:inherit"><option value="mine">'+(S.desk==='cacs'?'My clients':S.desk==='inst'?'Portfolio + watchlists':'My pipeline + watchlists')+'</option><option value="all">All companies</option></select><button class="btn s" id="askGo" type="button">Ask</button></div></div>'
+    +'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><select id="askScope" style="min-height:38px;border:1.5px solid var(--line);border-radius:8px;padding:0 10px;font:inherit"><option value="mine">'+(S.desk==='cacs'?'My clients':S.desk==='inst'?'Portfolio + watchlists':'My pipeline + watchlists')+'</option><option value="all">All companies you\u2019ve unlocked</option></select><button class="btn s" id="askGo" type="button">Ask</button></div></div>'
     +'<div id="askOut" style="margin-top:12px"></div>';
 }
-function scopeRows(which){ if(which==='all') return list(); var set={}; myRecs().forEach(function(r){ set[r.cin]=1; }); P.ws.all('watch').forEach(function(w){ (w.data.cins||[]).forEach(function(c){ set[c]=1; }); }); var rows=Object.keys(set).map(function(c){return S.U[c];}).filter(Boolean); return rows.length?rows:list(); }
+function scopeRows(which){ var ok=function(C){ return !locked(C); }; if(which==='all') return list().filter(ok); var set={}; myRecs().forEach(function(r){ set[r.cin]=1; }); P.ws.all('watch').forEach(function(w){ (w.data.cins||[]).forEach(function(c){ set[c]=1; }); }); var rows=Object.keys(set).map(function(c){return S.U[c];}).filter(Boolean).filter(ok); return rows.length?rows:list().filter(ok); }
 
 /* ---------- drawer: one company, desk-aware workspace ---------- */
 function openCo(cin){
   var C=S.U[cin]; if(!C) return; S.dw=cin; var m=C.m, r=rec(cin)||{}, b=C.brief;
+  if(locked(C)) return openLocked(C);
   document.getElementById('dwh').innerHTML='<div><div class="sub">'+esc(C.sector)+(C.state?' · '+esc(C.state):'')+' · CIN '+esc(C.cin)+' · accounts '+esc(C.fy)+'</div><h2>'+esc(C.name)+'</h2><div style="margin-top:6px">'+status(C)+' '+(m.stage?'<span class="chip">Stage '+m.stage+' · '+esc(m.stageName)+'</span>':'')+'</div></div><button class="x" id="dwx" aria-label="Close" type="button">×</button>';
   var t=function(l,v,s){ return '<div class="card tile"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div>'; };
   var h='<div class="grid g4">'+t('REVENUE',cr(m.revenue),m.growth!=null?pct(m.growth)+' growth':'')+t('PAT',cr(m.pat),m.patGrowth!=null?pct(m.patGrowth)+' vs last year':'')+t('EBITDA MARGIN',pct(m.ebitdaM),m.roce!=null?'ROCE '+m.roce+'%':'')+t('DEBT / EQUITY',m.de==null?'—':m.de+'×',m.debtEbitda!=null?'debt/EBITDA '+m.debtEbitda+'×':'')
@@ -280,11 +290,41 @@ function openCo(cin){
   }
   var wls=P.ws.all('watch');
   h+='<h2 style="font-size:15px">Watchlists</h2><div class="checks">'+(wls.length?wls.map(function(w){ return '<label><input type="checkbox" data-wl="'+esc(w.key)+'"'+((w.data.cins||[]).indexOf(cin)>-1?' checked':'')+'> '+esc(w.data.name||w.key)+'</label>'; }).join(''):'<span class="sub">Create a watchlist in the Watchlists tab.</span>')+'</div>';
-  h+='</div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn o sm" id="dwRefresh" type="button">Refresh data (one MCA call)</button></div>'
+  h+='</div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn s" href="aira.html?cin='+encodeURIComponent(C.cin)+'" target="_blank" rel="noopener">\ud83d\udd0e Run AIRA research</a><button class="btn o sm" id="dwRefresh" type="button">Refresh MCA data</button></div>'
     +'<p class="sub" style="margin-top:14px">Built from public filings (MCA via Probe42) as of '+esc(C.asOf?new Date(C.asOf).toLocaleDateString('en-IN'):'—')+'. Intelligence only; not investment, credit or legal advice.</p>';
   document.getElementById('dwb').innerHTML=h;
   document.getElementById('dw').classList.add('on'); document.getElementById('ov').classList.add('on');
 }
+function openLocked(C){
+  var m=C.m, CRd=P.credits;
+  document.getElementById('dwh').innerHTML='<div><div class="sub">'+esc(C.sector)+(C.state?' · '+esc(C.state):'')+' · CIN '+esc(C.cin)+'</div><h2>'+esc(C.name)+'</h2><div style="margin-top:6px"><span class="dot b">Locked</span> '+(m.stage?'<span class="chip">Stage '+m.stage+' · '+esc(m.stageName)+'</span>':'')+'</div></div><button class="x" id="dwx" aria-label="Close" type="button">×</button>';
+  var can=CRd.mode==='on';
+  document.getElementById('dwb').innerHTML='<div class="grid g2" style="margin-bottom:14px"><div class="card tile"><div class="l">REVENUE '+esc(C.fy||'')+'</div><div class="v">'+cr(m.revenue)+'</div></div><div class="card tile"><div class="l">STAGE</div><div class="v">'+(m.stage||'—')+'</div><div class="s">'+esc(m.stageName||'')+'</div></div></div>'
+    +'<div class="lockcard"><b style="font-size:16px;color:var(--figure)">\ud83d\udd12 Unlock this company \u2014 1 credit</b><div class="sub" style="margin-top:4px">'+(can?'You have <b>'+CRd.balance+'</b> credit'+(CRd.balance===1?'':'s')+'. Unlocking is once per company: view, refresh and research it again at no extra cost.':'Company credits aren\u2019t available on your account yet. Contact ipowork to get started.')+'</div>'
+    +'<ul><li>Full financials, growth, margins, ROCE and leverage</li><li>Capital routes with reasons and next steps</li><li>Flags: what changed, why it matters, what to investigate</li><li>Debt and equity profile, AIRA and Risk Desk scores</li><li>Your private workspace: pipeline, notes, tasks, watchlists</li><li>AIRA instant research on this company, included</li></ul>'
+    +'<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">'+(can&&CRd.balance>0?'<button class="btn p" id="unlockGo" type="button">Unlock for 1 credit</button>':'')+'<button class="btn '+(can&&CRd.balance>0?'o':'p')+'" id="buyGo" type="button">Buy credits</button></div><div class="sub" id="unlockMsg" role="status" style="margin-top:8px"></div></div>';
+  document.getElementById('dw').classList.add('on'); document.getElementById('ov').classList.add('on');
+}
+function openBuy(){
+  S.dw=null; var CRd=P.credits, org=(S.profile&&S.profile.org)||'';
+  document.getElementById('dwh').innerHTML='<div><h2>Company credits</h2><div class="sub">1 credit = 1 company, unlocked for you with full intelligence and AIRA research.</div></div><button class="x" id="dwx" aria-label="Close" type="button">×</button>';
+  document.getElementById('dwb').innerHTML='<div class="note" style="margin-bottom:12px">Your balance: <b>'+(CRd.admin?'unlimited (admin)':CRd.mode==='on'?CRd.balance:'—')+'</b>. Companies unlocked: <b>'+Object.keys(CRd.unlocked).length+'</b>.</div>'
+    +P.PACKS.map(function(p){ var msg='Hi ipowork, I would like to buy '+p.credits+' company credits ('+p.label+') for ipowork Pro. Account: '+((S.profile&&S.profile.email)||'')+(org?' · '+org:'')+'.';
+      return '<div class="pack"><div><b style="color:var(--figure)">'+p.credits+' credits</b> <span class="sub">· '+esc(p.label)+'</span><div class="sub">'+(p.price?'\u20b9'+p.price.toLocaleString('en-IN')+' \u00b7 \u20b9'+Math.round(p.price/p.credits).toLocaleString('en-IN')+' per company':'Price on request')+'</div></div><a class="btn s sm" target="_blank" rel="noopener" href="https://wa.me/918851059588?text='+encodeURIComponent(msg)+'">Buy</a></div>'; }).join('')
+    +'<p class="sub" style="margin-top:10px">After payment (UPI, bank transfer or payment link), ipowork adds the credits to your account \u2014 usually within one working day. Email <a href="mailto:partners@ipowork.com">partners@ipowork.com</a> for an invoice.</p>';
+  document.getElementById('dw').classList.add('on'); document.getElementById('ov').classList.add('on');
+}
+function vCredits(){
+  return '<h1>Credits \u00b7 admin</h1><p class="sub">Add credits after payment. Users can only spend credits by unlocking companies; nobody can add credits to themselves.</p><div style="height:12px"></div>'
+    +'<div class="card"><div class="form"><div><label for="gEmail">Account email</label><input id="gEmail" type="email"></div><div><label for="gN">Credits (negative to reverse)</label><input id="gN" inputmode="numeric" value="10"></div><div><label for="gNote">Note (payment reference)</label><input id="gNote" placeholder="e.g. UPI ref 4829…"></div></div>'
+    +'<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn s" id="gGo" type="button">Add credits</button><span class="sub" id="gMsg" role="status"></span></div></div>'
+    +'<h2>Balances</h2><div id="wallets"><div class="card empty">Loading…</div></div>';
+}
+async function loadWallets(){ var el=document.getElementById('wallets'); if(!el) return;
+  try{ var r=await P.adminWallets(); if(!r.ok) throw new Error(r.error);
+    el.innerHTML='<div class="scroll"><table><thead><tr><th>Account</th><th>Organisation</th><th>Role</th><th class="n">Balance</th><th class="n">Companies</th></tr></thead><tbody>'+(r.rows||[]).map(function(x){ return '<tr><td class="cn"><b>'+esc(x.full_name||'—')+'</b><small>'+esc(x.email)+'</small></td><td>'+esc(x.org||'')+'</td><td>'+esc(x.role)+'</td><td class="n">'+x.balance+'</td><td class="n">'+x.companies+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  }catch(e){ el.innerHTML='<div class="card empty">'+esc(e.message)+' \u2014 has pro-credits.sql been run in Supabase?</div>'; } }
+function paintCredits(){ var n=document.getElementById('creditN'); if(n) n.textContent=P.credits.admin?'\u221e':(P.credits.mode==='on'?P.credits.balance:'\u2014'); }
 function closeCo(){ S.dw=null; document.getElementById('dw').classList.remove('on'); document.getElementById('ov').classList.remove('on'); }
 async function saveRec(cin, patch){
   var r=Object.assign({desk:S.desk, cin:cin, added:new Date().toISOString(), notes:[], tasks:[], snap:P.snap(S.U[cin])}, rec(cin)||{}, patch);
@@ -294,9 +334,11 @@ async function saveRec(cin, patch){
 
 /* ---------- render ---------- */
 function render(keepScroll){
-  document.getElementById('tabs').innerHTML=D().tabs.map(function(t){ return '<button type="button" data-tab="'+t[0]+'" class="'+(S.tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('');
+  var tabs=D().tabs.concat(P.credits.admin?[['credits','Credits \u00b7 admin']]:[]);
+  document.getElementById('tabs').innerHTML=tabs.map(function(t){ return '<button type="button" data-tab="'+t[0]+'" class="'+(S.tab===t[0]?'on':'')+'">'+t[1]+'</button>'; }).join('');
   document.getElementById('deskLabel').textContent=D().label;
-  var v={radar:S.desk==='inst'?vRadarInst:S.desk==='cacs'?vRadarCacs:vRadarMB, screen:vScreen, pipe:vPipe, watch:vWatch, mandate:vMandate, port:vPort, dash:vDash, compare:vCompare, ask:vAsk}[S.tab];
+  var v={radar:S.desk==='inst'?vRadarInst:S.desk==='cacs'?vRadarCacs:vRadarMB, screen:vScreen, pipe:vPipe, watch:vWatch, mandate:vMandate, port:vPort, dash:vDash, compare:vCompare, ask:vAsk, credits:vCredits}[S.tab];
+  paintCredits(); if(S.tab==='credits') setTimeout(loadWallets,0);
   var y=window.scrollY; app.innerHTML=(P.ws.mode!=='secure'?'<div class="note warn" style="margin-bottom:12px">Your workspace is saved on this device only. Once ipowork switches on the secure workspace, it syncs privately across your devices.</div>':'')+(v?v():''); if(keepScroll) window.scrollTo(0,y);
   var top=document.querySelector('.top'); if(top) document.documentElement.style.setProperty('--hdr', top.offsetHeight+'px');
 }
@@ -312,6 +354,16 @@ document.addEventListener('click', async function(e){
   if(t.id==='dwx'||t.id==='ov'){ closeCo(); return; }
   var row=t.closest('[data-cin]'); if(row && !t.closest('#dw')){ openCo(row.getAttribute('data-cin')); return; }
   if(t.id==='fClear'){ S.f={}; render(true); return; }
+  if(t.id==='creditBtn'||t.id==='buyGo'){ openBuy(); return; }
+  if(t.id==='unlockGo' && S.dw){ var cu=S.dw, um=document.getElementById('unlockMsg'); t.disabled=true; um.textContent='Unlocking\u2026';
+    try{ var ur=await P.unlock(cu); if(!ur.ok){ um.textContent=ur.error==='no credits'?'You have no credits left.':('Couldn\u2019t unlock: '+ur.error); t.disabled=false; return; }
+      var C0=S.U[cu]; if(C0 && C0.asOf && Date.now()-new Date(C0.asOf).getTime()>180*86400000){ um.textContent='Unlocked \u2014 fetching fresh MCA data\u2026'; try{ await P.addCin(cu, S.profile&&S.profile.email); await load(); }catch(e2){} }
+      paintCredits(); toast('Unlocked \u00b7 '+P.credits.balance+' credit'+(P.credits.balance===1?'':'s')+' left'); openCo(cu); render(true); }
+    catch(err){ um.textContent=err.message; t.disabled=false; } return; }
+  if(t.id==='gGo'){ var gm=document.getElementById('gMsg'), ge=document.getElementById('gEmail').value.trim(), gn=parseInt(document.getElementById('gN').value,10);
+    if(!ge||!gn){ gm.textContent='Enter an email and a number of credits.'; return; } t.disabled=true; gm.textContent='Saving\u2026';
+    try{ var gr=await P.grant(ge,gn,document.getElementById('gNote').value.trim()); gm.textContent=gr.ok?('\u2713 Done. New balance: '+gr.balance):('\u2717 '+gr.error); if(gr.ok) loadWallets(); }catch(err){ gm.textContent=err.message; } t.disabled=false; return; }
+
   if(t.id==='wlAdd'){ var n=document.getElementById('wlName').value.trim(); if(!n) return; try{ await P.ws.put('watch', n.slice(0,60), {name:n.slice(0,60), cins:[], snaps:{}}); }catch(err){ toast(err.message); } render(); return; }
   var wd=t.closest('[data-wldel]'); if(wd){ if(confirm('Delete this watchlist?')){ await P.ws.del('watch', wd.getAttribute('data-wldel')); render(); } return; }
   if(t.id==='mSave'){ var M={}; document.querySelectorAll('[data-mv]').forEach(function(i){ if(i.value!=='') M[i.getAttribute('data-mv')]=+i.value; });
@@ -320,8 +372,17 @@ document.addEventListener('click', async function(e){
   if(t.id==='askGo'){ var qq=document.getElementById('askQ').value.trim(), out=document.getElementById('askOut'); if(!qq) return; t.disabled=true; out.innerHTML='<div class="card empty">Reading the data…</div>';
     try{ var ans=await P.ask(qq, scopeRows(document.getElementById('askScope').value), D().label.toLowerCase()); out.innerHTML='<div class="ans">'+esc(ans)+'</div><p class="sub" style="margin-top:6px">Answered from ipowork company data only. Check figures in each company panel before acting.</p>'; }
     catch(err){ out.innerHTML='<div class="card empty">Couldn\u2019t answer just now ('+esc(err.message)+').</div>'; } t.disabled=false; return; }
-  if(t.id==='addBtn'){ var cin=prompt('Company CIN (21 characters):'); if(!cin) return; t.disabled=true; toast('Fetching MCA data…');
-    try{ var how=await P.addCin(cin, S.profile&&S.profile.email); await load(); var C=S.U[String(cin).trim().toUpperCase()]; toast(how==='cached'?'Already up to date':'Added'); if(C) openCo(C.cin); }catch(err){ toast(err.message); } t.disabled=false; return; }
+  if(t.id==='addBtn'){ var cin=prompt('Company CIN (21 characters):'); if(!cin) return; cin=String(cin).trim().toUpperCase();
+    if(!P.CIN_RE.test(cin)){ toast('That doesn\u2019t look like a valid CIN'); return; }
+    if(!P.isUnlocked(cin)){
+      if(P.credits.mode!=='on'){ toast('Company credits aren\u2019t active on your account'); openBuy(); return; }
+      if(P.credits.balance<1){ toast('You have no credits left'); openBuy(); return; }
+      if(!confirm('Unlock '+cin+' for 1 credit? You have '+P.credits.balance+'.')) return;
+      try{ var ar=await P.unlock(cin); if(!ar.ok){ toast('Couldn\u2019t unlock: '+ar.error); return; } }catch(err){ toast(err.message); return; }
+      paintCredits(); }
+    t.disabled=true; toast('Fetching MCA data\u2026');
+    try{ var how=await P.addCin(cin, S.profile&&S.profile.email); await load(); var C=S.U[cin]; toast(how==='cached'?'Already up to date':'Added'); if(C) openCo(C.cin); render(true); }catch(err){ toast(err.message); } t.disabled=false; return; }
+
   if(t.id==='dwRefresh' && S.dw){ t.disabled=true; toast('Refreshing…'); try{ await P.addCin(S.dw, S.profile&&S.profile.email); await load(); openCo(S.dw); toast('Up to date'); }catch(err){ toast(err.message); } return; }
   if(t.id==='wsAdd' && S.dw){ return saveRec(S.dw,{stage:D().stages[0], role:D().rec}); }
   if(t.id==='wsSave' && S.dw){ var st=document.getElementById('wsStage').value; if(!st){ toast('Choose a stage'); return; }
@@ -353,6 +414,7 @@ async function start(profile){
   S.tab=D().tabs[0][0];
   document.getElementById('who').textContent=(S.profile.full_name||S.profile.email||'')+(S.profile.org?' · '+S.profile.org:'');
   await P.ws.init(S.profile);
+  await P.credits.load(S.profile);
   try{ await load(); }catch(e){ app.innerHTML='<div class="card empty">Couldn\u2019t load company data ('+esc(e.message)+'). Please refresh.</div>'; return; }
   render();
 }

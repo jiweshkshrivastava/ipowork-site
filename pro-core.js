@@ -168,6 +168,26 @@
     if(W.mode==='secure'){ var r=await W.c.from('pro_items').delete().eq('kind',kind).eq('key',key); if(r.error) throw new Error(r.error.message); } else saveLocal();
   };
 
+  /* ---------------- company credits (1 credit = 1 company, enforced in the database) ---------------- */
+  var CR=P.credits={mode:'off', balance:0, unlocked:{}, admin:false};
+  async function rpc(fn, args){ var c=window.IPWGate&&IPWGate.getClient?await IPWGate.getClient():null; if(!c||!IPWGate.session) throw new Error('Please sign in'); var r=await c.rpc(fn, args||{}); if(r.error) throw new Error(r.error.message); return r.data; }
+  CR.load = async function(profile){
+    CR.admin = !!(profile && profile.role==='admin');
+    try{ var w=await rpc('pro_wallet'); if(w&&w.ok){ CR.mode='on'; CR.balance=w.balance; CR.unlocked={}; (w.unlocked||[]).forEach(function(c){ CR.unlocked[c]=1; }); return CR; } }catch(e){ CR.err=e.message; }
+    CR.mode='off'; return CR;
+  };
+  P.isUnlocked = function(cin){ return CR.admin || !!CR.unlocked[cin]; };
+  P.unlock = async function(cin){
+    if(CR.admin) return {ok:true, already:true};
+    var r=await rpc('pro_unlock',{p_cin:cin});
+    if(r&&r.ok){ CR.unlocked[String(cin).toUpperCase()]=1; CR.balance=r.balance; }
+    return r||{ok:false,error:'no response'};
+  };
+  P.grant = function(email, n, note){ return rpc('pro_grant',{p_email:email, p_credits:n, p_note:note||null}); };
+  P.adminWallets = function(){ return rpc('pro_admin_wallets'); };
+  /* credit packs — set prices here (₹). null = "price on request" */
+  P.PACKS=[{credits:5,price:null,label:'Starter'},{credits:25,price:null,label:'Professional'},{credits:100,price:null,label:'Firm'},{credits:500,price:null,label:'Enterprise'}];
+
   /* ---------------- add a company by CIN (signed-in users; costs one data call) ---------------- */
   P.addCin = async function(cin, byEmail){
     cin=String(cin||'').trim().toUpperCase(); if(!P.CIN_RE.test(cin)) throw new Error('Enter a valid 21-character CIN');
