@@ -101,8 +101,8 @@ h1{font-family:'Fraunces',serif;font-size:26px;color:var(--tld);margin-bottom:4p
 var SUPA_URL_TRIAL = 'https://esqlfsjhekdspycfgnoz.supabase.co';
 var SUPA_KEY_TRIAL = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
 
-var CATEGORIES = ['MB','Investor','Debt Board','CA/CS','Other'];
-var CATEGORY_COLORS = {'MB':'#0D5C6B','Investor':'#5B6FEC','Debt Board':'#E88A2E','CA/CS':'#1A9E6B','Other':'#6B7E85'};
+var CATEGORIES = ['MB','Investor','Debt Board','CA/CS','Issuer','Other'];
+var CATEGORY_COLORS = {'MB':'#0D5C6B','Investor':'#5B6FEC','Debt Board':'#E88A2E','CA/CS':'#1A9E6B','Issuer':'#A8520A','Other':'#6B7E85'};
 var STAGES = ['New','Contacted','Qualified','In Progress','Closed Won','Closed Lost'];
 var STAGE_COLORS = {'New':'#6B7E85','Contacted':'#0D5C6B','Qualified':'#1A7D90','In Progress':'#E88A2E','Closed Won':'#1A9E6B','Closed Lost':'#C0392B'};
 
@@ -402,6 +402,10 @@ function openLeadModal(leadId){
     '</div>'+
     (l.email?'<div class="field"><label>Email</label><div style="font-size:13px">'+esc(l.email)+'</div></div>':'')+
     (l.notes?'<div class="field"><label>Notes</label><div style="font-size:13px">'+esc(l.notes)+'</div></div>':'')+
+    (l.category==='Issuer'?(function(){ var cm=String(l.notes||'').toUpperCase().match(/[LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}/);
+      var q='issuer-brief-admin.html?email='+encodeURIComponent(l.email||'')+'&name='+encodeURIComponent(l.contact||'')+'&firm='+encodeURIComponent(l.company||'')+'&phone='+encodeURIComponent(l.phone||'')+'&cin='+encodeURIComponent(cm?cm[0]:'')+'&lead='+encodeURIComponent(l.leadId||'')+'#access';
+      return '<div class="field"><a href="'+q+'" target="_blank" rel="noopener" style="display:inline-block;padding:9px 14px;background:#A8520A;color:#fff;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">Verify &amp; create brief access →</a>'
+        +'<div style="font-size:11.5px;color:#6B7E85;margin-top:5px">Opens the admin page pre-filled. '+(cm?'CIN from the request: '+cm[0]+'.':'No CIN in the request — look it up before creating access.')+'</div></div>'; })():'')+
     '<div class="field"><label>Stage</label><select id="modal-stage">'+stageOpts+'</select></div>'+
     '<div class="field"><label>Add a note (optional)</label><textarea id="modal-note" placeholder="What changed?"></textarea></div>'+
     '<button class="btn btn-primary" onclick="handleStageUpdate(\''+esc(l.leadId)+'\')">Save</button>'+

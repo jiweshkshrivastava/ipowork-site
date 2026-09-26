@@ -71,6 +71,8 @@
       ebit: ebit
     };
   }
+  var OVERRIDABLE = ['roce','receivable_days','inventory_days','interest_cover','debt_equity','ebitda_margin'];
+  function applyOverrides(y){ if(!y.ov) return; OVERRIDABLE.forEach(function(k){ if((y.m[k]===null||y.m[k]===undefined) && y.ov[k]!==null && y.ov[k]!==undefined){ y.m[k]=y.ov[k]; (y.m._from=y.m._from||{})[k]='MCA ratio data'; } }); }
 
   var METRICS = [
     {k:'revenue', label:'Revenue', unit:'cr', type:'ACTUAL', good:'up', method:'Revenue from operations, as filed.'},
@@ -98,15 +100,15 @@
     var opp = last3.map(function(y){ return y.operating_profit!==null ? y.operating_profit : y.m.ebit; });
     var oppProxy = last3.some(function(y){ return y.operating_profit===null; });
     var oppAvg = full && opp.every(function(v){ return v!==null; }) ? opp.reduce(function(a,b){return a+b;},0)/3 : null;
-    var nta = each(function(y){ return y.net_tangible_assets!==null && y.net_tangible_assets>=3; });
-    if(full && last3.some(function(y){ return y.net_tangible_assets===null; })) nta='unknown';
+    var ntaVals = last3.map(function(y){ return y.net_tangible_assets!==null ? y.net_tangible_assets : (flags.ntaBasis==='net_worth' ? y.net_worth : null); });
+    var nta = full ? (ntaVals.some(function(v){return v===null;}) ? 'unknown' : (ntaVals.every(function(v){return v>=3;})?'met':'not_met')) : 'unknown';
     var nw = each(function(y){ return y.net_worth!==null && y.net_worth>=1; });
     var opEach = full ? (opp.every(function(v){ return v!==null && v>0; }) ? 'met' : (opp.some(function(v){return v===null;})?'unknown':'not_met')) : 'unknown';
     var opAvg = oppAvg===null ? 'unknown' : (oppAvg>=15 ? 'met' : 'not_met');
     var span = full ? fyLabel(last3[0].year)+'–'+fyLabel(last3[2].year) : 'three full years not available';
     var items = [
-      {cat:'Regulatory', label:'Net tangible assets ≥ ₹3 cr in each of the last 3 years', status:nta, detail:span},
-      {cat:'Regulatory', label:'Average operating profit ≥ ₹15 cr over the last 3 years', status:opAvg, detail: oppAvg===null?span:('Average '+crore(oppAvg)+' ('+span+')'+(oppProxy?' · EBIT used where operating profit was not filed':''))},
+      {cat:'Regulatory', label:'Net tangible assets ≥ ₹3 cr in each of the last 3 years', status:nta, detail:span+(flags.ntaBasis==='net_worth'?' · net worth used as a stand-in (intangibles not filed separately)':''), type:(flags.ntaBasis==='net_worth'?'ESTIMATED':'ACTUAL')},
+      {cat:'Regulatory', label:'Average operating profit ≥ ₹15 cr over the last 3 years', status:opAvg, detail: oppAvg===null?span:('Average '+crore(oppAvg)+' ('+span+')'+(flags.opBasis==='pbt'?' · profit before tax used as a conservative stand-in for operating profit':(oppProxy?' · EBIT used where operating profit was not filed':''))), type:(flags.opBasis==='pbt'||oppProxy?'ESTIMATED':'ACTUAL')},
       {cat:'Regulatory', label:'Operating profit in each of the last 3 years', status:opEach, detail:span},
       {cat:'Regulatory', label:'Net worth ≥ ₹1 cr in each of the last 3 years', status:nw, detail:span},
       {cat:'Legal form', label:'Public limited company (only public companies can offer shares to the public)', status: flags.public_company===null?'unknown':(flags.public_company?'met':'not_met'), detail:''},
@@ -165,42 +167,42 @@
   /* ---------- risk radar (ipowork thresholds, shown to the issuer) ---------- */
   function radar(last, prev, flags){
     var out = [];
-    function add(area, level, changed, matters, investigate){ out.push({area:area, level:level, whatChanged:changed, whyItMatters:matters, investigate:investigate}); }
+    function add(area, level, changed, matters, investigate, missing){ if(missing){ out.push({area:area, level:'na', whatChanged:'Not available in the filed data we hold.', whyItMatters:matters, investigate:''}); return; } out.push({area:area, level:level, whatChanged:changed, whyItMatters:matters, investigate:investigate}); }
     var m = last.m, p = prev ? prev.m : null, L = fyLabel(last.year);
     // Debt
     var lv='normal';
     if((m.debt_equity!==null&&m.debt_equity>1.5)||(m.debt_ebitda!==null&&m.debt_ebitda>4)) lv='critical';
     else if((m.debt_equity!==null&&m.debt_equity>1.0)||(m.debt_ebitda!==null&&m.debt_ebitda>3)) lv='watch';
     add('Debt', lv, 'Debt/equity '+(m.debt_equity===null?'—':m.debt_equity)+(p&&p.debt_equity!==null?' (was '+p.debt_equity+')':'')+', debt/EBITDA '+(m.debt_ebitda===null?'—':m.debt_ebitda+'×')+' in '+L+'.',
-      'Lenders and pre-IPO investors usually look for debt/equity under 1.0 and debt/EBITDA under 3×.', lv==='normal'?'No action needed.':'Which borrowings fund growth versus working capital, and what the repayment plan is.');
+      'Lenders and pre-IPO investors usually look for debt/equity under 1.0 and debt/EBITDA under 3×.', lv==='normal'?'No action needed.':'Which borrowings fund growth versus working capital, and what the repayment plan is.', m.debt_equity===null&&m.debt_ebitda===null);
     // Interest cover
     lv = m.interest_cover===null?'normal':(m.interest_cover<1.5?'critical':(m.interest_cover<3?'watch':'normal'));
     add('Interest cover', lv, 'EBITDA covers finance cost '+(m.interest_cover===null?'—':m.interest_cover+'×')+' in '+L+'.',
-      'Below 3× leaves little room if profits dip or rates rise.', lv==='normal'?'No action needed.':'Cost of each borrowing, and whether refinancing at a lower rate is possible.');
+      'Below 3× leaves little room if profits dip or rates rise.', lv==='normal'?'No action needed.':'Cost of each borrowing, and whether refinancing at a lower rate is possible.', m.interest_cover===null);
     // Receivables
     var dR = (p&&m.receivable_days!==null&&p.receivable_days!==null) ? m.receivable_days-p.receivable_days : null;
     lv = (m.receivable_days!==null&&m.receivable_days>120)||(dR!==null&&dR>30)?'critical':((m.receivable_days!==null&&m.receivable_days>90)||(dR!==null&&dR>15)?'watch':'normal');
     add('Receivables', lv, 'Customers take '+(m.receivable_days===null?'—':m.receivable_days+' days')+' to pay'+(dR!==null?' ('+(dR>=0?'+':'')+dR+' days vs last year)':'')+'.',
-      'Slower collections lock up cash and can hide customer stress.', lv==='normal'?'No action needed.':'Which customers are overdue, and whether credit terms were extended to win sales.');
+      'Slower collections lock up cash and can hide customer stress.', lv==='normal'?'No action needed.':'Which customers are overdue, and whether credit terms were extended to win sales.', m.receivable_days===null);
     // Inventory
     var dI = (p&&m.inventory_days!==null&&p.inventory_days!==null) ? m.inventory_days-p.inventory_days : null;
     lv = dI!==null&&dI>30?'critical':(dI!==null&&dI>15?'watch':'normal');
     add('Inventory', lv, 'Inventory at '+(m.inventory_days===null?'—':m.inventory_days+' days')+' of revenue'+(dI!==null?' ('+(dI>=0?'+':'')+dI+' days vs last year)':'')+'.',
-      'Rising inventory ties up cash and can signal slow-moving stock.', lv==='normal'?'No action needed.':'Ageing of stock by product, and whether any is slow-moving or obsolete.');
+      'Rising inventory ties up cash and can signal slow-moving stock.', lv==='normal'?'No action needed.':'Ageing of stock by product, and whether any is slow-moving or obsolete.', m.inventory_days===null);
     // Cash flow
     lv = last.cash_from_ops!==null&&last.cash_from_ops<0?'critical':(m.ocf_to_pat!==null&&m.ocf_to_pat<50?'watch':'normal');
     add('Cash flow', lv, 'Operating cash flow '+crore(last.cash_from_ops)+(m.ocf_to_pat!==null?' — '+m.ocf_to_pat+'% of PAT':'')+' in '+L+'.',
-      'Investors check that profits turn into cash; a large gap raises earnings-quality questions.', lv==='normal'?'No action needed.':'Where cash is held up — receivables, inventory or advances — and why.');
+      'Investors check that profits turn into cash; a large gap raises earnings-quality questions.', lv==='normal'?'No action needed.':'Where cash is held up — receivables, inventory or advances — and why.', last.cash_from_ops===null);
     // Profitability
     var dPat = pct(last.pat, prev?prev.pat:null), dMar = (p&&m.ebitda_margin!==null&&p.ebitda_margin!==null)? r1(m.ebitda_margin-p.ebitda_margin):null;
     lv = (dPat!==null&&dPat<-30)||(dMar!==null&&dMar<-3)?'critical':((dPat!==null&&dPat<-15)||(dMar!==null&&dMar<-1.5)?'watch':'normal');
     add('Profitability', lv, 'PAT '+(dPat===null?'—':(dPat>=0?'+':'')+r1(dPat)+'%')+', EBITDA margin '+(m.ebitda_margin===null?'—':m.ebitda_margin+'%')+(dMar!==null?' ('+(dMar>=0?'+':'')+dMar+' pts)':'')+' in '+L+'.',
-      'Margin trend is one of the first things investors and lenders test.', lv==='normal'?'No action needed.':'Which costs grew faster than revenue — raw material, staff, or other expenses.');
+      'Margin trend is one of the first things investors and lenders test.', lv==='normal'?'No action needed.':'Which costs grew faster than revenue — raw material, staff, or other expenses.', dPat===null&&m.ebitda_margin===null);
     // Growth
     var g = pct(last.revenue, prev?prev.revenue:null);
     lv = g!==null&&g<-10?'critical':(g!==null&&g<0?'watch':'normal');
     add('Growth', lv, 'Revenue '+(g===null?'—':(g>=0?'+':'')+r1(g)+'%')+' in '+L+'.',
-      'Consistent growth drives valuation and IPO eligibility.', lv==='normal'?'No action needed.':'Whether the fall is volume, price or a lost customer.');
+      'Consistent growth drives valuation and IPO eligibility.', lv==='normal'?'No action needed.':'Whether the fall is volume, price or a lost customer.', g===null);
     // Governance
     var gov=[]; if(flags.delayed) gov.push('delayed MCA filings'); if(flags.indep===0) gov.push('no independent directors');
     lv = gov.length ? 'watch' : 'normal';
@@ -263,6 +265,77 @@
       method: fyLabel(last.year)+' PAT '+crore(last.pat)+' × listed-peer trailing P/E range '+lo+'–'+hi+'× (mid '+mid+'×)'+(multiples.asOf?' as of '+multiples.asOf:'')+'. Analytical estimate only — not a valuation opinion.'};
   }
 
+  var OVERRIDABLE_IN = ['roce','receivable_days','inventory_days','interest_cover','debt_equity','ebitda_margin'];
+  /* ---------- AIRA report → engine rows ----------
+     Uses the Probe42/MCA figures AIRA already fetched. Where MCA data doesn't carry
+     a field, it stays blank (shown as "not available"), never guessed.
+     Stand-ins, each labelled on the page: profit before tax for operating profit,
+     net worth for net tangible assets; latest-year ratios from MCA ratio data. */
+  E.rowsFromAira = function(a){
+    var f = a.financials || {}, cin = String(a.cin||'').toUpperCase();
+    function lab(x, d){ var m=String(x||'').match(/(\d{2})\s*$/); return m ? 'FY'+m[1] : d; }
+    var y24 = lab(f.fy24_year || f.fy_year, null), n = y24 ? +y24.slice(2) : null;
+    var y23 = lab(f.fy23_year, n ? 'FY'+(n-1) : 'FY23'), y22 = lab(f.fy22_year, n ? 'FY'+(n-2) : 'FY22');
+    if(!y24) y24 = 'FY'+(+y23.slice(2)+1);
+    var pub = /PLC/.test(cin) ? 'Y' : (/PTC/.test(cin) ? 'N' : (/public/i.test(a.company_type||'') ? 'Y' : (/private/i.test(a.company_type||'') ? 'N' : '')));
+    var common = { cin:cin, company_name:a.company_name||'', sector:a.sector||'', city:a.registered_state||'', public_company:pub,
+      independent_directors: (a.independent_directors===null||a.independent_directors===undefined) ? '' : a.independent_directors,
+      aira_score: a.aira_score===null||a.aira_score===undefined ? '' : a.aira_score, filed_on: a.last_filing_date||'', op_basis:'pbt', nta_basis:'net_worth' };
+    function row(o){ return Object.assign({}, common, o); }
+    return [
+      row({ fy:y22, revenue:f.revenue_fy22, pat:f.pat_fy22, ebitda:f.ebitda_fy22, net_worth:f.net_worth_fy22, operating_profit:f.pbt_fy22 }),
+      row({ fy:y23, revenue:f.revenue_fy23, pat:f.pat_fy23, ebitda:f.ebitda_fy23, net_worth:f.net_worth_fy23, operating_profit:f.pbt_fy23 }),
+      row({ fy:y24, revenue:f.revenue_fy24, pat:f.pat_fy24, ebitda:(f.ebitda_cr!=null?f.ebitda_cr:f.operating_profit), net_worth:f.net_worth, total_debt:f.total_debt,
+            receivables:f.trade_receivables, inventory:f.inventories_cr, cash_from_ops:f.operating_cashflow, capex:f.capex, operating_profit:f.profit_before_tax,
+            ov_roce:f.roce, ov_receivable_days:f.debtor_days, ov_inventory_days:f.inventory_days, ov_interest_cover:f.interest_coverage,
+            ov_debt_equity:f.debt_equity_ratio, ov_ebitda_margin:f.ebitda_margin })
+    ].filter(function(r){ return r.revenue!=null || r.pat!=null || r.net_worth!=null; });
+  };
+
+  /* ---------- Risk profile (same scoring as ipowork Risk Desk) ----------
+     Input: the MCA/Probe42 snapshot a Risk Desk scan returns. Output: the five
+     Risk Desk scores plus findings and advice in plain language. Findings are
+     items for management attention, never allegations. */
+  E.riskFromScan = function(d){
+    d = d || {};
+    var fin=d.financials||{}, leg=d.legal||{}, comp=d.compliance||{};
+    var dirs=(d.directors||[]).filter(function(x){ return x && !x.cessation; });
+    var open=(d.charges||[]).filter(function(c){ return String(c.status||'').toLowerCase().indexOf('open')>-1; }); /* exactly as Risk Desk counts them */
+    var against=parseInt(leg.cases_against_count||0,10)||0, pending=parseInt(leg.pending_count||0,10)||0;
+    // — identical formulas to risk-desk.html populateRiskResults —
+    var legal=80; if(comp.defaulter) legal-=40; if(against>30) legal-=20; else if(against>15) legal-=12; else if(against>5) legal-=6; if(pending>10) legal-=10; else if(pending>3) legal-=5; legal=Math.max(20,Math.min(95,legal));
+    var forensic=Math.max(30, 90-open.length*5-(comp.msme_delays||0)*3);
+    var gov=Math.min(90, 40+(dirs.length>=5?25:dirs.length>=3?15:8)+(open.length===0?20:open.length<=2?10:0));
+    var roe=parseFloat(fin.roe||0), de=parseFloat(fin.debt_equity_ratio||0), finS=50;
+    if(roe>=20) finS+=25; else if(roe>=12) finS+=15; else if(roe>=8) finS+=8;
+    if(de<=0.5) finS+=15; else if(de<=1) finS+=10; else if(de<=2) finS+=5; finS=Math.min(95,finS);
+    var dirS=dirs.length?88:60;
+    var overall=Math.round((legal+forensic+gov+finS+dirS)/5);
+    var items=[];
+    function add(area, level, finding, why, advice){ items.push({area:area, level:level, finding:finding, why:why, advice:advice}); }
+    if(d.cirp_status && !/^(none|no|nil|null)$/i.test(String(d.cirp_status))) add('Legal','critical','Insolvency (CIRP) status on record: '+d.cirp_status+'.','Investors and lenders will not proceed while insolvency proceedings are open.','Obtain the current NCLT position in writing and a legal plan to close it.');
+    if(comp.defaulter) add('Legal','critical','Filings data flags the company on a defaulter list.','A defaulter flag blocks IPO, pre-IPO and most bank funding until cleared.','Get a no-dues or clarification letter from the lender concerned and keep it on file.');
+    if(against>5 || pending>3) add('Legal', against>15||pending>10?'critical':'watch', against+' case(s) against the company, '+pending+' pending.','Pending litigation is disclosed in every offer document and priced in by investors.','Prepare a case-wise status note with likely outcome and exposure.');
+    if(open.length>5) add('Charges','watch',open.length+' open charges registered'+(open[0]&&open[0].charge_holder?' (largest lenders include '+open.slice(0,3).map(function(c){return c.charge_holder;}).filter(Boolean).join(', ')+')':'')+'.','Many open charges suggest heavy secured borrowing and restrict fresh funding.','Confirm which loans are repaid and file charge satisfaction (Form CHG-4) for them.');
+    else if(open.length) add('Charges','normal',open.length+' open charge(s) registered.','Normal for a borrowing company.','Keep satisfaction filings up to date as loans are repaid.');
+    if((comp.msme_delays||0)>0) add('Payments to MSMEs','watch','Delayed payments to MSME suppliers are reported ('+comp.msme_delays+').','Under Section 43B(h) of the Income Tax Act, payments to MSME suppliers beyond the agreed period (maximum 45 days) are disallowed as expenses until paid; delays also show up in diligence.','Clear MSME dues within 45 days and track them monthly.');
+    var gst=String(comp.gst_status||''); if(gst && !/active/i.test(gst)) add('GST','critical','GST registration status: '+gst+'.','An inactive or cancelled GST registration disrupts sales and is a red flag in diligence.','Check the GST portal status and file any pending returns to restore it.');
+    var roc=String(comp.roc_filing_status||''); if(roc && /(non|default|pending|overdue)/i.test(roc)) add('ROC filings','watch','ROC filing status: '+roc+'.','Late annual filings attract penalties and are checked in every IPO diligence.','File pending forms (AOC-4, MGT-7) and keep a filing calendar.');
+    if(comp.epfo_registered===false && dirs.length) add('EPFO','watch','No EPFO registration found in the data.','Companies above 20 employees must register; gaps are checked in diligence.','Confirm employee count and registration status with your CA.');
+    if(dirs.length && dirs.length<3) add('Board','watch','Only '+dirs.length+' active director(s).','A public limited company needs at least three directors, and listed companies need independent directors.','Plan board additions, including independent directors, before an IPO.');
+    var rpt=(d.related_party_transactions||[]).length; if(rpt) add('Related parties','watch',rpt+' related-party transaction(s) disclosed.','Related-party dealings are among the first things investors test for fairness.','Make sure each is at arm\u2019s length, board-approved and documented.');
+    if(de>2) add('Leverage','critical','Debt/equity '+de+'×.','High leverage limits fresh borrowing and weighs on valuation.','Plan debt reduction or equity infusion before approaching investors.');
+    else if(de>1) add('Leverage','watch','Debt/equity '+de+'×.','Lenders and investors prefer under 1.0×.','Link new borrowing to clear repayment sources.');
+    var cr=(d.credit_ratings||[])[0]; var rating=cr?[cr.rating||cr.rating_assigned||'', cr.agency||cr.rating_agency||'', cr.date||cr.rating_date||''].filter(Boolean).join(' · '):'';
+    if(!items.filter(function(i){return i.level!=='normal';}).length) add('Overall','normal','No risk items flagged in the filings data.','','Keep filings, charges and statutory payments current.');
+    var order={critical:0,watch:1,normal:2}; items.sort(function(a,b){ return order[a.level]-order[b.level]; });
+    var band = overall>=80?'Low risk':overall>=65?'Moderate risk':overall>=50?'Elevated risk':'High risk';
+    return { overall:overall, band:band,
+      modules:[{k:'legal',label:'Legal',v:legal},{k:'forensic',label:'Forensic',v:forensic},{k:'directors',label:'Directors',v:dirS},{k:'financial',label:'Financial',v:finS},{k:'governance',label:'Governance',v:gov}],
+      facts:{openCharges:open.length, directors:dirs.length, casesAgainst:against, pending:pending, msmeDelays:comp.msme_delays||0, defaulter:!!comp.defaulter, gst:gst||null, rating:rating||null},
+      items:items, method:'Same scoring as ipowork Risk Desk: Legal, Forensic, Directors, Financial and Governance scores from MCA/Probe42 data, averaged.' };
+  };
+
   /* ---------- build ---------- */
   E.buildBriefs = function(rows, opts){
     opts = opts || {};
@@ -275,6 +348,7 @@
       if(!year){ errors.push('Row '+(i+2)+' ('+cin+'): FY not recognised — use FY25 or 2025'); return; }
       var y = {year:year};
       ['revenue','ebitda','depreciation','finance_cost','pat','net_worth','total_debt','receivables','inventory','payables','cash_from_ops','capex','net_tangible_assets','operating_profit'].forEach(function(k){ y[k]=num(r[k]); });
+      y.ov = {}; OVERRIDABLE_IN.forEach(function(k){ var v=num(r['ov_'+k]); if(v!==null) y.ov[k]=v; });
       (byCin[cin] = byCin[cin] || {cin:cin, rows:[], meta:{}}).rows.push(y);
       var meta = byCin[cin].meta;
       ['company_name','sector','city','filed_on'].forEach(function(k){ if(r[k]) meta[k]=r[k]; });
@@ -284,23 +358,27 @@
       if(r.independent_directors!=='' && r.independent_directors!==undefined) meta.indep = num(r.independent_directors);
       if(r.delayed_filings) meta.delayed = yes(r.delayed_filings)?true:(no(r.delayed_filings)?false:null);
       if(r.active_mandate) meta.activeMandate = yes(r.active_mandate);
+      if(r.op_basis) meta.opBasis = r.op_basis;
+      if(r.nta_basis) meta.ntaBasis = r.nta_basis;
     });
     var briefs = Object.keys(byCin).map(function(cin){
       var C = byCin[cin], meta = C.meta;
       var years = C.rows.sort(function(a,b){ return a.year-b.year; }).filter(function(y,i,a){ return !i || y.year!==a[i-1].year; });
-      years.forEach(function(y){ y.m = yearMetrics(y); });
+      years.forEach(function(y){ y.m = yearMetrics(y); applyOverrides(y); });
       years.forEach(function(y,i){ y.m.growth = i ? r1(pct(y.revenue, years[i-1].revenue)) : null;
         y.m.ccc = (y.m.receivable_days!==null&&y.m.inventory_days!==null&&y.m.payable_days!==null) ? y.m.receivable_days+y.m.inventory_days-y.m.payable_days : null; });
       var last = years[years.length-1], prev = years.length>1 ? years[years.length-2] : null;
       var flags = {public_company: meta.public_company===undefined?null:meta.public_company, auditor: meta.auditor===undefined?null:meta.auditor,
                    indep: meta.indep===undefined?null:meta.indep, delayed: meta.delayed===undefined?null:meta.delayed};
       var c = {aira: meta.aira===undefined?null:meta.aira, activeMandate: !!meta.activeMandate};
+      flags.opBasis = meta.opBasis||''; flags.ntaBasis = meta.ntaBasis||'';
       var elig = eligibility(years, flags);
       var stg = stage(c, last, prev, elig);
       var prevBrief = prevBriefs[cin] || null;
       var health = METRICS.map(function(M){
         var vals = {}; years.slice(-3).forEach(function(y){ var v = (M.k in y.m) ? y.m[M.k] : y[M.k]; vals[fyLabel(y.year)] = (v===undefined?null:v); });
-        return {k:M.k, label:M.label, unit:M.unit, type:M.type, good:M.good, method:M.method, values:vals};
+        var fromMca = years.slice(-3).some(function(y){ return y.m._from && y.m._from[M.k]; });
+        return {k:M.k, label:M.label, unit:M.unit, type:M.type, good:M.good, method:M.method+(fromMca?' Where our inputs weren\u2019t filed, the figure is taken from MCA ratio data.':''), values:vals};
       });
       var filedYear = last.year;
       var brief = {

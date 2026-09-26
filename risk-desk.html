@@ -635,6 +635,7 @@ async function runRiskScan(credits){
     window._lastRiskCredits = credits;
 
     populateRiskResults(result, credits);
+    ipwSaveRiskScan(result); /* feeds the issuer portal's risk profile — never blocks the scan */
     document.getElementById('risk-results').style.display='block';
     showToast('✅ Risk scan complete — '+credits+' credits used');
 
@@ -644,6 +645,29 @@ async function runRiskScan(credits){
     document.getElementById('risk-company-name').textContent = displayName;
     showToast('⚠️ Error: '+e.message);
   }
+}
+
+/* ── ISSUER PORTAL LINK ──
+   Save each scan's MCA snapshot so the company's issuer portal can show its risk
+   profile (same scoring as this page) with findings and advice. Append-only,
+   fire-and-forget: a failure here never affects the Risk Desk scan. */
+function ipwSaveRiskScan(r){
+  try{
+    var cin=String((r&&r.cin)||(_p42_selected&&_p42_selected.cin)||'').trim().toUpperCase();
+    if(!/^[LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/.test(cin)) return;
+    var by=''; try{ var u=JSON.parse(localStorage.getItem('ipowork_user')||'null'); by=(u&&u.email)||''; }catch(e){}
+    if(!by && window.IPWGate && IPWGate.profile && IPWGate.profile.email) by=IPWGate.profile.email;
+    var snap={cin:cin, company_name:r.company_name||'', financials:r.financials||{}, legal:r.legal||{}, compliance:r.compliance||{},
+      cirp_status:r.cirp_status||null, directors:(r.directors||[]).map(function(d){return {name:d.name||'',designation:d.designation||'',cessation:d.cessation||null};}),
+      charges:(r.charges||[]).map(function(c){return {charge_holder:c.charge_holder||'',amount:c.amount||null,status:c.status||''};}),
+      related_party_transactions:(r.related_party_transactions||[]).map(function(x){return {relation:x.relation||'',nature:x.nature||''};}),
+      credit_ratings:(r.credit_ratings||[]).slice(0,3), company_type:r.company_type||null, registered_state:r.registered_state||null,
+      source:'risk_desk', capturedBy:String(by||'').toLowerCase(), capturedAt:new Date().toISOString()};
+    var K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzcWxmc2poZWtkc3B5Y2Znbm96Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzE4ODUsImV4cCI6MjA5MDMwNzg4NX0.nuJCy5xn0K6IpWptphUHv8iXK5xxPm_Eqx-1XzgVHFc';
+    fetch('https://esqlfsjhekdspycfgnoz.supabase.co/rest/v1/reports',{method:'POST',headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({report_id:'RISKSCAN-'+cin+'-'+Date.now(),company_name:(snap.company_name||'N/A').slice(0,200),cin:cin,sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'risk_scan',scores:snap})})
+      .then(function(x){ if(!x.ok) console.warn('Risk scan not saved for issuer portal, status',x.status); }).catch(function(){});
+  }catch(e){ console.warn('Risk scan save skipped',e); }
 }
 
 function populateRiskResults(data, credits){

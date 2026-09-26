@@ -4037,11 +4037,59 @@ function downloadReport(tier){
   setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 3000);
 }
 
+/* ── ISSUER INTELLIGENCE CAPTURE ──
+   When an AIRA report runs for a CIN, save that company's structured figures
+   (the Probe42/MCA financials already on the result) so issuer-brief.html can
+   build the Issuer Intelligence Brief from them. Fire-and-forget and append-only:
+   a failure here never affects the AIRA report. Only CIN-based runs that carry
+   financials are saved; at most once per CIN per page session. */
+var _IPW_CAPTURED = {};
+function ipwCaptureIssuerFinancials(result, cname, sector, tier){
+  try{
+    if(!result || !result.financials) return;
+    var cin = String(result.cin || '').trim().toUpperCase();
+    if(!/^[LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/.test(cin)) return;
+    var f = result.financials, has = f.revenue_fy24 || f.pat_fy24 || f.net_worth;
+    if(!has || _IPW_CAPTURED[cin]) return;
+    _IPW_CAPTURED[cin] = true;
+    var dirs = Array.isArray(result.directors) ? result.directors.filter(function(d){ return d && !d.cessation; }) : null;
+    var charges = Array.isArray(result.charges) ? result.charges : null;
+    var score = result.ipo_score || result.score || null;
+    var payload = {
+      cin: cin, company_name: result.company_name || cname || '', sector: sector || '', tier: tier,
+      aira_score: score ? Math.round(+score) : null,
+      financials: f,
+      company_type: result.company_type || null,
+      registered_email: result.email || null,
+      registered_state: result.registered_state || null,
+      last_filing_date: result.last_filing_date || null,
+      active_compliance: result.active_compliance || null,
+      independent_directors: dirs ? dirs.filter(function(d){ return /independent/i.test(d.designation||''); }).length : null,
+      directors: dirs ? dirs.map(function(d){ return {name:d.name||'', designation:d.designation||''}; }) : null,
+      open_charges: charges ? charges.filter(function(c){ return String(c.status||'').toLowerCase()!=='satisfied'; }).length : null,
+      capturedAt: new Date().toISOString(),
+      capturedBy: (function(){ /* who ran it — their issuer portal lists this company automatically */
+        var e = (typeof CURRENT_USER!=='undefined' && CURRENT_USER && CURRENT_USER.email) || (typeof SESS!=='undefined' && SESS && SESS.email) || '';
+        if(!e){ try{ var u=JSON.parse(localStorage.getItem('ipowork_user')||'null'); e=(u&&u.email)||''; }catch(_x){} }
+        return String(e||'').trim().toLowerCase();
+      })()
+    };
+    fetch(SUPA_URL_TRIAL+'/rest/v1/reports', {
+      method:'POST',
+      headers:{ 'apikey':SUPA_KEY_TRIAL, 'Authorization':'Bearer '+SUPA_KEY_TRIAL, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+      body: JSON.stringify({ report_id:'AIRAFIN-'+cin+'-'+Date.now(), company_name:(payload.company_name||'N/A').slice(0,200), cin:cin,
+        sector:(sector||'N/A').slice(0,100), exchange:'N/A', tier:'free', score: payload.aira_score||0, source:'aira_financials', scores: payload })
+    }).then(function(r){ if(!r.ok) console.warn('Issuer capture: not saved, status', r.status); })
+      .catch(function(e){ console.warn('Issuer capture: not saved', e); });
+  }catch(e){ console.warn('Issuer capture skipped', e); }
+}
+
 function renderAIRAReport(result, cname, sector, exchange, out, tier) {
   if(!out) return;
   _guardCompanyChange(cname);
   AIRA_RESULTS[tier]={result:result,cname:cname,sector:sector,exchange:exchange,tier:tier};
     saveReportToStore(tier, cname, sector, result);
+    ipwCaptureIssuerFinancials(result, cname, sector, tier); /* feeds the Issuer Intelligence Brief — never blocks the report */
 
   var report  = result._report || result.report || '';
   var score   = result.score || 0;

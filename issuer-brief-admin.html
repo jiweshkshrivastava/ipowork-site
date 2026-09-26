@@ -51,7 +51,7 @@ code{background:#EEF5F6;padding:1px 5px;border-radius:4px;font-size:12px}
   <div class="scroll" id="preview"></div>
 </section>
 
-<section>
+<section id="access">
   <h2>3 · Create access and magic links</h2>
   <p class="hint"><b>One person:</b> fill in and click Create link. <b>Many people:</b> paste a list below, in any column order, with or without a header, straight from Excel, like the mailer. Each row needs an email and at least one CIN. For a group or CA/CS partner, put several CINs in one cell (separated by <code>;</code>) or repeat the same email on several rows. Links last 30 days and open only the issuer portal.</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
@@ -245,6 +245,12 @@ $('act').onclick=async function(){
   catch(e){ $('act-out').innerHTML='<p class="status err">'+esc(e.message)+'</p>'; }
 };
 loadMult();
+/* arriving from a lead: pre-fill the one-person form */
+(function(){ var q=new URLSearchParams(location.search); if(!q.get('email')&&!q.get('cin')) return;
+  [['email','one-email'],['name','one-name'],['firm','one-firm'],['cin','one-cin'],['phone','one-phone']].forEach(function(x){ if(q.get(x[0])) $(x[1]).value=q.get(x[0]).replace(/^\+91/,''); });
+  set($('one-status'),'warn','Pre-filled from lead'+(q.get('lead')?' '+q.get('lead'):'')+'. Verify first: registered email on MCA, director list, or a call. Then click Create link.');
+  setTimeout(function(){ var el=$('access'); if(el) el.scrollIntoView(); },300);
+})();
 })();
 </script>
 </body>
