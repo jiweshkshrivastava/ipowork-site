@@ -4049,6 +4049,24 @@ function ipwRememberCin(cin, name){
   try{ var k='ipw_my_cins', l=JSON.parse(localStorage.getItem(k)||'[]').filter(function(x){return x&&x.cin!==cin;});
     l.unshift({cin:cin, name:name||'', at:new Date().toISOString()}); localStorage.setItem(k, JSON.stringify(l.slice(0,50))); }catch(_x){}
 }
+/* Save an AIRA valuation run (Valuation Doc / Valuation Intelligence) for the issuer portal.
+   Append-only, fire-and-forget; never affects the valuation report. */
+function ipwCaptureValuation(v){
+  try{
+    var cin=String(v.cin||'').trim().toUpperCase();
+    if(!/^[LU]\d{5}[A-Z]{2}\d{4}[A-Z]{3}\d{6}$/.test(cin) || !(+v.base>0)) return;
+    var who=ipwRunBy(), num=function(x){ var n=parseFloat(x); return isFinite(n)?n:null; };
+    var payload={cin:cin, company_name:v.company_name||'', sector:v.sector||'', tier:v.tier, base:num(v.base), conservative:num(v.conservative), optimistic:num(v.optimistic),
+      pe_value:num(v.pe_value), ev_ebitda_value:num(v.ev_ebitda_value), dcf_value:num(v.dcf_value), pe_multiple:num(v.pe_multiple), ev_ebitda_multiple:num(v.ev_ebitda_multiple),
+      discount:num(v.discount), price_band_low:num(v.price_band_low), price_band_high:num(v.price_band_high), pat_cr:num(v.pat_cr), ebitda_cr:num(v.ebitda_cr), debt_cr:num(v.debt_cr), shares_cr:num(v.shares_cr),
+      method:'Blend of P/E (40%), EV/EBITDA (40%) and DCF (20%); conservative = base \u2212 20%, optimistic = base + 25%.', capturedBy:who.by, capturedBySite:who.site, capturedAt:new Date().toISOString()};
+    ipwRememberCin(cin, payload.company_name);
+    fetch(SUPA_URL_TRIAL+'/rest/v1/reports',{method:'POST',headers:{'apikey':SUPA_KEY_TRIAL,'Authorization':'Bearer '+SUPA_KEY_TRIAL,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({report_id:'AIRAVAL-'+cin+'-'+Date.now(),company_name:(payload.company_name||'N/A').slice(0,200),cin:cin,sector:(payload.sector||'N/A').slice(0,100),exchange:'N/A',tier:'free',score:0,source:'aira_valuation',scores:payload})})
+      .then(function(r){ console.log(r.ok?'Issuer capture: valuation saved for '+cin+' (base \u20b9'+payload.base+' cr)':'Issuer capture (valuation): not saved, status '+r.status); }).catch(function(){});
+  }catch(e){ console.warn('Issuer capture (valuation) skipped',e); }
+}
+
 /* Same MCA snapshot as a Risk Desk scan, so the issuer portal's risk profile fills in
    straight after AIRA without a second (paid) data call. Once per CIN per page session. */
 var _IPW_RISK_SAVED = {};
@@ -5123,6 +5141,8 @@ async function runValuationDoc(){
       revenue_growth_pct:(rev23>0?+((rev-rev23)/rev23*100).toFixed(1):0)};
     _guardCompanyChange(cname);
     AIRA_RESULTS['valdoc']={result:res,cname:cname,sector:sector,tier:'valdoc'};
+    /* Issuer portal: save this valuation run's figures (shown locked until ipowork unlocks it) */
+    try{ ipwCaptureValuation({tier:'valdoc', cin:(typeof cin!=='undefined'?cin:''), company_name:cname, sector:sector, base:(typeof base!=='undefined'?base:null), conservative:(typeof cons!=='undefined'?cons:null), optimistic:(typeof opti!=='undefined'?opti:null), pe_value:(typeof pe_eq!=='undefined'?pe_eq:null), ev_ebitda_value:(typeof ev_eq!=='undefined'?ev_eq:null), dcf_value:(typeof dcfVal!=='undefined'?dcfVal:null), pe_multiple:(typeof sPE!=='undefined'?sPE:null), ev_ebitda_multiple:(typeof sEV!=='undefined'?sEV:null), discount:(typeof disc!=='undefined'?disc:null), price_band_low:(typeof pLow!=='undefined'?pLow:null), price_band_high:(typeof pHigh!=='undefined'?pHigh:null), pat_cr:(typeof pat!=='undefined'?pat:null), ebitda_cr:(typeof eCr!=='undefined'?eCr:null), debt_cr:(typeof debt!=='undefined'?debt:null), shares_cr:(typeof shrsCr!=='undefined'?shrsCr:null)}); }catch(_v){}
     saveReportToStore('valdoc',cname,sector,res);
     updateFullReportBtn();
   }catch(e){
@@ -5316,6 +5336,8 @@ async function runValuationIntel(){
       revenue_cr:rev,pat_cr:pat,roe_pct:roe,roce_pct:roce,de_ratio:de,ebitda_pct:ePct,revenue_growth_pct:revGr};
     _guardCompanyChange(cname);
     AIRA_RESULTS['valintel']={result:res,cname:cname,sector:sector,tier:'valintel'};
+    /* Issuer portal: save this valuation run's figures (shown locked until ipowork unlocks it) */
+    try{ ipwCaptureValuation({tier:'valintel', cin:(typeof cin!=='undefined'?cin:''), company_name:cname, sector:sector, base:(typeof base!=='undefined'?base:null), conservative:(typeof cons!=='undefined'?cons:null), optimistic:(typeof opti!=='undefined'?opti:null), pe_value:(typeof pe_eq!=='undefined'?pe_eq:null), ev_ebitda_value:(typeof ev_eq!=='undefined'?ev_eq:null), dcf_value:(typeof dcf!=='undefined'?dcf:null), pe_multiple:(typeof sPE!=='undefined'?sPE:null), ev_ebitda_multiple:(typeof sEV!=='undefined'?sEV:null), discount:(typeof disc!=='undefined'?disc:null), price_band_low:(typeof pLow!=='undefined'?pLow:null), price_band_high:(typeof pHigh!=='undefined'?pHigh:null), pat_cr:(typeof pat!=='undefined'?pat:null), ebitda_cr:(typeof eCr!=='undefined'?eCr:null), debt_cr:(typeof debt!=='undefined'?debt:null), shares_cr:(typeof shrsCr!=='undefined'?shrsCr:null)}); }catch(_v){}
     saveReportToStore('valintel',cname,sector,res);
     updateFullReportBtn();
   }catch(e){

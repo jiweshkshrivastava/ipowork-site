@@ -53,7 +53,7 @@ code{background:#EEF5F6;padding:1px 5px;border-radius:4px;font-size:12px}
 
 <section id="access">
   <h2>3 · Create access and magic links</h2>
-  <p class="hint"><b>One person:</b> fill in and click Create link. <b>Many people:</b> paste a list below, in any column order, with or without a header, straight from Excel, like the mailer. Each row needs an email and at least one CIN. For a group or CA/CS partner, put several CINs in one cell (separated by <code>;</code>) or repeat the same email on several rows. Links last 30 days and open only the issuer portal.</p>
+  <p class="hint"><b>Unlocking:</b> tick the box (or add an <code>unlock</code> column with yes) to show that person the valuation and capital structure sections. Doing it again for the same email updates their access. <b>One person:</b> fill in and click Create link. <b>Many people:</b> paste a list below, in any column order, with or without a header, straight from Excel, like the mailer. Each row needs an email and at least one CIN. For a group or CA/CS partner, put several CINs in one cell (separated by <code>;</code>) or repeat the same email on several rows. Links last 30 days and open only the issuer portal.</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
     <label>Email<br><input id="one-email" type="email" style="width:100%" placeholder="cfo@company.in"></label>
     <label>Name<br><input id="one-name" style="width:100%" placeholder="Anita Shah"></label>
@@ -62,6 +62,7 @@ code{background:#EEF5F6;padding:1px 5px;border-radius:4px;font-size:12px}
     <label>Mobile (for WhatsApp)<br><input id="one-phone" style="width:100%" placeholder="98xxxxxxxx"></label>
     <label>Role<br><select id="one-role" style="width:100%"><option value="issuer">Issuer (the company)</option><option value="ca_cs">CA / CS partner</option></select></label>
   </div>
+  <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px;font-weight:600"><input type="checkbox" id="one-unlock" style="width:18px;height:18px;min-height:0"> Unlock valuation &amp; capital structure for this person</label>
   <div class="row"><button id="one-go">Create link</button><span id="one-status" class="status"></span></div>
   <div id="one-out" style="display:none;margin-top:10px;background:#EEF5F6;border-radius:8px;padding:12px">
     <input id="one-link" readonly style="width:100%;font-family:ui-monospace,Menlo,monospace;font-size:12px">
@@ -170,11 +171,12 @@ function parsePeople(text, defaultRole){
   var hasHeader = !EMAIL_RE.test(lines[0]) && first.some(function(h){return /email|mail/.test(h);});
   function col(names){ for(var i=0;i<first.length;i++){ if(names.indexOf(first[i])>-1) return i; } return -1; }
   var ix = hasHeader ? {email:col(['email','emailid','emailaddress','mail']), name:col(['name','contact','contactname','fullname','merchantbankername','investorname','director','person']),
-    firm:col(['firm','firmname','company','companyname','organisation','organization']), role:col(['role','type']), cin:col(['cin','cins','companies','companycin','cinno'])} : null;
+    firm:col(['firm','firmname','company','companyname','organisation','organization']), role:col(['role','type']), cin:col(['cin','cins','companies','companycin','cinno']), unlock:col(['unlock','unlocked','premium'])} : null;
   var byEmail={}, order=[], bad=[];
   lines.slice(hasHeader?1:0).forEach(function(l,n){
     var c=splitLine(l), lineNo=n+(hasHeader?2:1), email='', name='', firm='', role='', cins=[];
-    if(ix){ email=(c[ix.email]||'').trim(); name=ix.name>-1?c[ix.name]||'':''; firm=ix.firm>-1?c[ix.firm]||'':''; role=ix.role>-1?c[ix.role]||'':''; cins=cinsIn(ix.cin>-1?c[ix.cin]:l); if(!cins.length) cins=cinsIn(l); }
+    var unl=false;
+    if(ix){ unl=ix.unlock>-1 && /^(y|yes|true|1)$/i.test(String(c[ix.unlock]||'').trim()); email=(c[ix.email]||'').trim(); name=ix.name>-1?c[ix.name]||'':''; firm=ix.firm>-1?c[ix.firm]||'':''; role=ix.role>-1?c[ix.role]||'':''; cins=cinsIn(ix.cin>-1?c[ix.cin]:l); if(!cins.length) cins=cinsIn(l); }
     else { var m=l.match(EMAIL_RE); email=m?m[0]:''; cins=cinsIn(l);
       var rest=c.filter(function(x){ return x && !EMAIL_RE.test(x) && !cinsIn(x).length && !/^(issuer|ca_cs|cacs|ca\/cs)$/i.test(x) && !/^[+\d\s-]{8,}$/.test(x); });
       name=rest[0]||''; firm=rest[1]||''; role=(c.filter(function(x){return /^(issuer|ca_cs|cacs|ca\/cs)$/i.test(x);})[0]||''); }
@@ -182,7 +184,8 @@ function parsePeople(text, defaultRole){
     role=/ca/i.test(role)?'ca_cs':(/issuer/i.test(role)?'issuer':defaultRole);
     if(!EMAIL_RE.test(email)){ bad.push({line:lineNo,text:l,why:'No valid email found'}); return; }
     if(!cins.length){ bad.push({line:lineNo,text:l,why:'No CIN found (21 characters, e.g. U24100GJ2011PTC000001)'}); return; }
-    if(!byEmail[email]){ byEmail[email]={email:email,name:name,firm:firm,role:role,cins:[]}; order.push(email); }
+    if(!byEmail[email]){ byEmail[email]={email:email,name:name,firm:firm,role:role,cins:[],unlock:null}; order.push(email); }
+    if(unl) byEmail[email].unlock=['valuation','capital'];
     var P=byEmail[email]; if(!P.name&&name) P.name=name; if(!P.firm&&firm) P.firm=firm; if(role==='ca_cs') P.role='ca_cs';
     cins.forEach(function(x){ if(P.cins.indexOf(x)<0) P.cins.push(x); });
   });
@@ -191,14 +194,14 @@ function parsePeople(text, defaultRole){
 async function createAccess(P){
   var t=token(), ts=Date.now();
   await insert([
-    {report_id:'ISSUERACC-'+safe(P.email)+'-'+ts,company_name:(P.firm||'N/A').slice(0,200),cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_account',scores:{email:P.email,name:P.name,firm:P.firm,role:P.role,cins:P.cins,approved:true,createdAt:new Date().toISOString()}},
+    {report_id:'ISSUERACC-'+safe(P.email)+'-'+ts,company_name:(P.firm||'N/A').slice(0,200),cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_account',scores:{email:P.email,name:P.name,firm:P.firm,role:P.role,cins:P.cins,unlock:P.unlock||null,approved:true,createdAt:new Date().toISOString()}},
     {report_id:'ISSUERLINK-'+safe(P.email)+'-'+ts,company_name:'ISSUER_MAGIC_LINK',cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_magic_link',scores:{email:P.email,token:t,createdAt:new Date().toISOString(),expiresAt:new Date(ts+30*24*3600*1000).toISOString()}}
   ]);
   return PORTAL+'?login_token='+t;
 }
 $('one-go').onclick=async function(){
   var st=$('one-status'); $('one-out').style.display='none';
-  var P={email:$('one-email').value.trim().toLowerCase(),name:$('one-name').value.trim(),firm:$('one-firm').value.trim(),role:$('one-role').value,cins:cinsIn($('one-cin').value)};
+  var P={email:$('one-email').value.trim().toLowerCase(),name:$('one-name').value.trim(),firm:$('one-firm').value.trim(),role:$('one-role').value,cins:cinsIn($('one-cin').value),unlock:$('one-unlock').checked?['valuation','capital']:null};
   if(!EMAIL_RE.test(P.email)){ set(st,'err','Enter a valid email.'); return; }
   if(!P.cins.length){ set(st,'err','Enter at least one CIN (21 characters, e.g. U24100GJ2011PTC000001).'); return; }
   this.disabled=true; set(st,'','Creating…');

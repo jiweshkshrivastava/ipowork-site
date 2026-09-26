@@ -74,6 +74,12 @@ h2{font-family:var(--serif);font-size:22px;margin:0 0 12px;color:var(--ink)}
 .small{font-size:12px;color:var(--muted)}
 .radar .card{border-width:1px}.lv{font-size:11px;font-weight:800;letter-spacing:.8px;padding:3px 8px;border-radius:5px;display:inline-block}
 .lv.na{background:var(--soft);color:var(--muted)}
+.lockc{background:linear-gradient(135deg,#fff,#FFF7EE);border:1px dashed #E8C9A0}
+.lock-top{display:flex;gap:12px;align-items:center}.lock-ic{width:42px;height:42px;border-radius:50%;background:#FFF1DF;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}.lock-top b{font-size:16px;color:var(--figure)}
+.lock-preview{margin:14px 0 4px;display:grid;gap:8px}.lp-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13.5px;color:var(--ink2)}
+.lp-row i{flex:0 0 96px;height:12px;border-radius:6px;background:linear-gradient(90deg,#EFE6DA,#F7F0E7,#EFE6DA);background-size:200% 100%;animation:shim 1.6s linear infinite}
+@keyframes shim{to{background-position:-200% 0}}@media (prefers-reduced-motion:reduce){.lp-row i{animation:none}}
+.capbar{display:flex;height:18px;border-radius:9px;overflow:hidden;background:var(--soft)}.capbar i{display:block;height:100%}
 /* ---- brief header card with score rings ---- */
 .bhero{background:linear-gradient(135deg,#FFFFFF 0%,#F2F8F9 55%,#FFF6EC 100%);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh);padding:24px 26px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:22px;align-items:center;position:relative;overflow:hidden}
 .bhero::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:linear-gradient(180deg,var(--brand),var(--cta))}
@@ -213,7 +219,7 @@ var SUPA_URL='https://esqlfsjhekdspycfgnoz.supabase.co', SUPA_KEY='eyJhbGciOiJIU
 var CAL='https://calendar.app.google/2ZaLj1pUGwmYxzyk8', WA='https://wa.me/918851059588', WORKER='https://flat-bread-b021.jiweshkshrivastava.workers.dev/';
 var DEMO=/[?&]demo=1/.test(location.search);
 var STAGES={1:'Issuer Watch',2:'Capital Ready',3:'IPO Preparation',4:'IPO Ready',5:'Active Mandate'};
-var S={user:null, briefs:{}, cins:[], risk:{}, cap:{}, ind:{}};
+var S={user:null, briefs:{}, cins:[], risk:{}, cap:{}, ind:{}, val:{}};
 var app=document.getElementById('app');
 
 function esc(s){return String(s===null||s===undefined?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -258,7 +264,7 @@ async function login(){
     var acc=await get('source=eq.issuer_account&scores->>email=eq.'+encodeURIComponent(String(s.email).toLowerCase())+'&order=created_at.desc&limit=1&select=scores');
     var a=acc[0]&&acc[0].scores;
     if(!a||!a.approved||!(a.cins||[]).length) return {error:'Your access hasn\u2019t been set up yet. Request it below and we\u2019ll send your link.'};
-    var user={email:a.email,name:a.name||'',firm:a.firm||'',role:a.role||'issuer',cins:a.cins.map(function(c){return String(c).toUpperCase();})};
+    var user={email:a.email,name:a.name||'',firm:a.firm||'',role:a.role||'issuer',cins:a.cins.map(function(c){return String(c).toUpperCase();}),unlock:a.unlock||null};
     try{ sessionStorage.setItem('ipw_issuer', JSON.stringify(user)); }catch(e){}
     insert({report_id:'ISSUERLOGIN-'+user.email.replace(/[^a-z0-9]/gi,'-')+'-'+Date.now(),company_name:(user.firm||'N/A').slice(0,200),cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_login_event',
       scores:{email:user.email,name:user.name,firm:user.firm,role:user.role,cins:user.cins,campaign:p.get('campaign')||'',loggedInAt:new Date().toISOString()}}).catch(function(e){console.warn('login event not recorded',e);});
@@ -276,7 +282,7 @@ async function login(){
       var acc2=await get('source=eq.issuer_account&scores->>email=eq.'+encodeURIComponent(em)+'&order=created_at.desc&limit=1&select=scores');
       var a2=acc2[0]&&acc2[0].scores;
       if(a2&&a2.approved&&(a2.cins||[]).length){
-        var u2={email:a2.email,name:a2.name||site.name||'',firm:a2.firm||'',role:a2.role||'issuer',cins:a2.cins.map(function(c){return String(c).toUpperCase();})};
+        var u2={email:a2.email,name:a2.name||site.name||'',firm:a2.firm||'',role:a2.role||'issuer',cins:a2.cins.map(function(c){return String(c).toUpperCase();}),unlock:a2.unlock||null};
         try{ sessionStorage.setItem('ipw_issuer', JSON.stringify(u2)); }catch(e){}
         insert({report_id:'ISSUERLOGIN-'+em.replace(/[^a-z0-9]/gi,'-')+'-'+Date.now(),company_name:(u2.firm||'N/A').slice(0,200),cin:'N/A',sector:'N/A',exchange:'N/A',tier:'free',score:0,source:'issuer_login_event',
           scores:{email:u2.email,name:u2.name,firm:u2.firm,role:u2.role,cins:u2.cins,campaign:'SITE-SIGN-IN',loggedInAt:new Date().toISOString()}}).catch(function(){});
@@ -321,8 +327,10 @@ async function loadBriefs(cins){
     get('source=eq.issuer_brief&cin='+inList+'&order=created_at.desc&select=cin,scores,created_at&limit=500'),
     get('source=eq.aira_financials&cin='+inList+'&order=created_at.desc&select=cin,scores,created_at&limit=200').catch(function(){return [];}),
     get('source=eq.issuer_sector_config&order=created_at.desc&limit=1&select=scores').catch(function(){return [];}),
-    get('source=eq.risk_scan&cin='+inList+'&order=created_at.desc&select=cin,scores&limit=200').catch(function(){return [];})
+    get('source=eq.risk_scan&cin='+inList+'&order=created_at.desc&select=cin,scores&limit=200').catch(function(){return [];}),
+    get('source=eq.aira_valuation&cin='+inList+'&order=created_at.desc&select=cin,scores&limit=200').catch(function(){return [];})
   ]);
+  (res[4]||[]).forEach(function(r){ if(!S.val[r.cin]) S.val[r.cin]=r.scores; });
   res[3].forEach(function(r){ if(!S.risk[r.cin]) S.risk[r.cin]=r.scores; });
   var pub={}, air={}, mult=(res[2][0]&&res[2][0].scores&&res[2][0].scores.multiples)||{};
   res[0].forEach(function(r){ if(!pub[r.cin]) pub[r.cin]=r.scores; });
@@ -373,7 +381,7 @@ function viewBrief(cin){
     ['t-stage','STAGE', b.stage.n+' \u00b7 '+b.stage.name, b.stagePrev&&b.stagePrev.n!==b.stage.n?'was '+b.stagePrev.name:'on the path to capital','DERIVED'],
     ['t-ipo','IPO ELIGIBILITY', b.eligibility.metCount+' of '+b.eligibility.total, 'checks met on '+b.latestFy+' accounts','ACTUAL'],
     ['','REVENUE '+b.latestFy, crore(eh.revenue), rev!=null?(rev>=0?'+':'')+rev+'% vs previous year':'latest filed year','ACTUAL'],
-    ['t-val','INDICATIVE VALUATION', val?crore(val.low).replace(' cr','')+'\u2013'+crore(val.high).replace('\u20b9',''):'Not yet', val?'estimate \u00b7 '+val.fy+' PAT \u00d7 peer P/E':'peer set for your sector pending', val?'ESTIMATED':'']
+    (function(){ var V=S.val[b.cin]; if(V||val){ if(!unlocked('valuation')) return ['t-val','VALUATION','\ud83d\udd12 Ready','unlock to see your value','']; return V?['t-val','VALUATION (BASE)',crore(V.base),'range '+crore(V.conservative).replace(' cr','')+'\u2013'+crore(V.optimistic).replace('\u20b9',''),'ESTIMATED']:['t-val','INDICATIVE VALUATION',crore(val.low).replace(' cr','')+'\u2013'+crore(val.high).replace('\u20b9',''),'estimate \u00b7 peer P/E','ESTIMATED']; } return ['t-val','VALUATION','Not yet','run Valuation Intelligence in AIRA','']; })()
   ].map(function(t){ return '<div class="card tile '+t[0]+'"><div class="lbl">'+t[1]+chip(t[4])+'</div><div class="val">'+esc(t[2])+'</div><div class="chg">'+esc(t[3])+'</div></div>'; }).join('');
   var ladder=[1,2,3,4,5].map(function(n){ return '<div class="'+(n===b.stage.n?'on':'')+'">'+n+'<br>'+STAGES[n]+'</div>'; }).join('');
   function changeCard(c){ return '<div class="change '+c.dir+'"><div class="t"><span class="ic">'+(c.dir==='up'?'▲ BETTER':'▼ WORSE')+'</span><b>'+esc(c.title)+'</b>'+chip(c.type)+'</div><div class="d">'+esc(c.detail)+' <span class="small">· Source: '+esc(c.source)+'</span></div>'
@@ -404,9 +412,9 @@ function viewBrief(cin){
     +anchor('risk')+riskSection(b)
     +'<div class="sec radar"><h2>Business Risk Radar</h2><p class="sub" style="margin-bottom:12px">From your filed accounts, using ipowork\u2019s published thresholds. These are items for management attention, not conclusions.</p><div class="grid g4">'+radar+'</div></div>'
     +anchor('health')+'<div class="sec"><h2>Business Health · '+esc(yrs[0])+'–'+esc(yrs[yrs.length-1])+'</h2><p class="sub" style="margin-bottom:12px">Tap a metric to see how it\u2019s calculated. Peer comparison is coming next.</p><div class="scroll">'+health+'</div></div>'
-    +anchor('debt')+debtSection(b)+anchor('equity')+equitySection(b)
+    +anchor('debt')+debtSection(b)+anchor('equity')+equitySection(b)+anchor('cap')+capSection(b)
     +anchor('ipo')    +'<div class="sec" id="prep-'+esc(b.cin)+'"><h2>IPO preparedness \u00b7 eligibility '+b.eligibility.metCount+' of '+b.eligibility.total+'</h2><p class="sub" style="margin-bottom:12px">Actual status on filed accounts. '+esc(b.eligibility.source)+' For the SME platform, use the <a href="sme-ipo-eligibility-calculator.html">SME eligibility calculator</a>.</p><div class="grid g2" style="gap:10px">'+crit+'</div>'+proj+prepPlan(b)+'</div>'
-    +'<div class="sec"><h2>Indicative valuation'+chip(val?'ESTIMATED':'')+'</h2>'+valHtml+'</div>'
+    +anchor('val')+valSection(b)
     + anchor('data') + privateData(b) + anchor('ai') + assistants(b) + anchor('help') + support(b) + aboutData(b)
     +'<div class="legend" style="margin-top:18px"><span>'+chip('ACTUAL')+' from filed accounts</span><span>'+chip('DERIVED')+' calculated from them</span><span>'+chip('ESTIMATED')+' uses an assumption \u2014 method shown</span><span>'+chip('EXTERNAL')+' news and market data</span></div>'
     +''
@@ -550,6 +558,56 @@ async function loadIndustry(sec){
   }catch(e){ S.ind[sec]=fallback?Object.assign({stale:true},fallback):{error:String(e.message||e)}; paintIndustry(sec); }
 }
 function paintIndustry(sec){ var el=document.getElementById(indId(sec)); if(el) el.innerHTML=industryInner(sec, S.ind[sec]); }
+function unlocked(what){ var u=S.user&&S.user.unlock; return u===true || (Array.isArray(u)&&u.indexOf(what)>-1); }
+function lockCard(what, cin, title, sub, items){
+  return '<div class="card lockc"><div class="lock-top"><span class="lock-ic" aria-hidden="true">\ud83d\udd12</span><div><b>'+esc(title)+'</b><div class="small">'+esc(sub)+'</div></div></div>'
+    +'<div class="lock-preview" aria-hidden="true">'+items.map(function(x){ return '<div class="lp-row"><span>'+esc(x)+'</span><i></i></div>'; }).join('')+'</div>'
+    +'<div class="acts"><button class="btn p" type="button" data-unlock="'+what+'" data-cin="'+esc(cin)+'">Unlock '+(what==='valuation'?'my valuation':'capital structure')+'</button><a class="btn o" href="'+esc(waUrl(S.briefs[cin],'unlocking my '+(what==='valuation'?'valuation':'capital structure')))+'" target="_blank" rel="noopener">Talk to an adviser</a></div>'
+    +'<div class="small" id="unl-'+what+'-'+esc(cin)+'" role="status" style="margin-top:8px"></div></div>';
+}
+function valSection(b){
+  var V=S.val[b.cin], sv=b.valuation, d=V&&V.capturedAt?new Date(V.capturedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'';
+  var h='<div class="sec" id="val-'+esc(b.cin)+'"><h2>Valuation'+chip('ESTIMATED')+'</h2>';
+  if(!V && !sv) return h+'<div class="card"><p class="sub" style="color:var(--ink2)">Run <b>Valuation Intelligence</b> on the AIRA page to get a P/E, EV/EBITDA and DCF valuation of your company. It appears here straight away.</p><div class="acts"><a class="btn s" href="aira.html">Run a valuation in AIRA</a></div></div></div>';
+  if(!unlocked('valuation')) return h+lockCard('valuation', b.cin, V?'Your valuation is ready':'An indicative valuation is ready', V?('From your AIRA valuation of '+d+' \u2014 three methods, three scenarios'):'From listed-peer multiples for your sector',
+      V?['Base, conservative and optimistic value','P/E, EV/EBITDA and DCF values with the multiples used','Indicative IPO price band','How much equity you could raise at this value']:['Low, mid and high value','Peer set and multiples used'])+'</div>';
+  if(V){
+    var rows=[['Conservative',V.conservative],['Base',V.base],['Optimistic',V.optimistic]].filter(function(r){return r[1]!=null;}), mx=Math.max.apply(null,rows.map(function(r){return r[1];}))||1;
+    var meth=[['P/E', V.pe_value, V.pe_multiple!=null?V.pe_multiple+'\u00d7 earnings':''],['EV/EBITDA', V.ev_ebitda_value, V.ev_ebitda_multiple!=null?V.ev_ebitda_multiple+'\u00d7 EBITDA, less debt':''],['DCF', V.dcf_value, 'discounted cash flow']].filter(function(r){return r[1]!=null;});
+    return h+'<div class="card"><div class="small">From your AIRA valuation of '+esc(d)+(V.discount!=null?' \u00b7 includes a '+Math.round(V.discount*100)+'% unlisted-company discount':'')+'</div>'
+      +rows.map(function(r){ return '<div class="vbar"><span class="k">'+r[0]+'</span><i style="width:'+Math.round(r[1]/mx*60)+'%"></i><b>'+crore(r[1])+'</b></div>'; }).join('')
+      +(meth.length?'<div class="rk-facts" style="margin-top:10px">'+meth.map(function(m){ return '<span>'+m[0]+' <b>'+esc(crore(m[1]))+'</b>'+(m[2]?' ('+esc(m[2])+')':'')+'</span>'; }).join('')+'</div>':'')
+      +(V.price_band_low&&V.price_band_high?'<p style="margin:10px 0 0;font-size:14px">Indicative IPO price band: <b>\u20b9'+esc(V.price_band_low)+' \u2013 \u20b9'+esc(V.price_band_high)+' per share</b></p>':'')
+      +'<p class="small" style="margin-top:10px"><b>Method:</b> '+esc(V.method||'')+' Analytical estimate only \u2014 not a valuation opinion.</p>'
+      +'<div class="acts"><a class="btn s" href="'+esc(askUrl(b,'valuation','My AIRA valuation base case is '+crore(V.base)+'. What would move it higher, and how should I use it with investors?'))+'">Ask the Valuation Expert</a><a class="btn o" href="aira.html">Refresh valuation in AIRA</a></div></div></div>';
+  }
+  return h+'<div class="card">'+[['Low',sv.low,sv.multiples[0]],['Mid',sv.mid,sv.multiples[1]],['High',sv.high,sv.multiples[2]]].map(function(v){ return '<div class="vbar"><span class="k">'+v[0]+' \u00b7 '+v[2]+'\u00d7</span><i style="width:'+Math.round(v[1]/sv.high*60)+'%"></i><b>'+crore(v[1])+'</b></div>'; }).join('')+'<p class="small" style="margin-top:10px"><b>Method:</b> '+esc(sv.method)+'</p></div></div>';
+}
+function capSection(b){
+  var cap=S.cap[b.cin]||{}, D=window.IPWIssuer&&window.IPWIssuer.detailFrom?window.IPWIssuer.detailFrom(cap):null, Y=D&&D[0];
+  var h='<div class="sec" id="cap-'+esc(b.cin)+'"><h2>Capital structure</h2>';
+  if(!Y) return '';
+  if(!unlocked('capital')) return h+lockCard('capital', b.cin, 'Your capital structure analysis is ready', 'Built from your filed balance sheet and charges',
+      ['Sources of funds: equity, reserves, term debt, working capital','Debt-to-capital mix against peers\u2019 comfort levels','Shareholding and recent capital changes','How much you could raise: debt headroom + equity at your valuation'])+'</div>';
+  var parts=[['Share capital',Y.shareCapital,'#0D5C6B'],['Reserves & surplus',Y.reserves,'#1A7D90'],['Term loans',Y.lt,'#E88A2E'],['Working-capital debt',Y.st,'#C9932A'],['Current maturities',Y.cm,'#B8650A'],['NCDs / bonds',Y.deb,'#8A5A00'],['Leases',Y.lease,'#6B7E85']].filter(function(x){return x[1]>0;});
+  var tot=parts.reduce(function(s,x){return s+x[1];},0)||1, debt=Y.debt||0, eq=Y.equity||0, share=debt+eq>0?Math.round(debt/(debt+eq)*100):null;
+  var dp=window.IPWIssuer.debtProfile(cap,S.risk[b.cin]||null,b), ep=window.IPWIssuer.equityProfile(cap,b), V=S.val[b.cin];
+  var eqRaise=V&&V.base?[Math.round(V.base*0.10),Math.round(V.base*0.20)]:null;
+  var adv=[];
+  if(share!=null) adv.push(share>60?'Debt is '+share+'% of your capital \u2014 heavy for a growing company; equity should fund the next phase.':share<25?'Debt is only '+share+'% of your capital \u2014 there is room to use more debt before diluting equity.':'Debt is '+share+'% of your capital \u2014 a balanced mix.');
+  if(dp.metrics.shortShare>60) adv.push(dp.metrics.shortShare+'% of debt is short-term \u2014 matching long-term assets with term debt would lower refinancing risk.');
+  if(ep.metrics.headroom!=null && eqRaise) adv.push('Authorised capital headroom is '+crore(ep.metrics.headroom)+' (face value); increase it before an equity raise if needed.');
+  return h+'<div class="card"><div class="small" style="margin-bottom:8px">Sources of funds, '+esc(Y.fy)+' \u00b7 total '+esc(crore(tot))+'</div>'
+    +'<div class="capbar" role="img" aria-label="Sources of funds">'+parts.map(function(x){ return '<i style="width:'+(x[1]/tot*100)+'%;background:'+x[2]+'" title="'+esc(x[0])+'"></i>'; }).join('')+'</div>'
+    +'<div class="rk-facts" style="margin-top:10px">'+parts.map(function(x){ return '<span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+x[2]+';margin-right:5px;vertical-align:middle"></i>'+esc(x[0])+' <b>'+esc(crore(x[1]))+'</b> ('+Math.round(x[1]/tot*100)+'%)</span>'; }).join('')+'</div>'
+    +'<div class="grid g4" style="margin-top:14px">'
+      +'<div class="card tile"><div class="lbl">DEBT : CAPITAL'+chip('DERIVED')+'</div><div class="val">'+(share!=null?share+'%':'\u2014')+'</div><div class="chg">debt \u00f7 (debt + net worth)</div></div>'
+      +'<div class="card tile"><div class="lbl">PROMOTER HOLDING'+chip('ACTUAL')+'</div><div class="val">'+(ep.metrics.promoterPct!=null?ep.metrics.promoterPct+'%':'\u2014')+'</div><div class="chg">'+(ep.shareholding?'from filed shareholding':'not in our data')+'</div></div>'
+      +'<div class="card tile"><div class="lbl">DEBT HEADROOM'+chip('ESTIMATED')+'</div><div class="val">'+(dp.metrics.capacity!=null?(dp.metrics.capacity>0?crore(dp.metrics.capacity):'None'):'\u2014')+'</div><div class="chg">at 3\u00d7 EBITDA, D/E 1.0</div></div>'
+      +'<div class="card tile"><div class="lbl">EQUITY AT VALUATION'+chip('ESTIMATED')+'</div><div class="val">'+(eqRaise?crore(eqRaise[0]).replace(' cr','')+'\u2013'+crore(eqRaise[1]).replace('\u20b9',''):'\u2014')+'</div><div class="chg">'+(eqRaise?'10\u201320% stake at base value':'run a valuation first')+'</div></div></div>'
+    +advList(adv.map(function(t){ return {lvl:'info', t:t, a:''}; }))
+    +'<div class="acts"><a class="btn s" href="'+esc(askUrl(b,'financial-readiness','What is the right capital structure for my company before an IPO \u2014 how much debt versus equity, and in what order should I raise them?'))+'">Ask about the right mix</a><a class="btn o" href="'+esc(waUrl(b,'capital structure and fundraising'))+'" target="_blank" rel="noopener">Talk to an adviser</a></div></div></div>';
+}
 function ago(iso){ if(!iso) return ''; var d=Math.round((Date.now()-new Date(iso).getTime())/86400000); return d<=0?'today':d===1?'yesterday':d+' days ago'; }
 function riskOf(cin){ var sc=S.risk[cin]; return sc&&window.IPWIssuer&&window.IPWIssuer.riskFromScan?window.IPWIssuer.riskFromScan(sc):null; }
 function hasLive(cin){ try{ var st=JSON.parse(localStorage.getItem('ipw_live_v1_'+cin)||'null'); return !!(st&&(st.sales||st.recv||st.cash||st.exp||st.pay)); }catch(e){ return false; } }
@@ -594,7 +652,7 @@ function hero(b, m, story){
     +'<div class="ring">'+ringSvg(R?R.overall:null)+'<b>Risk Desk</b><small>'+(R?esc(R.band):'not checked yet')+'</small></div></div></div>';
 }
 function navBar(b){
-  var items=[['prio','\u2b50 Priorities'],['ind','\ud83d\udcf0 Industry'],['chg','\u21c5 Changes'],['risk','\ud83d\udee1 Risk'],['health','\ud83d\udcc8 Health'],['debt','\ud83c\udfe6 Debt'],['equity','\ud83d\udcca Equity'],['ipo','\ud83d\ude80 IPO'],['data','\ud83d\udd12 My data'],['ai','\ud83e\udd16 AI'],['help','\ud83d\udcac Help']];
+  var items=[['prio','\u2b50 Priorities'],['ind','\ud83d\udcf0 Industry'],['chg','\u21c5 Changes'],['risk','\ud83d\udee1 Risk'],['health','\ud83d\udcc8 Health'],['debt','\ud83c\udfe6 Debt'],['equity','\ud83d\udcca Equity'],['cap','\ud83e\uddf1 Capital'],['val','\ud83d\udcb0 Valuation'],['ipo','\ud83d\ude80 IPO'],['data','\ud83d\udd12 My data'],['ai','\ud83e\udd16 AI'],['help','\ud83d\udcac Help']];
   if(!b.sector) items=items.filter(function(x){return x[0]!=='ind';});
   return '<nav class="bnav" aria-label="Sections">'+items.map(function(x,i){ return '<a href="#s-'+x[0]+'" data-nav="'+x[0]+'"'+(i===0?' class="on"':'')+'>'+x[1]+'</a>'; }).join('')+'</nav>';
 }
@@ -674,6 +732,18 @@ document.addEventListener('submit', async function(e){
     msg.className='msg ok'; msg.textContent='Thank you — we\u2019ll verify and email your private link, usually within one working day.';
     e.target.querySelector('button').disabled=true;
   }catch(err){ msg.className='msg err'; msg.textContent='That didn\u2019t go through. Please try again, or WhatsApp +91 88510 59588.'; }
+});
+document.addEventListener('click', async function(e){
+  var ub=e.target.closest('[data-unlock]'); if(!ub) return;
+  var what=ub.getAttribute('data-unlock'), cin=ub.getAttribute('data-cin'), m=document.getElementById('unl-'+what+'-'+cin), co=S.briefs[cin]?S.briefs[cin].name:cin;
+  if(DEMO){ if(m) m.textContent='In your own brief, this sends an unlock request to ipowork.'; return; }
+  ub.disabled=true; if(m) m.textContent='Sending your request\u2026';
+  try{
+    var leadId='LEAD-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    await insert({report_id:leadId,company_name:(co||'N/A').slice(0,200),cin:'LEAD',sector:'Issuer',exchange:'N/A',tier:'free',score:0,source:'lead',
+      scores:{leadId:leadId,category:'Issuer',company:co,contact:(S.user&&S.user.name)||'',email:(S.user&&S.user.email)||'',notes:'Unlock request: '+(what==='valuation'?'valuation':'capital structure')+' \u00b7 CIN '+cin,associateSlug:'issuer-portal',associateName:'Issuer portal (self)',stage:'New',createdAt:new Date().toISOString(),activity:[{text:'Requested to unlock '+what,at:new Date().toISOString()}]}});
+    if(m){ m.style.color='var(--up)'; m.innerHTML='\u2713 Request sent. ipowork will contact you and unlock it, usually within one working day. <a href="'+esc(waUrl(S.briefs[cin],'unlocking my '+what))+'" target="_blank" rel="noopener">WhatsApp us</a> for faster help.'; }
+  }catch(err){ ub.disabled=false; if(m){ m.style.color='var(--down)'; m.textContent='Couldn\u2019t send just now \u2014 please WhatsApp +91 88510 59588.'; } }
 });
 document.addEventListener('click', async function(e){
   var rb=e.target.closest('[data-risk-run]'); if(!rb) return;
@@ -759,6 +829,7 @@ document.addEventListener('click', function(e){ var a=e.target.closest('.bnav a,
              {fy:'FY24',liabilities:{share_capital:6,reserves_and_surplus:65,long_term_borrowings:34,short_term_borrowings:22,current_maturities_of_long_term_debt:4},assets:{intangible_assets:1.1},subtotals:{total_equity:71,total_debt:60},pnl:{net_revenue:150,operating_profit:23,interest:3.8,depreciation:4.5,other_income:0.6,profit_before_tax:12.3,profit_after_tax:9}},
              {fy:'FY23',liabilities:{share_capital:6,reserves_and_surplus:56,long_term_borrowings:31,short_term_borrowings:21,current_maturities_of_long_term_debt:3},assets:{intangible_assets:1},subtotals:{total_equity:62,total_debt:55},pnl:{net_revenue:125,operating_profit:19,interest:3.2,depreciation:4,other_income:0.5,profit_before_tax:9.6,profit_after_tax:7.1}}]}};
     S.ind['Specialty Chemicals']={date:indToday(),headline:'Sample update \u2014 how your daily industry briefing will look.',items:[{title:'Sample: input prices ease for the second week',summary:'A short factual summary of the news item appears here, taken from the linked source.',why_it_matters:'One line on what this means for a company like yours.',source:'Source name',url:'https://www.ipowork.com/',date:indToday()},{title:'Sample: a peer company files for an IPO',summary:'Deals, IPOs and fund-raises by peers in your industry are tracked.',why_it_matters:'Signals investor appetite and valuation levels for your sector.',source:'Source name',url:'https://www.ipowork.com/',date:indToday()}],outlook:'Sample outlook line.'};
+    S.val[CIN]={base:433,conservative:346,optimistic:541,pe_value:390,ev_ebitda_value:455,dcf_value:470,pe_multiple:38,ev_ebitda_multiple:15,discount:0.2,capturedAt:new Date().toISOString(),method:'sample'};
     S.risk[CIN].charges=[{charge_holder:'Bank A',status:'Open',amount:450000000},{charge_holder:'Bank B',status:'Open',amount:250000000},{charge_holder:'NBFC C',status:'Open',amount:100000000}];
     who.innerHTML='<span>Sample view</span><a class="adv" href="'+CAL+'" target="_blank" rel="noopener">Talk to an adviser</a>'; render(); floatAdv(); if(window.IPWLive) window.IPWLive.bind(function(c){return S.briefs[c];},function(cin,mod,note){ var el=document.getElementById('live-'+cin); if(el) el.outerHTML=window.IPWLive.render(cin,S.briefs[cin]); if(mod&&note){ var m=document.getElementById('lvmsg-'+mod+'-'+cin); if(m){ m.className='lv-msg small ok'; m.textContent='\u2713 '+note; } } });
     return;
@@ -767,6 +838,7 @@ document.addEventListener('click', function(e){ var a=e.target.closest('.bnav a,
     var r=await login();
     if(!r.user){ who.textContent=r.siteUser?('Signed in as '+(r.siteUser.name||r.siteUser.email)):''; app.innerHTML=r.siteUser&&!r.error?viewRunAira(r.siteUser):viewLanding(r.error, r.siteUser); return; }
     S.user=r.user; S.cins=r.user.cins.slice();
+    if(S.user.email){ try{ var ua=await get('source=eq.issuer_account&scores->>email=eq.'+encodeURIComponent(S.user.email)+'&order=created_at.desc&limit=1&select=scores'); if(ua[0]&&ua[0].scores){ S.user.unlock=ua[0].scores.unlock||S.user.unlock||null; (ua[0].scores.cins||[]).forEach(function(c){ c=String(c).toUpperCase(); if(S.cins.indexOf(c)<0) S.cins.push(c); }); } }catch(e){} }
     (await airaCinsFor(r.user.email)).forEach(function(c){ if(S.cins.indexOf(c)<0) S.cins.push(c); });
     who.innerHTML=((r.user.name||r.user.email)?'<span>Signed in as <b>'+esc(r.user.name||r.user.email)+'</b>'+(r.user.role==='ca_cs'?' \u00b7 CA/CS partner':'')+'</span>':'')+'<a class="adv" href="'+CAL+'" target="_blank" rel="noopener">Talk to an adviser</a>';
     S.briefs=await loadBriefs(S.cins);
