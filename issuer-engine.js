@@ -444,14 +444,22 @@
       out.rows.push({label:'Share capital', unit:'cr', type:'ACTUAL', values:vals(function(d){return d.shareCapital;})});
       out.rows.push({label:'Reserves & surplus', unit:'cr', type:'ACTUAL', values:vals(function(d){return d.reserves;})});
       out.rows.push({label:'Net tangible assets', unit:'cr', type:'DERIVED', values:vals(function(d){return d.nta;}), note:'Net worth minus intangible assets.'});
-      out.rows.push({label:'Return on equity', unit:'%', type:'DERIVED', values:vals(function(d,p){ if(d.pat==null||!d.equity) return null; var base=(p&&p.equity)?(d.equity+p.equity)/2:d.equity; return Math.round(d.pat/base*1000)/10; }), note:'PAT ÷ average net worth.'});
-      var Y=D[0], P=D[1]; M.roe=out.rows[4].values[Y.fy]; if(Y.equity&&P&&P.equity) M.nwGrowth=Math.round((Y.equity-P.equity)/Math.abs(P.equity)*1000)/10;
+      /* ROE = PAT ÷ average net worth; when net worth more than doubled in the year (fresh equity, bonus, merger),
+         the average is distorted, so year-end net worth is used and the year is marked */
+      var sharp={};
+      out.rows.push({label:'Return on equity', unit:'%', type:'DERIVED', values:vals(function(d,p){ if(d.pat==null||!d.equity) return null;
+        if(p&&p.equity>0&&d.equity>2*p.equity){ sharp[d.fy]=1; return Math.round(d.pat/d.equity*1000)/10; }
+        var base=(p&&p.equity)?(d.equity+p.equity)/2:d.equity; return Math.round(d.pat/base*1000)/10; }), note:'PAT ÷ average net worth.'});
+      out.roeSharp=sharp; if(Object.keys(sharp).length) out.rows[4].note='PAT ÷ average net worth. * Year-end net worth used for '+Object.keys(sharp).join(', ')+' — net worth more than doubled that year.';
+      var Y=D[0], P=D[1]; M.roe=out.rows[4].values[Y.fy]; M.roeSharp=!!sharp[Y.fy]; if(Y.equity&&P&&P.equity) M.nwGrowth=Math.round((Y.equity-P.equity)/Math.abs(P.equity)*1000)/10;
+      if(Y.shareCapital!=null&&P&&P.shareCapital!=null&&Y.shareCapital-P.shareCapital>=0.05) M.capitalAdded=Math.round((Y.shareCapital-P.shareCapital)*100)/100;
       if(Y.reserves!=null&&Y.equity) M.retained=Math.round(Y.reserves/Y.equity*100);
     } else { if(f.net_worth!=null) M.netWorth=+f.net_worth; if(f.roe!=null) M.roe=+f.roe; }
     var sh=shareholding(pr.extra); out.shareholding=sh;
     if(sh){ var pro=sh.filter(function(r){return /promoter/i.test(r.category);}); if(pro.length) M.promoterPct=Math.round(pro.reduce(function(s,r){return s+r.pct;},0)*10)/10; }
     if(b&&b.valuation){ M.raise10=Math.round(b.valuation.mid*0.10); M.raise20=Math.round(b.valuation.mid*0.20); }
     var A=out.advice;
+    if(M.capitalAdded) A.push({lvl:'info', t:'Share capital rose by '+E.crore(M.capitalAdded)+' in '+out.years[out.years.length-1]+' \u2014 new shares, a bonus issue or a conversion.', a:'Keep the allotment filings (PAS-3 / SH-7) and valuation reports ready; investors will ask about every recent equity change.'});
     if(M.headroom!=null && paid!=null && M.headroom < paid*0.25) A.push({lvl:'watch', t:'Authorised capital headroom is small ('+E.crore(M.headroom)+').', a:'Increase authorised capital (an ordinary resolution and Form SH-7) before any share issue or IPO.'});
     if(M.roe!=null && M.roe<12) A.push({lvl:'watch', t:'Return on equity '+M.roe+'%.', a:'Investors usually look for 15% or more; margin and asset turns are the levers.'});
     else if(M.roe!=null && M.roe>=15) A.push({lvl:'info', t:'Return on equity '+M.roe+'% — attractive to equity investors.', a:'Keep it visible in your investor story.'});
