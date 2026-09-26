@@ -4059,9 +4059,9 @@ function ipwCaptureRiskSnapshot(r, cin, cname){
     var who=ipwRunBy(), by=who.by;
     var snap={cin:cin, company_name:r.company_name||cname||'', financials:r.financials||{}, legal:r.legal||{}, compliance:r.compliance||{}, cirp_status:r.cirp_status||null,
       directors:(r.directors||[]).map(function(d){return {name:d.name||'',designation:d.designation||'',cessation:d.cessation||null};}),
-      charges:(r.charges||[]).map(function(c){return {charge_holder:c.charge_holder||'',amount:c.amount||null,status:c.status||''};}),
+      charges:(r.charges||[]).map(function(c){return {charge_holder:c.charge_holder||'',amount:c.amount||null,status:c.status||'',date_of_creation:c.date_of_creation||''};}),
       related_party_transactions:(r.related_party_transactions||[]).map(function(x){return {relation:x.relation||'',nature:x.nature||''};}),
-      credit_ratings:(r.credit_ratings||[]).slice(0,3), company_type:r.company_type||null, registered_state:r.registered_state||null,
+      credit_ratings:(r.credit_ratings||[]).slice(0,6), company_type:r.company_type||null, registered_state:r.registered_state||null, profiles:r.profiles||null, paid_up_capital:r.paid_up_capital||null, authorised_capital:r.authorised_capital||null,
       source:'aira', capturedBy:by, capturedBySite:who.site, capturedAt:new Date().toISOString()};
     ipwRememberCin(cin, snap.company_name);
     fetch(SUPA_URL_TRIAL+'/rest/v1/reports',{method:'POST',headers:{'apikey':SUPA_KEY_TRIAL,'Authorization':'Bearer '+SUPA_KEY_TRIAL,'Content-Type':'application/json','Prefer':'return=minimal'},
@@ -4092,6 +4092,11 @@ function ipwCaptureIssuerFinancials(result, cname, sector, tier){
       cin: cin, company_name: result.company_name || cname || '', sector: sector || '', tier: tier,
       aira_score: score ? Math.round(+score) : null,
       financials: f,
+      profiles: result.profiles || null,
+      paid_up_capital: result.paid_up_capital || null,
+      authorised_capital: result.authorised_capital || null,
+      charges: Array.isArray(result.charges) ? result.charges.map(function(c){ return {charge_holder:c.charge_holder||'', amount:c.amount||null, status:c.status||'', date_of_creation:c.date_of_creation||''}; }) : null,
+      credit_ratings: Array.isArray(result.credit_ratings) ? result.credit_ratings.slice(0,6) : null,
       company_type: result.company_type || null,
       registered_email: result.email || null,
       registered_state: result.registered_state || null,

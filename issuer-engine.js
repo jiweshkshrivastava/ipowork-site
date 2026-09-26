@@ -282,6 +282,19 @@
       independent_directors: (a.independent_directors===null||a.independent_directors===undefined) ? '' : a.independent_directors,
       aira_score: a.aira_score===null||a.aira_score===undefined ? '' : a.aira_score, filed_on: a.last_filing_date||'', op_basis:'pbt', nta_basis:'net_worth' };
     function row(o){ return Object.assign({}, common, o); }
+    if(!common.sector || /^(other|others|n\/a|na|general|manufacturing|services|trading)$/i.test(common.sector)) common.sector = E.nicSector(cin) || common.sector;
+    var D = E.detailFrom(a);
+    if(D && D.length >= 2){
+      common.op_basis=''; common.nta_basis='';
+      var byFy = {}; D.forEach(function(d){ byFy[d.fy]=d; });
+      return D.slice(0,3).reverse().map(function(d, i, arr){
+        var last = i===arr.length-1;
+        var r = row({ fy:d.fy, revenue:d.revenue, ebitda:d.ebitda, depreciation:d.dep, finance_cost:d.fc, pat:d.pat, net_worth:d.equity, total_debt:d.debt,
+          receivables:d.receivables, inventory:d.inventory, payables:d.payables, cash_from_ops:d.cfo, capex:d.capex, net_tangible_assets:d.nta, operating_profit:d.opProfit });
+        if(last){ r.ov_roce=f.roce; r.ov_interest_cover=f.interest_coverage; }
+        return r;
+      }).filter(function(r){ return r.revenue!=null || r.pat!=null || r.net_worth!=null; });
+    }
     return [
       row({ fy:y22, revenue:f.revenue_fy22, pat:f.pat_fy22, ebitda:f.ebitda_fy22, net_worth:f.net_worth_fy22, operating_profit:f.pbt_fy22 }),
       row({ fy:y23, revenue:f.revenue_fy23, pat:f.pat_fy23, ebitda:f.ebitda_fy23, net_worth:f.net_worth_fy23, operating_profit:f.pbt_fy23 }),
@@ -334,6 +347,118 @@
       modules:[{k:'legal',label:'Legal',v:legal},{k:'forensic',label:'Forensic',v:forensic},{k:'directors',label:'Directors',v:dirS},{k:'financial',label:'Financial',v:finS},{k:'governance',label:'Governance',v:gov}],
       facts:{openCharges:open.length, directors:dirs.length, casesAgainst:against, pending:pending, msmeDelays:comp.msme_delays||0, defaulter:!!comp.defaulter, gst:gst||null, rating:rating||null},
       items:items, method:'Same scoring as ipowork Risk Desk: Legal, Forensic, Directors, Financial and Governance scores from MCA/Probe42 data, averaged.' };
+  };
+
+  /* ---------- sector from the CIN's industry code (NIC-2004, characters 2–6) ---------- */
+  var NIC={1:'Agriculture',2:'Agriculture',5:'Fisheries',10:'Mining',11:'Oil & gas',12:'Mining',13:'Mining',14:'Mining',15:'Food & beverages',16:'Tobacco',17:'Textiles',18:'Apparel',19:'Leather & footwear',
+    20:'Wood products',21:'Paper & packaging',22:'Printing & publishing',23:'Petroleum products',24:'Chemicals',25:'Rubber & plastics',26:'Building materials',27:'Metals',28:'Metal products',29:'Industrial machinery',
+    30:'Computers & office equipment',31:'Electrical equipment',32:'Electronics',33:'Medical & precision instruments',34:'Automobiles & auto components',35:'Transport equipment',36:'Furniture & other manufacturing',37:'Recycling',
+    40:'Power & gas',41:'Water',45:'Construction & infrastructure',50:'Automobile trade',51:'Wholesale trade',52:'Retail',55:'Hotels & restaurants',60:'Transport & logistics',61:'Shipping',62:'Aviation',63:'Logistics',64:'Telecom',
+    65:'Financial services',66:'Insurance',67:'Financial services',70:'Real estate',71:'Equipment rental',72:'IT & software',73:'Research & development',74:'Business services',75:'Public services',80:'Education',85:'Healthcare',
+    90:'Waste management',91:'Associations',92:'Media & entertainment',93:'Other services'};
+  E.nicSector = function(cin){ var m=String(cin||'').toUpperCase().match(/^[LU](\d{5})/); if(!m) return ''; if(m[1].slice(0,4)==='2423') return 'Pharmaceuticals'; return NIC[+m[1].slice(0,2)]||''; };
+
+  /* ---------- balance-sheet detail (Worker patch P1 "profiles") ---------- */
+  function pick(o, re){ if(!o) return null; var ks=Object.keys(o); for(var i=0;i<re.length;i++){ for(var j=0;j<ks.length;j++){ if(re[i].test(ks[j]) && isFinite(o[ks[j]])) return +o[ks[j]]; } } return null; }
+  function sumOf(o, re){ if(!o) return null; var t=null; Object.keys(o).forEach(function(k){ if(re.test(k) && isFinite(o[k])){ t=(t||0)+(+o[k]); } }); return t; }
+  function yearDetail(Y){
+    var L=Y.liabilities||{}, A=Y.assets||{}, T=Y.subtotals||{}, P=Y.pnl||{}, C=Y.cash_flow||{};
+    var lt=pick(L,[/^long_term_borrowings$/,/non_current_borrowings/,/long_term_(debt|loans)/]), st=pick(L,[/^short_term_borrowings$/,/^current_borrowings$/,/short_term_(debt|loans)/]);
+    var cm=pick(L,[/current_maturit/]), deb=sumOf(L,/debenture|bond|ncd/), cp=pick(L,[/commercial_paper/]), lease=sumOf(L,/lease/);
+    var unsec=sumOf(L,/unsecured|from_related|from_director|from_promoter/);
+    var totDebt=pick(T,[/^total_debt$/,/^total_borrowings$/]); var parts=(lt||0)+(st||0)+(cm||0);
+    if(totDebt===null && (lt!==null||st!==null)) totDebt=Math.round(parts*100)/100;
+    var eq=pick(T,[/^total_equity$/,/^net_worth$/,/shareholders?_funds/]); var shc=pick(L,[/^share_capital$/,/equity_share_capital/]), res=pick(L,[/reserves/,/^other_equity$/]);
+    if(eq===null && (shc!==null||res!==null)) eq=(shc||0)+(res||0);
+    var intang=sumOf(A,/intangible|goodwill/)||0;
+    var fc=pick(P,[/^interest$/,/finance_?costs?/,/interest_expense/]), dep=pick(P,[/depreciation|amortis/]), oi=pick(P,[/^other_income$/]), pbt=pick(P,[/profit_before_tax/]);
+    return { fy:Y.fy, lt:lt, st:st, cm:cm, deb:deb, cp:cp, lease:lease, unsecured:unsec, debt:totDebt, equity:eq, shareCapital:shc, reserves:res, intangibles:intang,
+      revenue:pick(P,[/^net_revenue$/,/revenue_from_operations/,/total_revenue/]), ebitda:pick(P,[/^operating_profit$/,/^ebitda$/]), fc:fc, dep:dep, oi:oi, pbt:pbt, pat:pick(P,[/profit_after_tax/,/^net_profit$/]),
+      receivables:pick(A,[/trade_receivables/,/sundry_debtors/]), inventory:pick(A,[/inventor/]), payables:pick(L,[/trade_payables/,/sundry_creditors/]), cash:pick(A,[/cash_and_bank/,/cash_and_cash_equivalents/]),
+      cfo:pick(C,[/operating_activities/,/from_operations/]), capex:(function(){ var v=pick(C,[/purchase_of_(fixed|property|tangible)/,/capital_expenditure/]); return v===null?null:Math.abs(v); })(),
+      nta: eq!==null ? Math.round((eq-intang)*100)/100 : null,
+      opProfit: (pbt!==null && fc!==null) ? Math.round((pbt+fc-(oi||0))*100)/100 : null };
+  }
+  E.detailFrom = function(a){ var y=a&&a.profiles&&a.profiles.years; if(!y||!y.length) return null; return y.map(yearDetail).filter(function(d){ return d.fy; }); };
+
+  /* ---------- Debt profile ---------- */
+  E.debtProfile = function(a, risk, b){
+    var D=E.detailFrom(a), f=(a&&a.financials)||{}, out={detailed:!!(D&&D.length), types:[], lenders:[], ratings:[], metrics:{}, advice:[]};
+    var Y=D&&D[0], P=D&&D[1];
+    out.years = D ? D.slice(0,3).map(function(d){return d.fy;}).reverse() : [];
+    function row(label, key, note){ if(!D) return; var vals={}, any=false; D.slice(0,3).forEach(function(d){ var v=d[key]; vals[d.fy]=v; if(v) any=true; }); if(any) out.types.push({label:label, key:key, values:vals, note:note||''}); }
+    row('Long-term borrowings (term loans etc.)','lt','Repayable after 12 months');
+    row('Short-term borrowings (working capital: CC / OD / WCDL)','st','Repayable within 12 months');
+    row('Current maturities of long-term debt','cm','Term-loan instalments due within 12 months');
+    row('Debentures / NCDs / bonds','deb','Market borrowings');
+    row('Commercial paper','cp','Short-term market borrowings');
+    row('Unsecured / related-party loans','unsecured','From promoters, directors or group companies');
+    row('Lease liabilities','lease','Ind AS 116 leases');
+    var debt = Y ? Y.debt : (f.total_debt!=null ? +f.total_debt : null);
+    out.total = debt; out.totalPrev = P ? P.debt : null;
+    var ebitda = Y&&Y.ebitda!=null ? Y.ebitda : (f.ebitda_cr!=null?+f.ebitda_cr:null), eq = Y&&Y.equity!=null ? Y.equity : (f.net_worth!=null?+f.net_worth:null);
+    var fc = Y ? Y.fc : null, cash = Y ? Y.cash : (f.cash_and_bank!=null?+f.cash_and_bank:null);
+    var M=out.metrics;
+    if(debt!=null && eq) M.de = Math.round(debt/eq*100)/100;
+    if(debt!=null && ebitda>0) M.debtEbitda = Math.round(debt/ebitda*10)/10;
+    if(fc>0 && ebitda!=null) M.icr = Math.round(ebitda/fc*10)/10; else if(f.interest_coverage!=null) M.icr = +f.interest_coverage;
+    if(fc>0 && debt>0){ var avg = (out.totalPrev>0) ? (debt+out.totalPrev)/2 : debt; M.costOfDebt = Math.round(fc/avg*1000)/10; }
+    if(Y && debt>0){ var shortT=(Y.st||0)+(Y.cm||0); M.shortShare = Math.round(shortT/debt*100); }
+    if(debt!=null && cash!=null) M.netDebt = Math.round((debt-cash)*100)/100;
+    if(debt!=null && ebitda>0 && eq>0){ var cap=Math.min(ebitda*3-debt, eq*1.0-debt); M.capacity = Math.round(cap*10)/10; }
+    // secured lenders (open charges)
+    ((risk&&risk.charges)||[]).filter(function(c){ return String(c.status||'').toLowerCase().indexOf('open')>-1; }).forEach(function(c){
+      out.lenders.push({name:c.charge_holder||'—', amount:c.amount?Math.round(parseFloat(c.amount)/1e7*100)/100:null, date:c.date_of_creation||''}); });
+    out.lenders.sort(function(x,y){ return (y.amount||0)-(x.amount||0); });
+    var rt=(a&&a.profiles&&a.profiles.credit_ratings&&a.profiles.credit_ratings.length)?a.profiles.credit_ratings:((risk&&risk.credit_ratings)||[]);
+    out.ratings = rt.slice(0,6).map(function(r){ return {agency:r.rating_agency||r.agency||'', rating:r.rating||r.rating_assigned||r.current_rating||'', instrument:r.instrument||r.instrument_type||r.facility||'', amount:r.amount?Math.round(parseFloat(r.amount)/1e7*100)/100:null, date:r.rating_date||r.date||''}; });
+    // advice
+    var A=out.advice;
+    if(M.debtEbitda!=null && M.debtEbitda>3) A.push({lvl:'watch', t:'Debt is '+M.debtEbitda+'× EBITDA.', a:'Lenders usually cap at about 3×. Link fresh borrowing to EBITDA growth, or plan an equity raise.'});
+    if(M.shortShare!=null && M.shortShare>60) A.push({lvl:'watch', t:M.shortShare+'% of debt falls due within 12 months.', a:'High refinancing risk. Consider moving part of working-capital debt to a term loan or an NCD.'});
+    if(M.costOfDebt!=null && M.costOfDebt>11) A.push({lvl:'watch', t:'Estimated cost of debt '+M.costOfDebt+'%.', a:'Compare with current bank and NBFC rates; a credit rating or refinancing may lower it.'});
+    if(!out.ratings.length && debt>25) A.push({lvl:'info', t:'No credit rating found, with '+E.crore(debt)+' of debt.', a:'A bank-loan rating can reduce borrowing cost and is needed for NCDs or CP.'});
+    if(M.icr!=null && M.icr<3) A.push({lvl:'watch', t:'Interest cover '+M.icr+'×.', a:'Keep new borrowing modest until earnings grow; lenders look for 3× or more.'});
+    if(M.capacity!=null) A.push({lvl:M.capacity>0?'info':'watch', t: M.capacity>0 ? 'Room for roughly '+E.crore(M.capacity)+' more debt at 3× EBITDA and debt/equity of 1.0.' : 'Debt is already at or above 3× EBITDA or debt/equity of 1.0.', a: M.capacity>0 ? 'An indicative ceiling, not a sanction; each lender sets its own limits.' : 'Equity or internal accruals are the better source for the next round of funding.'});
+    if(!out.detailed) A.push({lvl:'info', t:'Borrowing split by type isn\u2019t available yet.', a:'Run AIRA again after ipowork\u2019s data update to see term loans, working capital, NCDs and other lines separately.'});
+    return out;
+  };
+
+  /* ---------- Equity profile ---------- */
+  function shareholding(extra){
+    if(!extra) return null; var found=null;
+    Object.keys(extra).forEach(function(k){ if(found) return; var v=extra[k]; var arr=Array.isArray(v)?v:(v&&typeof v==='object'?(Array.isArray(v.data)?v.data:Object.keys(v).map(function(x){ return {category:x, percentage:v[x]}; })):null);
+      if(!arr) return; var rows=arr.map(function(r){ if(!r||typeof r!=='object') return null; var cat=r.category||r.shareholder_category||r.type||r.name||''; var p=parseFloat(r.percentage!=null?r.percentage:(r.percent!=null?r.percent:(r.share_percentage!=null?r.share_percentage:r.holding)));
+        return cat&&isFinite(p)?{category:String(cat),pct:p}:null; }).filter(Boolean);
+      if(rows.length) found=rows; });
+    return found;
+  }
+  E.equityProfile = function(a, b){
+    var D=E.detailFrom(a), f=(a&&a.financials)||{}, pr=(a&&a.profiles)||{}, out={detailed:!!(D&&D.length), years:[], rows:[], metrics:{}, advice:[]};
+    var paid=pr.paid_up_capital_cr!=null?pr.paid_up_capital_cr:(a&&a.paid_up_capital?Math.round(parseFloat(a.paid_up_capital)/1e7*10000)/10000:null);
+    var auth=pr.authorised_capital_cr!=null?pr.authorised_capital_cr:(a&&a.authorised_capital?Math.round(parseFloat(a.authorised_capital)/1e7*10000)/10000:null);
+    var M=out.metrics; M.paidUp=paid; M.authorised=auth; if(paid!=null&&auth!=null) M.headroom=Math.round((auth-paid)*10000)/10000;
+    if(D){ out.years=D.slice(0,3).map(function(d){return d.fy;}).reverse();
+      var ys=D.slice(0,3), vals=function(fn){ var o={}; ys.forEach(function(d,i){ o[d.fy]=fn(d,ys[i+1]); }); return o; };
+      out.rows.push({label:'Net worth', unit:'cr', type:'ACTUAL', values:vals(function(d){return d.equity;})});
+      out.rows.push({label:'Share capital', unit:'cr', type:'ACTUAL', values:vals(function(d){return d.shareCapital;})});
+      out.rows.push({label:'Reserves & surplus', unit:'cr', type:'ACTUAL', values:vals(function(d){return d.reserves;})});
+      out.rows.push({label:'Net tangible assets', unit:'cr', type:'DERIVED', values:vals(function(d){return d.nta;}), note:'Net worth minus intangible assets.'});
+      out.rows.push({label:'Return on equity', unit:'%', type:'DERIVED', values:vals(function(d,p){ if(d.pat==null||!d.equity) return null; var base=(p&&p.equity)?(d.equity+p.equity)/2:d.equity; return Math.round(d.pat/base*1000)/10; }), note:'PAT ÷ average net worth.'});
+      var Y=D[0], P=D[1]; M.roe=out.rows[4].values[Y.fy]; if(Y.equity&&P&&P.equity) M.nwGrowth=Math.round((Y.equity-P.equity)/Math.abs(P.equity)*1000)/10;
+      if(Y.reserves!=null&&Y.equity) M.retained=Math.round(Y.reserves/Y.equity*100);
+    } else { if(f.net_worth!=null) M.netWorth=+f.net_worth; if(f.roe!=null) M.roe=+f.roe; }
+    var sh=shareholding(pr.extra); out.shareholding=sh;
+    if(sh){ var pro=sh.filter(function(r){return /promoter/i.test(r.category);}); if(pro.length) M.promoterPct=Math.round(pro.reduce(function(s,r){return s+r.pct;},0)*10)/10; }
+    if(b&&b.valuation){ M.raise10=Math.round(b.valuation.mid*0.10); M.raise20=Math.round(b.valuation.mid*0.20); }
+    var A=out.advice;
+    if(M.headroom!=null && paid!=null && M.headroom < paid*0.25) A.push({lvl:'watch', t:'Authorised capital headroom is small ('+E.crore(M.headroom)+').', a:'Increase authorised capital (an ordinary resolution and Form SH-7) before any share issue or IPO.'});
+    if(M.roe!=null && M.roe<12) A.push({lvl:'watch', t:'Return on equity '+M.roe+'%.', a:'Investors usually look for 15% or more; margin and asset turns are the levers.'});
+    else if(M.roe!=null && M.roe>=15) A.push({lvl:'info', t:'Return on equity '+M.roe+'% — attractive to equity investors.', a:'Keep it visible in your investor story.'});
+    if(M.promoterPct!=null){ if(M.promoterPct>=90) A.push({lvl:'info', t:'Promoters hold '+M.promoterPct+'%.', a:'There is room to bring in pre-IPO or strategic investors while keeping control.'}); else if(M.promoterPct<51) A.push({lvl:'watch', t:'Promoter holding '+M.promoterPct+'%.', a:'Plan dilution carefully; lock-in and control need attention before an IPO.'}); }
+    if(M.raise10) A.push({lvl:'info', t:'A 10–20% stake at the indicative mid valuation is about '+E.crore(M.raise10)+'–'+E.crore(M.raise20)+'.', a:'Indicative only; actual pricing depends on investors and market conditions.'});
+    if(!sh) A.push({lvl:'info', t:'Shareholding pattern not available in the data we hold.', a:'Share your latest MGT-7 or shareholding with your adviser for an equity plan.'});
+    return out;
   };
 
   /* ---------- build ---------- */
