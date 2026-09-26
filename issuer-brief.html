@@ -150,6 +150,7 @@ footer{padding:20px var(--px) 30px;font-size:11.5px;color:var(--muted);line-heig
   <main id="app" aria-live="polite"><div class="loading">Loading your company intelligence…</div></main>
   <footer>ipowork is not a SEBI-registered investment adviser, research analyst or credit rating agency. Briefs are analytical information built from public filings and market data; valuations are indicative estimates, not valuation opinions; nothing here is investment, credit or legal advice. <a href="privacy-policy.html">Privacy policy</a> · <a href="disclaimer.html">Disclaimer</a></footer>
 </div>
+<script src="ipw-gate.js"></script>
 <script src="issuer-engine.js"></script>
 <script src="issuer-live.js"></script>
 <script>
@@ -607,6 +608,7 @@ document.addEventListener('click', async function(e){
     if(!sc || Date.now()-new Date(sc.capturedAt).getTime()>7*86400000){
       var c=new AbortController(), t=setTimeout(function(){c.abort();},45000), r;
       try{ r=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'probe42_raw',cin:cin}),signal:c.signal}); } finally{ clearTimeout(t); }
+      if(r.status===401){ var e401=new Error('signin'); e401.signin=true; throw e401; }
       var data=r.ok?await r.json():null;
       if(!data||data.error){ throw new Error(data&&data.error?data.error:('the data service answered '+(r?r.status:'nothing'))); }
       sc={cin:cin, company_name:data.company_name||'', financials:data.financials||{}, legal:data.legal||{}, compliance:data.compliance||{}, cirp_status:data.cirp_status||null,
@@ -622,7 +624,9 @@ document.addEventListener('click', async function(e){
     if(!S.briefs[cin]) S.briefs=await loadBriefs(S.cins);
     render(); var el=document.getElementById('risk-'+cin); if(el) el.scrollIntoView();
   }catch(err){
-    rb.disabled=false; if(msg){ msg.style.color='var(--down)'; msg.textContent='The risk check couldn\u2019t run just now ('+err.message+'). Please try again later, or WhatsApp +91 88510 59588 and we\u2019ll run it for you.'; }
+    rb.disabled=false; if(msg){ msg.style.color='var(--down)';
+      if(err.signin){ msg.innerHTML='Please <a href="login.html" onclick="try{sessionStorage.setItem(\'ipowork_login_redirect\',\'issuer-brief.html\')}catch(e){}">sign in</a> to run the risk check \u2014 or simply run AIRA, which includes it.'; }
+      else msg.textContent='The risk check couldn\u2019t run just now ('+err.message+'). Please try again later, or WhatsApp +91 88510 59588 and we\u2019ll run it for you.'; }
   }
 });
 document.addEventListener('click', async function(e){
