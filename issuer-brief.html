@@ -440,6 +440,9 @@ function hv(b,k){ var h=(b.health||[]).filter(function(x){return x.k===k;})[0]; 
 function ctx(b){ var h=b.headline||{}, em=hv(b,'ebitda_margin'), de=hv(b,'debt_equity'), rd=hv(b,'receivable_days');
   return 'My company: '+b.name+' (CIN '+b.cin+(b.sector?', '+b.sector:'')+'). '+b.latestFy+' revenue '+crore(h.revenue)+', PAT '+crore(h.pat)+(em!=null?', EBITDA margin '+em+'%':'')+(de!=null?', debt/equity '+de:'')+(rd!=null?', receivable days '+rd:'')+'. ipowork stage: '+b.stage.name+'.'; }
 function askUrl(b,id,q){ var a=AIS.filter(function(x){return x[0]===id;})[0]; return 'ai-assistants.html?ask='+encodeURIComponent(id)+'&q='+encodeURIComponent(ctx(b)+' '+(q||(a?a[4]:''))); }
+function waCtx(b){ if(!b) return ''; var h=b.headline||{}; return ' \u2014 '+b.name+' (CIN '+b.cin+'), '+(b.sector?b.sector+', ':'')+b.latestFy+' revenue '+crore(h.revenue)+', PAT '+crore(h.pat)+', stage: '+b.stage.name+(b.aira!=null?', AIRA '+b.aira:''); }
+function waMb(b){ return WA+'?text='+encodeURIComponent('Hi ipowork, please connect me with suitable SEBI-registered merchant bankers for our IPO / pre-IPO'+waCtx(b)+'.'); }
+function waCa(b){ return WA+'?text='+encodeURIComponent('Hi ipowork, I need CA / CS support (tax, GST, ROC or compliance)'+waCtx(b)+'.'); }
 function waUrl(b,topic){ return WA+'?text='+encodeURIComponent('Hi ipowork, I\u2019d like advice for '+(b?b.name:'my company')+(b?' (CIN '+b.cin+')':'')+(topic?' on: '+topic:'')+'.'); }
 var ADVICE={
   'Receivables':['financial-readiness','Collections'],'Profitability':['financial-readiness','Margins'],'Governance':['sebi-compliance','Board and governance'],
@@ -470,9 +473,9 @@ function prepPlan(b){
     [false,'Clean up compliance','Clear any ROC, GST, TDS, EPFO or MSME gaps before diligence starts.', [['Compliance Gap Analyzer','gap.html']]],
     [false,'Get your documents diligence-ready','Three years of audited accounts, statutory registers, material contracts and related-party approvals.', [['IPO readiness checklist','ipo-readiness-checklist.html'],['DRHP Preparation Guide',askUrl(b,'drhp-guide')]]],
     [false,'Plan timeline & costs','Build a month-by-month plan and budget the issue costs.', [['IPO roadmap builder','roadmap.html'],['IPO cost calculator','ipo-cost-calculator.html']]],
-    [false,'Choose your merchant banker','Shortlist SEBI-registered merchant bankers by sector, size and track record.', [['Merchant banker match','mb-match.html'],['Ask the MB Fee Advisor',askUrl(b,'mb-fee-advisor')]]]
+    [false,'Choose your merchant banker','ipowork introduces SEBI-registered merchant bankers from its network, matched to your sector and issue size.', [['Get merchant banker introductions',waMb(b)],['Ask the MB Fee Advisor',askUrl(b,'mb-fee-advisor')]]]
   ];
-  return '<h3 class="lv-h">Your IPO preparedness plan</h3><div class="plan">'+steps.map(function(x,i){ return '<div class="card"><div class="n'+(x[0]?' ok':'')+'">'+(x[0]?'\u2713':(i+1))+'</div><div><h3>'+esc(x[1])+'</h3><p>'+esc(x[2])+'</p><div class="acts">'+x[3].map(function(l){ return '<a class="btn o" href="'+esc(l[1])+'">'+esc(l[0])+'</a>'; }).join('')+'</div></div></div>'; }).join('')+'</div>';
+  return '<h3 class="lv-h">Your IPO preparedness plan</h3><div class="plan">'+steps.map(function(x,i){ return '<div class="card"><div class="n'+(x[0]?' ok':'')+'">'+(x[0]?'\u2713':(i+1))+'</div><div><h3>'+esc(x[1])+'</h3><p>'+esc(x[2])+'</p><div class="acts">'+x[3].map(function(l){ var ext=/^https:\/\/wa\.me\//.test(l[1]); return '<a class="btn o" href="'+esc(l[1])+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+esc(l[0])+'</a>'; }).join('')+'</div></div></div>'; }).join('')+'</div>';
 }
 function assistants(b){
   return '<div class="sec"><h2>Your AI assistants <span class="small" style="font-family:var(--sans)">\u00b7 13 IPO specialists, free</span></h2><p class="sub" style="margin-bottom:12px">Each opens with your company\u2019s figures, so the answer is about you.</p><div class="ais">'
@@ -483,8 +486,8 @@ function support(b){
     +'<a class="main" href="'+CAL+'" target="_blank" rel="noopener"><b>\ud83d\udcc5 Book a 20-minute call</b><span>Walk through your brief with an adviser.</span></a>'
     +'<a href="'+esc(waUrl(b,''))+'" target="_blank" rel="noopener"><b>\ud83d\udcac WhatsApp +91 88510 59588</b><span>Quick questions, fast answers.</span></a>'
     +'<a href="mailto:partners@ipowork.com?subject='+encodeURIComponent('Advice request — '+(b?b.name:'my company'))+'"><b>\u2709\ufe0f partners@ipowork.com</b><span>Send documents or detailed questions.</span></a>'
-    +'<a href="mb-match.html"><b>\ud83c\udfe6 Find a merchant banker</b><span>Matched by sector, size and track record.</span></a>'
-    +'<a href="ca-cs.html"><b>\ud83e\uddfe CA / CS support</b><span>Tax, GST, registrations and compliance help.</span></a>'
+    +'<a href="'+esc(waMb(b))+'" target="_blank" rel="noopener"><b>\ud83c\udfe6 Find a merchant banker</b><span>We introduce SEBI-registered merchant bankers from our network, matched to your sector and size.</span></a>'
+    +'<a href="'+esc(waCa(b))+'" target="_blank" rel="noopener"><b>\ud83e\uddfe CA / CS support</b><span>Tax, GST, ROC and compliance help from our CA/CS partners.</span></a>'
     +'</div></div>';
 }
 function aboutData(b){ return '<details class="about"><summary>About your data \u2014 who sees it and when it updates</summary>'+privacy()+schedule(b)+'</details>'; }
